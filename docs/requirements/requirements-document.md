@@ -59,8 +59,8 @@
 
 | 문서명 | 경로 | 설명 |
 |---|---|---|
-| 2026-05-06 회의록 | `docs/meeting-record/meeting-2026-05-06.md` | 주제 선정, 요구사항 분석 방식, 타겟 그룹 도출 |
-| 2026-05-11 회의록 | `docs/meeting-record/meeting-2026-05-11.md` | 구현 방향, 기능 후보, 기능/비기능 요구사항 후보 정리 |
+| 2026-05-06 회의록 | `docs/meeting-minutes/meeting-2026-05-06.md` | 주제 선정, 요구사항 분석 방식, 타겟 그룹 도출 |
+| 2026-05-11 회의록 | `docs/meeting-minutes/meeting-2026-05-11.md` | 구현 방향, 기능 후보, 기능/비기능 요구사항 후보 정리 |
 | AI 인터뷰 시뮬레이션 문서 | `docs/requirements/ai-interview-simulation.md` | 페르소나 및 사용자 설문/인터뷰 시뮬레이션 결과 |
 
 ---
@@ -231,7 +231,8 @@
 | P-01 | 초등학생 | UR-13 | FR-24, FR-25 | UC-15, UC-16 |
 | P-02 | 중학생 | UR-06 | FR-11, FR-12 | UC-08, UC-09 |
 | P-02 | 중학생 | UR-07 | FR-13 | UC-10 |
-| P-03 | 고등학생 | UR-04 | FR-07, FR-09, FR-10 | UC-05, UC-07 |
+| P-03 | 고등학생 | UR-04 | FR-07, FR-09 | UC-05, UC-07 |
+| P-03 | 고등학생 | UR-04 | FR-10 | UC-19 |
 | P-03 | 고등학생 | UR-05 | FR-08 | UC-06 |
 | P-04 | 대학생/취준생 | UR-02 | FR-03, FR-05, FR-22 | UC-03 |
 | P-04 | 대학생/취준생 | UR-03 | FR-04 | UC-04 |
@@ -252,8 +253,69 @@
 
 본 절에는 Smart Edu Platform의 주요 액터와 기능 간의 관계를 나타내는 유스케이스 다이어그램을 삽입한다.
 
-```text
-[유스케이스 다이어그램 삽입 위치]
+```plantuml
+@startuml
+left to right direction
+
+actor "사용자" as User
+actor "관리자" as Admin
+actor "AI 시스템" as AISystem
+actor "외부 캘린더 시스템" as CalendarSystem
+
+rectangle "Smart Edu Platform" {
+  usecase "UC-01\n회원가입" as UC01
+  usecase "UC-02\n로그인" as UC02
+  usecase "UC-03\n학습 일정 관리" as UC03
+  usecase "UC-04\n칸반 보드 관리" as UC04
+  usecase "UC-05\nAI 학습 질의" as UC05
+  usecase "UC-06\nAI 오답노트 생성" as UC06
+  usecase "UC-07\n학습 추천 받기" as UC07
+  usecase "UC-08\n주간 학습 랭킹 확인" as UC08
+  usecase "UC-09\n스터디 챌린지 참여" as UC09
+  usecase "UC-10\n게시판 이용" as UC10
+  usecase "UC-11\n학습 통계 확인" as UC11
+  usecase "UC-12\n집중 모드 및 순공 시간 측정" as UC12
+  usecase "UC-13\nTTS 학습 및 요약 보기" as UC13
+  usecase "UC-14\n접근성 설정" as UC14
+  usecase "UC-15\n퀘스트 및 보상 확인" as UC15
+  usecase "UC-16\n초등학생 친화 UI 사용" as UC16
+  usecase "UC-17\n복습 알림 확인" as UC17
+  usecase "UC-18\n게시판 관리" as UC18
+  usecase "UC-19\nAI 기반 퀴즈 생성" as UC19
+}
+
+User --> UC01
+User --> UC02
+User --> UC03
+User --> UC04
+User --> UC05
+User --> UC06
+User --> UC07
+User --> UC08
+User --> UC09
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC13
+User --> UC14
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC19
+
+Admin --> UC18
+
+AISystem --> UC05
+AISystem --> UC06
+AISystem --> UC07
+AISystem --> UC13
+AISystem --> UC19
+
+CalendarSystem --> UC03
+
+UC03 ..> UC04 : <<include>>
+UC12 ..> UC11 : <<include>>
+@enduml
 ```
 
 ---
@@ -273,7 +335,7 @@
 
 | 액터 | 설명 |
 |---|---|
-| AI 시스템 | 질의응답, 오답노트, 추천, 요약 기능을 지원하는 외부 또는 내부 AI 기능 |
+| AI 시스템 | 질의응답, 오답노트, 추천, 퀴즈 생성, 요약 기능을 지원하는 외부 또는 내부 AI 기능 |
 | 외부 캘린더 시스템 | 학습 일정을 외부 캘린더와 연동하는 시스템 |
 
 ---
@@ -300,3 +362,4 @@
 | UC-16 | 초등학생 친화 UI 사용 | 사용자 | - |
 | UC-17 | 복습 알림 확인 | 사용자 | - |
 | UC-18 | 게시판 관리 | 관리자 | - |
+| UC-19 | AI 기반 퀴즈 생성 | 사용자 | AI 시스템 |
