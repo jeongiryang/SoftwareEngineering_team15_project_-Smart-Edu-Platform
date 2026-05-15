@@ -1,0 +1,99 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  FontName Malgun Gothic
+}
+skinparam actor {
+  FontName Malgun Gothic
+}
+skinparam component {
+  FontName Malgun Gothic
+}
+
+actor "사용자" as User
+actor "관리자" as Admin
+
+rectangle "Smart Edu Platform" {
+  package "계정 기능" {
+    usecase "회원가입" as UC01
+    usecase "로그인" as UC02
+    usecase "사용자 계정 관리 및 제재" as UC20
+  }
+
+  package "일정/학습 관리" {
+    usecase "학습 일정 관리" as UC03
+    usecase "칸반 보드 관리" as UC04
+    usecase "학습 통계 확인" as UC11
+    usecase "집중 모드 및\n순공 시간 측정" as UC12
+  }
+
+  package "AI 기능" {
+    usecase "AI 학습 질의" as UC05
+    usecase "AI 오답노트 생성" as UC06
+    usecase "학습 추천 받기" as UC07
+    usecase "TTS 학습 및\n요약 보기" as UC13
+    usecase "AI 기반 퀴즈 생성" as UC19
+  }
+
+  package "커뮤니티 기능" {
+    usecase "주간 학습 랭킹 확인" as UC08
+    usecase "스터디 챌린지 참여" as UC09
+    usecase "게시판 이용" as UC10
+    usecase "게시판 관리" as UC18
+    usecase "스터디 챌린지 관리" as UC21
+  }
+
+  package "사용자 지원 기능" {
+    usecase "접근성 설정" as UC14
+    usecase "퀘스트 및 보상 확인" as UC15
+    usecase "초등학생 친화 UI 사용" as UC16
+    usecase "복습 알림 확인" as UC17
+  }
+}
+
+component "AI 시스템" as AISystem
+component "외부 캘린더 시스템" as CalendarSystem
+
+User -[#1E88E5]-> UC01
+User -[#1E88E5]-> UC02
+User -[#1E88E5]-> UC03
+User -[#1E88E5]-> UC04
+User -[#1E88E5]-> UC05
+User -[#1E88E5]-> UC06
+User -[#1E88E5]-> UC07
+User -[#1E88E5]-> UC08
+User -[#1E88E5]-> UC09
+User -[#1E88E5]-> UC10
+User -[#1E88E5]-> UC11
+User -[#1E88E5]-> UC12
+User -[#1E88E5]-> UC13
+User -[#1E88E5]-> UC14
+User -[#1E88E5]-> UC15
+User -[#1E88E5]-> UC16
+User -[#1E88E5]-> UC17
+User -[#1E88E5]-> UC19
+
+Admin -[#43A047]-> UC18
+Admin -[#43A047]-> UC20
+Admin -[#43A047]-> UC21
+
+UC05 -[#FB8C00]-> AISystem
+UC06 -[#FB8C00]-> AISystem
+UC07 -[#FB8C00]-> AISystem
+UC13 -[#FB8C00]-> AISystem
+UC19 -[#FB8C00]-> AISystem
+
+UC03 -[#8E24AA]-> CalendarSystem
+
+UC11 -[#6D4C41,dashed,thickness=3]-> UC12 : <color:#6D4C41><size:16><<extend>></size></color>
+UC07 -[#6D4C41,dashed,thickness=3]-> UC11 : <color:#6D4C41><size:16><<extend>></size></color>
+
+legend bottom
+  선 색상: 사용자 <color:#1E88E5>파란색</color> / 관리자 <color:#43A047>초록색</color> / AI 시스템 <color:#FB8C00>주황색</color> / 외부 캘린더 시스템 <color:#8E24AA>보라색</color>
+  관계선: <color:#6D4C41><<extend>> 점선 화살표</color>
+endlegend
+@enduml
