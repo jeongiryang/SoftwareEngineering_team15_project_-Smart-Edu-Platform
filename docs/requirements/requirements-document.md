@@ -51,7 +51,7 @@
 - 비기능 요구사항
 - 요구사항 추적표
 - 주요 액터 및 유스케이스 목록
-- 유스케이스 다이어그램 삽입 위치
+- 유스케이스 다이어그램
 
 ---
 
@@ -249,74 +249,11 @@
 
 # 8. 유스케이스 다이어그램
 
-## 8.1 유스케이스 다이어그램 삽입 위치
+## 8.1 유스케이스 다이어그램
 
-본 절에는 Smart Edu Platform의 주요 액터와 기능 간의 관계를 나타내는 유스케이스 다이어그램을 삽입한다.
+Smart Edu Platform의 주요 액터와 시스템 기능 간의 관계는 다음 유스케이스 다이어그램과 같다.
 
-```plantuml
-@startuml
-left to right direction
-
-actor "사용자" as User
-actor "관리자" as Admin
-actor "AI 시스템" as AISystem
-actor "외부 캘린더 시스템" as CalendarSystem
-
-rectangle "Smart Edu Platform" {
-  usecase "UC-01\n회원가입" as UC01
-  usecase "UC-02\n로그인" as UC02
-  usecase "UC-03\n학습 일정 관리" as UC03
-  usecase "UC-04\n칸반 보드 관리" as UC04
-  usecase "UC-05\nAI 학습 질의" as UC05
-  usecase "UC-06\nAI 오답노트 생성" as UC06
-  usecase "UC-07\n학습 추천 받기" as UC07
-  usecase "UC-08\n주간 학습 랭킹 확인" as UC08
-  usecase "UC-09\n스터디 챌린지 참여" as UC09
-  usecase "UC-10\n게시판 이용" as UC10
-  usecase "UC-11\n학습 통계 확인" as UC11
-  usecase "UC-12\n집중 모드 및 순공 시간 측정" as UC12
-  usecase "UC-13\nTTS 학습 및 요약 보기" as UC13
-  usecase "UC-14\n접근성 설정" as UC14
-  usecase "UC-15\n퀘스트 및 보상 확인" as UC15
-  usecase "UC-16\n초등학생 친화 UI 사용" as UC16
-  usecase "UC-17\n복습 알림 확인" as UC17
-  usecase "UC-18\n게시판 관리" as UC18
-  usecase "UC-19\nAI 기반 퀴즈 생성" as UC19
-}
-
-User --> UC01
-User --> UC02
-User --> UC03
-User --> UC04
-User --> UC05
-User --> UC06
-User --> UC07
-User --> UC08
-User --> UC09
-User --> UC10
-User --> UC11
-User --> UC12
-User --> UC13
-User --> UC14
-User --> UC15
-User --> UC16
-User --> UC17
-User --> UC19
-
-Admin --> UC18
-
-AISystem --> UC05
-AISystem --> UC06
-AISystem --> UC07
-AISystem --> UC13
-AISystem --> UC19
-
-CalendarSystem --> UC03
-
-UC03 ..> UC04 : <<include>>
-UC12 ..> UC11 : <<include>>
-@enduml
-```
+![Smart Edu Platform 유스케이스 다이어그램](../../screenshots/usecase-diagram.png)
 
 ---
 
