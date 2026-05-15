@@ -21,6 +21,7 @@ rectangle "Smart Edu Platform" {
   package "계정 기능" {
     usecase "회원가입" as UC01
     usecase "로그인" as UC02
+    usecase "사용자 계정 관리 및 제재" as UC20
   }
 
   package "일정/학습 관리" {
@@ -43,6 +44,7 @@ rectangle "Smart Edu Platform" {
     usecase "스터디 챌린지 참여" as UC09
     usecase "게시판 이용" as UC10
     usecase "게시판 관리" as UC18
+    usecase "스터디 챌린지 관리" as UC21
   }
 
   package "사용자 지원 기능" {
@@ -76,6 +78,8 @@ User -[#1E88E5]-> UC17
 User -[#1E88E5]-> UC19
 
 Admin -[#43A047]-> UC18
+Admin -[#43A047]-> UC20
+Admin -[#43A047]-> UC21
 
 UC05 -[#FB8C00]-> AISystem
 UC06 -[#FB8C00]-> AISystem
@@ -85,6 +89,11 @@ UC19 -[#FB8C00]-> AISystem
 
 UC03 -[#8E24AA]-> CalendarSystem
 
-UC03 .[#666666].> UC04 : <<include>>
-UC12 .[#666666].> UC11 : <<include>>
+UC11 -[#6D4C41,dashed,thickness=3]-> UC12 : <color:#6D4C41><size:16><<extend>></size></color>
+UC07 -[#6D4C41,dashed,thickness=3]-> UC11 : <color:#6D4C41><size:16><<extend>></size></color>
+
+legend bottom
+  선 색상: 사용자 <color:#1E88E5>파란색</color> / 관리자 <color:#43A047>초록색</color> / AI 시스템 <color:#FB8C00>주황색</color> / 외부 캘린더 시스템 <color:#8E24AA>보라색</color>
+  관계선: <color:#6D4C41><<extend>> 점선 화살표</color>
+endlegend
 @enduml
