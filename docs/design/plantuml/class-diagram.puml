@@ -15,6 +15,7 @@ package "User Domain" {
     - name: String
     - userType: UserType
     - status: AccountStatus
+    - reported: Boolean
     - createdAt: DateTime
     + signUp(email, password, name): void
     + login(email, password): AuthSession
@@ -254,9 +255,11 @@ package "Social and Community Domain" {
     - startDate: Date
     - endDate: Date
     - status: ChallengeStatus
+    - reported: Boolean
     + join(user): void
     + updateProgress(user, minutes): void
     + close(): void
+    + report(reason): void
   }
 
   class Ranking {
@@ -299,6 +302,8 @@ package "Social and Community Domain" {
     + hidePost(post): void
     + deleteComment(comment): void
     + reviewReport(post): void
+    + suspendUser(user, reason): void
+    + moderateChallenge(challenge, action): void
   }
 }
 

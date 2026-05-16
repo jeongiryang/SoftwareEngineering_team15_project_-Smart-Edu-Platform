@@ -6,12 +6,12 @@
 
 본 문서는 Smart Edu Platform의 주요 도메인 객체와 객체 간 관계를 UML 클래스 다이어그램으로 정의한 설계 문서이다.
 
-요구사항 문서의 기능 요구사항 `FR-01`부터 `FR-27`까지를 기준으로, 실제 구현 시 핵심이 되는 사용자, 학습 일정, 태스크, 노트, AI 학습 지원, 커뮤니티, 학습 통계, 보상, 접근성, 관리자 기능을 중심으로 클래스를 구성하였다.
+요구사항 문서의 기능 요구사항 `FR-01`부터 `FR-29`까지를 기준으로, 실제 구현 시 핵심이 되는 사용자, 학습 일정, 태스크, 노트, AI 학습 지원, 커뮤니티, 학습 통계, 보상, 접근성, 관리자 기능을 중심으로 클래스를 구성하였다.
 
 다이어그램 작성 도구는 **PlantUML**을 기준으로 한다.
 
 - 다이어그램 구현 코드: [plantuml/class-diagram.puml](plantuml/class-diagram.puml)
-- 렌더링 이미지: [class-diagram/SmartEduPlatformClassDiagram.png](class-diagram/SmartEduPlatformClassDiagram.png)
+- 렌더링 이미지: [../../screenshots/class-diagram.png](../../screenshots/class-diagram.png)
 
 ---
 
@@ -21,10 +21,10 @@
 
 | 기능 영역 | 관련 요구사항 |
 |---|---|
-| 사용자 인증 및 프로필 | `FR-01`, `FR-02` |
+| 사용자 인증 및 프로필 | `FR-01`, `FR-02`, `FR-28` |
 | 학습 일정 및 태스크 관리 | `FR-03`, `FR-04`, `FR-05`, `FR-22` |
 | 학습 노트 및 AI 학습 지원 | `FR-06`, `FR-07`, `FR-08`, `FR-09`, `FR-10` |
-| 커뮤니티 및 소셜 학습 | `FR-11`, `FR-12`, `FR-13`, `FR-27` |
+| 커뮤니티 및 소셜 학습 | `FR-11`, `FR-12`, `FR-13`, `FR-27`, `FR-29` |
 | 집중 및 시간 관리 | `FR-14`, `FR-15`, `FR-16`, `FR-17` |
 | 음성 학습 및 접근성 | `FR-18`, `FR-19`, `FR-20`, `FR-21`, `FR-26` |
 | 보상 및 사용자 유형별 UI | `FR-23`, `FR-24`, `FR-25` |
@@ -33,7 +33,7 @@
 
 ## 3. 클래스 다이어그램
 
-![Smart Edu Platform Class Diagram](class-diagram/SmartEduPlatformClassDiagram.png)
+![Smart Edu Platform Class Diagram](../../screenshots/class-diagram.png)
 
 다이어그램 구현 코드는 [plantuml/class-diagram.puml](plantuml/class-diagram.puml)에 보관한다.
 
@@ -43,7 +43,7 @@
 
 | 클래스 | 설명 | 관련 요구사항 |
 |---|---|---|
-| `User` | 회원가입, 로그인, 계정 상태를 관리하는 사용자 핵심 클래스 | `FR-01`, `FR-02` |
+| `User` | 회원가입, 로그인, 계정 상태 및 제재 여부를 관리하는 사용자 핵심 클래스 | `FR-01`, `FR-02`, `FR-28` |
 | `UserProfile` | 학습 목표, 프로필 이미지, 선호 과목 등 사용자 부가 정보를 관리 | `FR-02`, `FR-23` |
 | `StudySchedule` | 캘린더 기반 학습 일정을 표현 | `FR-03`, `FR-22` |
 | `StudyTask` | 칸반 보드의 할 일, 진행 중, 완료 상태를 표현 | `FR-04` |
@@ -55,8 +55,8 @@
 | `FocusSession` | 스톱워치와 타이머를 통해 기록되는 순공 시간 | `FR-15` |
 | `AppBlockRule` | 공부 시간 동안 차단할 앱과 예외 조건을 관리 | `FR-14` |
 | `StudyStatistics`, `Heatmap` | 학습 시간, 진척도, 히트맵 데이터를 계산하고 표현 | `FR-16`, `FR-17` |
-| `StudyGroup`, `StudyChallenge`, `Ranking` | 그룹 학습, 챌린지, 주간 랭킹을 관리 | `FR-11`, `FR-12` |
-| `BoardPost`, `Comment`, `Admin` | 게시판과 운영 관리 기능을 표현 | `FR-13`, `FR-27` |
+| `StudyGroup`, `StudyChallenge`, `Ranking` | 그룹 학습, 챌린지, 주간 랭킹을 관리 | `FR-11`, `FR-12`, `FR-29` |
+| `BoardPost`, `Comment`, `Admin` | 게시판과 전반적인 운영 관리(사용자, 챌린지 제재 등) 기능을 표현 | `FR-13`, `FR-27`, `FR-28`, `FR-29` |
 | `AccessibilitySetting` | 큰 글씨, 고대비, 글자 크기 설정을 관리 | `FR-20` |
 | `RewardAccount`, `Badge`, `UserBadge` | 포인트, 뱃지, 보상 기능을 표현 | `FR-24` |
 
