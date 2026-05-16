@@ -379,7 +379,7 @@ SoftwareEngineering_team15_project_-Smart-Edu-Platform/
 │   ├── meeting-minutes/              # 회의록
 │   ├── requirements/                 # 요구사항 문서
 │   ├── design/                       # 설계 문서
-│   ├── test/                         # 테스트 보고서
+│   ├── test-report/                  # 테스트 보고서 문서
 │   └── final-report/                 # 최종 보고서
 ├── screenshots/                      # 이미지, 캡처, 다이어그램 관리 폴더
 └── src/                              # 실제 구현 코드

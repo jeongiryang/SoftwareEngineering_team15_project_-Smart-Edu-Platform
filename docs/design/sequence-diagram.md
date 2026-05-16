@@ -21,6 +21,8 @@
 - 다이어그램 구현 코드는 [plantuml/sequence-diagrams.puml](plantuml/sequence-diagrams.puml)에 통합 보관한다.
 - 렌더링 이미지는 `../../screenshots/sequence-diagram/` 폴더에 보관한다.
 
+본 다이어그램은 AI 도구를 활용하여 PlantUML 코드 초안을 생성한 뒤, 조원 검토를 거쳐 수정하고 PNG 이미지로 렌더링하였다. PlantUML 원본은 `docs/design/plantuml/`에 보관하며, 렌더링된 이미지는 `screenshots/`에 보관한다.
+
 ---
 
 ## 3. UC-01/UC-02 회원가입 및 로그인
