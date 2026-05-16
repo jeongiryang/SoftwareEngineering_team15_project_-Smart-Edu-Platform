@@ -108,13 +108,28 @@ API는 REST 방식으로 작성하며, 인증이 필요한 API는 JWT 인증 미
 
 ### 3.4 Statistics/Focus API
 
+집중 시간 측정은 클라이언트에서 타이머를 실행하고, 학습 종료 시점에 최종 누적 시간만 서버로 전송하는 방식으로 설계한다. 서버는 진행 중인 타이머 상태를 관리하지 않고, 완료된 집중 세션 기록만 저장한다. 집중 시간은 `durationMs` 단위로 저장하고, 화면 표시나 통계 계산 시 분/시간 단위로 변환한다.
+
 | Method | Endpoint | 설명 | 관련 요구사항 | 관련 UC |
 |---|---|---|---|---|
-| POST | `/api/focus-sessions/start` | 집중 세션 시작 | FR-15 | UC-12 |
-| PATCH | `/api/focus-sessions/:sessionId/stop` | 집중 세션 종료 및 순공 시간 저장 | FR-15 | UC-12 |
+| POST | `/api/focus-sessions` | 클라이언트에서 측정한 최종 집중 시간 저장 | FR-15 | UC-12 |
 | GET | `/api/focus-sessions` | 집중 세션 기록 조회 | FR-15 | UC-12 |
 | GET | `/api/statistics` | 학습 통계 조회 | FR-16 | UC-11 |
 | GET | `/api/statistics/heatmap` | 학습 히트맵 조회 | FR-17 | UC-11 |
+
+`POST /api/focus-sessions` 요청 데이터 예시는 다음과 같다.
+
+```json
+{
+  "taskId": 1,
+  "startedAt": "2026-05-16T20:00:00.000Z",
+  "endedAt": "2026-05-16T20:45:00.000Z",
+  "durationMs": 2700000,
+  "memo": "운영체제 복습"
+}
+```
+
+`durationMs`는 클라이언트에서 계산한 최종 누적 시간이다. 분 단위 저장 필드는 사용하지 않으며, 화면 표시나 통계 계산 시에만 `durationMs`를 분/시간 단위로 변환한다.
 
 ### 3.5 Community/Admin API
 
@@ -168,8 +183,10 @@ API는 REST 방식으로 작성하며, 인증이 필요한 API는 JWT 인증 미
 
 | 테이블 | 설명 | 주요 필드 |
 |---|---|---|
-| `focus_sessions` | 집중 모드 및 순공 시간 기록 | `id`, `user_id`, `task_id`, `started_at`, `ended_at`, `duration_minutes`, `memo`, `created_at` |
+| `focus_sessions` | 클라이언트에서 측정 완료된 집중 시간 기록 | `id`, `user_id`, `task_id`, `started_at`, `ended_at`, `duration_ms`, `memo`, `created_at` |
 | `study_statistics` | 학습 통계 스냅샷 | `id`, `user_id`, `period_start`, `period_end`, `total_minutes`, `completion_rate`, `statistics_json`, `created_at` |
+
+`focus_sessions.duration_ms`는 클라이언트에서 계산된 최종 누적 시간이다. `started_at`, `ended_at`은 클라이언트가 전달하는 실제 측정 시작/종료 시각이며, 서버는 진행 중인 세션 상태를 관리하지 않고 완료된 기록만 저장한다.
 
 ### 4.5 커뮤니티/관리자 영역
 
@@ -266,6 +283,7 @@ Prisma schema는 PostgreSQL 기준으로 작성한다. 테이블명은 snake_cas
 - AI 응답, 추천 근거, 퀴즈 선택지 등 유동적인 데이터는 `Json` 타입을 사용한다.
 - 사용자 권한, 계정 상태, 태스크 상태, 챌린지 상태 등은 enum으로 정의한다.
 - 외래키 삭제 정책은 데이터 손실 위험을 고려하여 기본적으로 `Restrict` 또는 `SetNull`을 우선 검토한다.
+- `FocusSession`은 클라이언트에서 측정한 최종 집중 시간을 `durationMs`로 저장한다. DB 컬럼은 `duration_ms`로 매핑하며, 화면 표시와 통계 계산에서는 해당 값을 분/시간 단위로 변환하여 사용한다.
 
 ### 7.2 주요 enum 후보
 
@@ -302,7 +320,7 @@ Prisma schema는 PostgreSQL 기준으로 작성한다. 테이블명은 snake_cas
 | 2 | 인증/사용자 | Auth/User API, `users`, `user_profiles` | 회원가입/로그인/JWT 테스트 통과 |
 | 3 | 일정/태스크 | Schedule/Task API, `study_schedules`, `study_tasks`, `notifications` | 일정/태스크 CRUD 테스트 통과 |
 | 4 | 노트/AI MVP | Notes/AI API, `study_notes`, `ai_questions`, `quizzes`, `quiz_questions` | 노트 CRUD, AI Mock 응답 저장 테스트 통과 |
-| 5 | 집중/통계 | Statistics/Focus API, `focus_sessions`, `study_statistics` | 집중 시간 저장 및 통계 조회 테스트 통과 |
+| 5 | 집중/통계 | Statistics/Focus API, `focus_sessions`, `study_statistics` | 클라이언트 측 타이머 종료 후 완료된 집중 기록 저장 및 통계 조회 테스트 통과 |
 | 6 | 커뮤니티 | Community API, `board_posts`, `comments` | 게시글/댓글 CRUD 테스트 통과 |
 | 7 | 관리자 | Admin API, `admin_actions` | 게시글 처리, 사용자 제재 테스트 통과 |
 | 8 | 확장 기능 | 챌린지, 랭킹, 오답노트, 추천 | MVP 완료 후 선택 구현 |
