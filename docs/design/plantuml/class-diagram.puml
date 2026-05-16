@@ -1,0 +1,474 @@
+@startuml class-diagram
+title Smart Edu Platform - Class Diagram
+scale 0.85
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+
+package "User Domain" {
+  class User <<사용자 계정>> {
+    note right of User
+      [사용자 정보 및 인증 관리 엔티티]
+      회원가입, 로그인, 계정 상태 관리
+    end note
+    - userId: Long
+    - email: String
+    - passwordHash: String
+    - name: String
+    - userType: UserType
+    - status: AccountStatus
+    - reported: Boolean
+    - createdAt: DateTime
+    + signUp(email, password, name): void // 회원가입 처리
+    + login(email, password): AuthSession // 로그인 및 토큰 발급
+    + updatePassword(oldPassword, newPassword): void // 비밀번호 변경
+    + deactivate(): void // 계정 비활성화
+  }
+
+  class UserProfile <<프로필 정보>> {
+    - profileId: Long
+    - learningGoal: String
+    - profileImageUrl: String
+    - targetExam: String
+    - preferredSubject: String
+    + updateGoal(goal): void // 학습 목표 업데이트
+    + updateProfileImage(imageUrl): void // 프로필 이미지 변경
+  }
+
+  class AuthSession <<인증 세션/토큰>> {
+    - sessionId: String
+    - accessToken: String
+    - refreshToken: String
+    - expiredAt: DateTime
+    + isExpired(): Boolean // 토큰 만료 여부 확인
+    + revoke(): void // 토큰(세션) 폐기
+  }
+
+  class AccessibilitySetting <<접근성 설정>> {
+    - settingId: Long
+    - largeTextEnabled: Boolean
+    - highContrastEnabled: Boolean
+    - fontScale: Float
+    - themeName: String
+    + enableLargeText(): void // 큰 글씨 모드 활성화
+    + enableHighContrast(): void // 고대비 모드 활성화
+    + updateFontScale(scale): void // 폰트 크기 조절
+  }
+}
+
+package "Schedule Domain" {
+  class StudySchedule <<학습 일정>> {
+    note right of StudySchedule
+      [학습 일정 관리 엔티티]
+      외부 캘린더 연동 및 마감 알림의 기준점
+    end note
+    - scheduleId: Long
+    - title: String
+    - subject: String
+    - startAt: DateTime
+    - endAt: DateTime
+    - priority: Priority
+    - repeatRule: String
+    - memo: String
+    + updateSchedule(title, startAt, endAt): void // 일정 정보 수정
+    + cancel(): void // 일정 취소
+    + isDeadlineNear(now): Boolean // 마감 기한 임박 여부 계산
+  }
+
+  class StudyTask <<칸반 태스크>> {
+    - taskId: Long
+    - title: String
+    - status: TaskStatus
+    - dueDate: Date
+    - priority: Priority
+    - memo: String
+    + moveTo(status): void // 태스크 칸반 상태 변경 (TODO, DOING 등)
+    + complete(): void // 태스크/리뷰 완료 처리
+    + updatePriority(priority): void // 중요도 수정
+  }
+
+  class Notification <<알림 메시지>> {
+    - notificationId: Long
+    - type: NotificationType
+    - message: String
+    - scheduledAt: DateTime
+    - sentAt: DateTime
+    - read: Boolean
+    + send(): void // 알림 발송
+    + markAsRead(): void // 알림 읽음 처리
+  }
+
+  class ExternalCalendarLink <<외부 캘린더 연동>> {
+    - linkId: Long
+    - provider: CalendarProvider
+    - externalAccountId: String
+    - syncEnabled: Boolean
+    + syncSchedule(schedule): void // 외부 캘린더에 일정 동기화
+    + disableSync(): void // 동기화 해제
+  }
+}
+
+package "Learning Domain" {
+  class StudyNote <<학습 노트>> {
+    - noteId: Long
+    - title: String
+    - content: Text
+    - subject: String
+    - tags: String[]
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + updateContent(content): void // 노트/게시글/댓글 내용 수정
+    + addTag(tag): void // 검색용 태그 추가
+    + summarize(): Summary // AI를 통한 핵심 내용 요약
+  }
+
+  class Quiz <<퀴즈 세트>> {
+    - quizId: Long
+    - title: String
+    - subject: String
+    - difficulty: Difficulty
+    - createdAt: DateTime
+    + addQuestion(question): void // 퀴즈에 문제 추가
+    + grade(answers): QuizResult // 사용자 답안 자동 채점
+  }
+
+  class QuizQuestion <<퀴즈 문제>> {
+    - questionId: Long
+    - content: Text
+    - choices: String[]
+    - answer: String
+    - explanation: Text
+    + checkAnswer(userAnswer): Boolean // 정답 일치 여부 확인
+  }
+
+  class WrongAnswerNote <<AI 오답노트>> {
+    - wrongAnswerNoteId: Long
+    - problemContent: Text
+    - userAnswer: Text
+    - correctAnswer: Text
+    - explanation: Text
+    - weaknessType: String
+    - createdAt: DateTime
+    + updateExplanation(explanation): void // 해설 내용 보강
+    + markReviewed(): void // 오답노트 복습 완료 처리
+  }
+
+  class ReviewReminder <<복습 알림 주기>> {
+    - reminderId: Long
+    - reviewAt: DateTime
+    - intervalDays: Integer
+    - completed: Boolean
+    + scheduleNext(): void // 다음 복습 알림 주기 설정
+    + complete(): void // 태스크/리뷰 완료 처리
+  }
+}
+
+package "AI Learning Domain" {
+  class AIQuestion <<AI 질의 기록>> {
+    - questionId: Long
+    - prompt: Text
+    - answer: Text
+    - subject: String
+    - createdAt: DateTime
+    + saveAnswer(answer): void // AI가 생성한 답변 저장
+  }
+
+  class AIRecommendation <<AI 학습 추천>> {
+    - recommendationId: Long
+    - subject: String
+    - weaknessType: String
+    - reason: Text
+    - priority: Integer
+    + updatePriority(priority): void // 중요도 수정
+  }
+
+  class AIService <<AI 기능 처리기>> {
+    note top of AIService
+      [AI 로직 중앙 처리기]
+      외부 API와 연동해 퀴즈/요약/추천 등 생성
+    end note
+    + answerQuestion(prompt, context): AIQuestion // 사용자의 질문에 대한 AI 답변 도출
+    + generateWrongAnswerNote(problem, userAnswer): WrongAnswerNote // 틀린 문제 분석 및 오답노트 자동 생성
+    + recommendWeakness(user): AIRecommendation[] // 취약점 분석 및 맞춤형 학습 자료 추천
+    + generateQuiz(note, difficulty, count): Quiz // 학습 노트 내용 기반 AI 퀴즈 생성
+    + summarizeText(text): Summary // 긴 텍스트 문서의 핵심 내용 요약
+  }
+
+  class Summary <<AI 요약 결과>> {
+    - summaryId: Long
+    - sourceType: String
+    - sourceId: Long
+    - content: Text
+    - keywords: String[]
+  }
+}
+
+package "Focus and Analytics Domain" {
+  class FocusSession <<집중 모드 세션>> {
+    - sessionId: Long
+    - subject: String
+    - startedAt: DateTime
+    - endedAt: DateTime
+    - durationMinutes: Integer
+    - memo: String
+    + start(): void // 집중 세션(타이머) 시작
+    + stop(): void // 집중 세션 종료 및 기록 저장
+    + calculateDuration(): Integer // 총 순공 시간(분) 계산
+  }
+
+  class AppBlockRule <<앱 차단 규칙>> {
+    - ruleId: Long
+    - appName: String
+    - startedAt: DateTime
+    - endedAt: DateTime
+    - exceptionApp: String
+    - enabled: Boolean
+    + enable(): void // 차단 규칙 활성화
+    + disable(): void // 차단 규칙 비활성화
+    + isActive(now): Boolean // 현재 시간 기준 앱 차단 작동 여부
+  }
+
+  class StudyStatistics <<학습 통계>> {
+    - statisticsId: Long
+    - periodStart: Date
+    - periodEnd: Date
+    - totalStudyMinutes: Integer
+    - completionRate: Float
+    + calculateTotalTime(records): Integer // 기간 내 전체 공부 시간 합산
+    + calculateCompletionRate(tasks): Float // 목표 대비 태스크 완료 비율 계산
+    + createHeatmap(records): Heatmap // 잔디심기(히트맵)용 시각화 데이터 생성
+  }
+
+  class Heatmap <<잔디심기 히트맵>> {
+    - heatmapId: Long
+    - startDate: Date
+    - endDate: Date
+    - dailyMinutes: Map<Date, Integer>
+    + getDailyValue(date): Integer // 특정 일자의 누적 공부 시간 반환
+  }
+}
+
+package "Social and Community Domain" {
+  class StudyGroup <<스터디 그룹>> {
+    - groupId: Long
+    - name: String
+    - description: String
+    - createdAt: DateTime
+    + addMember(user): void // 그룹에 새로운 멤버 추가
+    + removeMember(user): void // 멤버 퇴출 또는 탈퇴
+  }
+
+  class StudyChallenge <<스터디 챌린지>> {
+    - challengeId: Long
+    - title: String
+    - goalMinutes: Integer
+    - startDate: Date
+    - endDate: Date
+    - status: ChallengeStatus
+    - reported: Boolean
+    + join(user): void // 스터디 챌린지 참가
+    + updateProgress(user, minutes): void // 챌린지 달성도(공부 시간) 업데이트
+    + close(): void // 챌린지 강제/정상 종료
+    + report(reason): void // 챌린지, 게시글 또는 댓글 불량 신고 접수
+  }
+
+  class Ranking <<랭킹 집계>> {
+    - rankingId: Long
+    - periodStart: Date
+    - periodEnd: Date
+    - rankingType: RankingType
+    + calculate(group): RankingEntry[] // 스터디 그룹 내 점수 산출 및 순위 정렬
+  }
+
+  class RankingEntry <<랭킹 순위 항목>> {
+    - rank: Integer
+    - studyMinutes: Integer
+    - userName: String
+  }
+
+  class BoardPost <<게시판 게시글>> {
+    - postId: Long
+    - category: PostCategory
+    - title: String
+    - content: Text
+    - createdAt: DateTime
+    - reported: Boolean
+    + update(title, content): void // 게시글 내용 수정
+    + report(reason): void // 챌린지, 게시글 또는 댓글 불량 신고 접수
+  }
+
+  class Comment <<게시글 댓글>> {
+    - commentId: Long
+    - content: Text
+    - createdAt: DateTime
+    - reported: Boolean
+    + update(content): void // 댓글 내용 수정
+    + report(reason): void // 챌린지, 게시글 또는 댓글 불량 신고 접수
+  }
+
+  class Admin <<관리자>> {
+    note bottom of Admin
+      [관리자 엔티티]
+      게시판 및 챌린지 제재, 불량 사용자 정지 담당
+    end note
+    - adminId: Long
+    - name: String
+    + hidePost(post): void // 관리자에 의한 부적절한 게시물 숨김(블라인드) 처리
+    + deleteComment(comment): void // 관리자에 의한 악성 댓글 완전 삭제
+    + reviewReport(post): void // 신고가 누적된 게시물 관리자 검토
+    + suspendUser(user, reason): void // 불량 사용자 계정 일시 정지(제재) 조치
+    + moderateChallenge(challenge, action): void // 문제 챌린지에 대한 관리자 제재 조치
+  }
+}
+
+package "Reward Domain" {
+  class RewardAccount <<포인트 지갑>> {
+    - rewardAccountId: Long
+    - pointBalance: Integer
+    + addPoint(point): void // 보상 포인트 적립
+    + usePoint(point): void // 보상 포인트 사용
+  }
+
+  class Badge <<업적 뱃지>> {
+    - badgeId: Long
+    - name: String
+    - description: String
+    - condition: String
+    + isAchievedBy(user): Boolean // 뱃지 획득 조건(레벨, 시간 등) 충족 여부 검사
+  }
+
+  class UserBadge <<뱃지 보유 기록>> {
+    - userBadgeId: Long
+    - acquiredAt: DateTime
+  }
+}
+
+enum UserType {
+  ELEMENTARY
+  MIDDLE
+  HIGH
+  UNIVERSITY
+  EXAM_PREP
+  WORKER
+  SENIOR
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  LOCKED
+  DEACTIVATED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationType {
+  DEADLINE
+  REVIEW
+  CHALLENGE
+  FRIEND_ACTIVITY
+}
+
+enum CalendarProvider {
+  GOOGLE
+  APPLE
+  OUTLOOK
+}
+
+enum Difficulty {
+  EASY
+  NORMAL
+  HARD
+}
+
+enum ChallengeStatus {
+  READY
+  IN_PROGRESS
+  CLOSED
+}
+
+enum RankingType {
+  WEEKLY
+  MONTHLY
+}
+
+enum PostCategory {
+  QUESTION
+  FREE
+  STUDY_PROOF
+}
+
+User "1" *-- "1" UserProfile
+User "1" *-- "0..*" AuthSession
+User "1" *-- "1" AccessibilitySetting
+User "1" *-- "0..*" StudySchedule
+User "1" *-- "0..*" StudyTask
+User "1" *-- "0..*" StudyNote
+User "1" *-- "0..*" WrongAnswerNote
+User "1" *-- "0..*" AIQuestion
+User "1" *-- "0..*" AIRecommendation
+User "1" *-- "0..*" FocusSession
+User "1" *-- "0..*" AppBlockRule
+User "1" *-- "1" RewardAccount
+
+StudySchedule "1" o-- "0..*" Notification
+StudySchedule "0..*" -- "0..1" ExternalCalendarLink
+StudyTask "0..*" -- "0..1" StudySchedule
+StudyTask "1" o-- "0..*" Notification
+
+StudyNote "1" o-- "0..*" Quiz
+StudyNote "1" o-- "0..*" Summary
+Quiz "1" *-- "1..*" QuizQuestion
+WrongAnswerNote "1" o-- "0..*" ReviewReminder
+
+AIService ..> AIQuestion
+AIService ..> WrongAnswerNote
+AIService ..> AIRecommendation
+AIService ..> Quiz
+AIService ..> Summary
+
+FocusSession "0..*" -- "0..1" StudyTask
+StudyStatistics ..> FocusSession
+StudyStatistics ..> StudyTask
+StudyStatistics ..> Heatmap
+
+StudyGroup "1" o-- "0..*" User
+StudyGroup "1" o-- "0..*" StudyChallenge
+StudyGroup "1" o-- "0..*" Ranking
+Ranking "1" *-- "1..*" RankingEntry
+RankingEntry "0..*" --> "1" User
+
+User "1" -- "0..*" BoardPost
+BoardPost "1" *-- "0..*" Comment
+User "1" -- "0..*" Comment
+Admin ..> BoardPost
+Admin ..> Comment
+
+RewardAccount "1" o-- "0..*" UserBadge
+UserBadge "0..*" --> "1" Badge
+
+User --> UserType
+User --> AccountStatus
+StudyTask --> TaskStatus
+StudyTask --> Priority
+StudySchedule --> Priority
+Notification --> NotificationType
+ExternalCalendarLink --> CalendarProvider
+Quiz --> Difficulty
+StudyChallenge --> ChallengeStatus
+Ranking --> RankingType
+BoardPost --> PostCategory
+
+@enduml
