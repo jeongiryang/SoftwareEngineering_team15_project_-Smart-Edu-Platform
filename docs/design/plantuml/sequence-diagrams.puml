@@ -11,47 +11,47 @@ database "Database" as DB
 entity "AuthSession" as AuthSession
 
 User -> UI: 이메일, 비밀번호, 이름 입력
-UI -> AuthController: signUp(email, password, name)
-AuthController -> AuthService: register(email, password, name)
-AuthService -> UserRepository: existsByEmail(email)
-UserRepository -> DB: SELECT user WHERE email = ?
+UI -> AuthController: signUp(email, password, name) : 사용자 정보 입력 수신 및 유효성 검사
+AuthController -> AuthService: register(email, password, name) : 회원가입 비즈니스 로직 수행
+AuthService -> UserRepository: existsByEmail(email) : 이메일 중복 여부 확인
+UserRepository -> DB: SELECT user WHERE email = ? : 사용자 데이터 DB 조회
 DB --> UserRepository: 사용자 존재 여부
-UserRepository --> AuthService: exists
+UserRepository --> AuthService: exists : 중복 여부 결과
 
 alt 이미 가입된 이메일인 경우
-  AuthService --> AuthController: DuplicateEmailException
+  AuthService --> AuthController: DuplicateEmailException : 이메일 중복 에러 발생
   AuthController --> UI: 가입 실패 메시지
   UI --> User: 이메일 중복 안내
 else 가입 가능한 이메일인 경우
-  AuthService -> PasswordEncoder: encode(password)
-  PasswordEncoder --> AuthService: passwordHash
-  AuthService -> UserRepository: save(User)
-  UserRepository -> DB: INSERT user
+  AuthService -> PasswordEncoder: encode(password) : 비밀번호 암호화
+  PasswordEncoder --> AuthService: passwordHash : 암호화된 비밀번호
+  AuthService -> UserRepository: save(User) : 사용자 정보 저장
+  UserRepository -> DB: INSERT user : 사용자 정보 DB 저장
   DB --> UserRepository: 저장 완료
-  UserRepository --> AuthService: savedUser
+  UserRepository --> AuthService: savedUser : 저장된 사용자 정보
   AuthService --> AuthController: 회원가입 성공
   AuthController --> UI: 가입 완료 메시지
   UI --> User: 로그인 화면 표시
 end
 
 User -> UI: 이메일, 비밀번호 입력
-UI -> AuthController: login(email, password)
-AuthController -> AuthService: authenticate(email, password)
-AuthService -> UserRepository: findByEmail(email)
-UserRepository -> DB: SELECT user WHERE email = ?
-DB --> UserRepository: user
-UserRepository --> AuthService: user
-AuthService -> PasswordEncoder: matches(password, passwordHash)
+UI -> AuthController: login(email, password) : 로그인 요청 수신 및 파라미터 검증
+AuthController -> AuthService: authenticate(email, password) : 사용자 인증 비즈니스 로직 수행
+AuthService -> UserRepository: findByEmail(email) : 이메일 기반 사용자 정보 조회
+UserRepository -> DB: SELECT user WHERE email = ? : 사용자 데이터 DB 조회
+DB --> UserRepository: user : 사용자 정보 반환
+UserRepository --> AuthService: user : 조회된 사용자 정보
+AuthService -> PasswordEncoder: matches(password, passwordHash) : 비밀번호 일치 확인
 PasswordEncoder --> AuthService: 검증 결과
 
 alt 인증 실패
-  AuthService --> AuthController: AuthenticationException
+  AuthService --> AuthController: AuthenticationException : 계정 정보 불일치 에러 발생
   AuthController --> UI: 로그인 실패 메시지
   UI --> User: 이메일 또는 비밀번호 확인 안내
 else 인증 성공
-  AuthService -> AuthSession: create(user)
-  AuthSession --> AuthService: accessToken, refreshToken
-  AuthService --> AuthController: LoginResponse
+  AuthService -> AuthSession: create(user) : 인증 세션(토큰) 생성
+  AuthSession --> AuthService: accessToken, refreshToken : 생성된 인증 토큰
+  AuthService --> AuthController: LoginResponse : 로그인 성공 정보 (토큰 등) 반환
   AuthController --> UI: 토큰 및 사용자 정보 반환
   UI --> User: 메인 화면 이동
 end
@@ -74,30 +74,30 @@ database "Database" as DB
 collections "External Calendar API" as ExternalCalendarAPI
 
 User -> UI: 일정명, 날짜, 시간, 과목, 중요도 입력
-UI -> ScheduleController: createSchedule(request)
-ScheduleController -> ScheduleService: createSchedule(userId, request)
-ScheduleService -> ScheduleRepository: save(StudySchedule)
-ScheduleRepository -> DB: INSERT study_schedule
+UI -> ScheduleController: createSchedule(request) : 일정 정보 수신 및 포맷 검증
+ScheduleController -> ScheduleService: createSchedule(userId, request) : 일정 생성 비즈니스 로직 수행
+ScheduleService -> ScheduleRepository: save(StudySchedule) : 학습 일정 객체 저장
+ScheduleRepository -> DB: INSERT study_schedule : 학습 일정 DB 저장
 DB --> ScheduleRepository: 저장 완료
-ScheduleRepository --> ScheduleService: savedSchedule
+ScheduleRepository --> ScheduleService: savedSchedule : 저장된 일정 정보
 
-ScheduleService -> NotificationService: createDeadlineNotification(savedSchedule)
-NotificationService -> NotificationRepository: save(Notification)
-NotificationRepository -> DB: INSERT notification
+ScheduleService -> NotificationService: createDeadlineNotification(savedSchedule) : 마감 알림 생성 요청
+NotificationService -> NotificationRepository: save(Notification) : 복습 알림 DB 저장
+NotificationRepository -> DB: INSERT notification : 알림 정보 DB 저장
 DB --> NotificationRepository: 저장 완료
-NotificationRepository --> NotificationService: savedNotification
+NotificationRepository --> NotificationService: savedNotification : 저장된 알림 정보
 NotificationService --> ScheduleService: 알림 예약 완료
 
 opt 외부 캘린더 연동이 켜져 있는 경우
-  ScheduleService -> CalendarSyncService: sync(savedSchedule)
-  CalendarSyncService -> ExternalCalendarLink: getProvider(userId)
-  ExternalCalendarLink --> CalendarSyncService: provider, externalAccountId
-  CalendarSyncService -> ExternalCalendarAPI: createEvent(savedSchedule)
-  ExternalCalendarAPI --> CalendarSyncService: externalEventId
+  ScheduleService -> CalendarSyncService: sync(savedSchedule) : 외부 캘린더 동기화 요청
+  CalendarSyncService -> ExternalCalendarLink: getProvider(userId) : 연동된 캘린더 제공자 조회
+  ExternalCalendarLink --> CalendarSyncService: provider, externalAccountId : 연동된 외부 캘린더 계정
+  CalendarSyncService -> ExternalCalendarAPI: createEvent(savedSchedule) : 외부 캘린더 이벤트 생성
+  ExternalCalendarAPI --> CalendarSyncService: externalEventId : 외부 캘린더 일정 ID
   CalendarSyncService --> ScheduleService: 외부 캘린더 동기화 완료
 end
 
-ScheduleService --> ScheduleController: ScheduleResponse
+ScheduleService --> ScheduleController: ScheduleResponse : 일정 등록 성공 정보 반환
 ScheduleController --> UI: 등록된 일정 정보 반환
 UI --> User: 캘린더에 일정 표시
 
@@ -115,29 +115,29 @@ entity "TaskRepository" as TaskRepository
 database "Database" as DB
 
 User -> UI: 태스크 카드를 다른 컬럼으로 이동
-UI -> TaskController: updateTaskStatus(taskId, status)
-TaskController -> TaskService: updateStatus(userId, taskId, status)
-TaskService -> TaskRepository: findByIdAndUserId(taskId, userId)
-TaskRepository -> DB: SELECT task WHERE task_id = ? AND user_id = ?
-DB --> TaskRepository: task
-TaskRepository --> TaskService: StudyTask
+UI -> TaskController: updateTaskStatus(taskId, status) : 상태 변경 데이터 수신
+TaskController -> TaskService: updateStatus(userId, taskId, status) : 상태 업데이트 로직 수행
+TaskService -> TaskRepository: findByIdAndUserId(taskId, userId) : 기존 태스크 조회
+TaskRepository -> DB: SELECT task WHERE task_id = ? AND user_id = ? : 태스크 데이터 DB 조회
+DB --> TaskRepository: task : 태스크 데이터 반환
+TaskRepository --> TaskService: StudyTask : 태스크 엔티티 반환
 
 alt 태스크가 존재하지 않는 경우
-  TaskService --> TaskController: TaskNotFoundException
+  TaskService --> TaskController: TaskNotFoundException : 태스크 조회 실패 에러 발생
   TaskController --> UI: 상태 변경 실패
   UI --> User: 태스크를 찾을 수 없음 안내
 else 태스크가 존재하는 경우
-  TaskService -> TaskService: task.moveTo(status)
-  TaskService -> TaskRepository: save(task)
-  TaskRepository -> DB: UPDATE study_task
+  TaskService -> TaskService: task.moveTo(status) : 태스크 상태 변경
+  TaskService -> TaskRepository: save(task) : 변경된 태스크 상태 저장
+  TaskRepository -> DB: UPDATE study_task : 변경된 상태 DB 업데이트
   DB --> TaskRepository: 수정 완료
 
   opt 완료 상태로 변경한 경우
-    TaskService -> NotificationService: cancelDeadlineNotification(taskId)
+    TaskService -> NotificationService: cancelDeadlineNotification(taskId) : 기존 알림 취소 요청
     NotificationService --> TaskService: 알림 취소 완료
   end
 
-  TaskService --> TaskController: TaskResponse
+  TaskService --> TaskController: TaskResponse : 상태 변경 완료 정보 반환
   TaskController --> UI: 변경된 태스크 정보 반환
   UI --> User: 칸반 보드 갱신
 end
@@ -157,17 +157,17 @@ database "Database" as DB
 collections "External AI API" as ExternalAI
 
 User -> UI: 학습 질문 또는 오답 데이터 입력
-UI -> AIController: askAI(request)
-AIController -> AIService: processAIRequest(userId, request)
-AIService -> ExternalAI: analyzeRequest(request)
+UI -> AIController: askAI(request) : AI 질의 요청 수신
+AIController -> AIService: processAIRequest(userId, request) : AI 질의 로직 처리
+AIService -> ExternalAI: analyzeRequest(request) : 외부 AI 질의 및 응답 대기
 ExternalAI --> AIService: 답변, 해설, 취약 유형, 추천 학습
-AIService -> WrongAnswerRepository: save(WrongAnswerNote)
-WrongAnswerRepository -> DB: INSERT wrong_answer_note
+AIService -> WrongAnswerRepository: save(WrongAnswerNote) : 도출된 오답노트 저장
+WrongAnswerRepository -> DB: INSERT wrong_answer_note : 오답노트 DB 저장
 DB --> WrongAnswerRepository: 오답노트 저장 완료
-AIService -> RecommendationRepository: save(AIRecommendation)
-RecommendationRepository -> DB: INSERT ai_recommendation
+AIService -> RecommendationRepository: save(AIRecommendation) : AI 추천 학습자료 저장
+RecommendationRepository -> DB: INSERT ai_recommendation : 추천 자료 DB 저장
 DB --> RecommendationRepository: 추천 저장 완료
-AIService --> AIController: AIResponse
+AIService --> AIController: AIResponse : AI 질의응답 결과 반환
 AIController --> UI: AI 답변, 오답노트, 추천 항목 반환
 UI --> User: 화면에 결과 표시
 @enduml
@@ -183,14 +183,14 @@ entity "FocusSessionRepository" as FocusSessionRepository
 database "Database" as DB
 
 User -> UI: 랭킹 탭 선택
-UI -> RankingController: getWeeklyRanking()
-RankingController -> RankingService: getWeeklyRanking(userId)
-RankingService -> FocusSessionRepository: findWeeklyStudyTimes()
-FocusSessionRepository -> DB: SELECT user_id, SUM(duration) WHERE date >= week_start
-DB --> FocusSessionRepository: times
-FocusSessionRepository --> RankingService: times
-RankingService -> RankingService: sortAndRank()
-RankingService --> RankingController: RankingResponse
+UI -> RankingController: getWeeklyRanking() : 주간 랭킹 조회 요청 수신
+RankingController -> RankingService: getWeeklyRanking(userId) : 주간 랭킹 로직 처리
+RankingService -> FocusSessionRepository: findWeeklyStudyTimes() : 주간 공부 시간 데이터 조회
+FocusSessionRepository -> DB: SELECT user_id, SUM(duration) WHERE date >= week_start : 주간 공부 시간 합산 DB 조회
+DB --> FocusSessionRepository: times : 합산된 시간 목록 반환
+FocusSessionRepository --> RankingService: times : 공부 시간 데이터 반환
+RankingService -> RankingService: sortAndRank() : 랭킹 산출 및 정렬 계산
+RankingService --> RankingController: RankingResponse : 랭킹 산출 결과 반환
 RankingController --> UI: 랭킹 목록 반환
 UI --> User: 친구 및 그룹 내 랭킹 표시
 @enduml
@@ -207,32 +207,32 @@ entity "ChallengeRepository" as ChallengeRepository
 database "Database" as DB
 
 User -> UI: 스터디 챌린지 생성/참여 요청
-UI -> ChallengeController: joinChallenge(request)
-ChallengeController -> ChallengeService: joinChallenge(userId, request)
-ChallengeService -> ChallengeRepository: save(ChallengeParticipant)
-ChallengeRepository -> DB: INSERT challenge_participant
+UI -> ChallengeController: joinChallenge(request) : 챌린지 참여 요청 수신
+ChallengeController -> ChallengeService: joinChallenge(userId, request) : 챌린지 참여 승인 처리
+ChallengeService -> ChallengeRepository: save(ChallengeParticipant) : 챌린지 참여자 정보 저장
+ChallengeRepository -> DB: INSERT challenge_participant : 챌린지 참여자 DB 등록
 DB --> ChallengeRepository: 저장 완료
-ChallengeService --> ChallengeController: ChallengeResponse
+ChallengeService --> ChallengeController: ChallengeResponse : 챌린지 처리 응답 반환
 ChallengeController --> UI: 참여 완료 메시지
 UI --> User: 챌린지 대시보드 표시
 
 Admin -> UI: 부적절한 챌린지 조회 요청
-UI -> ChallengeController: getReportedChallenges()
-ChallengeController -> ChallengeService: getReportedChallenges(adminId)
-ChallengeService -> ChallengeRepository: findReported()
-ChallengeRepository -> DB: SELECT challenge WHERE reported = true
-DB --> ChallengeRepository: reportedChallenges
-ChallengeService --> ChallengeController: ChallengeList
+UI -> ChallengeController: getReportedChallenges() : 신고된 챌린지 조회 요청 수신 (권한 검증)
+ChallengeController -> ChallengeService: getReportedChallenges(adminId) : 신고 목록 데이터베이스 조회 로직 수행
+ChallengeService -> ChallengeRepository: findReported() : 신고 누적 챌린지 목록 조회
+ChallengeRepository -> DB: SELECT challenge WHERE reported = true : 신고 상태 챌린지 DB 조회
+DB --> ChallengeRepository: reportedChallenges : 조회된 문제 챌린지 반환
+ChallengeService --> ChallengeController: ChallengeList : 챌린지 목록 정보 반환
 ChallengeController --> UI: 신고된 챌린지 목록 표시
 UI --> Admin: 목록 확인
 
 Admin -> UI: 챌린지 제재 처리 (삭제)
-UI -> ChallengeController: moderateChallenge(challengeId, action)
-ChallengeController -> ChallengeService: moderateChallenge(adminId, challengeId, action)
-ChallengeService -> ChallengeRepository: delete(challengeId)
-ChallengeRepository -> DB: DELETE challenge WHERE id = ?
+UI -> ChallengeController: moderateChallenge(challengeId, action) : 챌린지 제재 요청 수신 (권한 검증)
+ChallengeController -> ChallengeService: moderateChallenge(adminId, challengeId, action) : 제재 상태 적용 비즈니스 로직 수행
+ChallengeService -> ChallengeRepository: delete(challengeId) : 챌린지 강제 삭제 요청
+ChallengeRepository -> DB: DELETE challenge WHERE id = ? : 챌린지 DB 삭제 반영
 DB --> ChallengeRepository: 삭제 완료
-ChallengeService --> ChallengeController: ModerationResult
+ChallengeService --> ChallengeController: ModerationResult : 제재 조치 결과 반환
 ChallengeController --> UI: 처리 결과 반환
 UI --> Admin: 제재 완료 표시
 @enduml
@@ -253,55 +253,55 @@ entity "CommentRepository" as CommentRepository
 database "Database" as DB
 
 User -> BoardUI: 게시판 카테고리, 제목, 내용 입력
-BoardUI -> BoardController: createPost(request)
-BoardController -> BoardService: createPost(userId, request)
-BoardService -> PostRepository: save(BoardPost)
-PostRepository -> DB: INSERT board_post
+BoardUI -> BoardController: createPost(request) : 게시물 생성 요청 수신
+BoardController -> BoardService: createPost(userId, request) : 게시물 작성 비즈니스 로직
+BoardService -> PostRepository: save(BoardPost) : 게시글 데이터 저장
+PostRepository -> DB: INSERT board_post : 게시글 DB 등록
 DB --> PostRepository: 저장 완료
-PostRepository --> BoardService: savedPost
-BoardService --> BoardController: PostResponse
+PostRepository --> BoardService: savedPost : 저장 완료된 게시글 객체
+BoardService --> BoardController: PostResponse : 작성 완료 게시글 정보 반환
 BoardController --> BoardUI: 게시글 정보 반환
 BoardUI --> User: 게시글 표시
 
 User -> BoardUI: 부적절한 게시글 신고
-BoardUI -> BoardController: reportPost(postId, reason)
-BoardController -> BoardService: reportPost(userId, postId, reason)
-BoardService -> PostRepository: markAsReported(postId, reason)
-PostRepository -> DB: UPDATE board_post SET reported = true
+BoardUI -> BoardController: reportPost(postId, reason) : 게시글 신고 정보 수신
+BoardController -> BoardService: reportPost(userId, postId, reason) : 신고 접수 및 상태 변경 로직
+BoardService -> PostRepository: markAsReported(postId, reason) : 신고 상태 기록
+PostRepository -> DB: UPDATE board_post SET reported = true : DB 게시글 신고 상태 업데이트
 DB --> PostRepository: 신고 상태 저장
 BoardService --> BoardController: 신고 접수 완료
 BoardController --> BoardUI: 신고 접수 메시지
 BoardUI --> User: 신고 완료 안내
 
 Admin -> AdminUI: 신고 게시글 목록 조회
-AdminUI -> AdminController: getReportedPosts()
-AdminController -> AdminService: getReportedPosts(adminId)
-AdminService -> PostRepository: findReportedPosts()
-PostRepository -> DB: SELECT board_post WHERE reported = true
-DB --> PostRepository: reportedPosts
-PostRepository --> AdminService: reportedPosts
-AdminService --> AdminController: ReportedPostList
+AdminUI -> AdminController: getReportedPosts() : 신고 게시물 목록 요청
+AdminController -> AdminService: getReportedPosts(adminId) : 신고 목록 호출 권한 검증 및 조회
+AdminService -> PostRepository: findReportedPosts() : 누적 신고 게시글 조회
+PostRepository -> DB: SELECT board_post WHERE reported = true : 신고 게시물 DB 조회
+DB --> PostRepository: reportedPosts : 문제 게시글 리스트
+PostRepository --> AdminService: reportedPosts : 신고 게시물 리스트
+AdminService --> AdminController: ReportedPostList : 조회된 게시물 응답 반환
 AdminController --> AdminUI: 신고 게시글 목록 반환
 AdminUI --> Admin: 신고 게시글 목록 표시
 
 Admin -> AdminUI: 게시글 숨김 또는 삭제 처리
-AdminUI -> AdminController: moderatePost(postId, action)
-AdminController -> AdminService: moderatePost(adminId, postId, action)
+AdminUI -> AdminController: moderatePost(postId, action) : 게시글 제재 조치 요청 수신
+AdminController -> AdminService: moderatePost(adminId, postId, action) : 제재 권한 및 조치 로직 처리
 
 alt 게시글 숨김
-  AdminService -> PostRepository: hide(postId)
-  PostRepository -> DB: UPDATE board_post SET hidden = true
+  AdminService -> PostRepository: hide(postId) : 게시물 블라인드 처리
+  PostRepository -> DB: UPDATE board_post SET hidden = true : 블라인드 DB 반영
   DB --> PostRepository: 처리 완료
 else 게시글 삭제
-  AdminService -> CommentRepository: deleteByPostId(postId)
-  CommentRepository -> DB: DELETE comment WHERE post_id = ?
+  AdminService -> CommentRepository: deleteByPostId(postId) : 게시글 하위 댓글 일괄 삭제
+  CommentRepository -> DB: DELETE comment WHERE post_id = ? : 댓글 삭제 DB 반영
   DB --> CommentRepository: 댓글 삭제 완료
-  AdminService -> PostRepository: delete(postId)
-  PostRepository -> DB: DELETE board_post WHERE post_id = ?
+  AdminService -> PostRepository: delete(postId) : 악성 게시물 영구 삭제
+  PostRepository -> DB: DELETE board_post WHERE post_id = ? : 게시물 삭제 DB 반영
   DB --> PostRepository: 게시글 삭제 완료
 end
 
-AdminService --> AdminController: ModerationResult
+AdminService --> AdminController: ModerationResult : 최종 처리 상태 반환
 AdminController --> AdminUI: 처리 결과 반환
 AdminUI --> Admin: 운영 처리 완료 표시
 
@@ -319,23 +319,23 @@ entity "TaskRepository" as TaskRepository
 database "Database" as DB
 
 User -> UI: 통계 기간 선택
-UI -> StatisticsController: getStatistics(periodStart, periodEnd)
-StatisticsController -> StatisticsService: getStatistics(userId, periodStart, periodEnd)
+UI -> StatisticsController: getStatistics(periodStart, periodEnd) : 통계 데이터 요청 수신
+StatisticsController -> StatisticsService: getStatistics(userId, periodStart, periodEnd) : 통계 분석 정보 구성
 
-StatisticsService -> FocusSessionRepository: findByUserAndPeriod(userId, periodStart, periodEnd)
-FocusSessionRepository -> DB: SELECT focus_session WHERE user_id = ? AND period BETWEEN ? AND ?
-DB --> FocusSessionRepository: focusSessions
-FocusSessionRepository --> StatisticsService: focusSessions
+StatisticsService -> FocusSessionRepository: findByUserAndPeriod(userId, periodStart, periodEnd) : 기간별 집중 기록 조회
+FocusSessionRepository -> DB: SELECT focus_session WHERE user_id = ? AND period BETWEEN ? AND ? : 조건부 세션 데이터 DB 조회
+DB --> FocusSessionRepository: focusSessions : 집중 기록 반환
+FocusSessionRepository --> StatisticsService: focusSessions : 집중 세션 기록 데이터
 
-StatisticsService -> TaskRepository: findByUserAndPeriod(userId, periodStart, periodEnd)
-TaskRepository -> DB: SELECT study_task WHERE user_id = ? AND updated_at BETWEEN ? AND ?
-DB --> TaskRepository: tasks
-TaskRepository --> StatisticsService: tasks
+StatisticsService -> TaskRepository: findByUserAndPeriod(userId, periodStart, periodEnd) : 기간별 태스크 기록 조회
+TaskRepository -> DB: SELECT study_task WHERE user_id = ? AND updated_at BETWEEN ? AND ? : 조건부 태스크 데이터 DB 조회
+DB --> TaskRepository: tasks : 태스크 기록 반환
+TaskRepository --> StatisticsService: tasks : 태스크 기록 데이터
 
-StatisticsService -> StatisticsService: calculateTotalStudyMinutes(focusSessions)
-StatisticsService -> StatisticsService: calculateCompletionRate(tasks)
-StatisticsService -> StatisticsService: createHeatmap(focusSessions)
-StatisticsService --> StatisticsController: StatisticsResponse
+StatisticsService -> StatisticsService: calculateTotalStudyMinutes(focusSessions) : 기간 총합 공부 시간 산출
+StatisticsService -> StatisticsService: calculateCompletionRate(tasks) : 전체 목표 달성 비율 계산
+StatisticsService -> StatisticsService: createHeatmap(focusSessions) : 통계용 잔디(히트맵) 객체 생성
+StatisticsService --> StatisticsController: StatisticsResponse : 통계 분석 결과 반환
 StatisticsController --> UI: 총 공부 시간, 완료율, 히트맵 데이터
 UI --> User: 그래프와 히트맵 표시
 
@@ -352,19 +352,19 @@ entity "FocusSessionRepository" as FocusSessionRepository
 database "Database" as DB
 
 User -> UI: 집중 모드 시작 및 앱 차단 설정
-UI -> TimerController: startSession(settings)
-TimerController -> TimerService: startSession(userId, settings)
-TimerService --> TimerController: SessionStarted
+UI -> TimerController: startSession(settings) : 집중 모드 시작 파라미터 검증
+TimerController -> TimerService: startSession(userId, settings) : 세션 생성 및 차단 로직 수행
+TimerService --> TimerController: SessionStarted : 타이머 시작 승인 결과 반환
 TimerController --> UI: 타이머 시작
 UI --> User: 집중 모드 실행 중 표시
 
 User -> UI: 타이머 종료
-UI -> TimerController: endSession(sessionId, duration)
-TimerController -> TimerService: saveSession(userId, duration)
-TimerService -> FocusSessionRepository: save(FocusSession)
-FocusSessionRepository -> DB: INSERT focus_session
+UI -> TimerController: endSession(sessionId, duration) : 타이머 종료 데이터 수신 및 검증
+TimerController -> TimerService: saveSession(userId, duration) : 순공 시간 저장 비즈니스 로직 수행
+TimerService -> FocusSessionRepository: save(FocusSession) : 완료된 집중 세션 저장
+FocusSessionRepository -> DB: INSERT focus_session : 세션 기록 DB 생성
 DB --> FocusSessionRepository: 저장 완료
-TimerService --> TimerController: SessionResponse
+TimerService --> TimerController: SessionResponse : 순공 시간 기록 완료 반환
 TimerController --> UI: 순공 시간 저장 완료
 UI --> User: 총 공부 시간 갱신
 @enduml
@@ -379,19 +379,19 @@ control "AIService" as AIService
 collections "External AI API" as ExternalAI
 
 User -> UI: 텍스트 요약 또는 음성 읽기 요청
-UI -> NoteController: processNoteAction(noteId, action)
-NoteController -> AIService: processAction(noteId, action)
+UI -> NoteController: processNoteAction(noteId, action) : 텍스트 액션(요약/TTS) 요청 수신
+NoteController -> AIService: processAction(noteId, action) : AI 처리 로직(요약 및 음성 변환) 위임
 
 alt 요약 요청 시
-  AIService -> ExternalAI: summarizeContent(content)
-  ExternalAI --> AIService: 요약 텍스트
-  AIService --> NoteController: SummaryResponse
+  AIService -> ExternalAI: summarizeContent(content) : 텍스트 요약 AI 요청
+  ExternalAI --> AIService: summarizedText : 요약된 텍스트 결과
+  AIService --> NoteController: SummaryResponse : 텍스트 요약 완료 정보 반환
   NoteController --> UI: 요약 내용 표시
   UI --> User: 텍스트 요약 확인
 else TTS 요청 시
-  AIService -> ExternalAI: textToSpeech(content)
-  ExternalAI --> AIService: 오디오 데이터
-  AIService --> NoteController: AudioResponse
+  AIService -> ExternalAI: textToSpeech(content) : 텍스트 음성 변환(TTS) AI 요청
+  ExternalAI --> AIService: audioStream : 변환된 음성 스트림 데이터
+  AIService --> NoteController: AudioResponse : 오디오 변환 완료 정보 반환
   NoteController --> UI: 오디오 재생
   UI --> User: 음성 출력
 end
@@ -408,12 +408,12 @@ entity "UserRepository" as UserRepository
 database "Database" as DB
 
 User -> UI: 접근성 모드(고대비/큰글씨) 또는 초등학생 UI 테마 선택
-UI -> UserController: updateUserSettings(settings)
-UserController -> UserService: updateSettings(userId, settings)
-UserService -> UserRepository: update(settings)
-UserRepository -> DB: UPDATE user_settings
+UI -> UserController: updateUserSettings(settings) : 접근성 테마 변경 요청 수신
+UserController -> UserService: updateSettings(userId, settings) : 설정 정보 DB 업데이트 수행
+UserService -> UserRepository: update(settings) : 설정 정보 수정 반영
+UserRepository -> DB: UPDATE user_settings : 설정 사항 DB 갱신
 DB --> UserRepository: 반영 완료
-UserService --> UserController: SettingsResponse
+UserService --> UserController: SettingsResponse : 사용자 설정 반영 완료 반환
 UserController --> UI: 설정 변경 완료
 UI --> User: 새로운 테마/모드가 적용된 화면 표시
 @enduml
@@ -429,13 +429,13 @@ entity "RewardRepository" as RewardRepository
 database "Database" as DB
 
 User -> UI: 퀘스트 달성 현황 및 포인트 조회
-UI -> RewardController: getRewards()
-RewardController -> RewardService: getUserRewards(userId)
-RewardService -> RewardRepository: findByUserId(userId)
-RewardRepository -> DB: SELECT rewards WHERE user_id = ?
-DB --> RewardRepository: rewardData
-RewardRepository --> RewardService: rewardData
-RewardService --> RewardController: RewardResponse
+UI -> RewardController: getRewards() : 달성 현황 조회 요청 수신
+RewardController -> RewardService: getUserRewards(userId) : 포인트 및 뱃지 데이터 산출 로직 수행
+RewardService -> RewardRepository: findByUserId(userId) : 유저 보상 데이터 호출
+RewardRepository -> DB: SELECT rewards WHERE user_id = ? : 개인 리워드 DB 조회
+DB --> RewardRepository: rewardData : 조회된 리워드 데이터
+RewardRepository --> RewardService: rewardData : 포인트 및 뱃지 데이터
+RewardService --> RewardController: RewardResponse : 달성 보상 정보 결과 반환
 RewardController --> UI: 뱃지 및 포인트 표시
 UI --> User: 현재 보상 확인
 @enduml
@@ -451,15 +451,15 @@ database "Database" as DB
 actor "사용자" as User
 boundary "Main Screen" as UI
 
-Scheduler -> NotificationService: triggerReviewCheck()
-NotificationService -> NoteRepository: findNotesNeedingReview()
-NoteRepository -> DB: SELECT notes WHERE review_date <= NOW()
-DB --> NoteRepository: targetNotes
-NoteRepository --> NotificationService: targetNotes
-NotificationService -> NotificationRepository: save(Notification)
-NotificationRepository -> DB: INSERT notifications
+Scheduler -> NotificationService: triggerReviewCheck() : 복습 주기 체크 트리거 실행
+NotificationService -> NoteRepository: findNotesNeedingReview() : 복습이 필요한 노트 조회
+NoteRepository -> DB: SELECT notes WHERE review_date <= NOW() : 복습 알림 시점 노트 DB 추출
+DB --> NoteRepository: targetNotes : 대상 복습 노트 목록
+NoteRepository --> NotificationService: targetNotes : 복습 대상 노트 목록
+NotificationService -> NotificationRepository: save(Notification) : 복습 알림 DB 저장
+NotificationRepository -> DB: INSERT notifications : 사용자별 알림 DB 기록 생성
 DB --> NotificationRepository: 저장 완료
-NotificationService -> UI: pushNotification(targetUsers)
+NotificationService -> UI: pushNotification(targetUsers) : 사용자 기기로 푸시 알림 전송
 UI --> User: 복습 시점 알림 표시 (푸시 알림)
 @enduml
 
@@ -477,27 +477,27 @@ database "Database" as DB
 collections "External AI API" as ExternalAI
 
 User -> UI: 노트 선택, 문제 수, 난이도 입력
-UI -> QuizController: generateQuiz(noteId, difficulty, count)
-QuizController -> QuizService: generateQuiz(userId, noteId, difficulty, count)
-QuizService -> NoteRepository: findByIdAndUserId(noteId, userId)
-NoteRepository -> DB: SELECT study_note WHERE note_id = ? AND user_id = ?
-DB --> NoteRepository: studyNote
-NoteRepository --> QuizService: StudyNote
+UI -> QuizController: generateQuiz(noteId, difficulty, count) : 퀴즈 옵션 입력값 수신 및 검증
+QuizController -> QuizService: generateQuiz(userId, noteId, difficulty, count) : AI 퀴즈 생성 위임 및 관리 수행
+QuizService -> NoteRepository: findByIdAndUserId(noteId, userId) : 학습 노트 소유자 검증 조회
+NoteRepository -> DB: SELECT study_note WHERE note_id = ? AND user_id = ? : 학습 원본 노트 DB 호출
+DB --> NoteRepository: studyNote : 학습 노트 데이터 결과
+NoteRepository --> QuizService: StudyNote : 기존 학습 노트 데이터
 
 alt 학습 노트가 존재하지 않는 경우
-  QuizService --> QuizController: NoteNotFoundException
+  QuizService --> QuizController: NoteNotFoundException : 노트를 찾을 수 없음 에러 발생
   QuizController --> UI: 퀴즈 생성 실패
   UI --> User: 노트를 찾을 수 없음 안내
 else 학습 노트가 존재하는 경우
-  QuizService -> AIService: generateQuiz(studyNote, difficulty, count)
-  AIService -> ExternalAI: createQuiz(noteContent, difficulty, count)
-  ExternalAI --> AIService: 문제, 보기, 정답, 해설
-  AIService --> QuizService: Quiz
-  QuizService -> QuizRepository: save(Quiz)
-  QuizRepository -> DB: INSERT quiz, quiz_question
+  QuizService -> AIService: generateQuiz(studyNote, difficulty, count) : AI 퀴즈 생성 로직 호출
+  AIService -> ExternalAI: createQuiz(noteContent, difficulty, count) : 외부 AI에 퀴즈 생성 요청
+  ExternalAI --> AIService: quizData : 문제, 보기, 정답, 해설 데이터
+  AIService --> QuizService: Quiz : 퀴즈 엔티티 데이터
+  QuizService -> QuizRepository: save(Quiz) : 생성된 퀴즈 DB 저장
+  QuizRepository -> DB: INSERT quiz, quiz_question : 생성 문제 일괄 DB 삽입
   DB --> QuizRepository: 저장 완료
-  QuizRepository --> QuizService: savedQuiz
-  QuizService --> QuizController: QuizResponse
+  QuizRepository --> QuizService: savedQuiz : 저장된 퀴즈 데이터
+  QuizService --> QuizController: QuizResponse : 퀴즈 생성 완료 정보 반환
   QuizController --> UI: 생성된 퀴즈 반환
   UI --> User: 퀴즈 화면 표시
 end
@@ -515,23 +515,23 @@ entity "UserRepository" as UserRepository
 database "Database" as DB
 
 Admin -> UI: 부적절한 사용자 목록 조회
-UI -> AdminController: getReportedUsers()
-AdminController -> AdminService: getReportedUsers(adminId)
-AdminService -> UserRepository: findReported()
-UserRepository -> DB: SELECT users WHERE reported = true
-DB --> UserRepository: users
-UserRepository --> AdminService: users
-AdminService --> AdminController: UserList
+UI -> AdminController: getReportedUsers() : 부적절한 사용자 조회 요청 수신 (권한 검증)
+AdminController -> AdminService: getReportedUsers(adminId) : 신고 사용자 데이터 조회 수행
+AdminService -> UserRepository: findReported() : 신고가 누적된 사용자 추출
+UserRepository -> DB: SELECT users WHERE reported = true : 불량 사용자 DB 조회
+DB --> UserRepository: users : 불량 사용자 목록
+UserRepository --> AdminService: users : 대상 사용자 목록
+AdminService --> AdminController: UserList : 사용자 목록 정보 반환
 AdminController --> UI: 목록 표시
 UI --> Admin: 사용자 리스트 확인
 
 Admin -> UI: 특정 사용자 제재 (정지)
-UI -> AdminController: suspendUser(targetUserId, reason)
-AdminController -> AdminService: suspendUser(adminId, targetUserId, reason)
-AdminService -> UserRepository: updateStatus(targetUserId, "SUSPENDED")
-UserRepository -> DB: UPDATE users SET status = 'SUSPENDED'
+UI -> AdminController: suspendUser(targetUserId, reason) : 사용자 정지 요청 수신 (권한 검증)
+AdminController -> AdminService: suspendUser(adminId, targetUserId, reason) : 계정 정지 비즈니스 로직 적용
+AdminService -> UserRepository: updateStatus(targetUserId, "SUSPENDED") : 계정 일시정지 상태 반영
+UserRepository -> DB: UPDATE users SET status = 'SUSPENDED' : 계정 상태 정지 DB 업데이트
 DB --> UserRepository: 상태 반영
-AdminService --> AdminController: SuccessResponse
+AdminService --> AdminController: SuccessResponse : 제재 처리 성공 반환
 AdminController --> UI: 제재 완료 알림
 UI --> Admin: 처리 결과 확인
 @enduml
