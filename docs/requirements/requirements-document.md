@@ -1,5 +1,7 @@
 # Smart Edu Platform 요구사항 문서
 
+> AI 기반 가상 설문/인터뷰 시뮬레이션 로그는 [ai-interview-simulation.md](./ai-interview-simulation.md)에서 확인할 수 있다.
+
 ---
 
 ## 문서 정보
