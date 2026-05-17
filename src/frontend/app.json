@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Smart Edu Platform",
+    "slug": "smart-edu-platform",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ]
+  }
+}

@@ -1,0 +1,369 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserType {
+  ELEMENTARY
+  MIDDLE
+  HIGH
+  UNIVERSITY
+  EXAM_PREP
+  WORKER
+  SENIOR
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationType {
+  DEADLINE
+  REVIEW
+  CHALLENGE
+}
+
+enum PostCategory {
+  QUESTION
+  FREE
+  STUDY_PROOF
+}
+
+enum ChallengeStatus {
+  IN_PROGRESS
+  CLOSED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum AdminActionType {
+  SUSPEND_USER
+  HIDE_POST
+  DELETE_COMMENT
+  MODERATE_CHALLENGE
+}
+
+model User {
+  id                Int                @id @default(autoincrement())
+  email             String             @unique
+  passwordHash      String             @map("password_hash")
+  name              String
+  role              Role               @default(USER)
+  userType          UserType?          @map("user_type")
+  status            AccountStatus      @default(ACTIVE)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  profile           UserProfile?
+  schedules         StudySchedule[]
+  tasks             StudyTask[]
+  notifications     Notification[]
+  notes             StudyNote[]
+  aiQuestions       AIQuestion[]
+  wrongAnswerNotes  WrongAnswerNote[]
+  quizzes           Quiz[]
+  aiRecommendations AIRecommendation[]
+  focusSessions     FocusSession[]
+  statistics        StudyStatistics[]
+  posts             BoardPost[]
+  comments          Comment[]
+  createdChallenges StudyChallenge[]
+  challengeMembers  ChallengeMember[]
+  rankings          Ranking[]
+  adminActions      AdminAction[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique @map("user_id")
+  learningGoal     String?  @map("learning_goal")
+  preferredSubject String?  @map("preferred_subject")
+  profileImageUrl  String?  @map("profile_image_url")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@map("user_profiles")
+}
+
+model StudySchedule {
+  id            Int            @id @default(autoincrement())
+  userId        Int            @map("user_id")
+  title         String
+  subject       String?
+  startAt       DateTime       @map("start_at")
+  endAt         DateTime?      @map("end_at")
+  priority      Priority       @default(MEDIUM)
+  memo          String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  user          User           @relation(fields: [userId], references: [id])
+  tasks         StudyTask[]
+  notifications Notification[]
+
+  @@map("study_schedules")
+}
+
+model StudyTask {
+  id            Int            @id @default(autoincrement())
+  userId        Int            @map("user_id")
+  scheduleId    Int?           @map("schedule_id")
+  title         String
+  status        TaskStatus     @default(TODO)
+  dueDate       DateTime?      @map("due_date")
+  priority      Priority       @default(MEDIUM)
+  memo          String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  user          User           @relation(fields: [userId], references: [id])
+  schedule      StudySchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  notifications Notification[]
+  focusSessions FocusSession[]
+
+  @@map("study_tasks")
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @map("user_id")
+  scheduleId  Int?             @map("schedule_id")
+  taskId      Int?             @map("task_id")
+  type        NotificationType
+  message     String
+  scheduledAt DateTime         @map("scheduled_at")
+  readAt      DateTime?        @map("read_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  user        User             @relation(fields: [userId], references: [id])
+  schedule    StudySchedule?   @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  task        StudyTask?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+model StudyNote {
+  id               Int               @id @default(autoincrement())
+  userId           Int               @map("user_id")
+  title            String
+  content          String
+  subject          String?
+  tags             String[]
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  user             User              @relation(fields: [userId], references: [id])
+  aiQuestions      AIQuestion[]
+  wrongAnswerNotes WrongAnswerNote[]
+  quizzes          Quiz[]
+
+  @@map("study_notes")
+}
+
+model AIQuestion {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @map("user_id")
+  noteId    Int?       @map("note_id")
+  question  String
+  answer    String?
+  subject   String?
+  createdAt DateTime   @default(now()) @map("created_at")
+  user      User       @relation(fields: [userId], references: [id])
+  note      StudyNote? @relation(fields: [noteId], references: [id], onDelete: SetNull)
+
+  @@map("ai_questions")
+}
+
+model WrongAnswerNote {
+  id          Int        @id @default(autoincrement())
+  userId      Int        @map("user_id")
+  noteId      Int?       @map("note_id")
+  problem     String
+  userAnswer  String?    @map("user_answer")
+  explanation String?
+  weakType    String?    @map("weak_type")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  user        User       @relation(fields: [userId], references: [id])
+  note        StudyNote? @relation(fields: [noteId], references: [id], onDelete: SetNull)
+
+  @@map("wrong_answer_notes")
+}
+
+model Quiz {
+  id        Int            @id @default(autoincrement())
+  userId    Int            @map("user_id")
+  noteId    Int?           @map("note_id")
+  title     String
+  difficulty Difficulty    @default(MEDIUM)
+  createdAt DateTime       @default(now()) @map("created_at")
+  user      User           @relation(fields: [userId], references: [id])
+  note      StudyNote?     @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  questions QuizQuestion[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id          Int    @id @default(autoincrement())
+  quizId      Int    @map("quiz_id")
+  question    String
+  choicesJson Json   @map("choices_json")
+  answer      String
+  explanation String?
+  orderNo     Int    @default(0) @map("order_no")
+  quiz        Quiz   @relation(fields: [quizId], references: [id])
+
+  @@map("quiz_questions")
+}
+
+model AIRecommendation {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @map("user_id")
+  basisJson          Json     @map("basis_json")
+  recommendationJson Json     @map("recommendation_json")
+  createdAt          DateTime @default(now()) @map("created_at")
+  user               User     @relation(fields: [userId], references: [id])
+
+  @@map("ai_recommendations")
+}
+
+model FocusSession {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  taskId     Int?      @map("task_id")
+  startedAt  DateTime  @map("started_at")
+  endedAt    DateTime  @map("ended_at")
+  durationMs Int       @map("duration_ms")
+  memo       String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User      @relation(fields: [userId], references: [id])
+  task       StudyTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@map("focus_sessions")
+}
+
+model StudyStatistics {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  periodStart    DateTime @map("period_start")
+  periodEnd      DateTime @map("period_end")
+  totalMinutes   Int      @default(0) @map("total_minutes")
+  completionRate Float?   @map("completion_rate")
+  statisticsJson Json?    @map("statistics_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@map("study_statistics")
+}
+
+model BoardPost {
+  id        Int          @id @default(autoincrement())
+  userId    Int          @map("user_id")
+  category  PostCategory @default(FREE)
+  title     String
+  content   String
+  reported  Boolean      @default(false)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  user      User         @relation(fields: [userId], references: [id])
+  comments  Comment[]
+
+  @@map("board_posts")
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  postId    Int       @map("post_id")
+  userId    Int       @map("user_id")
+  content   String
+  reported  Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  post      BoardPost @relation(fields: [postId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("comments")
+}
+
+model StudyChallenge {
+  id          Int               @id @default(autoincrement())
+  creatorId   Int               @map("creator_id")
+  title       String
+  description String?
+  goalMinutes Int               @map("goal_minutes")
+  startDate   DateTime          @map("start_date")
+  endDate     DateTime          @map("end_date")
+  status      ChallengeStatus   @default(IN_PROGRESS)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  creator     User              @relation(fields: [creatorId], references: [id])
+  members     ChallengeMember[]
+  rankings    Ranking[]
+
+  @@map("study_challenges")
+}
+
+model ChallengeMember {
+  id              Int            @id @default(autoincrement())
+  challengeId     Int            @map("challenge_id")
+  userId          Int            @map("user_id")
+  progressMinutes Int            @default(0) @map("progress_minutes")
+  joinedAt        DateTime       @default(now()) @map("joined_at")
+  challenge       StudyChallenge @relation(fields: [challengeId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])
+
+  @@unique([challengeId, userId])
+  @@map("challenge_members")
+}
+
+model Ranking {
+  id          Int             @id @default(autoincrement())
+  userId      Int             @map("user_id")
+  challengeId Int?            @map("challenge_id")
+  periodStart DateTime        @map("period_start")
+  periodEnd   DateTime        @map("period_end")
+  rank        Int
+  studyMinutes Int            @map("study_minutes")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  user        User            @relation(fields: [userId], references: [id])
+  challenge   StudyChallenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+
+  @@map("rankings")
+}
+
+model AdminAction {
+  id         Int             @id @default(autoincrement())
+  adminId    Int             @map("admin_id")
+  targetType String          @map("target_type")
+  targetId   Int             @map("target_id")
+  actionType AdminActionType @map("action_type")
+  reason     String?
+  createdAt  DateTime        @default(now()) @map("created_at")
+  admin      User            @relation(fields: [adminId], references: [id])
+
+  @@map("admin_actions")
+}

@@ -523,3 +523,53 @@ Notion에서 일정 및 역할 정리
 13. 같은 파일을 여러 명이 동시에 수정 금지
 14. 큰 문서는 작업용 파일과 최종 통합 파일 분리
 15. Notion은 일정 관리용, HackMD는 초안 작성용, GitHub는 최종 정리본 관리용
+
+---
+
+## 10. 2단계 개발 환경 실행 방법
+
+### 10.1 루트 기준 검증
+
+프로젝트 루트에서 기본 테스트와 설정 검증을 실행할 수 있다.
+
+```bash
+npm test
+npm run validate:prisma
+npm run check:frontend
+npm run check
+```
+
+`npm test`는 백엔드 Jest 테스트를 실행한다. `npm run validate:prisma`는 백엔드 Prisma schema를 검증하고, `npm run check:frontend`는 Expo 설정을 확인한다.
+
+### 10.2 백엔드
+
+```bash
+cd src/backend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+백엔드 테스트와 Prisma schema 검증은 다음 명령어로 실행한다.
+
+```bash
+npm test
+npx prisma validate
+```
+
+실제 DB migration은 아직 실행하지 않는다. `prisma migrate dev`는 DB 연결 방식과 migration 관리 방식을 확정한 뒤 실행한다.
+
+### 10.3 프론트엔드
+
+```bash
+cd src/frontend
+npm install
+npm start
+npx expo config --type public
+```
+
+프론트엔드는 Expo 기반으로 실행하며, 실제 API 연동 전에는 기본 화면 틀과 API service 구조를 먼저 확인한다.
+
+### 10.4 환경변수
+
+백엔드는 `src/backend/.env.example`을 참고하여 로컬 `.env` 파일을 생성한다. `.env` 파일은 Git에 커밋하지 않는다.
