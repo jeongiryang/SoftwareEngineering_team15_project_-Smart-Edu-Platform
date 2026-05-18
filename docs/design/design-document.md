@@ -24,7 +24,8 @@
 6. 외부 시스템 연동 설계
 7. 데이터베이스 설계 방향
 8. AI 활용 및 다이어그램 생성 방식
-9. 설계 문서 요약
+9. 부록 문서
+10. 설계 문서 요약
 
 ---
 
@@ -97,11 +98,85 @@ DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일
 
 클래스 다이어그램은 요구사항 문서의 기능 요구사항 `FR-01`부터 `FR-29`까지를 기준으로 구성하였다. 핵심 도메인은 사용자, 학습 일정, 태스크, 노트, AI 학습 지원, 커뮤니티, 학습 통계, 보상, 접근성, 관리자 기능으로 구분한다.
 
+전체 클래스 다이어그램은 모든 도메인 객체와 관계를 한 번에 보여주는 개요용 다이어그램이다. 전체 구조는 넓게 배치되어 있으므로, 세부 클래스와 관계는 아래 도메인별 분할 다이어그램을 함께 확인한다.
+
+### 4.1 전체 클래스 다이어그램
+
 ![클래스 다이어그램](../../screenshots/class-diagram.png)
 
-PlantUML 원본은 `docs/design/plantuml/class-diagram.puml`에 보관하며, 렌더링된 이미지는 `screenshots/class-diagram.png`에 보관한다.
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram.png](../../screenshots/class-diagram.png) |
+| 원본 | [docs/design/plantuml/class-diagram.puml](./plantuml/class-diagram.puml) |
 
-### 4.1 주요 클래스 설명
+---
+
+### 4.2 사용자/인증 클래스 다이어그램
+
+사용자 계정, 프로필, 인증 세션, 접근성 설정처럼 사용자 기본 정보와 인증에 연결되는 구조를 보여주는 다이어그램임.
+
+![사용자/인증 클래스 다이어그램](../../screenshots/class-diagram-auth.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-auth.png](../../screenshots/class-diagram-auth.png) |
+| 원본 | [docs/design/plantuml/class-diagram-auth.puml](./plantuml/class-diagram-auth.puml) |
+
+---
+
+### 4.3 학습 일정/태스크 클래스 다이어그램
+
+학습 일정, 칸반 태스크, 알림, 외부 캘린더 연동 구조를 보여주는 다이어그램임.
+
+![학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram-schedule-task.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-schedule-task.png](../../screenshots/class-diagram-schedule-task.png) |
+| 원본 | [docs/design/plantuml/class-diagram-schedule-task.puml](./plantuml/class-diagram-schedule-task.puml) |
+
+---
+
+### 4.4 노트/퀴즈/AI 클래스 다이어그램
+
+학습 노트, AI 질의, 오답노트, 학습 추천, 퀴즈, 요약 결과 저장 구조를 보여주는 다이어그램임.
+
+![노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram-notes-ai.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-notes-ai.png](../../screenshots/class-diagram-notes-ai.png) |
+| 원본 | [docs/design/plantuml/class-diagram-notes-ai.puml](./plantuml/class-diagram-notes-ai.puml) |
+
+---
+
+### 4.5 커뮤니티/챌린지/관리자 클래스 다이어그램
+
+게시판, 댓글, 스터디 그룹, 스터디 챌린지, 랭킹, 관리자 처리 구조를 보여주는 다이어그램임.
+
+![커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram-community-admin.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-community-admin.png](../../screenshots/class-diagram-community-admin.png) |
+| 원본 | [docs/design/plantuml/class-diagram-community-admin.puml](./plantuml/class-diagram-community-admin.puml) |
+
+---
+
+### 4.6 집중 시간/통계 클래스 다이어그램
+
+집중 세션, 앱 차단 규칙, `durationMs` 기반 학습 시간 기록, 학습 통계와 히트맵 구조를 보여주는 다이어그램임.
+
+![집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram-focus-statistics.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-focus-statistics.png](../../screenshots/class-diagram-focus-statistics.png) |
+| 원본 | [docs/design/plantuml/class-diagram-focus-statistics.puml](./plantuml/class-diagram-focus-statistics.puml) |
+
+---
+
+### 4.7 주요 클래스 설명
 
 | 클래스 | 주요 역할 | 관련 요구사항 |
 |---|---|---|
@@ -132,6 +207,8 @@ PlantUML 원본은 `docs/design/plantuml/class-diagram.puml`에 보관하며, �
 UC-12 집중 모드는 클라이언트에서 타이머를 실행하고, 학습 종료 시점에 `POST /api/focus-sessions`로 완료된 집중 세션 기록을 저장하는 방식으로 설계한다. 서버는 진행 중인 타이머 상태를 관리하지 않으며, 저장된 `durationMs` 값은 화면 표시와 통계 계산 시 분/시간 단위로 변환한다.
 
 PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보관하며, 렌더링된 이미지는 `screenshots/sequence-diagram/`에 보관한다.
+
+전체 시퀀스 이미지는 `docs/design/sequence-diagram.md`와 `screenshots/sequence-diagram/`에서 확인한다. 본문에는 구현 기준을 이해하는 데 필요한 대표 흐름만 삽입한다.
 
 ### 5.1 주요 시퀀스 다이어그램 목록
 
@@ -193,6 +270,12 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 `UC-11`은 사용자의 학습 기록을 기반으로 학습 시간, 완료율, 히트맵을 계산하고 조회하는 흐름을 나타낸다.
 
 ![학습 통계 확인 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC11_ViewStudyStatistics.png)
+
+### 5.9 집중 모드 및 순공 시간 측정
+
+`UC-12`는 클라이언트에서 타이머를 실행하고, 종료 시점에 최종 누적 시간만 서버로 전송하는 흐름을 나타낸다. 서버는 완료된 집중 세션 기록을 `durationMs` 기준으로 저장한다.
+
+![집중 모드 및 순공 시간 측정 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC12_FocusMode.png)
 
 ---
 
@@ -261,7 +344,30 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 
 ---
 
-## 9. 설계 문서 요약
+## 9. 부록 문서
+
+- [아키텍처 개요 세부 문서](./architecture-overview.md): 시스템 아키텍처 설계 근거와 세부 설명
+- [클래스 다이어그램 세부 문서](./class-diagram.md): 전체 및 도메인별 클래스 다이어그램 설명
+- [시퀀스 다이어그램 세부 문서](./sequence-diagram.md): 유스케이스별 시퀀스 흐름 정리
+- [전체 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram.puml): 전체 클래스 다이어그램 원본 코드
+- [사용자/인증 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-auth.puml): 사용자 계정, 프로필, 인증 구조 원본 코드
+- [학습 일정/태스크 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-schedule-task.puml): 일정, 태스크, 알림 구조 원본 코드
+- [노트/퀴즈/AI 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-notes-ai.puml): 노트, 퀴즈, AI 기능 구조 원본 코드
+- [커뮤니티/챌린지/관리자 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-community-admin.puml): 커뮤니티와 관리자 기능 구조 원본 코드
+- [집중 시간/통계 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-focus-statistics.puml): 집중 세션과 통계 구조 원본 코드
+- [시퀀스 다이어그램 PlantUML 원본](./plantuml/sequence-diagrams.puml): 시퀀스 다이어그램 원본 코드
+- [전체 클래스 다이어그램 이미지](../../screenshots/class-diagram.png): 전체 클래스 다이어그램 렌더링 이미지
+- [사용자/인증 클래스 다이어그램 이미지](../../screenshots/class-diagram-auth.png): 사용자/인증 도메인 렌더링 이미지
+- [학습 일정/태스크 클래스 다이어그램 이미지](../../screenshots/class-diagram-schedule-task.png): 일정/태스크 도메인 렌더링 이미지
+- [노트/퀴즈/AI 클래스 다이어그램 이미지](../../screenshots/class-diagram-notes-ai.png): 노트/퀴즈/AI 도메인 렌더링 이미지
+- [커뮤니티/챌린지/관리자 클래스 다이어그램 이미지](../../screenshots/class-diagram-community-admin.png): 커뮤니티/관리자 도메인 렌더링 이미지
+- [집중 시간/통계 클래스 다이어그램 이미지](../../screenshots/class-diagram-focus-statistics.png): 집중 시간/통계 도메인 렌더링 이미지
+- [시퀀스 다이어그램 이미지 폴더](../../screenshots/sequence-diagram/): 유스케이스별 시퀀스 다이어그램 이미지
+- [AI 시뮬레이션 로그](../requirements/ai-simulation-log.md): AI 활용 과정 요약 로그
+
+---
+
+## 10. 설계 문서 요약
 
 본 설계 문서는 요구사항 문서를 기준으로 Smart Edu Platform의 시스템 아키텍처, 주요 모듈, 클래스 다이어그램, 시퀀스 다이어그램, 외부 시스템 연동, 데이터베이스 설계 방향을 통합 정리한 문서이다.
 

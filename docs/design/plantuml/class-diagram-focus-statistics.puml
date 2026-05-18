@@ -1,0 +1,71 @@
+@startuml class-diagram-focus-statistics
+title Smart Edu Platform - 집중 시간/통계 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+package "집중 시간/통계 도메인" #FBE9E7 {
+  class User <<사용자>> {
+    - userId: Long
+    - email: String
+  }
+
+  class StudyTask <<칸반 태스크>> {
+    - taskId: Long
+    - title: String
+    - status: String
+  }
+
+  class FocusSession <<집중 모드 세션>> {
+    - sessionId: Long
+    - subject: String
+    - startedAt: DateTime
+    - endedAt: DateTime
+    - durationMs: Long
+    - memo: String
+    + recordCompletedSession(): void
+    + calculateDurationMs(): Long
+  }
+
+  class AppBlockRule <<앱 차단 규칙>> {
+    - ruleId: Long
+    - appName: String
+    - startedAt: DateTime
+    - endedAt: DateTime
+    - exceptionApp: String
+    - enabled: Boolean
+    + enable(): void
+    + disable(): void
+    + isActive(now): Boolean
+  }
+
+  class StudyStatistics <<학습 통계>> {
+    - statisticsId: Long
+    - periodStart: Date
+    - periodEnd: Date
+    - totalStudyMinutes: Integer
+    - completionRate: Float
+    + calculateTotalTime(records): Integer
+    + calculateCompletionRate(tasks): Float
+    + createHeatmap(records): Heatmap
+  }
+
+  class Heatmap <<잔디심기 히트맵>> {
+    - heatmapId: Long
+    - startDate: Date
+    - endDate: Date
+    - dailyMinutes: Map<Date, Integer>
+    + getDailyValue(date): Integer
+  }
+}
+
+User "1" *-- "0..*" FocusSession
+User "1" *-- "0..*" AppBlockRule
+User "1" *-- "0..*" StudyStatistics
+FocusSession "0..*" -- "0..1" StudyTask
+StudyStatistics ..> FocusSession
+StudyStatistics "1" *-- "0..1" Heatmap
+@enduml

@@ -1,0 +1,78 @@
+@startuml class-diagram-auth
+title Smart Edu Platform - 사용자/인증 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+package "사용자/인증 도메인" #E3F2FD {
+  class User <<사용자 계정>> {
+    - userId: Long
+    - email: String
+    - passwordHash: String
+    - name: String
+    - userType: UserType
+    - status: AccountStatus
+    - reported: Boolean
+    - createdAt: DateTime
+    + signUp(email, password, name): void
+    + login(email, password): AuthSession
+    + updatePassword(oldPassword, newPassword): void
+    + deactivate(): void
+  }
+
+  class UserProfile <<프로필 정보>> {
+    - profileId: Long
+    - learningGoal: String
+    - profileImageUrl: String
+    - targetExam: String
+    - preferredSubject: String
+    + updateGoal(goal): void
+    + updateProfileImage(imageUrl): void
+  }
+
+  class AuthSession <<인증 세션/토큰>> {
+    - sessionId: String
+    - accessToken: String
+    - refreshToken: String
+    - expiredAt: DateTime
+    + isExpired(): Boolean
+    + revoke(): void
+  }
+
+  class AccessibilitySetting <<접근성 설정>> {
+    - settingId: Long
+    - largeTextEnabled: Boolean
+    - highContrastEnabled: Boolean
+    - fontScale: Float
+    - themeName: String
+    + enableLargeText(): void
+    + enableHighContrast(): void
+    + updateFontScale(scale): void
+  }
+}
+
+enum UserType {
+  ELEMENTARY
+  MIDDLE
+  HIGH
+  UNIVERSITY
+  EXAM_PREP
+  WORKER
+  SENIOR
+}
+
+enum AccountStatus {
+  ACTIVE
+  LOCKED
+  DEACTIVATED
+}
+
+User "1" *-- "1" UserProfile
+User "1" *-- "0..*" AuthSession
+User "1" *-- "1" AccessibilitySetting
+User --> UserType
+User --> AccountStatus
+@enduml
