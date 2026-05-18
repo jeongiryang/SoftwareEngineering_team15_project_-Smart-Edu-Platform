@@ -211,11 +211,10 @@ package "Focus and Analytics Domain" {
     - subject: String
     - startedAt: DateTime
     - endedAt: DateTime
-    - durationMinutes: Integer
+    - durationMs: Long
     - memo: String
-    + start(): void // 집중 세션(타이머) 시작
-    + stop(): void // 집중 세션 종료 및 기록 저장
-    + calculateDuration(): Integer // 총 순공 시간(분) 계산
+    + recordCompletedSession(): void // 완료된 집중 세션 기록 저장
+    + calculateDurationMs(): Long // 총 순공 시간(밀리초) 계산
   }
 
   class AppBlockRule <<앱 차단 규칙>> {

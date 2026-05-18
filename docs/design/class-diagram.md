@@ -54,7 +54,7 @@
 | `Quiz`, `QuizQuestion` | AI 또는 노트 기반으로 생성되는 복습 퀴즈와 문제 | `FR-10` |
 | `WrongAnswerNote` | 오답 문제, 사용자 답변, 해설, 취약 유형을 관리 | `FR-08` |
 | `AIService` | AI 질의, 오답노트 생성, 추천, 퀴즈 생성, 요약을 담당하는 서비스 | `FR-07`, `FR-08`, `FR-09`, `FR-10`, `FR-19` |
-| `FocusSession` | 스톱워치와 타이머를 통해 기록되는 순공 시간 | `FR-15` |
+| `FocusSession` | 클라이언트에서 측정한 최종 순공 시간을 `durationMs` 단위로 저장하는 집중 세션 기록 | `FR-15` |
 | `AppBlockRule` | 공부 시간 동안 차단할 앱과 예외 조건을 관리 | `FR-14` |
 | `StudyStatistics`, `Heatmap` | 학습 시간, 진척도, 히트맵 데이터를 계산하고 표현 | `FR-16`, `FR-17` |
 | `StudyGroup`, `StudyChallenge`, `Ranking` | 그룹 학습, 챌린지, 주간 랭킹을 관리 | `FR-11`, `FR-12`, `FR-29` |
@@ -70,5 +70,5 @@
 - 학습 일정과 태스크는 서로 독립적으로 사용할 수 있지만, 필요하면 일정에 태스크를 연결할 수 있도록 설계하였다.
 - AI 관련 기능은 `AIService`에 집중시키고, 생성 결과는 `AIQuestion`, `WrongAnswerNote`, `AIRecommendation`, `Quiz`, `Summary` 같은 도메인 객체로 저장되도록 설계하였다.
 - 커뮤니티 기능은 게시글과 댓글을 분리하고, 관리자 기능은 신고된 게시글과 댓글을 관리하는 방식으로 표현하였다.
-- 학습 시간 기록과 통계는 `FocusSession`을 원천 데이터로 사용하고, `StudyStatistics`와 `Heatmap`이 분석 결과를 제공하는 구조로 설계하였다.
+- 학습 시간 기록과 통계는 `FocusSession`을 원천 데이터로 사용하고, `durationMs`를 화면 표시와 통계 계산 시 분/시간 단위로 변환하는 구조로 설계하였다.
 - 확장성을 고려하여 사용자 유형, 태스크 상태, 게시판 카테고리, 알림 유형 등은 열거형으로 분리하였다.

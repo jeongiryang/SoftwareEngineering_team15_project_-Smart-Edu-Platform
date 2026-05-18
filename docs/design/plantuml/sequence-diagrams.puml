@@ -346,26 +346,25 @@ title UC-12 - 집중 모드 및 순공 시간 측정
 
 actor "사용자" as User
 boundary "Timer Screen" as UI
-control "TimerController" as TimerController
-control "TimerService" as TimerService
+control "FocusSessionController" as FocusSessionController
+control "FocusSessionService" as FocusSessionService
 entity "FocusSessionRepository" as FocusSessionRepository
 database "Database" as DB
 
 User -> UI: 집중 모드 시작 및 앱 차단 설정
-UI -> TimerController: startSession(settings) : 집중 모드 시작 파라미터 검증
-TimerController -> TimerService: startSession(userId, settings) : 세션 생성 및 차단 로직 수행
-TimerService --> TimerController: SessionStarted : 타이머 시작 승인 결과 반환
-TimerController --> UI: 타이머 시작
+UI -> UI: startLocalTimer(settings) : 클라이언트에서 타이머 시작
 UI --> User: 집중 모드 실행 중 표시
 
-User -> UI: 타이머 종료
-UI -> TimerController: endSession(sessionId, duration) : 타이머 종료 데이터 수신 및 검증
-TimerController -> TimerService: saveSession(userId, duration) : 순공 시간 저장 비즈니스 로직 수행
-TimerService -> FocusSessionRepository: save(FocusSession) : 완료된 집중 세션 저장
-FocusSessionRepository -> DB: INSERT focus_session : 세션 기록 DB 생성
+User -> UI: 학습 종료
+UI -> UI: calculateDurationMs(startedAt, endedAt) : 최종 누적 시간 계산
+UI -> FocusSessionController: POST /api/focus-sessions\n(taskId, startedAt, endedAt, durationMs, memo)
+FocusSessionController -> FocusSessionService: saveCompletedSession(userId, request) : 완료된 집중 기록 검증
+FocusSessionService -> FocusSessionRepository: save(FocusSession) : durationMs 기준 집중 세션 저장
+FocusSessionRepository -> DB: INSERT focus_session(duration_ms) : 완료된 세션 기록 DB 생성
 DB --> FocusSessionRepository: 저장 완료
-TimerService --> TimerController: SessionResponse : 순공 시간 기록 완료 반환
-TimerController --> UI: 순공 시간 저장 완료
+FocusSessionRepository --> FocusSessionService: FocusSession
+FocusSessionService --> FocusSessionController: FocusSessionResponse
+FocusSessionController --> UI: 순공 시간 저장 완료
 UI --> User: 총 공부 시간 갱신
 @enduml
 
