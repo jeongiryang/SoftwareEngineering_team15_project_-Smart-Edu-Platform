@@ -39,6 +39,8 @@ Codex, Claude, Gemini, Cursor, GitHub Copilot 등 AI 코드 에이전트를 사�
 7. [코드 작성 원칙](#7-코드-작성-원칙)
 8. [Notion, HackMD, GitHub 사용 기준](#8-notion-hackmd-github-사용-기준)
 9. [협업 원칙 요약](#9-협업-원칙-요약)
+10. [**중요: 안정 버전 백업 및 태그 관리**](#10-중요-안정-버전-백업-및-태그-관리)
+11. [2단계 개발 환경 실행 방법](#11-2단계-개발-환경-실행-방법)
 
 ---
 
@@ -534,9 +536,100 @@ Notion에서 일정 및 역할 정리
 
 ---
 
-## 10. 2단계 개발 환경 실행 방법
+## 10. 중요: 안정 버전 백업 및 태그 관리
 
-### 10.1 루트 기준 검증
+이 섹션은 원격 저장소 사고가 발생했을 때 복구 기준을 남기기 위한 중요 절차임.
+
+1단계 제출본이 최종 확정되고, 2단계 구현을 본격적으로 시작하기 전에 실행함. 로컬 bundle 백업과 원격 tag 백업은 목적이 다르므로 둘 다 사용하는 것을 권장함.
+
+아래 명령어는 지금 즉시 실행하는 것이 아니라, 제출 전 최종 확인 후 실행하는 절차임.
+
+### 10.1 로컬 bundle 백업
+
+`git bundle`은 Git 저장소 기록을 하나의 파일로 저장하는 백업 방식임.
+
+GitHub 원격이 꼬이거나 `main`이 잘못 변경되어도 로컬 bundle 파일로 복구 가능함. bundle 파일은 레포 안이 아니라 레포 바깥 폴더에 저장해야 하며, Git에 올리지 않음.
+
+```bash
+git checkout main
+git pull --ff-only origin main
+git status
+
+mkdir -p ../repo-backups
+git bundle create ../repo-backups/smart-edu-platform-stable-phase1-2026-05-18.bundle --all
+git bundle verify ../repo-backups/smart-edu-platform-stable-phase1-2026-05-18.bundle
+```
+
+정상 기준:
+
+- `git status`에서 작업 트리가 clean이어야 함
+- `git bundle verify`가 성공해야 함
+- 생성된 `.bundle` 파일은 레포 밖 `../repo-backups/`에 있어야 함
+
+복구 확인 예시:
+
+```bash
+git clone ../repo-backups/smart-edu-platform-stable-phase1-2026-05-18.bundle smart-edu-platform-restore-test
+```
+
+### 10.2 원격 tag 백업
+
+tag는 특정 커밋에 붙이는 이름표임.
+
+원격 tag는 GitHub에 “이 커밋이 1단계 제출 전 안정 버전”이라는 기준점을 남기는 방식임. tag는 독립 백업 파일이 아니라 원격 기준점임.
+
+따라서 로컬 bundle 백업을 먼저 만들고, 원격 tag는 보조 기준점으로 사용함.
+
+```bash
+git tag -a stable-phase1-submission-2026-05-18 -m "1단계 제출 전 안정 버전"
+git push origin stable-phase1-submission-2026-05-18
+```
+
+확인 명령어:
+
+```bash
+git tag
+git ls-remote --tags origin
+```
+
+주의사항:
+
+- tag는 1단계 제출본이 확정된 뒤 생성함
+- 이미 같은 이름의 tag가 있으면 임의로 삭제하거나 다시 만들지 않음
+- tag 삭제나 재생성은 사용자 확인 후 진행함
+
+| 구분 | 역할 | 저장 위치 | 특징 |
+|---|---|---|---|
+| 로컬 bundle 백업 | 실제 복구용 백업 파일 | 내 컴퓨터의 레포 밖 폴더 | GitHub 원격이 꼬여도 복구 가능 |
+| 원격 tag 백업 | 안정 버전 기준점 표시 | GitHub 원격 저장소 | 팀원이 기준 커밋을 확인하기 쉬움 |
+
+- bundle은 실제 복구용임
+- tag는 GitHub에 남기는 기준점임
+- 둘 다 만들면 복구 안정성이 높아짐
+
+### 10.3 백업 실행 시점
+
+- 1단계 요구사항 문서 최종 확인 완료
+- 1단계 설계 문서 최종 확인 완료
+- PDF 변환본 이미지/표/부록 링크 확인 완료
+- main이 origin/main과 동기화됨
+- 작업 트리가 clean 상태임
+- 그 상태에서 로컬 bundle 백업 생성
+- 그 다음 원격 tag 생성
+
+### 10.4 주의사항
+
+- bundle 파일은 Git에 올리지 않음
+- bundle 파일은 레포 바깥에 보관함
+- tag 생성은 최종 제출본 확정 후 진행함
+- tag 삭제, tag 재생성, force push, reset/rebase는 단독 실행하지 않음
+- 문제가 생기면 추가 push를 중단하고 현재 상태를 먼저 공유함
+
+---
+
+## 11. 2단계 개발 환경 실행 방법
+
+### 11.1 루트 기준 검증
 
 프로젝트 루트에서 기본 테스트와 설정 검증을 실행할 수 있다.
 
@@ -549,7 +642,7 @@ npm run check
 
 `npm test`는 백엔드 Jest 테스트를 실행한다. `npm run validate:prisma`는 백엔드 Prisma schema를 검증하고, `npm run check:frontend`는 Expo 설정을 확인한다.
 
-### 10.2 백엔드
+### 11.2 백엔드
 
 ```bash
 cd src/backend
@@ -567,7 +660,7 @@ npx prisma validate
 
 실제 DB migration은 아직 실행하지 않는다. `prisma migrate dev`는 DB 연결 방식과 migration 관리 방식을 확정한 뒤 실행한다.
 
-### 10.3 프론트엔드
+### 11.3 프론트엔드
 
 ```bash
 cd src/frontend
@@ -578,6 +671,6 @@ npx expo config --type public
 
 프론트엔드는 Expo 기반으로 실행하며, 실제 API 연동 전에는 기본 화면 틀과 API service 구조를 먼저 확인한다.
 
-### 10.4 환경변수
+### 11.4 환경변수
 
 백엔드는 `src/backend/.env.example`을 참고하여 로컬 `.env` 파일을 생성한다. `.env` 파일은 Git에 커밋하지 않는다.
