@@ -114,7 +114,7 @@ PlantUML 원본은 `docs/design/plantuml/class-diagram.puml`에 보관하며, �
 | `AIService` | AI 질의, 오답노트 생성, 추천, 퀴즈 생성, 요약 기능 처리 | FR-07, FR-08, FR-09, FR-10, FR-19 |
 | `WrongAnswerNote` | 오답 문제, 사용자 답변, 해설, 취약 유형 관리 | FR-08 |
 | `Quiz`, `QuizQuestion` | AI 또는 노트 기반 복습 퀴즈와 문제 관리 | FR-10 |
-| `FocusSession` | 스톱워치와 타이머를 통해 기록되는 순공 시간 관리 | FR-15 |
+| `FocusSession` | 클라이언트에서 측정한 최종 순공 시간을 `durationMs` 단위로 저장 | FR-15 |
 | `StudyStatistics`, `Heatmap` | 학습 시간, 진척도, 히트맵 데이터 계산 및 표현 | FR-16, FR-17 |
 | `StudyGroup`, `StudyChallenge`, `Ranking` | 그룹 학습, 챌린지, 주간 랭킹 관리 | FR-11, FR-12, FR-29 |
 | `BoardPost`, `Comment`, `Admin` | 게시판, 댓글, 신고 처리, 관리자 운영 기능 표현 | FR-13, FR-27, FR-28, FR-29 |
@@ -128,6 +128,8 @@ PlantUML 원본은 `docs/design/plantuml/class-diagram.puml`에 보관하며, �
 ## 5. 시퀀스 다이어그램
 
 시퀀스 다이어그램은 요구사항 문서의 유스케이스 `UC-01`부터 `UC-21`까지를 기준으로 주요 기능 흐름을 정리한다. 각 다이어그램은 사용자 또는 관리자의 요청이 클라이언트, 컨트롤러, 서비스, 저장소, DBMS, 외부 시스템을 거쳐 처리되는 흐름을 나타낸다.
+
+UC-12 집중 모드는 클라이언트에서 타이머를 실행하고, 학습 종료 시점에 `POST /api/focus-sessions`로 완료된 집중 세션 기록을 저장하는 방식으로 설계한다. 서버는 진행 중인 타이머 상태를 관리하지 않으며, 저장된 `durationMs` 값은 화면 표시와 통계 계산 시 분/시간 단위로 변환한다.
 
 PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보관하며, 렌더링된 이미지는 `screenshots/sequence-diagram/`에 보관한다.
 

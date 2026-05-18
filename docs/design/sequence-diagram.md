@@ -163,6 +163,8 @@
 
 ## 11. UC-12 집중 모드 및 순공 시간 측정
 
+UC-12는 클라이언트에서 타이머를 실행하고, 학습 종료 시점에 최종 누적 시간을 `POST /api/focus-sessions`로 서버에 저장하는 흐름으로 설계한다. 서버는 진행 중인 타이머 상태를 관리하지 않고, 완료된 집중 세션 기록만 `durationMs` 기준으로 저장한다.
+
 ### 11.1 관련 요구사항
 
 | 항목 | 내용 |
@@ -292,7 +294,7 @@
 | `UC-09`, `UC-21` | 스터디 챌린지 참여, 관리자의 부적절한 챌린지 제재 처리 | [UC09-21_StudyChallenge.png](../../screenshots/sequence-diagram/UC09-21_StudyChallenge.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
 | `UC-10`, `UC-18` | 게시글 작성, 신고 접수, 관리자 운영 처리 | [UC10-18_BoardAndAdmin.png](../../screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
 | `UC-11` | 학습 통계 계산, 완료율 및 히트맵 조회 | [UC11_ViewStudyStatistics.png](../../screenshots/sequence-diagram/UC11_ViewStudyStatistics.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
-| `UC-12` | 집중 모드 시작, 타이머 종료 시 순공 시간 저장 | [UC12_FocusMode.png](../../screenshots/sequence-diagram/UC12_FocusMode.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
+| `UC-12` | 클라이언트 타이머 종료 후 `POST /api/focus-sessions`로 최종 순공 시간 저장 | [UC12_FocusMode.png](../../screenshots/sequence-diagram/UC12_FocusMode.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
 | `UC-13` | 학습 노트 기반 텍스트 요약 및 TTS 오디오 변환 | [UC13_TTSAndSummary.png](../../screenshots/sequence-diagram/UC13_TTSAndSummary.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
 | `UC-14`, `UC-16` | 접근성 설정(고대비, 큰글씨), 초등학생용 테마 적용 | [UC14-16_UISettings.png](../../screenshots/sequence-diagram/UC14-16_UISettings.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
 | `UC-15` | 사용자 퀘스트 달성 현황 및 포인트 보상 조회 | [UC15_QuestAndReward.png](../../screenshots/sequence-diagram/UC15_QuestAndReward.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
