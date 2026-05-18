@@ -272,8 +272,8 @@ Smart Edu Platform의 주요 액터와 시스템 기능 간의 관계는 다음 
 | 산출물 | 설명 |
 |---|---|
 | 유스케이스 다이어그램 | Smart Edu Platform의 주액터, 부액터, 주요 유스케이스 관계를 시각화한 다이어그램임. |
-| 이미지 | `../../screenshots/usecase-diagram.png` |
-| 원본 | `docs/requirements/usecase-diagram.puml` |
+| 이미지 | [screenshots/usecase-diagram.png](../../screenshots/usecase-diagram.png) |
+| 원본 | [docs/requirements/usecase-diagram.puml](./usecase-diagram.puml) |
 
 ---
 
