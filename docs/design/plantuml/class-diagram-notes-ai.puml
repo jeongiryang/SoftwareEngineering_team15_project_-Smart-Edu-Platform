@@ -1,0 +1,103 @@
+@startuml class-diagram-notes-ai
+title Smart Edu Platform - 노트/퀴즈/AI 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+package "노트/퀴즈/AI 도메인" #FFF3E0 {
+  class User <<사용자>> {
+    - userId: Long
+    - email: String
+  }
+
+  class StudyNote <<학습 노트>> {
+    - noteId: Long
+    - title: String
+    - content: Text
+    - subject: String
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + updateContent(content): void
+    + summarize(): Summary
+  }
+
+  class AIQuestion <<AI 질의>> {
+    - questionId: Long
+    - questionText: Text
+    - answerText: Text
+    - createdAt: DateTime
+    + ask(question): String
+  }
+
+  class WrongAnswerNote <<AI 오답노트>> {
+    - wrongNoteId: Long
+    - question: Text
+    - userAnswer: Text
+    - correctAnswer: Text
+    - weaknessType: String
+    + generateExplanation(): String
+  }
+
+  class AIRecommendation <<AI 학습 추천>> {
+    - recommendationId: Long
+    - subject: String
+    - reason: Text
+    - priority: Integer
+    + createFromStatistics(): void
+  }
+
+  class Quiz <<AI 기반 퀴즈>> {
+    - quizId: Long
+    - title: String
+    - sourceType: String
+    - createdAt: DateTime
+    + generateFromNote(note): void
+  }
+
+  class QuizQuestion <<퀴즈 문항>> {
+    - questionId: Long
+    - content: Text
+    - correctAnswer: String
+    - difficulty: Difficulty
+    + checkAnswer(answer): Boolean
+  }
+
+  class Summary <<학습 요약>> {
+    - summaryId: Long
+    - sourceType: String
+    - content: Text
+    - keywords: String[]
+  }
+
+  class AIService <<AI 서비스>> {
+    + answerQuestion(question): AIQuestion
+    + createWrongAnswerNote(data): WrongAnswerNote
+    + recommendLearning(user): AIRecommendation
+    + generateQuiz(note): Quiz
+    + summarize(note): Summary
+  }
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+User "1" *-- "0..*" StudyNote
+User "1" *-- "0..*" AIQuestion
+User "1" *-- "0..*" WrongAnswerNote
+User "1" *-- "0..*" AIRecommendation
+StudyNote "1" *-- "0..*" Quiz
+Quiz "1" *-- "1..*" QuizQuestion
+StudyNote "1" *-- "0..1" Summary
+AIService ..> AIQuestion
+AIService ..> WrongAnswerNote
+AIService ..> AIRecommendation
+AIService ..> Quiz
+AIService ..> Summary
+QuizQuestion --> Difficulty
+@enduml

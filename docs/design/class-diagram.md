@@ -10,8 +10,9 @@
 
 다이어그램 작성 도구는 **PlantUML**을 기준으로 한다.
 
-- 다이어그램 구현 코드: [plantuml/class-diagram.puml](plantuml/class-diagram.puml)
-- 렌더링 이미지: [../../screenshots/class-diagram.png](../../screenshots/class-diagram.png)
+- 전체 다이어그램 구현 코드: [plantuml/class-diagram.puml](plantuml/class-diagram.puml)
+- 전체 렌더링 이미지: [../../screenshots/class-diagram.png](../../screenshots/class-diagram.png)
+- 도메인별 분할 다이어그램: `docs/design/plantuml/class-diagram-*.puml`, `screenshots/class-diagram-*.png`
 
 본 다이어그램은 AI 도구를 활용하여 PlantUML 코드 초안을 생성한 뒤, 조원 검토를 거쳐 수정하고 PNG 이미지로 렌더링하였다. PlantUML 원본은 `docs/design/plantuml/`에 보관하며, 렌더링된 이미지는 `screenshots/`에 보관한다.
 
@@ -35,13 +36,47 @@
 
 ## 3. 클래스 다이어그램
 
+전체 클래스 다이어그램은 모든 도메인 객체와 관계를 한 장에 담은 개요용 다이어그램임. 세부 구조는 도메인별 분할 다이어그램에서 확인함.
+
 ![Smart Edu Platform Class Diagram](../../screenshots/class-diagram.png)
 
 다이어그램 구현 코드는 [plantuml/class-diagram.puml](plantuml/class-diagram.puml)에 보관한다.
 
 ---
 
-## 4. 주요 클래스 설명
+## 4. 도메인별 분할 클래스 다이어그램
+
+| 도메인 | 설명 | 이미지 | 원본 |
+|---|---|---|---|
+| 사용자/인증 | 사용자 계정, 프로필, 인증 세션, 접근성 설정 구조 | [class-diagram-auth.png](../../screenshots/class-diagram-auth.png) | [class-diagram-auth.puml](plantuml/class-diagram-auth.puml) |
+| 학습 일정/태스크 | 학습 일정, 칸반 태스크, 알림, 외부 캘린더 연동 구조 | [class-diagram-schedule-task.png](../../screenshots/class-diagram-schedule-task.png) | [class-diagram-schedule-task.puml](plantuml/class-diagram-schedule-task.puml) |
+| 노트/퀴즈/AI | 학습 노트, AI 질의, 오답노트, 추천, 퀴즈, 요약 구조 | [class-diagram-notes-ai.png](../../screenshots/class-diagram-notes-ai.png) | [class-diagram-notes-ai.puml](plantuml/class-diagram-notes-ai.puml) |
+| 커뮤니티/챌린지/관리자 | 게시판, 댓글, 스터디 챌린지, 랭킹, 관리자 처리 구조 | [class-diagram-community-admin.png](../../screenshots/class-diagram-community-admin.png) | [class-diagram-community-admin.puml](plantuml/class-diagram-community-admin.puml) |
+| 집중 시간/통계 | 집중 세션, 앱 차단 규칙, 학습 통계, 히트맵 구조 | [class-diagram-focus-statistics.png](../../screenshots/class-diagram-focus-statistics.png) | [class-diagram-focus-statistics.puml](plantuml/class-diagram-focus-statistics.puml) |
+
+### 4.1 사용자/인증
+
+![사용자/인증 클래스 다이어그램](../../screenshots/class-diagram-auth.png)
+
+### 4.2 학습 일정/태스크
+
+![학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram-schedule-task.png)
+
+### 4.3 노트/퀴즈/AI
+
+![노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram-notes-ai.png)
+
+### 4.4 커뮤니티/챌린지/관리자
+
+![커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram-community-admin.png)
+
+### 4.5 집중 시간/통계
+
+![집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram-focus-statistics.png)
+
+---
+
+## 5. 주요 클래스 설명
 
 | 클래스 | 설명 | 관련 요구사항 |
 |---|---|---|
@@ -64,7 +99,7 @@
 
 ---
 
-## 5. 설계 의도
+## 6. 설계 의도
 
 - 사용자 기능은 `User`를 중심으로 구성하고, 프로필, 접근성 설정, 보상 계정은 1:1 관계로 분리하였다.
 - 학습 일정과 태스크는 서로 독립적으로 사용할 수 있지만, 필요하면 일정에 태스크를 연결할 수 있도록 설계하였다.

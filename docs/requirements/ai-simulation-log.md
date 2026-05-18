@@ -73,7 +73,7 @@ AI가 제안한 내용을 그대로 사용하지 않고 조원 피드백을 반�
 - 유스케이스 다이어그램에서 UC 번호 제거
 - AI 시스템/외부 캘린더 시스템을 component로 표현
 - 집중 시간 측정 API를 start/stop 분리 방식에서 최종 기록 저장 방식으로 수정
-- `durationMinutes` 대신 `durationMs` 기준으로 정리
+- 집중 시간 저장 단위를 `durationMs` 기준으로 정리
 - PostgreSQL 단일 DB 사용 방향 확정
 
 최종 산출물은 조원 검토와 PR 리뷰를 거쳐 main에 병합함.

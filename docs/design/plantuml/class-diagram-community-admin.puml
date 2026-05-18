@@ -1,0 +1,109 @@
+@startuml class-diagram-community-admin
+title Smart Edu Platform - 커뮤니티/챌린지/관리자 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+package "커뮤니티/챌린지/관리자 도메인" #F3E5F5 {
+  class User <<사용자>> {
+    - userId: Long
+    - email: String
+    - name: String
+  }
+
+  class Admin <<관리자>> {
+    - adminId: Long
+    - name: String
+    + hidePost(post): void
+    + deleteComment(comment): void
+    + suspendUser(user, reason): void
+    + moderateChallenge(challenge, action): void
+  }
+
+  class BoardPost <<게시판 게시글>> {
+    - postId: Long
+    - category: PostCategory
+    - title: String
+    - content: Text
+    - reported: Boolean
+    + update(title, content): void
+    + report(reason): void
+  }
+
+  class Comment <<게시글 댓글>> {
+    - commentId: Long
+    - content: Text
+    - reported: Boolean
+    + update(content): void
+    + report(reason): void
+  }
+
+  class StudyGroup <<스터디 그룹>> {
+    - groupId: Long
+    - name: String
+    - description: String
+    + addMember(user): void
+    + removeMember(user): void
+  }
+
+  class StudyChallenge <<스터디 챌린지>> {
+    - challengeId: Long
+    - title: String
+    - goalMinutes: Integer
+    - status: ChallengeStatus
+    - reported: Boolean
+    + join(user): void
+    + updateProgress(user, minutes): void
+    + report(reason): void
+  }
+
+  class Ranking <<랭킹 집계>> {
+    - rankingId: Long
+    - periodStart: Date
+    - periodEnd: Date
+    - rankingType: RankingType
+    + calculate(group): RankingEntry[]
+  }
+
+  class RankingEntry <<랭킹 순위 항목>> {
+    - rank: Integer
+    - studyMinutes: Integer
+    - userName: String
+  }
+}
+
+enum PostCategory {
+  QUESTION
+  FREE
+  STUDY_PROOF
+}
+
+enum ChallengeStatus {
+  READY
+  IN_PROGRESS
+  CLOSED
+}
+
+enum RankingType {
+  WEEKLY
+  MONTHLY
+}
+
+User "1" *-- "0..*" BoardPost
+User "1" *-- "0..*" Comment
+BoardPost "1" *-- "0..*" Comment
+User "0..*" -- "0..*" StudyGroup
+StudyGroup "1" *-- "0..*" StudyChallenge
+StudyChallenge "1" *-- "0..*" RankingEntry
+Ranking "1" *-- "0..*" RankingEntry
+Admin ..> BoardPost
+Admin ..> Comment
+Admin ..> User
+Admin ..> StudyChallenge
+BoardPost --> PostCategory
+StudyChallenge --> ChallengeStatus
+Ranking --> RankingType
+@enduml

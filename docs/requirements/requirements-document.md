@@ -1,11 +1,10 @@
 # Smart Edu Platform 요구사항 문서
 
-> AI 기반 가상 인터뷰 및 페르소나 도출 근거는 [AI 인터뷰 시뮬레이션 문서](./ai-interview-simulation.md)에서 확인할 수 있다. 요구사항, 유스케이스, 설계 문서 작성 과정에서의 AI 활용 요약은 [AI 시뮬레이션 로그](./ai-simulation-log.md)에서 확인할 수 있다.
-
 ## 부록 문서
 
 - [AI 인터뷰 시뮬레이션 문서](./ai-interview-simulation.md): 사용자 그룹별 가상 인터뷰, 설문, 페르소나 도출 근거
 - [AI 시뮬레이션 로그](./ai-simulation-log.md): 요구사항, 유스케이스, 설계 문서 작성 과정에서의 AI 활용 요약
+- [유스케이스 다이어그램 이미지](../../screenshots/usecase-diagram.png): 렌더링된 유스케이스 다이어그램 이미지
 - [유스케이스 다이어그램 PlantUML 원본](./usecase-diagram.puml): 유스케이스 다이어그램 원본 코드
 
 ---
@@ -71,6 +70,7 @@
 | 2026-05-11 회의록 | `docs/meeting-minutes/meeting-2026-05-11.md` | 구현 방향, 기능 후보, 기능/비기능 요구사항 후보 정리 |
 | AI 인터뷰 시뮬레이션 문서 | `docs/requirements/ai-interview-simulation.md` | 페르소나 및 사용자 설문/인터뷰 시뮬레이션 결과 |
 | AI 시뮬레이션 로그 | `docs/requirements/ai-simulation-log.md` | 요구사항, 유스케이스, 설계 문서 작성 과정에서의 AI 활용 요약 |
+| 유스케이스 다이어그램 이미지 | `screenshots/usecase-diagram.png` | 렌더링된 유스케이스 다이어그램 이미지 |
 | 유스케이스 다이어그램 PlantUML 원본 | `docs/requirements/usecase-diagram.puml` | 유스케이스 다이어그램 원본 코드 |
 
 ---
@@ -268,6 +268,12 @@
 Smart Edu Platform의 주요 액터와 시스템 기능 간의 관계는 다음 유스케이스 다이어그램과 같다.
 
 ![Smart Edu Platform 유스케이스 다이어그램](../../screenshots/usecase-diagram.png)
+
+| 산출물 | 설명 |
+|---|---|
+| 유스케이스 다이어그램 | Smart Edu Platform의 주액터, 부액터, 주요 유스케이스 관계를 시각화한 다이어그램임. |
+| 이미지 | `../../screenshots/usecase-diagram.png` |
+| 원본 | `docs/requirements/usecase-diagram.puml` |
 
 ---
 

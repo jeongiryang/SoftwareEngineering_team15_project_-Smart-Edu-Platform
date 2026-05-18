@@ -1,0 +1,98 @@
+@startuml class-diagram-schedule-task
+title Smart Edu Platform - 학습 일정/태스크 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+package "학습 일정/태스크 도메인" #E8F5E9 {
+  class User <<사용자>> {
+    - userId: Long
+    - email: String
+  }
+
+  class StudySchedule <<학습 일정>> {
+    - scheduleId: Long
+    - title: String
+    - subject: String
+    - startAt: DateTime
+    - endAt: DateTime
+    - priority: Priority
+    - repeatRule: String
+    - memo: String
+    + updateSchedule(title, startAt, endAt): void
+    + cancel(): void
+    + isDeadlineNear(now): Boolean
+  }
+
+  class StudyTask <<칸반 태스크>> {
+    - taskId: Long
+    - title: String
+    - status: TaskStatus
+    - dueDate: Date
+    - priority: Priority
+    - memo: String
+    + moveTo(status): void
+    + complete(): void
+    + updatePriority(priority): void
+  }
+
+  class Notification <<알림 메시지>> {
+    - notificationId: Long
+    - type: NotificationType
+    - message: String
+    - scheduledAt: DateTime
+    - sentAt: DateTime
+    - read: Boolean
+    + send(): void
+    + markAsRead(): void
+  }
+
+  class ExternalCalendarLink <<외부 캘린더 연동>> {
+    - linkId: Long
+    - provider: CalendarProvider
+    - externalAccountId: String
+    - syncEnabled: Boolean
+    + syncSchedule(schedule): void
+    + disableSync(): void
+  }
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationType {
+  DEADLINE
+  REVIEW
+  CHALLENGE
+}
+
+enum CalendarProvider {
+  GOOGLE
+  APPLE
+  OUTLOOK
+}
+
+User "1" *-- "0..*" StudySchedule
+User "1" *-- "0..*" StudyTask
+StudySchedule "1" o-- "0..*" StudyTask
+StudySchedule "1" *-- "0..*" Notification
+StudyTask "1" *-- "0..*" Notification
+StudySchedule "0..1" -- "0..1" ExternalCalendarLink
+StudyTask --> TaskStatus
+StudySchedule --> Priority
+StudyTask --> Priority
+Notification --> NotificationType
+ExternalCalendarLink --> CalendarProvider
+@enduml

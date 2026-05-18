@@ -5,9 +5,13 @@ scale 0.85
 skinparam classAttributeIconSize 0
 skinparam shadowing false
 skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam packageBorderColor #666666
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #555555
 hide circle
 
-package "User Domain" {
+package "User Domain" #E3F2FD {
   class User <<사용자 계정>> {
     note right of User
       [사용자 정보 및 인증 관리 엔티티]
@@ -58,7 +62,7 @@ package "User Domain" {
   }
 }
 
-package "Schedule Domain" {
+package "Schedule Domain" #E8F5E9 {
   class StudySchedule <<학습 일정>> {
     note right of StudySchedule
       [학습 일정 관리 엔티티]
@@ -110,7 +114,7 @@ package "Schedule Domain" {
   }
 }
 
-package "Learning Domain" {
+package "Learning Domain" #FFF3E0 {
   class StudyNote <<학습 노트>> {
     - noteId: Long
     - title: String
@@ -165,7 +169,7 @@ package "Learning Domain" {
   }
 }
 
-package "AI Learning Domain" {
+package "AI Learning Domain" #FFE0B2 {
   class AIQuestion <<AI 질의 기록>> {
     - questionId: Long
     - prompt: Text
@@ -205,7 +209,7 @@ package "AI Learning Domain" {
   }
 }
 
-package "Focus and Analytics Domain" {
+package "Focus and Analytics Domain" #FBE9E7 {
   class FocusSession <<집중 모드 세션>> {
     - sessionId: Long
     - subject: String
@@ -249,7 +253,7 @@ package "Focus and Analytics Domain" {
   }
 }
 
-package "Social and Community Domain" {
+package "Social and Community Domain" #F3E5F5 {
   class StudyGroup <<스터디 그룹>> {
     - groupId: Long
     - name: String
@@ -322,7 +326,7 @@ package "Social and Community Domain" {
   }
 }
 
-package "Reward Domain" {
+package "Reward Domain" #EEEEEE {
   class RewardAccount <<포인트 지갑>> {
     - rewardAccountId: Long
     - pointBalance: Integer
