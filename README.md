@@ -1,5 +1,13 @@
 # Smart Edu Platform
 
+## 중요: AI 에이전트 사용 안전 규칙
+
+Codex, Claude, Gemini, Cursor, GitHub Copilot 등 AI 코드 에이전트를 사용할 때는 먼저 [AI 에이전트 사용 및 원격 작업 안전 규칙](./docs/ai-agent-usage-policy.md)을 확인해야 함.
+
+특히 `main` 직접 push, force push, reset/rebase, 원격 브랜치 삭제, `.env` 업로드 같은 위험 작업은 금지함.
+
+---
+
 ## **소프트웨어공학 15조 GitHub 협업 규칙**
 
 1. **핵심 원칙: `main` 브랜치는 제출 가능한 안정본으로 유지.**
