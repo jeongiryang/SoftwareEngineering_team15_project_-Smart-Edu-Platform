@@ -104,10 +104,12 @@ DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일
 
 ![클래스 다이어그램](../../screenshots/class-diagram.png)
 
-| 항목 | 경로 |
+| 항목 | 링크 |
 |---|---|
-| 이미지 | `../../screenshots/class-diagram.png` |
-| 원본 | `docs/design/plantuml/class-diagram.puml` |
+| 이미지 | [screenshots/class-diagram.png](../../screenshots/class-diagram.png) |
+| 원본 | [docs/design/plantuml/class-diagram.puml](./plantuml/class-diagram.puml) |
+
+---
 
 ### 4.2 사용자/인증 클래스 다이어그램
 
@@ -115,7 +117,12 @@ DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일
 
 ![사용자/인증 클래스 다이어그램](../../screenshots/class-diagram-auth.png)
 
-원본: `docs/design/plantuml/class-diagram-auth.puml`
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-auth.png](../../screenshots/class-diagram-auth.png) |
+| 원본 | [docs/design/plantuml/class-diagram-auth.puml](./plantuml/class-diagram-auth.puml) |
+
+---
 
 ### 4.3 학습 일정/태스크 클래스 다이어그램
 
@@ -123,7 +130,12 @@ DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일
 
 ![학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram-schedule-task.png)
 
-원본: `docs/design/plantuml/class-diagram-schedule-task.puml`
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-schedule-task.png](../../screenshots/class-diagram-schedule-task.png) |
+| 원본 | [docs/design/plantuml/class-diagram-schedule-task.puml](./plantuml/class-diagram-schedule-task.puml) |
+
+---
 
 ### 4.4 노트/퀴즈/AI 클래스 다이어그램
 
@@ -131,7 +143,12 @@ DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일
 
 ![노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram-notes-ai.png)
 
-원본: `docs/design/plantuml/class-diagram-notes-ai.puml`
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-notes-ai.png](../../screenshots/class-diagram-notes-ai.png) |
+| 원본 | [docs/design/plantuml/class-diagram-notes-ai.puml](./plantuml/class-diagram-notes-ai.puml) |
+
+---
 
 ### 4.5 커뮤니티/챌린지/관리자 클래스 다이어그램
 
@@ -139,7 +156,12 @@ DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일
 
 ![커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram-community-admin.png)
 
-원본: `docs/design/plantuml/class-diagram-community-admin.puml`
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-community-admin.png](../../screenshots/class-diagram-community-admin.png) |
+| 원본 | [docs/design/plantuml/class-diagram-community-admin.puml](./plantuml/class-diagram-community-admin.puml) |
+
+---
 
 ### 4.6 집중 시간/통계 클래스 다이어그램
 
@@ -147,7 +169,12 @@ DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일
 
 ![집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram-focus-statistics.png)
 
-원본: `docs/design/plantuml/class-diagram-focus-statistics.puml`
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram-focus-statistics.png](../../screenshots/class-diagram-focus-statistics.png) |
+| 원본 | [docs/design/plantuml/class-diagram-focus-statistics.puml](./plantuml/class-diagram-focus-statistics.puml) |
+
+---
 
 ### 4.7 주요 클래스 설명
 
