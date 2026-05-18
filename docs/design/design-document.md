@@ -214,20 +214,22 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 
 | 유스케이스 | 주요 흐름 | 이미지 |
 |---|---|---|
-| UC-01, UC-02 | 회원가입, 로그인, 인증 실패 처리 | `UC01-02_SignUpLogin.png` |
-| UC-03 | 학습 일정 등록, 마감 알림, 외부 캘린더 연동 | `UC03_CreateSchedule.png` |
-| UC-04 | 칸반 태스크 상태 변경, 완료 시 알림 취소 | `UC04_UpdateTaskStatus.png` |
-| UC-05, UC-06, UC-07 | AI 학습 질의, AI 오답노트 생성, 학습 추천 | `UC05-07_AILearning.png` |
-| UC-09, UC-21 | 스터디 챌린지 참여 및 관리자 챌린지 관리 | `UC09-21_StudyChallenge.png` |
-| UC-10, UC-18 | 게시판 이용 및 관리자 게시판 관리 | `UC10-18_BoardAndAdmin.png` |
-| UC-11 | 학습 통계 및 히트맵 조회 | `UC11_ViewStudyStatistics.png` |
-| UC-12 | 집중 모드 및 순공 시간 측정 | `UC12_FocusMode.png` |
-| UC-13 | TTS 학습 및 요약 보기 | `UC13_TTSAndSummary.png` |
-| UC-14, UC-16 | 접근성 설정 및 초등학생 친화 UI 적용 | `UC14-16_UISettings.png` |
-| UC-15 | 퀘스트 및 보상 확인 | `UC15_QuestAndReward.png` |
-| UC-17 | 복습 알림 확인 | `UC17_ReviewNotification.png` |
-| UC-19 | AI 기반 퀴즈 생성 | `UC19_GenerateQuiz.png` |
-| UC-20 | 사용자 계정 관리 및 제재 | `UC20_UserAccountAdmin.png` |
+| UC-01, UC-02 | 회원가입, 로그인, 인증 실패 처리 | [screenshots/sequence-diagram/UC01-02_SignUpLogin.png](../../screenshots/sequence-diagram/UC01-02_SignUpLogin.png) |
+| UC-03 | 학습 일정 등록, 마감 알림, 외부 캘린더 연동 | [screenshots/sequence-diagram/UC03_CreateSchedule.png](../../screenshots/sequence-diagram/UC03_CreateSchedule.png) |
+| UC-04 | 칸반 태스크 상태 변경, 완료 시 알림 취소 | [screenshots/sequence-diagram/UC04_UpdateTaskStatus.png](../../screenshots/sequence-diagram/UC04_UpdateTaskStatus.png) |
+| UC-05, UC-06, UC-07 | AI 학습 질의, AI 오답노트 생성, 학습 추천 | [screenshots/sequence-diagram/UC05-07_AILearning.png](../../screenshots/sequence-diagram/UC05-07_AILearning.png) |
+| UC-09, UC-21 | 스터디 챌린지 참여 및 관리자 챌린지 관리 | [screenshots/sequence-diagram/UC09-21_StudyChallenge.png](../../screenshots/sequence-diagram/UC09-21_StudyChallenge.png) |
+| UC-10, UC-18 | 게시판 이용 및 관리자 게시판 관리 | [screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png](../../screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png) |
+| UC-11 | 학습 통계 및 히트맵 조회 | [screenshots/sequence-diagram/UC11_ViewStudyStatistics.png](../../screenshots/sequence-diagram/UC11_ViewStudyStatistics.png) |
+| UC-12 | 집중 모드 및 순공 시간 측정 | [screenshots/sequence-diagram/UC12_FocusMode.png](../../screenshots/sequence-diagram/UC12_FocusMode.png) |
+| UC-13 | TTS 학습 및 요약 보기 | [screenshots/sequence-diagram/UC13_TTSAndSummary.png](../../screenshots/sequence-diagram/UC13_TTSAndSummary.png) |
+| UC-14, UC-16 | 접근성 설정 및 초등학생 친화 UI 적용 | [screenshots/sequence-diagram/UC14-16_UISettings.png](../../screenshots/sequence-diagram/UC14-16_UISettings.png) |
+| UC-15 | 퀘스트 및 보상 확인 | [screenshots/sequence-diagram/UC15_QuestAndReward.png](../../screenshots/sequence-diagram/UC15_QuestAndReward.png) |
+| UC-17 | 복습 알림 확인 | [screenshots/sequence-diagram/UC17_ReviewNotification.png](../../screenshots/sequence-diagram/UC17_ReviewNotification.png) |
+| UC-19 | AI 기반 퀴즈 생성 | [screenshots/sequence-diagram/UC19_GenerateQuiz.png](../../screenshots/sequence-diagram/UC19_GenerateQuiz.png) |
+| UC-20 | 사용자 계정 관리 및 제재 | [screenshots/sequence-diagram/UC20_UserAccountAdmin.png](../../screenshots/sequence-diagram/UC20_UserAccountAdmin.png) |
+
+---
 
 ### 5.2 회원가입 및 로그인
 
@@ -235,11 +237,25 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 
 ![회원가입 및 로그인 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC01-02_SignUpLogin.png)
 
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC01-02_SignUpLogin.png](../../screenshots/sequence-diagram/UC01-02_SignUpLogin.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+
+---
+
 ### 5.3 학습 일정 관리
 
 `UC-03`은 사용자가 학습 일정을 등록하고, 시스템이 마감 알림과 외부 캘린더 연동을 처리하는 흐름을 나타낸다.
 
 ![학습 일정 관리 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC03_CreateSchedule.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC03_CreateSchedule.png](../../screenshots/sequence-diagram/UC03_CreateSchedule.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+
+---
 
 ### 5.4 칸반 보드 관리
 
@@ -247,11 +263,25 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 
 ![칸반 보드 관리 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC04_UpdateTaskStatus.png)
 
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC04_UpdateTaskStatus.png](../../screenshots/sequence-diagram/UC04_UpdateTaskStatus.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+
+---
+
 ### 5.5 AI 학습 질의, 오답노트, 학습 추천
 
 `UC-05`, `UC-06`, `UC-07`은 AI 시스템을 통해 학습 질의, 오답 분석, 학습 추천을 처리하는 흐름이다. AI 결과는 사용자 학습 데이터와 연결되어 저장된다.
 
 ![AI 학습 지원 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC05-07_AILearning.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC05-07_AILearning.png](../../screenshots/sequence-diagram/UC05-07_AILearning.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+
+---
 
 ### 5.6 AI 기반 퀴즈 생성
 
@@ -259,11 +289,25 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 
 ![AI 기반 퀴즈 생성 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC19_GenerateQuiz.png)
 
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC19_GenerateQuiz.png](../../screenshots/sequence-diagram/UC19_GenerateQuiz.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+
+---
+
 ### 5.7 게시판 및 관리자 기능
 
 `UC-10`, `UC-18`은 사용자의 게시판 이용과 관리자의 게시판 운영 처리를 나타낸다. 신고된 게시글과 댓글은 관리자 검토 후 처리된다.
 
 ![게시판 및 관리자 기능 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png](../../screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+
+---
 
 ### 5.8 학습 통계 확인
 
@@ -271,11 +315,23 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 
 ![학습 통계 확인 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC11_ViewStudyStatistics.png)
 
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC11_ViewStudyStatistics.png](../../screenshots/sequence-diagram/UC11_ViewStudyStatistics.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+
+---
+
 ### 5.9 집중 모드 및 순공 시간 측정
 
 `UC-12`는 클라이언트에서 타이머를 실행하고, 종료 시점에 최종 누적 시간만 서버로 전송하는 흐름을 나타낸다. 서버는 완료된 집중 세션 기록을 `durationMs` 기준으로 저장한다.
 
 ![집중 모드 및 순공 시간 측정 시퀀스 다이어그램](../../screenshots/sequence-diagram/UC12_FocusMode.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/sequence-diagram/UC12_FocusMode.png](../../screenshots/sequence-diagram/UC12_FocusMode.png) |
+| 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
 
 ---
 
