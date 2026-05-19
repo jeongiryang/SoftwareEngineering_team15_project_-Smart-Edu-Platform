@@ -21,10 +21,10 @@ Codex, Claude, Gemini, Cursor, GitHub Copilot 등 AI 코드 에이전트를 사�
 > ```bash
 > git fetch --all --prune
 > git checkout main
-> git pull origin main
+> git pull --ff-only origin main
 > ```
 >
-> _원격 저장소에 조원이 올린 새 브랜치나 삭제된 브랜치가 있을 수 있으므로, 작업 전 최신 상태 확인 필수._
+> _원격 저장소에 조원이 올린 새 브랜치나 삭제된 브랜치가 있을 수 있으므로, 작업 전 최신 상태 확인 필수. `--ff-only`는 불필요한 merge commit 생성을 막기 위한 안전 기준임._
 
 ---
 
@@ -40,7 +40,7 @@ Codex, Claude, Gemini, Cursor, GitHub Copilot 등 AI 코드 에이전트를 사�
 8. [Notion, HackMD, GitHub 사용 기준](#8-notion-hackmd-github-사용-기준)
 9. [협업 원칙 요약](#9-협업-원칙-요약)
 10. [**중요: 안정 버전 백업 및 태그 관리**](#10-중요-안정-버전-백업-및-태그-관리)
-11. [2단계 개발 환경 실행 방법](#11-2단계-개발-환경-실행-방법)
+11. [**필독: 로컬 개발 환경 세팅 방법**](#11-필독-로컬-개발-환경-세팅-방법)
 
 ---
 
@@ -55,16 +55,16 @@ Codex, Claude, Gemini, Cursor, GitHub Copilot 등 AI 코드 에이전트를 사�
 ```bash
 git fetch --all --prune
 git checkout main
-git pull origin main
+git pull --ff-only origin main
 ```
 
 | 명령어 | 의미 |
 |---|---|
 | `git fetch --all --prune` | 원격 브랜치 정보를 최신화하고, 삭제된 원격 브랜치 정보를 로컬에서도 정리 |
 | `git checkout main` | 기준 브랜치인 `main`으로 이동 |
-| `git pull origin main` | 원격 `main`의 최신 내용을 로컬 `main`에 반영 |
+| `git pull --ff-only origin main` | 원격 `main`의 최신 내용을 fast-forward 방식으로만 반영 |
 
-> 원격 저장소에 조원이 올린 새 작업이 있을 수 있으므로, 최신 상태를 받아온 뒤 새 브랜치 생성.
+> 원격 저장소에 조원이 올린 새 작업이 있을 수 있으므로, 최신 상태를 받아온 뒤 새 브랜치 생성. `--ff-only`는 불필요한 merge commit 생성을 막기 위한 안전 기준임.
 
 ---
 
@@ -518,7 +518,7 @@ Notion에서 일정 및 역할 정리
 
 ## 9. 협업 원칙 요약
 
-1. 작업 시작 전 `git fetch --all --prune`, `git pull origin main`으로 원격 저장소 최신화
+1. 작업 시작 전 `git fetch --all --prune`, `git pull --ff-only origin main`으로 원격 저장소 최신화
 2. `main` 브랜치에서 직접 작업 금지
 3. 모든 작업은 작업 브랜치에서 진행
 4. 브랜치 이름은 `<작업유형>/<작업내용>` 형식
@@ -549,6 +549,19 @@ Notion에서 일정 및 역할 정리
 `git bundle`은 Git 저장소 기록을 하나의 파일로 저장하는 백업 방식임.
 
 GitHub 원격이 꼬이거나 `main`이 잘못 변경되어도 로컬 bundle 파일로 복구 가능함. bundle 파일은 레포 안이 아니라 레포 바깥 폴더에 저장해야 하며, Git에 올리지 않음.
+
+`git bundle`은 Git 저장소의 커밋 기록과 참조 정보를 하나의 파일로 저장함. `--all` 옵션은 로컬 저장소가 알고 있는 브랜치와 태그 참조를 포함함.
+
+| 구분 | 포함 여부 | 설명 |
+|---|---|---|
+| Git 커밋 기록 | 포함 | main과 작업 브랜치의 커밋 기록을 복구할 수 있음 |
+| Git 브랜치/태그 참조 | 포함 | `--all` 기준으로 로컬이 알고 있는 참조를 포함함 |
+| Git이 추적하는 파일 | 포함 | 커밋에 포함된 코드와 문서 파일을 복구할 수 있음 |
+| `.env` | 미포함 | Git 추적 제외 파일이므로 bundle에 포함되지 않음 |
+| `node_modules`, `dist`, `.expo`, `coverage` | 미포함 | 로컬 생성 산출물이며 Git 추적 제외 대상임 |
+| Issue, PR, 댓글, 라벨 | 미포함 | GitHub 메타데이터라 bundle에 포함되지 않음 |
+
+bundle은 코드/문서 Git 히스토리 복구용임. Issue/PR 기록은 GitHub에 남는 별도 관리 대상임.
 
 ```bash
 git checkout main
@@ -627,7 +640,11 @@ git ls-remote --tags origin
 
 ---
 
-## 11. 2단계 개발 환경 실행 방법
+## 11. 필독: 로컬 개발 환경 세팅 방법
+
+이 섹션은 PR #16 merge 이후 팀원이 로컬에서 프로젝트를 실행하기 위한 기본 세팅 방법임. 자세한 팀원용 세팅 순서는 [Issue #14 로컬 세팅 가이드](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/14)를 함께 확인함.
+
+README에는 핵심 명령어만 정리함.
 
 ### 11.1 루트 기준 검증
 
@@ -637,10 +654,15 @@ git ls-remote --tags origin
 npm test
 npm run validate:prisma
 npm run check:frontend
+npm run check:frontend:web
 npm run check
 ```
 
-`npm test`는 백엔드 Jest 테스트를 실행한다. `npm run validate:prisma`는 백엔드 Prisma schema를 검증하고, `npm run check:frontend`는 Expo 설정을 확인한다.
+- `npm test`: 백엔드 Jest 테스트 실행
+- `npm run validate:prisma`: Prisma schema 검증
+- `npm run check:frontend`: Expo 설정 확인
+- `npm run check:frontend:web`: Expo Web bundle 생성 확인
+- `npm run check`: 위 검증을 한 번에 실행
 
 ### 11.2 백엔드
 
