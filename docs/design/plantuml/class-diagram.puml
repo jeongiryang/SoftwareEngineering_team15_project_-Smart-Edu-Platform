@@ -11,7 +11,7 @@ skinparam classBackgroundColor #FFFFFF
 skinparam classBorderColor #555555
 hide circle
 
-package "User Domain" #E3F2FD {
+package "User Domain\n사용자/인증 도메인" #E3F2FD {
   class User <<사용자 계정>> {
     note right of User
       [사용자 정보 및 인증 관리 엔티티]
@@ -62,7 +62,7 @@ package "User Domain" #E3F2FD {
   }
 }
 
-package "Schedule Domain" #E8F5E9 {
+package "Schedule Domain\n학습 일정/태스크 도메인" #E8F5E9 {
   class StudySchedule <<학습 일정>> {
     note right of StudySchedule
       [학습 일정 관리 엔티티]
@@ -114,7 +114,7 @@ package "Schedule Domain" #E8F5E9 {
   }
 }
 
-package "Learning Domain" #FFF3E0 {
+package "Learning Domain\n학습 노트/퀴즈 도메인" #FFF3E0 {
   class StudyNote <<학습 노트>> {
     - noteId: Long
     - title: String
@@ -169,7 +169,7 @@ package "Learning Domain" #FFF3E0 {
   }
 }
 
-package "AI Learning Domain" #FFE0B2 {
+package "AI Learning Domain\nAI 학습 지원 도메인" #FFE0B2 {
   class AIQuestion <<AI 질의 기록>> {
     - questionId: Long
     - prompt: Text
@@ -209,7 +209,7 @@ package "AI Learning Domain" #FFE0B2 {
   }
 }
 
-package "Focus and Analytics Domain" #FBE9E7 {
+package "Focus and Analytics Domain\n집중 시간/통계 도메인" #FBE9E7 {
   class FocusSession <<집중 모드 세션>> {
     - sessionId: Long
     - subject: String
@@ -253,7 +253,7 @@ package "Focus and Analytics Domain" #FBE9E7 {
   }
 }
 
-package "Social and Community Domain" #F3E5F5 {
+package "Social and Community Domain\n커뮤니티/챌린지/관리자 도메인" #F3E5F5 {
   class StudyGroup <<스터디 그룹>> {
     - groupId: Long
     - name: String
@@ -326,7 +326,7 @@ package "Social and Community Domain" #F3E5F5 {
   }
 }
 
-package "Reward Domain" #EEEEEE {
+package "Reward Domain\n보상 도메인" #EEEEEE {
   class RewardAccount <<포인트 지갑>> {
     - rewardAccountId: Long
     - pointBalance: Integer
