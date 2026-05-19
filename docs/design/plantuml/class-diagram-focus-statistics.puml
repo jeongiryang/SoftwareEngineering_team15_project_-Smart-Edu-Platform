@@ -67,5 +67,6 @@ User "1" *-- "0..*" AppBlockRule
 User "1" *-- "0..*" StudyStatistics
 FocusSession "0..*" -- "0..1" StudyTask
 StudyStatistics ..> FocusSession
-StudyStatistics "1" *-- "0..1" Heatmap
+StudyStatistics ..> StudyTask
+StudyStatistics ..> Heatmap
 @enduml

@@ -86,10 +86,10 @@ enum CalendarProvider {
 
 User "1" *-- "0..*" StudySchedule
 User "1" *-- "0..*" StudyTask
-StudySchedule "1" o-- "0..*" StudyTask
-StudySchedule "1" *-- "0..*" Notification
-StudyTask "1" *-- "0..*" Notification
-StudySchedule "0..1" -- "0..1" ExternalCalendarLink
+StudyTask "0..*" -- "0..1" StudySchedule
+StudySchedule "1" o-- "0..*" Notification
+StudyTask "1" o-- "0..*" Notification
+StudySchedule "0..*" -- "0..1" ExternalCalendarLink
 StudyTask --> TaskStatus
 StudySchedule --> Priority
 StudyTask --> Priority

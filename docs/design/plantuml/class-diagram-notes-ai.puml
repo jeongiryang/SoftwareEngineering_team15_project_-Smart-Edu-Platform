@@ -26,48 +26,67 @@ package "노트/퀴즈/AI 도메인" #FFF3E0 {
 
   class AIQuestion <<AI 질의>> {
     - questionId: Long
-    - questionText: Text
-    - answerText: Text
+    - prompt: Text
+    - answer: Text
+    - subject: String
     - createdAt: DateTime
-    + ask(question): String
+    + saveAnswer(answer): void
   }
 
   class WrongAnswerNote <<AI 오답노트>> {
-    - wrongNoteId: Long
-    - question: Text
+    - wrongAnswerNoteId: Long
+    - problemContent: Text
     - userAnswer: Text
     - correctAnswer: Text
+    - explanation: Text
     - weaknessType: String
-    + generateExplanation(): String
+    - createdAt: DateTime
+    + updateExplanation(explanation): void
+    + markReviewed(): void
+  }
+
+  class ReviewReminder <<복습 알림 주기>> {
+    - reminderId: Long
+    - reviewAt: DateTime
+    - intervalDays: Integer
+    - completed: Boolean
+    + scheduleNext(): void
+    + complete(): void
   }
 
   class AIRecommendation <<AI 학습 추천>> {
     - recommendationId: Long
     - subject: String
+    - weaknessType: String
     - reason: Text
     - priority: Integer
-    + createFromStatistics(): void
+    + updatePriority(priority): void
   }
 
   class Quiz <<AI 기반 퀴즈>> {
     - quizId: Long
     - title: String
     - sourceType: String
+    - sourceId: Long
+    - difficulty: Difficulty
     - createdAt: DateTime
-    + generateFromNote(note): void
+    + addQuestion(question): void
+    + grade(answers): QuizResult
   }
 
   class QuizQuestion <<퀴즈 문항>> {
     - questionId: Long
-    - content: Text
-    - correctAnswer: String
-    - difficulty: Difficulty
-    + checkAnswer(answer): Boolean
+    - prompt: Text
+    - choices: String[]
+    - answer: String
+    - explanation: Text
+    + checkAnswer(userAnswer): Boolean
   }
 
   class Summary <<학습 요약>> {
     - summaryId: Long
     - sourceType: String
+    - sourceId: Long
     - content: Text
     - keywords: String[]
   }
@@ -91,13 +110,14 @@ User "1" *-- "0..*" StudyNote
 User "1" *-- "0..*" AIQuestion
 User "1" *-- "0..*" WrongAnswerNote
 User "1" *-- "0..*" AIRecommendation
-StudyNote "1" *-- "0..*" Quiz
+StudyNote "1" o-- "0..*" Quiz
 Quiz "1" *-- "1..*" QuizQuestion
-StudyNote "1" *-- "0..1" Summary
+StudyNote "1" o-- "0..*" Summary
+WrongAnswerNote "1" o-- "0..*" ReviewReminder
 AIService ..> AIQuestion
 AIService ..> WrongAnswerNote
 AIService ..> AIRecommendation
 AIService ..> Quiz
 AIService ..> Summary
-QuizQuestion --> Difficulty
+Quiz --> Difficulty
 @enduml

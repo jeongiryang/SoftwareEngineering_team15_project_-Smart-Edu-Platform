@@ -1,0 +1,40 @@
+@startuml class-diagram-reward
+title Smart Edu Platform - Reward Domain / 보상 도메인 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+class User <<사용자>> {
+  - userId: Long
+  - email: String
+}
+
+package "Reward Domain\n보상 도메인" #EEEEEE {
+  class RewardAccount <<포인트 지갑>> {
+    - rewardAccountId: Long
+    - pointBalance: Integer
+    + addPoint(point): void
+    + usePoint(point): void
+  }
+
+  class Badge <<업적 뱃지>> {
+    - badgeId: Long
+    - name: String
+    - description: String
+    - condition: String
+    + isAchievedBy(user): Boolean
+  }
+
+  class UserBadge <<뱃지 보유 기록>> {
+    - userBadgeId: Long
+    - acquiredAt: DateTime
+  }
+}
+
+User "1" *-- "1" RewardAccount
+RewardAccount "1" o-- "0..*" UserBadge
+UserBadge "0..*" --> "1" Badge
+@enduml
