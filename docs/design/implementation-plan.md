@@ -47,7 +47,11 @@
 | Backend Deployment | Render | Node.js + Express REST API 서버 배포 |
 | DB Hosting | Neon | PostgreSQL 데이터베이스 클라우드 호스팅 |
 
-PostgreSQL을 단일 DBMS로 사용하고, AI 응답 결과나 퀴즈 선택지처럼 구조가 유동적인 데이터는 Prisma의 `Json` 타입을 우선 활용한다. MongoDB나 복수 DB 구성은 2단계 MVP 범위에서는 제외하고, 최종 보고서의 확장 가능성으로 남긴다. Neon은 DBMS가 아니라 PostgreSQL을 클라우드에서 제공하는 DB 호스팅 서비스로 사용한다.
+PostgreSQL을 단일 DBMS로 사용한다.
+
+- AI 응답 결과나 퀴즈 선택지처럼 구조가 유동적인 데이터는 Prisma의 `Json` 타입을 우선 활용한다.
+- MongoDB나 복수 DB 구성은 2단계 MVP 범위에서는 제외하고, 최종 보고서의 확장 가능성으로 남긴다.
+- Neon은 DBMS가 아니라 PostgreSQL을 클라우드에서 제공하는 DB 호스팅 서비스로 사용한다.
 
 ---
 

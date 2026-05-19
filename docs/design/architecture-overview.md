@@ -84,7 +84,13 @@
 | **Application Server Tier** | Node.js + Express | 단일 웹 서버 프로세스 내에서 모든 비즈니스 도메인을 처리하는 REST API 서버를 구성한다. 백엔드 서버는 Render 배포를 기준으로 한다. |
 | **Database Tier** | PostgreSQL + Prisma | 사용자 계정, 일정, 게시판, 학습 기록 등 관계형 데이터를 PostgreSQL 단일 DB로 관리한다. Neon에서 호스팅되는 PostgreSQL에 Prisma로 접근하며, AI 생성 퀴즈, 추천 결과, 비정형 응답 데이터는 PostgreSQL의 JSON/JSONB 필드와 Prisma `Json` 타입을 활용한다. MongoDB와 복수 DB 구성은 초기 후보로 검토했으나 2단계 MVP 범위에서는 사용하지 않는다. |
 
-배포 기준은 Vercel, Render, Neon으로 구분한다. Vercel은 Expo Web 프론트엔드를 배포하고, Render는 Node.js + Express 백엔드 서버를 실행하며, Neon은 PostgreSQL 데이터베이스를 클라우드에서 호스팅한다. Neon은 DBMS가 아니라 PostgreSQL 호스팅 서비스이며, Prisma는 Render의 Express 서버와 Neon PostgreSQL 사이의 DB 접근을 관리한다.
+배포 기준은 Vercel, Render, Neon으로 구분한다.
+
+- Vercel은 Expo Web 프론트엔드를 배포한다.
+- Render는 Node.js + Express 백엔드 서버를 실행한다.
+- Neon은 PostgreSQL 데이터베이스를 클라우드에서 호스팅한다.
+- Neon은 DBMS가 아니라 PostgreSQL 호스팅 서비스이다.
+- Prisma는 Render의 Express 서버와 Neon PostgreSQL 사이의 DB 접근을 관리한다.
 
 ## 3.2 핵심 서브시스템(모듈) 분할 명세
 요구사항 명세서의 기능적 요구사항(FR)을 기준으로 백엔드 서버의 도메인을 역할 단위의 서브시스템 모듈로 분할하여 독립성을 확보한다.
@@ -107,7 +113,7 @@
 
 ### 3.2.5 커뮤니티 및 관리자 모듈 (Community/Admin Module)
 * **주요 역할:** 주간 학습 랭킹, 커뮤니티 게시판 이용, 관리자의 게시판 관리, 스터디 챌린지 생성 및 관리(FR-29).
-* **구현 전략:** 랭킹 시스템의 즉각적인 반영은 사용자의 강력한 동기부여 요소로 작용한다. 이를 위해 완전한 실시간 동기화(웹소켓 유지)에 따른 서버 과부하를 방지하면서도 실시간성을 보장할 수 있도록, **1~2분 주기의 짧은 백그라운드 동기화(Short Polling 또는 SSE 방식)**를 채택하여 DB 부하와 사용자 경험 사이의 최적의 합의점을 도출한다.
+* **구현 전략:** 랭킹 시스템의 즉각적인 반영은 사용자의 강력한 동기부여 요소로 작용한다. 완전한 실시간 동기화(웹소켓 유지)는 서버 부담이 커질 수 있다. 따라서 **1~2분 주기의 짧은 백그라운드 동기화(Short Polling 또는 SSE 방식)**를 기준으로 DB 부하와 사용자 경험 사이의 균형을 맞춘다.
 
 ### 3.2.6 접근성 지원 모듈 (Accessibility Module)
 * **주요 역할:** 큰 글씨/고대비 모드 제어, STT 변환, 초등학생 친화 UI 제공, 반복 복습 알림 로직 제공.
