@@ -1,4 +1,4 @@
-# Smart Edu Platform 설계 문서
+﻿# Smart Edu Platform 설계 문서
 
 ## 문서 정보
 
@@ -131,11 +131,11 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 ### 4.1 전체 클래스 다이어그램
 
-![클래스 다이어그램](../../screenshots/class-diagram.png)
+![클래스 다이어그램](../../screenshots/class-diagram/class-diagram.png)
 
 | 항목 | 링크 |
 |---|---|
-| 이미지 | [screenshots/class-diagram.png](../../screenshots/class-diagram.png) |
+| 이미지 | [screenshots/class-diagram/class-diagram.png](../../screenshots/class-diagram/class-diagram.png) |
 | 원본 | [docs/design/plantuml/class-diagram.puml](./plantuml/class-diagram.puml) |
 
 ---
@@ -144,11 +144,11 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 사용자 계정, 프로필, 인증 세션, 접근성 설정처럼 사용자 기본 정보와 인증에 연결되는 구조를 보여주는 다이어그램임.
 
-![사용자/인증 클래스 다이어그램](../../screenshots/class-diagram-auth.png)
+![사용자/인증 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-auth.png)
 
 | 항목 | 링크 |
 |---|---|
-| 이미지 | [screenshots/class-diagram-auth.png](../../screenshots/class-diagram-auth.png) |
+| 이미지 | [screenshots/class-diagram/class-diagram-auth.png](../../screenshots/class-diagram/class-diagram-auth.png) |
 | 원본 | [docs/design/plantuml/class-diagram-auth.puml](./plantuml/class-diagram-auth.puml) |
 
 ---
@@ -157,11 +157,11 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 학습 일정, 칸반 태스크, 알림, 외부 캘린더 연동 구조를 보여주는 다이어그램임.
 
-![학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram-schedule-task.png)
+![학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-schedule-task.png)
 
 | 항목 | 링크 |
 |---|---|
-| 이미지 | [screenshots/class-diagram-schedule-task.png](../../screenshots/class-diagram-schedule-task.png) |
+| 이미지 | [screenshots/class-diagram/class-diagram-schedule-task.png](../../screenshots/class-diagram/class-diagram-schedule-task.png) |
 | 원본 | [docs/design/plantuml/class-diagram-schedule-task.puml](./plantuml/class-diagram-schedule-task.puml) |
 
 ---
@@ -170,11 +170,11 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 학습 노트, AI 질의, 오답노트, 학습 추천, 퀴즈, 요약 결과 저장 구조를 보여주는 다이어그램임.
 
-![노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram-notes-ai.png)
+![노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-notes-ai.png)
 
 | 항목 | 링크 |
 |---|---|
-| 이미지 | [screenshots/class-diagram-notes-ai.png](../../screenshots/class-diagram-notes-ai.png) |
+| 이미지 | [screenshots/class-diagram/class-diagram-notes-ai.png](../../screenshots/class-diagram/class-diagram-notes-ai.png) |
 | 원본 | [docs/design/plantuml/class-diagram-notes-ai.puml](./plantuml/class-diagram-notes-ai.puml) |
 
 ---
@@ -183,11 +183,11 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 게시판, 댓글, 스터디 그룹, 스터디 챌린지, 랭킹, 관리자 처리 구조를 보여주는 다이어그램임.
 
-![커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram-community-admin.png)
+![커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-community-admin.png)
 
 | 항목 | 링크 |
 |---|---|
-| 이미지 | [screenshots/class-diagram-community-admin.png](../../screenshots/class-diagram-community-admin.png) |
+| 이미지 | [screenshots/class-diagram/class-diagram-community-admin.png](../../screenshots/class-diagram/class-diagram-community-admin.png) |
 | 원본 | [docs/design/plantuml/class-diagram-community-admin.puml](./plantuml/class-diagram-community-admin.puml) |
 
 ---
@@ -196,11 +196,11 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 집중 세션, 앱 차단 규칙, `durationMs` 기반 학습 시간 기록, 학습 통계와 히트맵 구조를 보여주는 다이어그램임.
 
-![집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram-focus-statistics.png)
+![집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-focus-statistics.png)
 
 | 항목 | 링크 |
 |---|---|
-| 이미지 | [screenshots/class-diagram-focus-statistics.png](../../screenshots/class-diagram-focus-statistics.png) |
+| 이미지 | [screenshots/class-diagram/class-diagram-focus-statistics.png](../../screenshots/class-diagram/class-diagram-focus-statistics.png) |
 | 원본 | [docs/design/plantuml/class-diagram-focus-statistics.puml](./plantuml/class-diagram-focus-statistics.puml) |
 
 ---
@@ -423,7 +423,7 @@ AI 활용 과정의 세부 요약은 [AI 시뮬레이션 로그](../requirements
 |---|---|
 | 클래스 다이어그램 PlantUML 원본 | `docs/design/plantuml/class-diagram.puml` |
 | 시퀀스 다이어그램 PlantUML 원본 | `docs/design/plantuml/sequence-diagrams.puml` |
-| 클래스 다이어그램 이미지 | `screenshots/class-diagram.png` |
+| 클래스 다이어그램 이미지 | `screenshots/class-diagram/class-diagram.png` |
 | 시퀀스 다이어그램 이미지 | `screenshots/sequence-diagram/` |
 
 AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어그램의 요구사항 ID, 유스케이스 ID, 용어, 이미지 경로는 조원 검토를 거쳐 정리하였다.
@@ -443,12 +443,12 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 - [커뮤니티/챌린지/관리자 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-community-admin.puml): 커뮤니티와 관리자 기능 구조 원본 코드
 - [집중 시간/통계 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-focus-statistics.puml): 집중 세션과 통계 구조 원본 코드
 - [시퀀스 다이어그램 PlantUML 원본](./plantuml/sequence-diagrams.puml): 시퀀스 다이어그램 원본 코드
-- [전체 클래스 다이어그램 이미지](../../screenshots/class-diagram.png): 전체 클래스 다이어그램 렌더링 이미지
-- [사용자/인증 클래스 다이어그램 이미지](../../screenshots/class-diagram-auth.png): 사용자/인증 도메인 렌더링 이미지
-- [학습 일정/태스크 클래스 다이어그램 이미지](../../screenshots/class-diagram-schedule-task.png): 일정/태스크 도메인 렌더링 이미지
-- [노트/퀴즈/AI 클래스 다이어그램 이미지](../../screenshots/class-diagram-notes-ai.png): 노트/퀴즈/AI 도메인 렌더링 이미지
-- [커뮤니티/챌린지/관리자 클래스 다이어그램 이미지](../../screenshots/class-diagram-community-admin.png): 커뮤니티/관리자 도메인 렌더링 이미지
-- [집중 시간/통계 클래스 다이어그램 이미지](../../screenshots/class-diagram-focus-statistics.png): 집중 시간/통계 도메인 렌더링 이미지
+- [전체 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram.png): 전체 클래스 다이어그램 렌더링 이미지
+- [사용자/인증 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-auth.png): 사용자/인증 도메인 렌더링 이미지
+- [학습 일정/태스크 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-schedule-task.png): 일정/태스크 도메인 렌더링 이미지
+- [노트/퀴즈/AI 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-notes-ai.png): 노트/퀴즈/AI 도메인 렌더링 이미지
+- [커뮤니티/챌린지/관리자 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-community-admin.png): 커뮤니티/관리자 도메인 렌더링 이미지
+- [집중 시간/통계 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-focus-statistics.png): 집중 시간/통계 도메인 렌더링 이미지
 - [시퀀스 다이어그램 이미지 폴더](../../screenshots/sequence-diagram/): 유스케이스별 시퀀스 다이어그램 이미지
 - [AI 시뮬레이션 로그](../requirements/ai-simulation-log.md): AI 활용 과정 요약 로그
 
