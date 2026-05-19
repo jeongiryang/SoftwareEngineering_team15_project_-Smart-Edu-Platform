@@ -68,6 +68,7 @@
 | 노트/퀴즈/AI | 학습 노트, AI 질의, 오답노트, 추천, 퀴즈, 요약 구조 | [class-diagram-notes-ai.png](../../screenshots/class-diagram/class-diagram-notes-ai.png) | [class-diagram-notes-ai.puml](plantuml/class-diagram-notes-ai.puml) |
 | 커뮤니티/챌린지/관리자 | 게시판, 댓글, 스터디 챌린지, 랭킹, 관리자 처리 구조 | [class-diagram-community-admin.png](../../screenshots/class-diagram/class-diagram-community-admin.png) | [class-diagram-community-admin.puml](plantuml/class-diagram-community-admin.puml) |
 | 집중 시간/통계 | 집중 세션, 앱 차단 규칙, 학습 통계, 히트맵 구조 | [class-diagram-focus-statistics.png](../../screenshots/class-diagram/class-diagram-focus-statistics.png) | [class-diagram-focus-statistics.puml](plantuml/class-diagram-focus-statistics.puml) |
+| 보상 | 포인트 지갑, 업적 뱃지, 사용자 뱃지 보유 기록 구조 | [class-diagram-reward.png](../../screenshots/class-diagram/class-diagram-reward.png) | [class-diagram-reward.puml](plantuml/class-diagram-reward.puml) |
 
 ### 4.1 사용자/인증
 
@@ -89,6 +90,10 @@
 
 ![집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-focus-statistics.png)
 
+### 4.6 보상
+
+![보상 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-reward.png)
+
 ---
 
 ## 5. 주요 클래스 설명
@@ -103,6 +108,7 @@
 | `StudyNote` | 학습 노트 작성, 수정, 요약의 기준 객체 | `FR-06`, `FR-19` |
 | `Quiz`, `QuizQuestion` | AI 또는 노트 기반으로 생성되는 복습 퀴즈와 문제 | `FR-10` |
 | `WrongAnswerNote` | 오답 문제, 사용자 답변, 해설, 취약 유형을 관리 | `FR-08` |
+| `ReviewReminder` | 오답노트 기반 복습 알림 주기를 관리 | `FR-26` |
 | `AIService` | AI 질의, 오답노트 생성, 추천, 퀴즈 생성, 요약을 담당하는 서비스 | `FR-07`, `FR-08`, `FR-09`, `FR-10`, `FR-19` |
 | `FocusSession` | 클라이언트에서 측정한 최종 순공 시간을 `durationMs` 단위로 저장하는 집중 세션 기록 | `FR-15` |
 | `AppBlockRule` | 공부 시간 동안 차단할 앱과 예외 조건을 관리 | `FR-14` |

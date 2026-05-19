@@ -205,7 +205,20 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 ---
 
-### 4.7 주요 클래스 설명
+### 4.7 보상 클래스 다이어그램
+
+포인트 지갑, 업적 뱃지, 사용자 뱃지 보유 기록 구조를 보여주는 다이어그램임.
+
+![보상 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-reward.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram/class-diagram-reward.png](../../screenshots/class-diagram/class-diagram-reward.png) |
+| 원본 | [docs/design/plantuml/class-diagram-reward.puml](./plantuml/class-diagram-reward.puml) |
+
+---
+
+### 4.8 주요 클래스 설명
 
 | 클래스 | 주요 역할 | 관련 요구사항 |
 |---|---|---|
@@ -217,6 +230,7 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 | `StudyNote` | 학습 노트 작성, 수정, 삭제, 요약 기준 객체 | FR-06, FR-19 |
 | `AIService` | AI 질의, 오답노트 생성, 추천, 퀴즈 생성, 요약 기능 처리 | FR-07, FR-08, FR-09, FR-10, FR-19 |
 | `WrongAnswerNote` | 오답 문제, 사용자 답변, 해설, 취약 유형 관리 | FR-08 |
+| `ReviewReminder` | 오답노트 기반 복습 알림 주기 관리 | FR-26 |
 | `Quiz`, `QuizQuestion` | AI 또는 노트 기반 복습 퀴즈와 문제 관리 | FR-10 |
 | `FocusSession` | 클라이언트에서 측정한 최종 순공 시간을 `durationMs` 단위로 저장 | FR-15 |
 | `StudyStatistics`, `Heatmap` | 학습 시간, 진척도, 히트맵 데이터 계산 및 표현 | FR-16, FR-17 |
@@ -442,6 +456,7 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 - [노트/퀴즈/AI 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-notes-ai.puml): 노트, 퀴즈, AI 기능 구조 원본 코드
 - [커뮤니티/챌린지/관리자 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-community-admin.puml): 커뮤니티와 관리자 기능 구조 원본 코드
 - [집중 시간/통계 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-focus-statistics.puml): 집중 세션과 통계 구조 원본 코드
+- [보상 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-reward.puml): 포인트와 뱃지 보상 구조 원본 코드
 - [시퀀스 다이어그램 PlantUML 원본](./plantuml/sequence-diagrams.puml): 시퀀스 다이어그램 원본 코드
 - [전체 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram.png): 전체 클래스 다이어그램 렌더링 이미지
 - [사용자/인증 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-auth.png): 사용자/인증 도메인 렌더링 이미지
@@ -449,6 +464,7 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 - [노트/퀴즈/AI 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-notes-ai.png): 노트/퀴즈/AI 도메인 렌더링 이미지
 - [커뮤니티/챌린지/관리자 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-community-admin.png): 커뮤니티/관리자 도메인 렌더링 이미지
 - [집중 시간/통계 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-focus-statistics.png): 집중 시간/통계 도메인 렌더링 이미지
+- [보상 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-reward.png): 보상 도메인 렌더링 이미지
 - [시퀀스 다이어그램 이미지 폴더](../../screenshots/sequence-diagram/): 유스케이스별 시퀀스 다이어그램 이미지
 - [AI 시뮬레이션 로그](../requirements/ai-simulation-log.md): AI 활용 과정 요약 로그
 

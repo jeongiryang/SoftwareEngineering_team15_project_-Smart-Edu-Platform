@@ -45,6 +45,7 @@ package "커뮤니티/챌린지/관리자 도메인" #F3E5F5 {
     - groupId: Long
     - name: String
     - description: String
+    - createdAt: DateTime
     + addMember(user): void
     + removeMember(user): void
   }
@@ -53,10 +54,13 @@ package "커뮤니티/챌린지/관리자 도메인" #F3E5F5 {
     - challengeId: Long
     - title: String
     - goalMinutes: Integer
+    - startDate: Date
+    - endDate: Date
     - status: ChallengeStatus
     - reported: Boolean
     + join(user): void
     + updateProgress(user, minutes): void
+    + close(): void
     + report(reason): void
   }
 
@@ -92,17 +96,16 @@ enum RankingType {
   MONTHLY
 }
 
-User "1" *-- "0..*" BoardPost
-User "1" *-- "0..*" Comment
+User "1" -- "0..*" BoardPost
+User "1" -- "0..*" Comment
 BoardPost "1" *-- "0..*" Comment
-User "0..*" -- "0..*" StudyGroup
-StudyGroup "1" *-- "0..*" StudyChallenge
-StudyChallenge "1" *-- "0..*" RankingEntry
-Ranking "1" *-- "0..*" RankingEntry
+StudyGroup "1" o-- "0..*" User
+StudyGroup "1" o-- "0..*" StudyChallenge
+StudyGroup "1" o-- "0..*" Ranking
+Ranking "1" *-- "1..*" RankingEntry
+RankingEntry "0..*" --> "1" User
 Admin ..> BoardPost
 Admin ..> Comment
-Admin ..> User
-Admin ..> StudyChallenge
 BoardPost --> PostCategory
 StudyChallenge --> ChallengeStatus
 Ranking --> RankingType
