@@ -2,36 +2,66 @@
 left to right direction
 skinparam shadowing false
 skinparam packageStyle rectangle
+skinparam dpi 130
+skinparam defaultFontName Malgun Gothic
+skinparam defaultFontSize 16
+skinparam ArrowThickness 2
+skinparam nodesep 45
+skinparam ranksep 45
 skinparam usecase {
   BackgroundColor #FFFFFF
-  BorderColor #333333
+  BorderColor #263238
+  BorderThickness 2
   FontName Malgun Gothic
+  FontSize 16
 }
 skinparam actor {
   FontName Malgun Gothic
+  FontSize 17
+  BorderColor #263238
 }
 skinparam component {
   FontName Malgun Gothic
+  FontSize 16
+  BorderColor #455A64
+  BackgroundColor #ECEFF1
+  BorderThickness 2
+}
+skinparam package {
+  FontName Malgun Gothic
+  FontSize 18
+  FontStyle bold
+  BorderThickness 2
+  BorderColor #607D8B
+}
+skinparam rectangle {
+  BorderThickness 2
+  BorderColor #37474F
+  BackgroundColor #FAFAFA
+}
+skinparam legend {
+  FontName Malgun Gothic
+  FontSize 15
 }
 
 actor "사용자" as User
 actor "관리자" as Admin
 
 rectangle "Smart Edu Platform" {
-  package "계정 기능" {
+  package "계정 기능" #E3F2FD {
     usecase "회원가입" as UC01
     usecase "로그인" as UC02
     usecase "사용자 계정 관리 및 제재" as UC20
   }
 
-  package "일정/학습 관리" {
+  package "일정/학습 관리" #E8F5E9 {
     usecase "학습 일정 관리" as UC03
     usecase "칸반 보드 관리" as UC04
     usecase "학습 통계 확인" as UC11
     usecase "집중 모드 및\n순공 시간 측정" as UC12
   }
 
-  package "AI 기능" {
+  package "AI 기능" #FFF3E0 {
     usecase "AI 학습 질의" as UC05
     usecase "AI 오답노트 생성" as UC06
     usecase "학습 추천 받기" as UC07
@@ -39,7 +69,7 @@ rectangle "Smart Edu Platform" {
     usecase "AI 기반 퀴즈 생성" as UC19
   }
 
-  package "커뮤니티 기능" {
+  package "커뮤니티 기능" #F3E5F5 {
     usecase "주간 학습 랭킹 확인" as UC08
     usecase "스터디 챌린지 참여" as UC09
     usecase "게시판 이용" as UC10
@@ -47,7 +77,7 @@ rectangle "Smart Edu Platform" {
     usecase "스터디 챌린지 관리" as UC21
   }
 
-  package "사용자 지원 기능" {
+  package "사용자 지원 기능" #ECEFF1 {
     usecase "접근성 설정" as UC14
     usecase "퀘스트 및 보상 확인" as UC15
     usecase "초등학생 친화 UI 사용" as UC16

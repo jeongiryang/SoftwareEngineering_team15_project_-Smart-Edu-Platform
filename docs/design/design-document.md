@@ -47,7 +47,7 @@ Smart Edu Platform은 Web/Mobile 기반 개인화 학습 관리 플랫폼으로 
 
 클라이언트는 사용자 화면, 입력 이벤트, 기본 UI 상태 관리를 담당한다. 백엔드 서버는 인증, 학습 일정, 노트, AI 연동, 통계, 커뮤니티, 관리자 기능 등 핵심 도메인 로직을 처리한다.
 
-2단계 구현에서는 React Native 기반 모바일 클라이언트와 Node.js(Express) 기반 백엔드 서버를 후보로 검토한다. 단, 최종 기술 스택은 팀의 구현 난이도, 배포 방식, 개발 일정, 테스트 가능성을 고려하여 2단계 구현 전 확정한다.
+2단계 구현 기준 기술 스택은 React Native + Expo 기반 클라이언트와 Node.js + Express 기반 백엔드 서버로 확정한다. 인증은 JWT + bcrypt를 사용하고, API는 REST 방식으로 제공한다.
 
 ### 2.2 계층형 구조
 
@@ -64,13 +64,13 @@ Smart Edu Platform은 Web/Mobile 기반 개인화 학습 관리 플랫폼으로 
 
 ### 2.3 3-Tier 구성
 
-| 구분 | 후보 구성 | 설명 |
+| 구분 | 적용 기술 | 설명 |
 |---|---|---|
-| Client Tier | React Native 등 | 모바일 중심 UI와 사용자 입력 처리 |
-| Application Server Tier | Node.js, Express 등 | 인증, 비즈니스 로직, API 제공 |
-| Database Tier | MySQL, PostgreSQL 등 RDBMS 우선 검토 | 사용자, 일정, 학습 기록, 커뮤니티 데이터 저장 |
+| Client Tier | React Native + Expo | 모바일 중심 UI와 사용자 입력 처리 |
+| Application Server Tier | Node.js + Express | 인증, 비즈니스 로직, REST API 제공 |
+| Database Tier | PostgreSQL + Prisma | 사용자, 일정, 학습 기록, 커뮤니티 데이터 저장 |
 
-DBMS는 현재 단계에서 최종 확정하지 않는다. 사용자 계정, 일정, 게시판, 학습 기록 등 관계형 데이터가 많으므로 MySQL 또는 PostgreSQL 같은 RDBMS를 우선 검토한다. AI 응답, 퀴즈 생성 결과, 비정형 학습 데이터 저장에는 MongoDB 같은 문서형 DB도 후보로 검토할 수 있다.
+DBMS는 PostgreSQL 단일 DB를 기준으로 설계한다. 사용자 계정, 일정, 게시판, 학습 기록 등 관계형 데이터는 일반 테이블로 관리하고, AI 응답, 퀴즈 선택지, 추천 결과처럼 구조가 유동적인 데이터는 PostgreSQL의 JSON/JSONB 필드와 Prisma `Json` 타입을 활용한다. MongoDB와 복수 DB 구성은 초기 후보로 검토했으나 2단계 MVP 범위에서는 사용하지 않는다.
 
 ---
 
@@ -363,9 +363,9 @@ AI 시스템은 다음 기능을 지원하는 외부 또는 내부 AI 서비스�
 
 ## 7. 데이터베이스 설계 방향
 
-현재 단계에서는 DBMS를 최종 확정하지 않는다. 사용자 계정, 학습 일정, 태스크, 게시판, 학습 기록 등 관계형 데이터가 많기 때문에 MySQL 또는 PostgreSQL 같은 RDBMS를 우선 검토한다.
+2단계 구현 기준 DBMS는 PostgreSQL로 확정한다. 사용자 계정, 학습 일정, 태스크, 게시판, 학습 기록 등 관계형 데이터가 많기 때문에 PostgreSQL 단일 DB를 기본 저장소로 사용한다.
 
-AI 응답 결과, 문제 유형, 비정형 학습 데이터는 MongoDB 같은 문서형 DB도 후보로 검토할 수 있다. 다만 복수 DB를 사용할 경우 구현 복잡도, 테스트 부담, 배포 난이도가 증가할 수 있으므로 2단계 구현 전 최종 결정이 필요하다.
+AI 응답 결과, 문제 유형, 퀴즈 선택지, 추천 결과처럼 구조가 유동적인 데이터는 PostgreSQL의 JSON/JSONB 필드와 Prisma `Json` 타입으로 관리한다. MongoDB와 복수 DB 구성은 초기 후보로 검토했으나, 구현 복잡도와 테스트 부담을 줄이기 위해 2단계 MVP에서는 제외한다.
 
 | 데이터 영역 | 설명 |
 |---|---|
@@ -377,7 +377,7 @@ AI 응답 결과, 문제 유형, 비정형 학습 데이터는 MongoDB 같은 �
 | 커뮤니티 데이터 | 게시글, 댓글, 랭킹, 스터디 챌린지 |
 | 관리자 데이터 | 사용자 제재, 게시판 관리, 챌린지 관리 기록 |
 
-DB 스키마는 2단계 구현 전 API 목록과 함께 확정한다. 구현 단계에서는 요구사항 문서의 기능 요구사항과 시퀀스 다이어그램의 흐름을 기준으로 엔티티와 관계를 구체화한다.
+DB 스키마는 `docs/design/implementation-plan.md`의 API 목록, DB 테이블 초안, ERD 관계를 기준으로 구체화한다. 구현 단계에서는 요구사항 문서의 기능 요구사항과 시퀀스 다이어그램의 흐름을 기준으로 Prisma schema와 migration을 관리한다.
 
 ---
 
@@ -427,6 +427,6 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 
 본 설계 문서는 요구사항 문서를 기준으로 Smart Edu Platform의 시스템 아키텍처, 주요 모듈, 클래스 다이어그램, 시퀀스 다이어그램, 외부 시스템 연동, 데이터베이스 설계 방향을 통합 정리한 문서이다.
 
-2단계 구현에서는 본 설계 문서를 바탕으로 프론트엔드, 백엔드, DBMS, API 구조를 구체화한다. 기술 스택과 DBMS는 현재 후보 검토 단계이며, 구현 전 팀 논의를 통해 최종 확정할 예정이다.
+2단계 구현에서는 본 설계 문서를 바탕으로 React Native + Expo, Node.js + Express, PostgreSQL, Prisma, JWT + bcrypt, REST API, Jest + Supertest 기준으로 프론트엔드, 백엔드, DBMS, API 구조를 구체화한다.
 
 본 문서는 1단계 설계 산출물의 제출용 통합 문서이자, 2단계 구현과 테스트 보고서 작성의 기준 자료로 활용된다.
