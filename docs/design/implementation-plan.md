@@ -1,5 +1,11 @@
 # 2단계 구현 계획 문서
 
+문서 연결:
+- 상위 문서: [설계 문서](./design-document.md)
+- 관련 문서: [요구사항 문서](../requirements/requirements-document.md), [아키텍처 개요](./architecture-overview.md)
+
+---
+
 ## 문서 목적
 
 본 문서는 GitHub Issue #13 “[Phase 2] API 목록 및 ERD 초안 작성”을 진행하기 위한 2단계 구현 준비 문서이다.

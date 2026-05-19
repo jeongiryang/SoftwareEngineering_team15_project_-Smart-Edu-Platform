@@ -1,5 +1,12 @@
 # AI 시뮬레이션 로그
 
+문서 연결:
+- 상위 문서: [요구사항 문서](./requirements-document.md)
+- 관련 부록: [AI 인터뷰 시뮬레이션 문서](./ai-interview-simulation.md)
+- 관련 설계 문서: [통합 설계 문서](../design/design-document.md)
+
+---
+
 ## 목차
 
 1. [문서 목적](#1-문서-목적)

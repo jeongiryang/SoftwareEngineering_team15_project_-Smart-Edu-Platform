@@ -1,5 +1,9 @@
 # Smart Edu Platform 시스템 아키텍처 명세서
 
+문서 연결:
+- 상위 문서: [설계 문서](./design-document.md)
+- 관련 부록: [클래스 다이어그램](./class-diagram.md), [시퀀스 다이어그램](./sequence-diagram.md), [2단계 구현 계획 문서](./implementation-plan.md)
+
 ---
 
 ## 문서 정보
