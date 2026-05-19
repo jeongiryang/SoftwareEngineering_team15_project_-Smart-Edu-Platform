@@ -37,7 +37,7 @@
 | AI 기반 가상 인터뷰/설문 시뮬레이션 | 사용자 그룹별 가상 응답을 바탕으로 학습 상황, 불편사항, 요구 기능을 정리함 | `ai-interview-simulation.md` |
 | 사용자 요구사항, 기능 요구사항, 비기능 요구사항 정리 | 인터뷰 결과와 조원 회의를 바탕으로 UR, FR, NFR 항목을 분류함 | `requirements-document.md` |
 | 유스케이스 다이어그램 초안 생성 및 수정 | PlantUML 기반 유스케이스 다이어그램 초안을 만들고 액터, 관계, 표현 방식을 수정함 | `requirements-document.md`, `usecase-diagram.puml` |
-| 아키텍처 개요 검토 | 클라이언트-서버 구조, 외부 시스템 연동, DBMS 후보를 검토함 | `architecture-overview.md`, `design-document.md` |
+| 아키텍처 개요 검토 | 클라이언트-서버 구조, 외부 시스템 연동, PostgreSQL 단일 DB 기준을 검토함 | `architecture-overview.md`, `design-document.md` |
 | 클래스 다이어그램 PlantUML 초안 생성 및 수정 | 요구사항의 FR과 주요 도메인 객체를 기준으로 클래스 다이어그램 초안을 정리함 | `class-diagram.md`, `class-diagram.puml` |
 | 시퀀스 다이어그램 PlantUML 초안 생성 및 수정 | 주요 UC 흐름을 기준으로 시퀀스 다이어그램 초안을 정리함 | `sequence-diagram.md`, `sequence-diagrams.puml` |
 | API 목록 및 ERD 초안 작성 | 2단계 구현 전 REST API, DB 테이블, ERD 관계, Prisma schema 방향을 정리함 | `implementation-plan.md` |
