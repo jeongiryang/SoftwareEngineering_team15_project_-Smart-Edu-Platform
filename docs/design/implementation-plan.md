@@ -1,5 +1,11 @@
 # 2단계 구현 계획 문서
 
+문서 연결:
+- 상위 문서: [설계 문서](./design-document.md)
+- 관련 문서: [요구사항 문서](../requirements/requirements-document.md), [아키텍처 개요](./architecture-overview.md)
+
+---
+
 ## 문서 목적
 
 본 문서는 GitHub Issue #13 “[Phase 2] API 목록 및 ERD 초안 작성”을 진행하기 위한 2단계 구현 준비 문서이다.
@@ -7,6 +13,22 @@
 1단계 산출물인 `docs/requirements/requirements-document.md`와 `docs/design/design-document.md`를 기준으로 2단계 구현 전에 필요한 API 목록, DB 테이블 초안, ERD 관계, Prisma schema 작성 방향, 구현 우선순위, 테스트 전략을 정리한다.
 
 본 문서는 실제 구현 코드가 아니라 구현 전 설계 기준 문서이며, 이후 `src/frontend/`, `src/backend/` 초기 프로젝트 세팅과 기능별 구현 Issue 분리에 활용한다.
+
+---
+
+## 목차
+
+1. [확정 기술 스택](#1-확정-기술-스택)
+2. [MVP 구현 범위](#2-mvp-구현-범위)
+3. [API 목록 초안](#3-api-목록-초안)
+4. [DB 테이블 초안](#4-db-테이블-초안)
+5. [ERD 관계 초안](#5-erd-관계-초안)
+6. [Mermaid ERD 코드](#6-mermaid-erd-코드)
+7. [Prisma schema 작성 방향](#7-prisma-schema-작성-방향)
+8. [구현 우선순위](#8-구현-우선순위)
+9. [테스트 전략](#9-테스트-전략)
+10. [초기 프로젝트 세팅 전 확인 사항](#10-초기-프로젝트-세팅-전-확인-사항)
+11. [문서 요약](#11-문서-요약)
 
 ---
 
@@ -21,8 +43,11 @@
 | Auth | JWT + bcrypt | 로그인 인증, 비밀번호 암호화, 관리자 권한 확인 |
 | API 방식 | REST API | 클라이언트-서버 간 표준 HTTP 통신 |
 | Test | Jest + Supertest | 유닛 테스트, API 통합 테스트, 테스트 보고서 근거 확보 |
+| Frontend Deployment | Vercel | Expo Web 클라이언트 배포 |
+| Backend Deployment | Render | Node.js + Express REST API 서버 배포 |
+| DB Hosting | Neon | PostgreSQL 데이터베이스 클라우드 호스팅 |
 
-PostgreSQL을 단일 DBMS로 사용하고, AI 응답 결과나 퀴즈 선택지처럼 구조가 유동적인 데이터는 Prisma의 `Json` 타입을 우선 활용한다. MongoDB나 복수 DB 구성은 2단계 MVP 범위에서는 제외하고, 최종 보고서의 확장 가능성으로 남긴다.
+PostgreSQL을 단일 DBMS로 사용하고, AI 응답 결과나 퀴즈 선택지처럼 구조가 유동적인 데이터는 Prisma의 `Json` 타입을 우선 활용한다. MongoDB나 복수 DB 구성은 2단계 MVP 범위에서는 제외하고, 최종 보고서의 확장 가능성으로 남긴다. Neon은 DBMS가 아니라 PostgreSQL을 클라우드에서 제공하는 DB 호스팅 서비스로 사용한다.
 
 ---
 

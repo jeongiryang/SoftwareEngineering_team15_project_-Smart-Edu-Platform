@@ -1,5 +1,9 @@
 # Smart Edu Platform 시스템 아키텍처 명세서
 
+문서 연결:
+- 상위 문서: [설계 문서](./design-document.md)
+- 관련 부록: [클래스 다이어그램](./class-diagram.md), [시퀀스 다이어그램](./sequence-diagram.md), [2단계 구현 계획 문서](./implementation-plan.md)
+
 ---
 
 ## 문서 정보
@@ -12,7 +16,6 @@
 | 문서명 | 시스템 아키텍처 명세서 |
 | 조원 | 정이량, 황대겸, 박지환 |
 | 작성일 | 2026년 05월 |
-| 문서 버전 | v1.2 |
 
 ---
 
@@ -77,9 +80,11 @@
 
 | Tier | 적용 기술 | 구성 및 역할 |
 |---|---|---|
-| **Client Tier** | React Native | 하나의 소스코드로 안드로이드와 iOS 앱을 동시에 빌드할 수 있는 모바일 어플리케이션 환경을 구성한다. |
-| **Application Server Tier** | Node.js (Express) | 단일 웹 서버 프로세스 내에서 모든 비즈니스 도메인을 처리하는 효율적인 모놀리식 구조를 채택한다. |
-| **Database Tier** | RDBMS 중심 검토<br>(MySQL / PostgreSQL 등) | 사용자 계정, 일정, 게시판, 학습 기록 등 관계형 데이터가 중심이 되므로 **RDBMS(MySQL 또는 PostgreSQL)** 도입을 우선적으로 검토한다. 단, AI 생성 퀴즈나 비정형 데이터는 유동적인 문서형 데이터 저장이 가능한 **MongoDB**의 장점이 있으나 구현 복잡도가 증가할 수 있다. 따라서 2단계 구현 진입 전 팀 논의를 거쳐 최종 DBMS 아키텍처를 확정한다. |
+| **Client Tier** | React Native + Expo | 하나의 소스코드로 Web/Mobile 클라이언트를 구성한다. Expo Web 클라이언트는 Vercel 배포를 기준으로 한다. |
+| **Application Server Tier** | Node.js + Express | 단일 웹 서버 프로세스 내에서 모든 비즈니스 도메인을 처리하는 REST API 서버를 구성한다. 백엔드 서버는 Render 배포를 기준으로 한다. |
+| **Database Tier** | PostgreSQL + Prisma | 사용자 계정, 일정, 게시판, 학습 기록 등 관계형 데이터를 PostgreSQL 단일 DB로 관리한다. Neon에서 호스팅되는 PostgreSQL에 Prisma로 접근하며, AI 생성 퀴즈, 추천 결과, 비정형 응답 데이터는 PostgreSQL의 JSON/JSONB 필드와 Prisma `Json` 타입을 활용한다. MongoDB와 복수 DB 구성은 초기 후보로 검토했으나 2단계 MVP 범위에서는 사용하지 않는다. |
+
+배포 기준은 Vercel, Render, Neon으로 구분한다. Vercel은 Expo Web 프론트엔드를 배포하고, Render는 Node.js + Express 백엔드 서버를 실행하며, Neon은 PostgreSQL 데이터베이스를 클라우드에서 호스팅한다. Neon은 DBMS가 아니라 PostgreSQL 호스팅 서비스이며, Prisma는 Render의 Express 서버와 Neon PostgreSQL 사이의 DB 접근을 관리한다.
 
 ## 3.2 핵심 서브시스템(모듈) 분할 명세
 요구사항 명세서의 기능적 요구사항(FR)을 기준으로 백엔드 서버의 도메인을 역할 단위의 서브시스템 모듈로 분할하여 독립성을 확보한다.
