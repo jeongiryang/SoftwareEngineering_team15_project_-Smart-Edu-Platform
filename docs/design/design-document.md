@@ -10,7 +10,6 @@
 | 선정 주제 | 주제 1. 개인화된 학습 관리 앱 |
 | 조원 | 정이량, 황대겸, 박지환 |
 | 작성일 | 2026년 05월 |
-| 문서 버전 | v1.0 |
 
 ---
 
@@ -71,6 +70,22 @@ Smart Edu Platform은 Web/Mobile 기반 개인화 학습 관리 플랫폼으로 
 | Database Tier | PostgreSQL + Prisma | 사용자, 일정, 학습 기록, 커뮤니티 데이터 저장 |
 
 DBMS는 PostgreSQL 단일 DB를 기준으로 설계한다. 사용자 계정, 일정, 게시판, 학습 기록 등 관계형 데이터는 일반 테이블로 관리하고, AI 응답, 퀴즈 선택지, 추천 결과처럼 구조가 유동적인 데이터는 PostgreSQL의 JSON/JSONB 필드와 Prisma `Json` 타입을 활용한다. MongoDB와 복수 DB 구성은 초기 후보로 검토했으나 2단계 MVP 범위에서는 사용하지 않는다.
+
+### 2.4 배포 구조
+
+Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데이터베이스를 분리하여 구성한다.
+
+| 구분 | 적용 서비스/기술 | 역할 |
+|---|---|---|
+| Frontend Deployment | Vercel | Expo Web 기반 클라이언트 배포 |
+| Backend Deployment | Render | Node.js + Express REST API 서버 배포 |
+| DBMS | PostgreSQL | 실제 데이터 저장 및 관리 |
+| DB Hosting | Neon | PostgreSQL 데이터베이스 클라우드 호스팅 |
+| ORM | Prisma | Express 서버와 Neon PostgreSQL 사이의 DB 접근 관리 |
+
+배포 흐름은 `사용자 브라우저 -> Vercel에 배포된 Expo Web 프론트엔드 -> Render에 배포된 Express REST API 서버 -> Neon에서 호스팅되는 PostgreSQL 데이터베이스`로 정리한다.
+
+Vercel은 사용자가 접근하는 프론트엔드 화면을 제공하고, Render는 인증, 일정, 노트, AI 연동, 통계, 커뮤니티 등 REST API 요청을 처리하는 백엔드 서버를 실행한다. Neon은 DBMS가 아니라 PostgreSQL을 클라우드에서 제공하는 DB 호스팅 서비스이며, Prisma는 백엔드 서버에서 Neon PostgreSQL에 접근하는 ORM으로 사용한다. 배포 세부 설정은 2단계 구현 후 배포 단계에서 확정한다.
 
 ---
 
@@ -196,7 +211,7 @@ DBMS는 PostgreSQL 단일 DB를 기준으로 설계한다. 사용자 계정, 일
 | `AccessibilitySetting` | 큰 글씨, 고대비, 글자 크기 등 접근성 설정 관리 | FR-20 |
 | `RewardAccount`, `Badge`, `UserBadge` | 포인트, 뱃지, 사용자 보상 기능 표현 | FR-24 |
 
-클래스 다이어그램은 구현 단계에서 엔티티, 서비스, 저장소 계층을 구체화하기 위한 기준으로 활용한다. 단, 실제 클래스명과 속성은 DBMS 및 백엔드 프레임워크 최종 선택에 따라 일부 조정될 수 있다.
+클래스 다이어그램은 구현 단계에서 엔티티, 서비스, 저장소 계층을 구체화하기 위한 기준으로 활용한다. 단, 실제 클래스명과 속성은 Prisma schema와 Express 계층 구조에 맞춰 일부 조정될 수 있다.
 
 ---
 
@@ -363,7 +378,7 @@ AI 시스템은 다음 기능을 지원하는 외부 또는 내부 AI 서비스�
 
 ## 7. 데이터베이스 설계 방향
 
-2단계 구현 기준 DBMS는 PostgreSQL로 확정한다. 사용자 계정, 학습 일정, 태스크, 게시판, 학습 기록 등 관계형 데이터가 많기 때문에 PostgreSQL 단일 DB를 기본 저장소로 사용한다.
+2단계 구현 기준 DBMS는 PostgreSQL로 확정한다. 사용자 계정, 학습 일정, 태스크, 게시판, 학습 기록 등 관계형 데이터가 많기 때문에 PostgreSQL 단일 DB를 기본 저장소로 사용한다. 실제 데이터베이스 호스팅은 Neon을 기준으로 하며, Neon은 DBMS가 아니라 PostgreSQL을 클라우드에서 제공하는 DB 호스팅 서비스이다.
 
 AI 응답 결과, 문제 유형, 퀴즈 선택지, 추천 결과처럼 구조가 유동적인 데이터는 PostgreSQL의 JSON/JSONB 필드와 Prisma `Json` 타입으로 관리한다. MongoDB와 복수 DB 구성은 초기 후보로 검토했으나, 구현 복잡도와 테스트 부담을 줄이기 위해 2단계 MVP에서는 제외한다.
 
