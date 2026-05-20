@@ -2,7 +2,9 @@
 
 문서 연결:
 - 상위 문서: [설계 문서](./design-document.md)
-- 관련 문서: [요구사항 문서](../requirements/requirements-document.md), [아키텍처 개요](./architecture-overview.md)
+- 관련 문서:
+  - [요구사항 문서](../requirements/requirements-document.md)
+  - [아키텍처 개요](./architecture-overview.md)
 
 ---
 
