@@ -2,7 +2,10 @@
 
 문서 연결:
 - 상위 문서: [설계 문서](./design-document.md)
-- 관련 부록: [아키텍처 개요](./architecture-overview.md), [클래스 다이어그램](./class-diagram.md), [2단계 구현 계획 문서](./implementation-plan.md)
+- 관련 부록:
+  - [아키텍처 개요](./architecture-overview.md)
+  - [클래스 다이어그램](./class-diagram.md)
+  - [2단계 구현 계획 문서](./implementation-plan.md)
 
 ---
 
