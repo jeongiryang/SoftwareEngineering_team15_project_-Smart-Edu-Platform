@@ -32,6 +32,9 @@
 
 본 문서는 Smart Edu Platform의 시스템 구조와 주요 설계 요소를 설명하는 통합 설계 문서이다.
 
+본 설계 문서는 ISO/IEC/IEEE 42010 아키텍처 설명 기준과 IEEE 1016 소프트웨어 설계 설명 기준에서 다루는 설계 문서화 원칙을 수업 조별 프로젝트 범위에 맞게 참고하여 작성함.
+본 문서는 표준의 모든 항목을 그대로 적용하는 문서가 아니라, 과제 범위에 맞춰 시스템 아키텍처, 주요 모듈, 클래스 다이어그램, 시퀀스 다이어그램, 외부 시스템 연동, 데이터베이스 설계 방향, 배포 구조, 구현 계획을 중심으로 정리함.
+
 Smart Edu Platform은 다양한 연령대와 학습 목적을 가진 사용자를 위한 개인화 학습 관리 앱으로, 학습 일정 관리, 노트 및 퀴즈 관리, AI 기반 학습 지원, 학습 데이터 시각화, 커뮤니티 및 관리자 기능을 제공하는 것을 목표로 한다.
 
 본 설계 문서는 `docs/requirements/requirements-document.md`의 기능 요구사항, 비기능 요구사항, 유스케이스 목록을 기준으로 작성되었다.
@@ -446,6 +449,10 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 
 ## 9. 부록 문서
 
+- 요구사항 기준 문서
+  - [요구사항 문서](../requirements/requirements-document.md)
+  - [잠재 사용자 인터뷰 시뮬레이션 문서](../requirements/ai-user-interview-simulation.md)
+  - [서비스 의뢰자 인터뷰 시뮬레이션 문서](../requirements/ai-client-interview-simulation.md)
 - 설계 세부 문서
   - [아키텍처 개요 세부 문서](./architecture-overview.md)
   - [클래스 다이어그램 세부 문서](./class-diagram.md)
