@@ -446,27 +446,33 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 
 ## 9. 부록 문서
 
-- [아키텍처 개요 세부 문서](./architecture-overview.md): 시스템 아키텍처 설계 근거와 세부 설명
-- [클래스 다이어그램 세부 문서](./class-diagram.md): 전체 및 도메인별 클래스 다이어그램 설명
-- [시퀀스 다이어그램 세부 문서](./sequence-diagram.md): 유스케이스별 시퀀스 흐름 정리
-- [2단계 구현 계획 문서](./implementation-plan.md): API 목록, DB 테이블 초안, ERD 관계, 구현 우선순위 정리
-- [전체 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram.puml): 전체 클래스 다이어그램 원본 코드
-- [사용자/인증 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-auth.puml): 사용자 계정, 프로필, 인증 구조 원본 코드
-- [학습 일정/태스크 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-schedule-task.puml): 일정, 태스크, 알림 구조 원본 코드
-- [노트/퀴즈/AI 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-notes-ai.puml): 노트, 퀴즈, AI 기능 구조 원본 코드
-- [커뮤니티/챌린지/관리자 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-community-admin.puml): 커뮤니티와 관리자 기능 구조 원본 코드
-- [집중 시간/통계 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-focus-statistics.puml): 집중 세션과 통계 구조 원본 코드
-- [보상 클래스 다이어그램 PlantUML 원본](./plantuml/class-diagram-reward.puml): 포인트와 뱃지 보상 구조 원본 코드
-- [시퀀스 다이어그램 PlantUML 원본](./plantuml/sequence-diagrams.puml): 시퀀스 다이어그램 원본 코드
-- [전체 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram.png): 전체 클래스 다이어그램 렌더링 이미지
-- [사용자/인증 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-auth.png): 사용자/인증 도메인 렌더링 이미지
-- [학습 일정/태스크 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-schedule-task.png): 일정/태스크 도메인 렌더링 이미지
-- [노트/퀴즈/AI 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-notes-ai.png): 노트/퀴즈/AI 도메인 렌더링 이미지
-- [커뮤니티/챌린지/관리자 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-community-admin.png): 커뮤니티/관리자 도메인 렌더링 이미지
-- [집중 시간/통계 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-focus-statistics.png): 집중 시간/통계 도메인 렌더링 이미지
-- [보상 클래스 다이어그램 이미지](../../screenshots/class-diagram/class-diagram-reward.png): 보상 도메인 렌더링 이미지
-- [시퀀스 다이어그램 이미지 폴더](../../screenshots/sequence-diagram/): 유스케이스별 시퀀스 다이어그램 이미지
-- [AI 시뮬레이션 로그](../requirements/ai-simulation-log.md): AI 활용 과정 요약 로그
+- 설계 세부 문서
+  - [아키텍처 개요 세부 문서](./architecture-overview.md)
+  - [클래스 다이어그램 세부 문서](./class-diagram.md)
+  - [시퀀스 다이어그램 세부 문서](./sequence-diagram.md)
+  - [2단계 구현 계획 문서](./implementation-plan.md)
+- 클래스 다이어그램
+  - PlantUML 원본
+    - [전체 클래스 다이어그램](./plantuml/class-diagram.puml)
+    - [사용자/인증 클래스 다이어그램](./plantuml/class-diagram-auth.puml)
+    - [학습 일정/태스크 클래스 다이어그램](./plantuml/class-diagram-schedule-task.puml)
+    - [노트/퀴즈/AI 클래스 다이어그램](./plantuml/class-diagram-notes-ai.puml)
+    - [커뮤니티/챌린지/관리자 클래스 다이어그램](./plantuml/class-diagram-community-admin.puml)
+    - [집중 시간/통계 클래스 다이어그램](./plantuml/class-diagram-focus-statistics.puml)
+    - [보상 클래스 다이어그램](./plantuml/class-diagram-reward.puml)
+  - 렌더링 이미지
+    - [전체 클래스 다이어그램](../../screenshots/class-diagram/class-diagram.png)
+    - [사용자/인증 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-auth.png)
+    - [학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-schedule-task.png)
+    - [노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-notes-ai.png)
+    - [커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-community-admin.png)
+    - [집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-focus-statistics.png)
+    - [보상 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-reward.png)
+- 시퀀스 다이어그램
+  - [PlantUML 원본](./plantuml/sequence-diagrams.puml)
+  - [렌더링 이미지 폴더](../../screenshots/sequence-diagram/)
+- AI 활용 기록
+  - [AI 시뮬레이션 로그](../requirements/ai-simulation-log.md)
 
 ---
 

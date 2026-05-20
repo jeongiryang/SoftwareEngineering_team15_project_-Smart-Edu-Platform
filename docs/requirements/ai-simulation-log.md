@@ -2,7 +2,9 @@
 
 문서 연결:
 - 상위 문서: [요구사항 문서](./requirements-document.md)
-- 관련 부록: [AI 인터뷰 시뮬레이션 문서](./ai-interview-simulation.md)
+- 관련 부록:
+  - [잠재 사용자 인터뷰 시뮬레이션 문서](./ai-user-interview-simulation.md)
+  - [서비스 의뢰자 인터뷰 시뮬레이션 문서](./ai-client-interview-simulation.md)
 - 관련 설계 문서: [통합 설계 문서](../design/design-document.md)
 
 ---
@@ -33,8 +35,9 @@
 
 | 활용 영역 | 활용 내용 | 관련 산출물 |
 |---|---|---|
-| 사용자 그룹 및 페르소나 도출 | 다양한 연령대와 학습 목적을 가진 사용자 그룹을 설정하고 대표 페르소나를 정리함 | `requirements-document.md`, `ai-interview-simulation.md` |
-| AI 기반 가상 인터뷰/설문 시뮬레이션 | 사용자 그룹별 가상 응답을 바탕으로 학습 상황, 불편사항, 요구 기능을 정리함 | `ai-interview-simulation.md` |
+| 사용자 그룹 및 페르소나 도출 | 다양한 연령대와 학습 목적을 가진 사용자 그룹을 설정하고 대표 페르소나를 정리함 | `requirements-document.md`, `ai-user-interview-simulation.md` |
+| AI 기반 잠재 사용자 인터뷰/설문 시뮬레이션 | 사용자 그룹별 가상 응답을 바탕으로 학습 상황, 불편사항, 요구 기능을 정리함 | `ai-user-interview-simulation.md` |
+| 서비스 의뢰자/이해관계자 인터뷰 시뮬레이션 | 공식 의뢰자와 이해관계자 관점에서 기존 요구사항의 타당성, 우선순위, 운영성, 확장성, 보안성을 검토함 | `ai-client-interview-simulation.md` |
 | 사용자 요구사항, 기능 요구사항, 비기능 요구사항 정리 | 인터뷰 결과와 조원 회의를 바탕으로 UR, FR, NFR 항목을 분류함 | `requirements-document.md` |
 | 유스케이스 다이어그램 초안 생성 및 수정 | PlantUML 기반 유스케이스 다이어그램 초안을 만들고 액터, 관계, 표현 방식을 수정함 | `requirements-document.md`, `usecase-diagram.puml` |
 | 아키텍처 개요 검토 | 클라이언트-서버 구조, 외부 시스템 연동, PostgreSQL 단일 DB 기준을 검토함 | `architecture-overview.md`, `design-document.md` |
@@ -52,6 +55,17 @@
 초등학생, 중학생, 고등학생, 대학생/취준생, 공시생/고시생, 직장인, 시니어 학습자를 대상으로 페르소나를 구성함. 각 그룹의 학습 목적, 불편사항, 기대 기능을 정리하고 이를 사용자 요구사항과 기능 요구사항으로 확장함.
 
 AI 응답은 요구사항 도출을 위한 초안 자료로 사용하였으며, 최종 요구사항은 조원 회의와 검토를 거쳐 정리함.
+
+2026년 5월 20일 교수님 미팅 피드백을 반영하여 인터뷰 근거를 보강함.
+
+보강 내용은 다음과 같음.
+
+- 잠재 사용자 인터뷰를 7개 사용자 그룹 × 15명 기준으로 확장함.
+- 사용자별 응답은 공통 질문에 대한 A1~A5 상세 답변 형식으로 정리하여 인터뷰 근거의 구체성을 보강함.
+- 공식 서비스 의뢰자 1명을 설정함.
+- 이해관계자 인터뷰를 5개 관점 × 4명 기준으로 추가하고, 기획, 운영, 관리, 보안, 사업화 관점의 응답을 구체화함.
+- 의뢰자/이해관계자 인터뷰는 새 기능 추가가 아니라 기존 요구사항의 타당성, 우선순위, 운영성, 확장성, 보안성 검토에 활용함.
+- 유스케이스, 클래스, 시퀀스 다이어그램과 DB/API 구조는 수정하지 않음.
 
 ---
 
@@ -113,7 +127,11 @@ AI가 제안한 내용을 그대로 사용하지 않고 조원 피드백을 반�
 ## 9. 관련 문서
 
 - [요구사항 문서](./requirements-document.md)
-- [AI 인터뷰 시뮬레이션 문서](./ai-interview-simulation.md)
-- [유스케이스 다이어그램 PlantUML](./usecase-diagram.puml)
-- [통합 설계 문서](../design/design-document.md)
-- [2단계 구현 계획 문서](../design/implementation-plan.md)
+- 요구사항 도출 근거
+  - [잠재 사용자 인터뷰 시뮬레이션 문서](./ai-user-interview-simulation.md)
+  - [서비스 의뢰자 인터뷰 시뮬레이션 문서](./ai-client-interview-simulation.md)
+- 다이어그램
+  - [유스케이스 다이어그램 PlantUML](./usecase-diagram.puml)
+- 설계 문서
+  - [통합 설계 문서](../design/design-document.md)
+  - [2단계 구현 계획 문서](../design/implementation-plan.md)
