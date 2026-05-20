@@ -39,6 +39,7 @@
 | AI 기반 잠재 사용자 인터뷰/설문 시뮬레이션 | 사용자 그룹별 가상 응답을 바탕으로 학습 상황, 불편사항, 요구 기능을 정리함 | `ai-user-interview-simulation.md` |
 | 서비스 의뢰자/이해관계자 인터뷰 시뮬레이션 | 공식 의뢰자와 이해관계자 관점에서 기존 요구사항의 타당성, 우선순위, 운영성, 확장성, 보안성을 검토함 | `ai-client-interview-simulation.md` |
 | 사용자 요구사항, 기능 요구사항, 비기능 요구사항 정리 | 인터뷰 결과와 조원 회의를 바탕으로 UR, FR, NFR 항목을 분류함 | `requirements-document.md` |
+| 요구사항/설계 문서 구조 점검 | 요구사항 문서는 ISO/IEC/IEEE 29148, 설계 문서는 ISO/IEC/IEEE 42010과 IEEE 1016의 문서화 흐름을 수업 프로젝트 범위에서 참고하여 구조를 점검함 | `requirements-document.md`, `design-document.md` |
 | 유스케이스 다이어그램 초안 생성 및 수정 | PlantUML 기반 유스케이스 다이어그램 초안을 만들고 액터, 관계, 표현 방식을 수정함 | `requirements-document.md`, `usecase-diagram.puml` |
 | 아키텍처 개요 검토 | 클라이언트-서버 구조, 외부 시스템 연동, PostgreSQL 단일 DB 기준을 검토함 | `architecture-overview.md`, `design-document.md` |
 | 클래스 다이어그램 PlantUML 초안 생성 및 수정 | 요구사항의 FR과 주요 도메인 객체를 기준으로 클래스 다이어그램 초안을 정리함 | `class-diagram.md`, `class-diagram.puml` |
@@ -82,6 +83,10 @@ include 관계는 사용하지 않고, 필요한 extend 관계만 남기는 방�
 ## 5. 설계 문서 작성 과정에서의 AI 활용
 
 AI를 활용해 아키텍처 개요, 클래스 다이어그램, 시퀀스 다이어그램 초안을 정리함.
+
+교수님 미팅 이후 요구사항 문서와 설계 문서의 문서화 흐름도 함께 점검함.
+요구사항 문서는 ISO/IEC/IEEE 29148 요구사항 공학 기준을, 설계 문서는 ISO/IEC/IEEE 42010 아키텍처 설명 기준과 IEEE 1016 설계 설명 기준을 수업 프로젝트 범위에서 참고함.
+이 과정은 문서 목적, 범위, 추적성, 부록 연결 구조를 보완하기 위한 것이며, FR/NFR/UC, 다이어그램, DB/API 구조는 변경하지 않음.
 
 PlantUML 코드는 조원 검토 후 수정하고 PNG로 렌더링함. 최종 설계 문서는 `docs/design/design-document.md`로 통합함.
 
