@@ -1,0 +1,76 @@
+@startuml class-diagram-ai-learning
+title Smart Edu Platform - AI 학습 지원 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+package "AI Learning Domain\nAI 학습 지원 도메인" #FFE0B2 {
+  class User <<사용자>> {
+    - userId: Long
+    - email: String
+  }
+
+  class AIQuestion <<AI 질의 기록>> {
+    - questionId: Long
+    - prompt: Text
+    - answer: Text
+    - subject: String
+    - createdAt: DateTime
+    + saveAnswer(answer): void
+  }
+
+  class AIRecommendation <<AI 학습 추천>> {
+    - recommendationId: Long
+    - subject: String
+    - weaknessType: String
+    - reason: Text
+    - priority: Integer
+    + updatePriority(priority): void
+  }
+
+  class AIService <<AI 기능 처리기>> {
+    + answerQuestion(prompt, context): AIQuestion
+    + generateWrongAnswerNote(problem, userAnswer): WrongAnswerNote
+    + recommendWeakness(user): AIRecommendation[]
+    + generateQuiz(note, difficulty, count): Quiz
+    + summarizeText(text): Summary
+  }
+
+  class Summary <<AI 요약 결과>> {
+    - summaryId: Long
+    - sourceType: String
+    - sourceId: Long
+    - content: Text
+    - keywords: String[]
+  }
+}
+
+package "Learning Domain 참조\n학습 노트/퀴즈 도메인 참조" #FFF8E1 {
+  class StudyNote <<학습 노트>> {
+    - noteId: Long
+    - title: String
+  }
+
+  class WrongAnswerNote <<AI 오답노트>> {
+    - wrongAnswerNoteId: Long
+    - weaknessType: String
+  }
+
+  class Quiz <<퀴즈 세트>> {
+    - quizId: Long
+    - title: String
+  }
+}
+
+User "1" *-- "0..*" AIQuestion
+User "1" *-- "0..*" AIRecommendation
+AIService ..> AIQuestion
+AIService ..> WrongAnswerNote
+AIService ..> AIRecommendation
+AIService ..> Quiz
+AIService ..> Summary
+StudyNote "1" o-- "0..*" Summary
+@enduml

@@ -137,9 +137,9 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 
 ## 4. 클래스 다이어그램
 
-클래스 다이어그램은 요구사항 문서의 기능 요구사항 `FR-01`부터 `FR-29`까지를 기준으로 구성하였다. 핵심 도메인은 사용자, 학습 일정, 태스크, 노트, AI 학습 지원, 커뮤니티, 학습 통계, 보상, 접근성, 관리자 기능으로 구분한다.
+클래스 다이어그램은 요구사항 문서의 기능 요구사항 `FR-01`부터 `FR-29`까지를 기준으로 구성하였다. 전체 클래스 다이어그램은 7개 도메인 구조를 한 번에 보여주며, 분할 클래스 다이어그램은 각 도메인을 세부적으로 확인하기 위한 보조 산출물이다.
 
-전체 클래스 다이어그램은 모든 도메인 객체와 관계를 한 번에 보여주는 개요용 다이어그램이다. 전체 구조는 넓게 배치되어 있으므로, 세부 클래스와 관계는 아래 도메인별 분할 다이어그램을 함께 확인한다.
+전체 클래스 다이어그램의 7개 도메인은 사용자/인증, 학습 일정/태스크, 학습 노트/퀴즈, AI 학습 지원, 커뮤니티/챌린지/관리자, 집중 시간/통계, 보상으로 구분한다.
 
 ### 4.1 전체 클래스 다이어그램
 
@@ -163,6 +163,13 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 | 이미지 | [screenshots/class-diagram/class-diagram-auth.png](../../screenshots/class-diagram/class-diagram-auth.png) |
 | 원본 | [docs/design/plantuml/class-diagram-auth.puml](./plantuml/class-diagram-auth.puml) |
 
+| 주요 클래스 | 주요 역할 | 관련 요구사항 |
+|---|---|---|
+| `User` | 회원가입, 로그인, 계정 상태 및 제재 여부 관리 | FR-01, FR-02, FR-28 |
+| `UserProfile` | 학습 목표, 프로필 이미지, 사용자 유형 등 부가 정보 관리 | FR-02, FR-23 |
+| `AuthSession` | 로그인 세션과 인증 토큰 관리 | FR-01, FR-02 |
+| `AccessibilitySetting` | 큰 글씨, 고대비, 글자 크기 등 접근성 설정 관리 | FR-20 |
+
 ---
 
 ### 4.3 학습 일정/태스크 클래스 다이어그램
@@ -176,22 +183,56 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 | 이미지 | [screenshots/class-diagram/class-diagram-schedule-task.png](../../screenshots/class-diagram/class-diagram-schedule-task.png) |
 | 원본 | [docs/design/plantuml/class-diagram-schedule-task.puml](./plantuml/class-diagram-schedule-task.puml) |
 
+| 주요 클래스 | 주요 역할 | 관련 요구사항 |
+|---|---|---|
+| `StudySchedule` | 캘린더 기반 학습 일정 표현 | FR-03, FR-22 |
+| `StudyTask` | 칸반 보드의 할 일, 진행 중, 완료 상태 관리 | FR-04 |
+| `Notification` | 마감일, 복습, 챌린지 알림 표현 | FR-05, FR-26 |
+| `ExternalCalendarLink` | 외부 캘린더 계정 및 일정 동기화 관리 | FR-22 |
+
 ---
 
-### 4.4 노트/퀴즈/AI 클래스 다이어그램
+### 4.4 학습 노트/퀴즈 클래스 다이어그램
 
-학습 노트, AI 질의, 오답노트, 학습 추천, 퀴즈, 요약 결과 저장 구조를 보여주는 다이어그램임.
+학습 노트, 오답노트, 복습 알림, 퀴즈, 요약 결과 저장 구조를 보여주는 다이어그램임.
 
-![노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-notes-ai.png)
+![학습 노트/퀴즈 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-learning.png)
 
 | 항목 | 링크 |
 |---|---|
-| 이미지 | [screenshots/class-diagram/class-diagram-notes-ai.png](../../screenshots/class-diagram/class-diagram-notes-ai.png) |
-| 원본 | [docs/design/plantuml/class-diagram-notes-ai.puml](./plantuml/class-diagram-notes-ai.puml) |
+| 이미지 | [screenshots/class-diagram/class-diagram-learning.png](../../screenshots/class-diagram/class-diagram-learning.png) |
+| 원본 | [docs/design/plantuml/class-diagram-learning.puml](./plantuml/class-diagram-learning.puml) |
+
+| 주요 클래스 | 주요 역할 | 관련 요구사항 |
+|---|---|---|
+| `StudyNote` | 학습 노트 작성, 수정, 삭제, 요약 기준 객체 | FR-06, FR-19 |
+| `WrongAnswerNote` | 오답 문제, 사용자 답변, 해설, 취약 유형 관리 | FR-08 |
+| `ReviewReminder` | 오답노트 기반 복습 알림 주기 관리 | FR-26 |
+| `Quiz`, `QuizQuestion` | AI 또는 노트 기반 복습 퀴즈와 문제 관리 | FR-10 |
+| `Summary` | 학습 노트 또는 텍스트의 요약 결과 저장 | FR-19 |
 
 ---
 
-### 4.5 커뮤니티/챌린지/관리자 클래스 다이어그램
+### 4.5 AI 학습 지원 클래스 다이어그램
+
+AI 질의, 학습 추천, AI 서비스 처리기, 요약 생성과 학습 도메인 객체 생성 의존 관계를 보여주는 다이어그램임.
+
+![AI 학습 지원 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-ai-learning.png)
+
+| 항목 | 링크 |
+|---|---|
+| 이미지 | [screenshots/class-diagram/class-diagram-ai-learning.png](../../screenshots/class-diagram/class-diagram-ai-learning.png) |
+| 원본 | [docs/design/plantuml/class-diagram-ai-learning.puml](./plantuml/class-diagram-ai-learning.puml) |
+
+| 주요 클래스 | 주요 역할 | 관련 요구사항 |
+|---|---|---|
+| `AIService` | AI 질의, 오답노트 생성, 추천, 퀴즈 생성, 요약 기능 처리 | FR-07, FR-08, FR-09, FR-10, FR-19 |
+| `AIQuestion` | 사용자의 AI 질의와 답변 기록 저장 | FR-07 |
+| `AIRecommendation` | 취약 유형과 학습 추천 사유 저장 | FR-09 |
+
+---
+
+### 4.6 커뮤니티/챌린지/관리자 클래스 다이어그램
 
 게시판, 댓글, 스터디 그룹, 스터디 챌린지, 랭킹, 관리자 처리 구조를 보여주는 다이어그램임.
 
@@ -202,9 +243,15 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 | 이미지 | [screenshots/class-diagram/class-diagram-community-admin.png](../../screenshots/class-diagram/class-diagram-community-admin.png) |
 | 원본 | [docs/design/plantuml/class-diagram-community-admin.puml](./plantuml/class-diagram-community-admin.puml) |
 
+| 주요 클래스 | 주요 역할 | 관련 요구사항 |
+|---|---|---|
+| `StudyGroup`, `StudyChallenge`, `Ranking` | 그룹 학습, 챌린지, 주간 랭킹 관리 | FR-11, FR-12, FR-29 |
+| `BoardPost`, `Comment` | 게시판 게시글, 댓글, 신고 처리 표현 | FR-13, FR-27 |
+| `Admin` | 게시판 관리, 사용자 제재, 챌린지 관리 등 운영 기능 표현 | FR-27, FR-28, FR-29 |
+
 ---
 
-### 4.6 집중 시간/통계 클래스 다이어그램
+### 4.7 집중 시간/통계 클래스 다이어그램
 
 집중 세션, 앱 차단 규칙, `durationMs` 기반 학습 시간 기록, 학습 통계와 히트맵 구조를 보여주는 다이어그램임.
 
@@ -215,9 +262,15 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 | 이미지 | [screenshots/class-diagram/class-diagram-focus-statistics.png](../../screenshots/class-diagram/class-diagram-focus-statistics.png) |
 | 원본 | [docs/design/plantuml/class-diagram-focus-statistics.puml](./plantuml/class-diagram-focus-statistics.puml) |
 
+| 주요 클래스 | 주요 역할 | 관련 요구사항 |
+|---|---|---|
+| `FocusSession` | 클라이언트에서 측정한 최종 순공 시간을 `durationMs` 단위로 저장 | FR-15 |
+| `AppBlockRule` | 집중 시간 동안 특정 앱 차단 규칙 관리 | FR-14 |
+| `StudyStatistics`, `Heatmap` | 학습 시간, 진척도, 히트맵 데이터 계산 및 표현 | FR-16, FR-17 |
+
 ---
 
-### 4.7 보상 클래스 다이어그램
+### 4.8 보상 클래스 다이어그램
 
 포인트 지갑, 업적 뱃지, 사용자 뱃지 보유 기록 구조를 보여주는 다이어그램임.
 
@@ -228,28 +281,13 @@ Smart Edu Platform의 2단계 배포 구조는 프론트엔드, 백엔드, 데�
 | 이미지 | [screenshots/class-diagram/class-diagram-reward.png](../../screenshots/class-diagram/class-diagram-reward.png) |
 | 원본 | [docs/design/plantuml/class-diagram-reward.puml](./plantuml/class-diagram-reward.puml) |
 
+| 주요 클래스 | 주요 역할 | 관련 요구사항 |
+|---|---|---|
+| `RewardAccount`, `Badge`, `UserBadge` | 포인트, 뱃지, 사용자 보상 기능 표현 | FR-24 |
+
 ---
 
-### 4.8 주요 클래스 설명
-
-| 클래스 | 주요 역할 | 관련 요구사항 |
-|---|---|---|
-| `User` | 회원가입, 로그인, 계정 상태 및 제재 여부 관리 | FR-01, FR-02, FR-28 |
-| `UserProfile` | 학습 목표, 프로필 이미지, 사용자 유형 등 부가 정보 관리 | FR-02, FR-23 |
-| `StudySchedule` | 캘린더 기반 학습 일정 표현 | FR-03, FR-22 |
-| `StudyTask` | 칸반 보드의 할 일, 진행 중, 완료 상태 관리 | FR-04 |
-| `Notification` | 마감일, 복습, 챌린지 알림 표현 | FR-05, FR-26 |
-| `StudyNote` | 학습 노트 작성, 수정, 삭제, 요약 기준 객체 | FR-06, FR-19 |
-| `AIService` | AI 질의, 오답노트 생성, 추천, 퀴즈 생성, 요약 기능 처리 | FR-07, FR-08, FR-09, FR-10, FR-19 |
-| `WrongAnswerNote` | 오답 문제, 사용자 답변, 해설, 취약 유형 관리 | FR-08 |
-| `ReviewReminder` | 오답노트 기반 복습 알림 주기 관리 | FR-26 |
-| `Quiz`, `QuizQuestion` | AI 또는 노트 기반 복습 퀴즈와 문제 관리 | FR-10 |
-| `FocusSession` | 클라이언트에서 측정한 최종 순공 시간을 `durationMs` 단위로 저장 | FR-15 |
-| `StudyStatistics`, `Heatmap` | 학습 시간, 진척도, 히트맵 데이터 계산 및 표현 | FR-16, FR-17 |
-| `StudyGroup`, `StudyChallenge`, `Ranking` | 그룹 학습, 챌린지, 주간 랭킹 관리 | FR-11, FR-12, FR-29 |
-| `BoardPost`, `Comment`, `Admin` | 게시판, 댓글, 신고 처리, 관리자 운영 기능 표현 | FR-13, FR-27, FR-28, FR-29 |
-| `AccessibilitySetting` | 큰 글씨, 고대비, 글자 크기 등 접근성 설정 관리 | FR-20 |
-| `RewardAccount`, `Badge`, `UserBadge` | 포인트, 뱃지, 사용자 보상 기능 표현 | FR-24 |
+### 4.9 클래스 다이어그램 활용 기준
 
 클래스 다이어그램은 구현 단계에서 엔티티, 서비스, 저장소 계층을 구체화하기 위한 기준으로 활용한다. 단, 실제 클래스명과 속성은 Prisma schema와 Express 계층 구조에 맞춰 일부 조정될 수 있다.
 
@@ -472,7 +510,8 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
     - [전체 클래스 다이어그램](./plantuml/class-diagram.puml)
     - [사용자/인증 클래스 다이어그램](./plantuml/class-diagram-auth.puml)
     - [학습 일정/태스크 클래스 다이어그램](./plantuml/class-diagram-schedule-task.puml)
-    - [노트/퀴즈/AI 클래스 다이어그램](./plantuml/class-diagram-notes-ai.puml)
+    - [학습 노트/퀴즈 클래스 다이어그램](./plantuml/class-diagram-learning.puml)
+    - [AI 학습 지원 클래스 다이어그램](./plantuml/class-diagram-ai-learning.puml)
     - [커뮤니티/챌린지/관리자 클래스 다이어그램](./plantuml/class-diagram-community-admin.puml)
     - [집중 시간/통계 클래스 다이어그램](./plantuml/class-diagram-focus-statistics.puml)
     - [보상 클래스 다이어그램](./plantuml/class-diagram-reward.puml)
@@ -480,7 +519,8 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
     - [전체 클래스 다이어그램](../../screenshots/class-diagram/class-diagram.png)
     - [사용자/인증 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-auth.png)
     - [학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-schedule-task.png)
-    - [노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-notes-ai.png)
+    - [학습 노트/퀴즈 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-learning.png)
+    - [AI 학습 지원 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-ai-learning.png)
     - [커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-community-admin.png)
     - [집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-focus-statistics.png)
     - [보상 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-reward.png)
