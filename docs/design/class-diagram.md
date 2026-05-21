@@ -44,7 +44,8 @@
 |---|---|
 | 사용자 인증 및 프로필 | `FR-01`, `FR-02`, `FR-28` |
 | 학습 일정 및 태스크 관리 | `FR-03`, `FR-04`, `FR-05`, `FR-22` |
-| 학습 노트 및 AI 학습 지원 | `FR-06`, `FR-07`, `FR-08`, `FR-09`, `FR-10` |
+| 학습 노트/퀴즈 및 복습 알림 | `FR-06`, `FR-08`, `FR-10`, `FR-19`, `FR-26` |
+| AI 학습 지원 | `FR-07`, `FR-08`, `FR-09`, `FR-10`, `FR-19` |
 | 커뮤니티 및 소셜 학습 | `FR-11`, `FR-12`, `FR-13`, `FR-27`, `FR-29` |
 | 집중 및 시간 관리 | `FR-14`, `FR-15`, `FR-16`, `FR-17` |
 | 음성 학습 및 접근성 | `FR-18`, `FR-19`, `FR-20`, `FR-21`, `FR-26` |
@@ -54,7 +55,7 @@
 
 ## 3. 클래스 다이어그램
 
-전체 클래스 다이어그램은 모든 도메인 객체와 관계를 한 장에 담은 개요용 다이어그램임. 세부 구조는 도메인별 분할 다이어그램에서 확인함.
+전체 클래스 다이어그램은 7개 도메인 객체와 관계를 한 장에 담은 개요용 다이어그램임. 세부 구조는 도메인별 분할 다이어그램에서 확인함.
 
 ![Smart Edu Platform Class Diagram](../../screenshots/class-diagram/class-diagram.png)
 
@@ -68,7 +69,8 @@
 |---|---|---|---|
 | 사용자/인증 | 사용자 계정, 프로필, 인증 세션, 접근성 설정 구조 | [class-diagram-auth.png](../../screenshots/class-diagram/class-diagram-auth.png) | [class-diagram-auth.puml](plantuml/class-diagram-auth.puml) |
 | 학습 일정/태스크 | 학습 일정, 칸반 태스크, 알림, 외부 캘린더 연동 구조 | [class-diagram-schedule-task.png](../../screenshots/class-diagram/class-diagram-schedule-task.png) | [class-diagram-schedule-task.puml](plantuml/class-diagram-schedule-task.puml) |
-| 노트/퀴즈/AI | 학습 노트, AI 질의, 오답노트, 추천, 퀴즈, 요약 구조 | [class-diagram-notes-ai.png](../../screenshots/class-diagram/class-diagram-notes-ai.png) | [class-diagram-notes-ai.puml](plantuml/class-diagram-notes-ai.puml) |
+| 학습 노트/퀴즈 | 학습 노트, 오답노트, 복습 알림, 퀴즈, 요약 결과 저장 구조 | [class-diagram-learning.png](../../screenshots/class-diagram/class-diagram-learning.png) | [class-diagram-learning.puml](plantuml/class-diagram-learning.puml) |
+| AI 학습 지원 | AI 질의, 학습 추천, AI 서비스 처리기, 학습 도메인 객체 생성 의존 구조 | [class-diagram-ai-learning.png](../../screenshots/class-diagram/class-diagram-ai-learning.png) | [class-diagram-ai-learning.puml](plantuml/class-diagram-ai-learning.puml) |
 | 커뮤니티/챌린지/관리자 | 게시판, 댓글, 스터디 챌린지, 랭킹, 관리자 처리 구조 | [class-diagram-community-admin.png](../../screenshots/class-diagram/class-diagram-community-admin.png) | [class-diagram-community-admin.puml](plantuml/class-diagram-community-admin.puml) |
 | 집중 시간/통계 | 집중 세션, 앱 차단 규칙, 학습 통계, 히트맵 구조 | [class-diagram-focus-statistics.png](../../screenshots/class-diagram/class-diagram-focus-statistics.png) | [class-diagram-focus-statistics.puml](plantuml/class-diagram-focus-statistics.puml) |
 | 보상 | 포인트 지갑, 업적 뱃지, 사용자 뱃지 보유 기록 구조 | [class-diagram-reward.png](../../screenshots/class-diagram/class-diagram-reward.png) | [class-diagram-reward.puml](plantuml/class-diagram-reward.puml) |
@@ -81,19 +83,23 @@
 
 ![학습 일정/태스크 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-schedule-task.png)
 
-### 4.3 노트/퀴즈/AI
+### 4.3 학습 노트/퀴즈
 
-![노트/퀴즈/AI 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-notes-ai.png)
+![학습 노트/퀴즈 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-learning.png)
 
-### 4.4 커뮤니티/챌린지/관리자
+### 4.4 AI 학습 지원
+
+![AI 학습 지원 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-ai-learning.png)
+
+### 4.5 커뮤니티/챌린지/관리자
 
 ![커뮤니티/챌린지/관리자 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-community-admin.png)
 
-### 4.5 집중 시간/통계
+### 4.6 집중 시간/통계
 
 ![집중 시간/통계 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-focus-statistics.png)
 
-### 4.6 보상
+### 4.7 보상
 
 ![보상 클래스 다이어그램](../../screenshots/class-diagram/class-diagram-reward.png)
 

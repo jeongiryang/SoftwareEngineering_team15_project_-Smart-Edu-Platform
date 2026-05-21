@@ -1,0 +1,91 @@
+@startuml class-diagram-learning
+title Smart Edu Platform - 학습 노트/퀴즈 클래스 다이어그램
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide circle
+
+package "Learning Domain\n학습 노트/퀴즈 도메인" #FFF3E0 {
+  class User <<사용자>> {
+    - userId: Long
+    - email: String
+  }
+
+  class StudyNote <<학습 노트>> {
+    - noteId: Long
+    - title: String
+    - content: Text
+    - subject: String
+    - tags: String[]
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + updateContent(content): void
+    + addTag(tag): void
+    + summarize(): Summary
+  }
+
+  class Quiz <<퀴즈 세트>> {
+    - quizId: Long
+    - title: String
+    - subject: String
+    - difficulty: Difficulty
+    - createdAt: DateTime
+    + addQuestion(question): void
+    + grade(answers): QuizResult
+  }
+
+  class QuizQuestion <<퀴즈 문제>> {
+    - questionId: Long
+    - content: Text
+    - choices: String[]
+    - answer: String
+    - explanation: Text
+    + checkAnswer(userAnswer): Boolean
+  }
+
+  class WrongAnswerNote <<AI 오답노트>> {
+    - wrongAnswerNoteId: Long
+    - problemContent: Text
+    - userAnswer: Text
+    - correctAnswer: Text
+    - explanation: Text
+    - weaknessType: String
+    - createdAt: DateTime
+    + updateExplanation(explanation): void
+    + markReviewed(): void
+  }
+
+  class ReviewReminder <<복습 알림 주기>> {
+    - reminderId: Long
+    - reviewAt: DateTime
+    - intervalDays: Integer
+    - completed: Boolean
+    + scheduleNext(): void
+    + complete(): void
+  }
+
+  class Summary <<AI 요약 결과>> {
+    - summaryId: Long
+    - sourceType: String
+    - sourceId: Long
+    - content: Text
+    - keywords: String[]
+  }
+}
+
+enum Difficulty {
+  EASY
+  NORMAL
+  HARD
+}
+
+User "1" *-- "0..*" StudyNote
+User "1" *-- "0..*" WrongAnswerNote
+StudyNote "1" o-- "0..*" Quiz
+Quiz "1" *-- "1..*" QuizQuestion
+StudyNote "1" o-- "0..*" Summary
+WrongAnswerNote "1" o-- "0..*" ReviewReminder
+Quiz --> Difficulty
+@enduml
