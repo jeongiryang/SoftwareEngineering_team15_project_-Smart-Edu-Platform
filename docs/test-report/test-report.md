@@ -181,7 +181,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 테스트 ID | 구분 | 대상 | 테스트 내용 | 명령어 | 기대 결과 | 현재 상태 |
 |---|---|---|---|---|---|---|
 | TC-BE-001 | 유닛/API 테스트 | `GET /api/health` | Health Check API 응답 확인 | `npm test` | `status`가 `ok`이고 service 이름 반환 | 통과 |
-| TC-AUTH-001 | 유닛 테스트 | 인증 validation | 이메일, 닉네임, 토큰 입력값 검증 | 후속 작성 | 유효하지 않은 입력 차단 | 예정 |
+| TC-AUTH-001 | 유닛/API 테스트 | 인증 validation | 회원가입 필수값, 이메일 형식, 비밀번호 길이 검증 | `npm test` | 유효하지 않은 입력 차단 | 통과 |
 | TC-SCHEDULE-001 | 유닛 테스트 | 일정/태스크 service | 일정 생성, 수정, 상태 변경 로직 검증 | 후속 작성 | 입력값에 따른 정상 처리 | 예정 |
 | TC-FOCUS-001 | 유닛 테스트 | 집중 시간 계산 | `durationMs` 기준 집중 시간 계산 검증 | 후속 작성 | 밀리초 단위 저장 기준 유지 | 예정 |
 | TC-STAT-001 | 유닛 테스트 | 통계 계산 | 학습 시간, 완료율, 히트맵 집계 검증 | 후속 작성 | 통계 계산 결과 일관성 유지 | 예정 |
@@ -191,7 +191,9 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 테스트 ID | 구분 | 대상 | 테스트 내용 | 명령어 | 기대 결과 | 현재 상태 |
 |---|---|---|---|---|---|---|
 | TC-INT-001 | API 통합 테스트 | Health Check API | Express app 요청/응답 흐름 검증 | `npm test` | HTTP 200 및 JSON 응답 | 통과 |
-| TC-INT-002 | API 통합 테스트 | 인증 API | 회원가입, 로그인, 토큰 발급 흐름 검증 | 후속 작성 | 정상 계정 생성 및 인증 처리 | 예정 |
+| TC-INT-002 | API 통합 테스트 | 인증 API | 회원가입, 로그인, JWT 발급 흐름 검증 | `npm test` | 정상 계정 생성 및 인증 처리 | 통과 |
+| TC-INT-006 | API 통합 테스트 | 현재 사용자 조회 API | JWT 없이 접근 실패, 유효한 JWT 접근 성공 검증 | `npm test` | 401/200 응답 및 현재 사용자 정보 반환 | 통과 |
+| TC-INT-007 | 보안 검증 | 인증 API 응답 | 회원가입, 로그인, 현재 사용자 조회 응답의 `passwordHash` 미노출 확인 | `npm test` | 응답에 비밀번호 해시가 포함되지 않음 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정과 태스크 생성/조회/수정 흐름 검증 | 후속 작성 | DB 연동 포함 정상 응답 | 예정 |
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 퀴즈 생성 흐름 검증 | 후속 작성 | mock 또는 테스트 key 기준 응답 검증 | 예정 |
 | TC-INT-005 | API 통합 테스트 | 커뮤니티/관리자 API | 게시글, 댓글, 신고, 제재 흐름 검증 | 후속 작성 | 권한별 접근 제어 확인 | 예정 |
@@ -222,13 +224,19 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
 | Backend test | `npm test` | 통과 | Jest + Supertest health check |
+| Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
 | Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
 | Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
-현재 실제 테스트 파일은 `src/backend/tests/health.test.js`임.
+현재 실제 테스트 파일은 다음과 같음.
+
+- `src/backend/tests/health.test.js`
+- `src/backend/tests/auth.test.js`
+
+인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
 
 ---
 
@@ -277,6 +285,15 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 실행 명령 | `npm test` |
 | 결과 | 통과 |
 
+| 항목 | 내용 |
+|---|---|
+| 대상 기능 | 인증 API |
+| 테스트 파일 | `src/backend/tests/auth.test.js` |
+| 도구 | Jest, Supertest |
+| AI 활용 방식 | AI를 활용해 인증 API 테스트 항목 누락 여부를 검토하고, 팀원이 회원가입, 로그인, JWT 인증, `passwordHash` 미노출 검증 기준을 확인한 뒤 반영 |
+| 실행 명령 | `npm test` |
+| 결과 | 통과 |
+
 향후 인증, 일정/태스크, 학습 노트, AI 학습 지원, 커뮤니티/관리자 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
 
 ---
@@ -287,7 +304,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 | 영역 | 테스트 계획 | 상태 |
 |---|---|---|
-| 인증/회원가입/로그인 API | 회원가입, 로그인, JWT 발급/검증, 권한 분기 테스트 | 예정 |
+| 인증/회원가입/로그인 API | 백엔드 회원가입, 로그인, JWT 발급/검증 테스트 완료. 프론트엔드 연동과 세부 권한 분기 테스트는 후속 작성 | 진행 중 |
 | 사용자 프로필 | 사용자 유형, 학습 목표, 접근성 설정 검증 | 예정 |
 | 학습 일정/태스크 | 일정 CRUD, 칸반 상태 변경, 알림 연계 테스트 | 예정 |
 | 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
@@ -304,6 +321,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 - 테스트 관련 파일
   - `src/backend/tests/health.test.js`
+  - `src/backend/tests/auth.test.js`
   - `src/backend/package.json`
   - `src/frontend/package.json`
   - `package.json`
