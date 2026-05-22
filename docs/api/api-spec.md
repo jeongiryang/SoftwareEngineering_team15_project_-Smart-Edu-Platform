@@ -8,10 +8,11 @@
 4. [Health API](#4-health-api)
 5. [Auth API](#5-auth-api)
 6. [User/Profile API](#6-userprofile-api)
-7. [개발용 seed 데이터](#7-개발용-seed-데이터)
-8. [예정 API 초안](#8-예정-api-초안)
-9. [테스트 및 검증 기준](#9-테스트-및-검증-기준)
-10. [변경 이력](#10-변경-이력)
+7. [Schedule/Task API](#7-scheduletask-api)
+8. [개발용 seed 데이터](#8-개발용-seed-데이터)
+9. [예정 API 초안](#9-예정-api-초안)
+10. [테스트 및 검증 기준](#10-테스트-및-검증-기준)
+11. [변경 이력](#11-변경-이력)
 
 ---
 
@@ -422,7 +423,398 @@ Response 예시:
 
 ---
 
-## 7. 개발용 seed 데이터
+## 7. Schedule/Task API
+
+학습 일정과 칸반 태스크 API는 모두 인증이 필요함. 로그인한 사용자는 자신의 일정과 태스크만 조회, 수정, 삭제할 수 있음.
+
+프론트엔드 화면 연동은 후속 작업임.
+
+### 7.1 학습 일정 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/schedules` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 학습 일정 목록을 조회함 |
+
+Response 예시:
+
+```json
+{
+  "schedules": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "기말고사 수학 공부",
+      "subject": "수학",
+      "startAt": "2026-06-01T09:00:00.000Z",
+      "endAt": "2026-06-01T10:00:00.000Z",
+      "priority": "HIGH",
+      "memo": "1단원 복습",
+      "createdAt": "2026-05-01T00:00:00.000Z",
+      "updatedAt": "2026-05-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 7.2 학습 일정 생성
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/schedules` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자 기준으로 학습 일정을 생성함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 예 | 일정 제목 |
+| `startAt` | datetime string | 예 | 시작 시간 |
+| `subject` | string 또는 null | 아니오 | 과목 |
+| `endAt` | datetime string 또는 null | 아니오 | 종료 시간 |
+| `priority` | `LOW` / `MEDIUM` / `HIGH` | 아니오 | 우선순위 |
+| `memo` | string 또는 null | 아니오 | 메모 |
+
+Request 예시:
+
+```json
+{
+  "title": "기말고사 수학 공부",
+  "subject": "수학",
+  "startAt": "2026-06-01T09:00:00.000Z",
+  "endAt": "2026-06-01T10:00:00.000Z",
+  "priority": "HIGH",
+  "memo": "1단원 복습"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "schedule": {
+    "id": 1,
+    "userId": 1,
+    "title": "기말고사 수학 공부",
+    "subject": "수학",
+    "startAt": "2026-06-01T09:00:00.000Z",
+    "endAt": "2026-06-01T10:00:00.000Z",
+    "priority": "HIGH",
+    "memo": "1단원 복습",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### 7.3 학습 일정 상세 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/schedules/:scheduleId` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 특정 학습 일정을 조회함 |
+
+Response 예시:
+
+```json
+{
+  "schedule": {
+    "id": 1,
+    "userId": 1,
+    "title": "기말고사 수학 공부",
+    "subject": "수학",
+    "startAt": "2026-06-01T09:00:00.000Z",
+    "endAt": "2026-06-01T10:00:00.000Z",
+    "priority": "HIGH",
+    "memo": "1단원 복습",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z",
+    "tasks": []
+  }
+}
+```
+
+### 7.4 학습 일정 수정
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/schedules/:scheduleId` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 특정 학습 일정을 수정함 |
+
+Request 예시:
+
+```json
+{
+  "title": "수학 오답 정리",
+  "priority": "MEDIUM"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "schedule": {
+    "id": 1,
+    "userId": 1,
+    "title": "수학 오답 정리",
+    "subject": "수학",
+    "startAt": "2026-06-01T09:00:00.000Z",
+    "endAt": "2026-06-01T10:00:00.000Z",
+    "priority": "MEDIUM",
+    "memo": "1단원 복습",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### 7.5 학습 일정 삭제
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/schedules/:scheduleId` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 특정 학습 일정을 삭제함 |
+
+Response 예시:
+
+```json
+{
+  "schedule": {
+    "id": 1,
+    "userId": 1,
+    "title": "수학 오답 정리",
+    "subject": "수학",
+    "startAt": "2026-06-01T09:00:00.000Z",
+    "endAt": "2026-06-01T10:00:00.000Z",
+    "priority": "MEDIUM",
+    "memo": "1단원 복습",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### 7.6 태스크 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/tasks` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 칸반 태스크 목록을 조회함 |
+
+Query:
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `scheduleId` | 아니오 | 특정 일정에 연결된 태스크만 조회 |
+
+Response 예시:
+
+```json
+{
+  "tasks": [
+    {
+      "id": 1,
+      "userId": 1,
+      "scheduleId": 1,
+      "title": "수학 문제집 풀기",
+      "status": "TODO",
+      "dueDate": "2026-06-02T09:00:00.000Z",
+      "priority": "HIGH",
+      "memo": "1~10번",
+      "createdAt": "2026-05-01T00:00:00.000Z",
+      "updatedAt": "2026-05-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 7.7 태스크 생성
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/tasks` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자 기준으로 칸반 태스크를 생성함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 예 | 태스크 제목 |
+| `scheduleId` | number 또는 null | 아니오 | 연결할 학습 일정 ID |
+| `status` | `TODO` / `IN_PROGRESS` / `DONE` | 아니오 | 태스크 상태 |
+| `dueDate` | datetime string 또는 null | 아니오 | 마감일 |
+| `priority` | `LOW` / `MEDIUM` / `HIGH` | 아니오 | 우선순위 |
+| `memo` | string 또는 null | 아니오 | 메모 |
+
+Request 예시:
+
+```json
+{
+  "title": "수학 문제집 풀기",
+  "scheduleId": 1,
+  "dueDate": "2026-06-02T09:00:00.000Z",
+  "priority": "HIGH",
+  "memo": "1~10번"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "task": {
+    "id": 1,
+    "userId": 1,
+    "scheduleId": 1,
+    "title": "수학 문제집 풀기",
+    "status": "TODO",
+    "dueDate": "2026-06-02T09:00:00.000Z",
+    "priority": "HIGH",
+    "memo": "1~10번",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### 7.8 태스크 수정
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/tasks/:taskId` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 특정 태스크를 수정함 |
+
+Request 예시:
+
+```json
+{
+  "title": "수학 문제집 오답 정리",
+  "scheduleId": null,
+  "memo": null
+}
+```
+
+Response 예시:
+
+```json
+{
+  "task": {
+    "id": 1,
+    "userId": 1,
+    "scheduleId": null,
+    "title": "수학 문제집 오답 정리",
+    "status": "TODO",
+    "dueDate": "2026-06-02T09:00:00.000Z",
+    "priority": "HIGH",
+    "memo": null,
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### 7.9 태스크 상태 변경
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/tasks/:taskId/status` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 특정 태스크 상태를 변경함 |
+
+Request 예시:
+
+```json
+{
+  "status": "IN_PROGRESS"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "task": {
+    "id": 1,
+    "userId": 1,
+    "scheduleId": 1,
+    "title": "수학 문제집 풀기",
+    "status": "IN_PROGRESS",
+    "dueDate": "2026-06-02T09:00:00.000Z",
+    "priority": "HIGH",
+    "memo": "1~10번",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### 7.10 태스크 삭제
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/tasks/:taskId` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 특정 태스크를 삭제함 |
+
+Response 예시:
+
+```json
+{
+  "task": {
+    "id": 1,
+    "userId": 1,
+    "scheduleId": 1,
+    "title": "수학 문제집 풀기",
+    "status": "DONE",
+    "dueDate": "2026-06-02T09:00:00.000Z",
+    "priority": "HIGH",
+    "memo": "1~10번",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### 7.11 Schedule/Task 주요 에러
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 잘못된 날짜, 잘못된 enum 값, 허용되지 않은 필드 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+| `404` | `NOT_FOUND` | 본인 소유가 아닌 일정/태스크 또는 존재하지 않는 데이터 |
+
+---
+
+## 8. 개발용 seed 데이터
 
 개발용 seed script는 로컬 개발과 테스트 편의를 위한 기본 사용자 데이터를 생성하거나 갱신함.
 
@@ -449,57 +841,11 @@ npm run seed:dev
 
 ---
 
-## 8. 예정 API 초안
+## 9. 예정 API 초안
 
 이 섹션의 API는 아직 구현되지 않은 예정 API임. 실제 구현 시 schema, 요구사항, 테스트 결과에 맞춰 세부 명세를 갱신해야 함.
 
-### 8.1 학습 일정 API 예정
-
-상태: 예정
-
-예상 endpoint:
-
-| Method | Endpoint | 설명 |
-|---|---|---|
-| `GET` | `/api/schedules` | 로그인한 사용자의 학습 일정 목록 조회 |
-| `POST` | `/api/schedules` | 학습 일정 생성 |
-| `GET` | `/api/schedules/:scheduleId` | 학습 일정 단건 조회 |
-| `PATCH` | `/api/schedules/:scheduleId` | 학습 일정 수정 |
-| `DELETE` | `/api/schedules/:scheduleId` | 학습 일정 삭제 |
-
-예상 주요 필드:
-
-- `title`
-- `subject`
-- `startAt`
-- `endAt`
-- `priority`
-- `memo`
-
-### 8.2 칸반 태스크 API 예정
-
-상태: 예정
-
-예상 endpoint:
-
-| Method | Endpoint | 설명 |
-|---|---|---|
-| `GET` | `/api/tasks` | 로그인한 사용자의 태스크 목록 조회 |
-| `POST` | `/api/tasks` | 태스크 생성 |
-| `PATCH` | `/api/tasks/:taskId` | 태스크 수정 |
-| `PATCH` | `/api/tasks/:taskId/status` | 태스크 상태 변경 |
-| `DELETE` | `/api/tasks/:taskId` | 태스크 삭제 |
-
-예상 주요 필드:
-
-- `scheduleId`
-- `title`
-- `status`
-- `dueDate`
-- `priority`
-- `memo`
-
-### 8.3 학습 노트 API 예정
+### 9.1 학습 노트 API 예정
 
 상태: 예정
 
@@ -513,7 +859,7 @@ npm run seed:dev
 | `PATCH` | `/api/notes/:noteId` | 학습 노트 수정 |
 | `DELETE` | `/api/notes/:noteId` | 학습 노트 삭제 |
 
-### 8.4 AI 학습 지원 API 예정
+### 9.2 AI 학습 지원 API 예정
 
 상태: 예정
 
@@ -530,7 +876,7 @@ npm run seed:dev
 - 실제 AI API key는 문서에 작성하지 않음.
 - 테스트 단계에서는 mock 또는 테스트용 설정을 우선 검토함.
 
-### 8.5 집중 시간/통계 API 예정
+### 9.3 집중 시간/통계 API 예정
 
 상태: 예정
 
@@ -548,7 +894,7 @@ npm run seed:dev
 - 타이머 카운팅은 클라이언트에서 처리함.
 - 서버는 완료된 집중 세션 기록만 저장함.
 
-### 8.6 커뮤니티/게시판 API 예정
+### 9.4 커뮤니티/게시판 API 예정
 
 상태: 예정
 
@@ -563,7 +909,7 @@ npm run seed:dev
 | `DELETE` | `/api/posts/:postId` | 게시글 삭제 |
 | `POST` | `/api/posts/:postId/comments` | 댓글 생성 |
 
-### 8.7 관리자 API 예정
+### 9.5 관리자 API 예정
 
 상태: 예정
 
@@ -583,7 +929,7 @@ npm run seed:dev
 
 ---
 
-## 9. 테스트 및 검증 기준
+## 10. 테스트 및 검증 기준
 
 현재 프로젝트에서 주로 사용하는 검증 명령은 다음과 같음.
 
@@ -602,8 +948,9 @@ npm run seed:dev
 
 ---
 
-## 10. 변경 이력
+## 11. 변경 이력
 
 | 날짜 | 내용 |
 |---|---|
-| 2026-05 | API 명세서 초안 작성, Health/Auth/User/Profile 구현 API 기준 반영, Schedule/Task 등 예정 API 초안 정리 |
+| 2026-05 | API 명세서 초안 작성, Health/Auth/User/Profile 구현 API 기준 반영 |
+| 2026-05 | Schedule/Task API 구현 완료 기준으로 명세 갱신 |

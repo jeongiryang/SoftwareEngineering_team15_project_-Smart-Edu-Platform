@@ -38,10 +38,21 @@ function validatePassword(password, minLength = DEFAULT_MIN_PASSWORD_LENGTH) {
   }
 }
 
+function parsePositiveInteger(value, field = 'id') {
+  const parsedValue = Number(value);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    throw validationError(`${field} must be a positive integer`, { field });
+  }
+
+  return parsedValue;
+}
+
 module.exports = {
   DEFAULT_MIN_PASSWORD_LENGTH,
   normalizeEmail,
   normalizeString,
+  parsePositiveInteger,
   requireFields,
   validateEmail,
   validatePassword
