@@ -1,7 +1,14 @@
 const { sendCreated, sendError, sendSuccess } = require('../src/utils/apiResponse');
 const { asyncHandler } = require('../src/utils/asyncHandler');
 const { AppError, conflictError, forbiddenError, notFoundError, unauthorizedError, validationError } = require('../src/utils/errors');
-const { normalizeEmail, normalizeString, requireFields, validateEmail, validatePassword } = require('../src/utils/validators');
+const {
+  normalizeEmail,
+  normalizeString,
+  parsePositiveInteger,
+  requireFields,
+  validateEmail,
+  validatePassword
+} = require('../src/utils/validators');
 const { createAuthHeader, createUniqueEmail, createUserPayload } = require('./helpers/auth.helper');
 const { expectNoPasswordHash, expectSafeUser } = require('./helpers/assert.helper');
 
@@ -97,6 +104,12 @@ describe('validation helpers', () => {
     expect(() => validateEmail('invalid-email')).toThrow(AppError);
     expect(() => validatePassword('password123')).not.toThrow();
     expect(() => validatePassword('short')).toThrow(AppError);
+  });
+
+  it('parses positive integer identifiers', () => {
+    expect(parsePositiveInteger('10', 'id')).toBe(10);
+    expect(() => parsePositiveInteger('0', 'id')).toThrow(AppError);
+    expect(() => parsePositiveInteger('invalid', 'id')).toThrow(AppError);
   });
 });
 
