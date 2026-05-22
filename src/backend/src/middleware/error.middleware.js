@@ -1,9 +1,10 @@
-function errorMiddleware(err, req, res, next) {
-  const statusCode = err.statusCode || 500;
+const { sendError } = require('../utils/apiResponse');
+const { internalServerError } = require('../utils/errors');
 
-  res.status(statusCode).json({
-    message: err.message || 'Internal Server Error'
-  });
+function errorMiddleware(err, req, res, next) {
+  const error = err.statusCode ? err : internalServerError(err.message);
+
+  sendError(res, error);
 }
 
 module.exports = {
