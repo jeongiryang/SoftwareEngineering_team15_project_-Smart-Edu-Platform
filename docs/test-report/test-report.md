@@ -121,7 +121,9 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 현재까지 확인된 DB 관련 작업은 다음과 같음.
 
 - `src/backend/.env.example`에 `DIRECT_URL` 예시 추가
-- `src/backend/prisma/schema.prisma`에 `directUrl = env("DIRECT_URL")` 반영
+- Prisma 7 기준 `src/backend/prisma.config.ts` 추가
+- `src/backend/prisma/schema.prisma`의 datasource를 provider 중심 구조로 정리
+- PostgreSQL/Neon adapter 기반 Prisma Client 생성 구조 추가
 - `npx prisma validate` 통과
 - `npx prisma generate` 통과
 - `npx prisma migrate dev --name init` 통과
@@ -139,6 +141,7 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 | Supertest | Express API 요청/응답 검증 | 사용 중 |
 | Prisma CLI | schema validate, generate, migration 검증 | 사용 중 |
 | Expo CLI | 프론트엔드 설정 및 Web export 검증 | 사용 중 |
+| PostgreSQL adapter | Prisma Client DB smoke test | 별도 검증 명령으로 사용 |
 | Coverage 도구 | 테스트 커버리지 측정 | 측정 예정 |
 
 ---
@@ -203,6 +206,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-FE-001 | 환경 검증 | Expo Web | Expo Web export 확인 | `npm run check:frontend:web` | Web bundle export 성공 | 통과 |
 | TC-DB-001 | DB migration | Prisma migration | 초기 migration 적용 | `npx prisma migrate dev --name init` | migration 적용 및 schema sync | 통과 |
 | TC-DB-002 | DB migration | 조원별 개인 branch | 각자 개인 Neon branch에 migration 적용 | `npx prisma migrate dev` | 개인 branch schema sync | 확인 예정 |
+| TC-DB-003 | DB smoke test | Prisma Client | PostgreSQL adapter 기반 최소 DB query 확인 | `npm run test:db` | `SELECT 1` 정상 응답 | 조건부 실행 |
 
 ---
 
