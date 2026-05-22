@@ -209,6 +209,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-ENV-002 | 환경 검증 | 전체 검증 | backend test, Prisma validate, frontend config/export 확인 | `npm run check` | 전체 통과 | 통과 |
 | TC-ENV-003 | 환경 검증 | Expo config | Expo public config 확인 | `npm run check:frontend` | Expo config 출력 성공 | 통과 |
 | TC-FE-001 | 환경 검증 | Expo Web | Expo Web export 확인 | `npm run check:frontend:web` | Web bundle export 성공 | 통과 |
+| TC-ENV-004 | 환경 검증 | 개발용 seed script | production guard와 seed 환경 검증 helper 확인 | `npm test` | production 실행 방지 및 개발용 seed 구성 확인 | 통과 |
+| TC-ENV-005 | 환경 검증 | 개발용 seed 실행 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성/갱신 확인 | `npm run seed:dev` | 개발용 seed 완료 및 비밀값 미출력 | 통과 |
 | TC-DB-001 | DB migration | Prisma migration | 초기 migration 적용 | `npx prisma migrate dev --name init` | migration 적용 및 schema sync | 통과 |
 | TC-DB-002 | DB migration | 조원별 개인 branch | 각자 개인 Neon branch에 migration 적용 | `npx prisma migrate dev` | 개인 branch schema sync | 확인 예정 |
 | TC-DB-003 | DB smoke test | Prisma Client | PostgreSQL adapter 기반 최소 DB query 확인 | `npm run test:db` | `SELECT 1` 정상 응답 | 조건부 실행 |
@@ -230,6 +232,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
+| Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
+| Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
 | Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
 | Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
@@ -248,6 +252,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 공통 API 기반 테스트는 이후 기능 구현에서 재사용할 response helper, AppError, validation helper, async handler, 테스트 helper의 동작을 확인함.
 
 사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 프로필 필드 검증, `passwordHash` 미노출을 확인함. 프론트엔드 화면 연동은 후속 작업으로 둠.
+
+개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
 
 ---
 
@@ -318,6 +324,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 인증/회원가입/로그인 API | 백엔드 회원가입, 로그인, JWT 발급/검증 테스트 완료. 프론트엔드 연동과 세부 권한 분기 테스트는 후속 작성 | 진행 중 |
 | 백엔드 공통 API 기반 | 공통 응답, 에러, validation, async handler, 테스트 helper 구조를 기반으로 이후 API 테스트 확장 | 진행 중 |
 | 사용자 프로필 | 백엔드 현재 사용자 조회와 프로필 조회/수정 API 테스트 완료. 프론트엔드 연동과 세부 프로필 확장은 후속 작성 | 진행 중 |
+| 개발용 seed 데이터 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성 script 추가. 실제 seed 실행은 개발용 DB branch에서만 수행 | 진행 중 |
 | 학습 일정/태스크 | 일정 CRUD, 칸반 상태 변경, 알림 연계 테스트 | 예정 |
 | 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
 | AI 학습 지원 | AI 질의, 추천, 퀴즈 생성 API mock 테스트 | 예정 |
@@ -336,6 +343,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
   - `src/backend/tests/auth.test.js`
   - `src/backend/tests/api-foundation.test.js`
   - `src/backend/tests/user-profile.test.js`
+  - `src/backend/tests/seed-dev.test.js`
   - `src/backend/tests/helpers/auth.helper.js`
   - `src/backend/tests/helpers/assert.helper.js`
   - `src/backend/package.json`
@@ -346,6 +354,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
   - `src/backend/prisma/schema.prisma`
   - `src/backend/prisma/migrations/20260521201109_init/migration.sql`
   - `src/backend/prisma/migrations/migration_lock.toml`
+  - `src/backend/scripts/seed-dev.js`
 
 - 관련 문서/이슈
   - `docs/design/design-document.md`
