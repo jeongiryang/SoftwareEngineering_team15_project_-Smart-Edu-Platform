@@ -642,72 +642,97 @@ git ls-remote --tags origin
 
 ## 11. 필독: 로컬 개발 환경 세팅 방법
 
-이 섹션은 PR #16 merge 이후 팀원이 로컬에서 프로젝트를 실행하기 위한 기본 세팅 방법임. 자세한 팀원용 세팅 순서는 [Issue #14 로컬 세팅 가이드](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/14)를 함께 확인함.
+이 섹션은 팀원이 로컬에서 프로젝트를 실행하기 위한 최소 세팅 방법임.
+Prisma 7 전환 이후의 자세한 설명은 Issue #45 로컬 세팅 가이드를 확인함.
 
-README에는 핵심 명령어만 정리함.
+---
 
-### 11.1 루트 기준 검증
-
-프로젝트 루트에서 기본 테스트와 설정 검증을 실행할 수 있다.
+### 11.1 main 최신화
 
 ```bash
-npm test
-npm run validate:prisma
-npm run check:frontend
-npm run check:frontend:web
-npm run check
-npm run check:db
+git checkout main
+git pull origin main
 ```
 
-- `npm test`: 백엔드 Jest 테스트 실행
-- `npm run validate:prisma`: Prisma schema 검증
-- `npm run check:frontend`: Expo 설정 확인
-- `npm run check:frontend:web`: Expo Web bundle 생성 확인
-- `npm run check`: 위 검증을 한 번에 실행
-- `npm run check:db`: Prisma schema 검증과 DB smoke test를 함께 실행
+---
 
-### 11.2 백엔드
+### 11.2 백엔드 세팅
 
 ```bash
 cd src/backend
 npm install
 cp .env.example .env
+npx prisma generate
 npm run dev
 ```
 
-백엔드 테스트와 Prisma schema 검증은 다음 명령어로 실행한다.
+`.env`에는 아래 키가 필요함.
 
-```bash
-npm test
-npx prisma validate
-npx prisma generate
+```env
+DATABASE_URL=
+DIRECT_URL=
+JWT_SECRET=
+PORT=4000
+CORS_ORIGIN=http://localhost:8081
+AI_API_KEY=
 ```
 
-Prisma 7 기준으로 백엔드는 `src/backend/prisma.config.ts`를 사용한다. `schema.prisma`에는 datasource provider만 두고, 실제 연결 문자열은 `.env`와 Prisma config에서 관리한다.
+주의:
 
-- `DATABASE_URL`: 애플리케이션 runtime과 PostgreSQL adapter 기반 Prisma Client에서 사용하는 연결 문자열
-- `DIRECT_URL`: Prisma CLI, schema 검증, migration 등 DB 구조 작업에서 사용하는 직접 연결 문자열
-- `@prisma/adapter-pg`, `pg`: PostgreSQL/Neon adapter 기반 Prisma Client 생성을 위해 사용하는 패키지
+- `.env`는 로컬 전용 파일이며 Git에 올리지 않음.
+- `DATABASE_URL`은 애플리케이션 runtime DB 연결에 사용함.
+- `DIRECT_URL`은 Prisma CLI/config 작업에 사용함.
+- production DB에서는 `test:db`, `migrate dev`를 실행하지 않음.
 
-DB 연결을 실제로 확인해야 할 때는 아래 명령을 별도로 실행한다.
+---
 
-```bash
-npm run test:db
-```
-
-`npm run test:db`는 로컬 `.env`가 올바른 Neon dev branch를 가리킬 때만 실행한다. production DB에서는 실행하지 않는다. `npm test`와 `npm run check`는 기본 환경 검증용으로 유지하며, DB 연결이 필요한 검증은 `npm run check:db`로 분리한다.
-
-### 11.3 프론트엔드
+### 11.3 프론트엔드 세팅
 
 ```bash
 cd src/frontend
 npm install
 npm start
-npx expo config --type public
 ```
 
-프론트엔드는 Expo 기반으로 실행하며, 실제 API 연동 전에는 기본 화면 틀과 API service 구조를 먼저 확인한다.
+Expo가 실행되면 웹 확인은 터미널에서 `w`를 입력함.
 
-### 11.4 환경변수
+---
 
-백엔드는 `src/backend/.env.example`을 참고하여 로컬 `.env` 파일을 생성한다. `.env` 파일은 Git에 커밋하지 않는다.
+### 11.4 루트 기준 검증 명령어
+
+프로젝트 루트에서 실행함.
+
+```bash
+npm run validate:prisma
+npm test
+npm run check
+```
+
+DB 연결까지 확인할 때만 아래 명령을 실행함.
+
+```bash
+npm run test:db
+```
+
+`npm run test:db`는 본인 Neon 개인 dev branch 또는 dev-main 환경이 확실할 때만 실행함.
+
+---
+
+### 11.5 전체 요약
+
+기존 세팅이 끝난 팀원은 아래 순서만 다시 확인하면 됨.
+
+```bash
+git checkout main
+git pull origin main
+
+cd src/backend
+npm install
+npx prisma generate
+
+cd ../..
+npm run check
+npm run test:db
+```
+
+단, `npm run test:db`는 production DB가 아닌 개발용 DB branch에서만 실행함.
