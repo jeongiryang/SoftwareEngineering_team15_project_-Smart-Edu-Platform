@@ -1,5 +1,6 @@
 const { verifyToken } = require('../utils/jwt');
 const { findUserById } = require('../repositories/user.repository');
+const { unauthorizedError } = require('../utils/errors');
 
 async function authMiddleware(req, res, next) {
   try {
@@ -7,18 +8,14 @@ async function authMiddleware(req, res, next) {
     const [scheme, token] = authorization.split(' ');
 
     if (scheme !== 'Bearer' || !token) {
-      const error = new Error('Authentication token is required');
-      error.statusCode = 401;
-      throw error;
+      throw unauthorizedError('Authentication token is required');
     }
 
     const payload = verifyToken(token);
     const user = await findUserById(payload.userId);
 
     if (!user || user.status !== 'ACTIVE') {
-      const error = new Error('Invalid authentication token');
-      error.statusCode = 401;
-      throw error;
+      throw unauthorizedError('Invalid authentication token');
     }
 
     req.user = {
@@ -31,8 +28,8 @@ async function authMiddleware(req, res, next) {
     next();
   } catch (error) {
     if (!error.statusCode) {
-      error.statusCode = 401;
-      error.message = 'Invalid authentication token';
+      next(unauthorizedError('Invalid authentication token'));
+      return;
     }
 
     next(error);

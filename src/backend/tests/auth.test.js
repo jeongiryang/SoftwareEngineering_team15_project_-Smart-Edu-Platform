@@ -23,33 +23,11 @@ jest.mock('../src/repositories/user.repository', () => ({
 
 const request = require('supertest');
 const app = require('../src/app');
-
-function makeUserPayload(overrides = {}) {
-  const suffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-
-  return {
-    email: `auth-test-${suffix}@example.com`,
-    password: 'password123',
-    name: 'Auth Test User',
-    ...overrides
-  };
-}
-
-function expectSafeUser(user) {
-  expect(user).toEqual(
-    expect.objectContaining({
-      id: expect.any(Number),
-      email: expect.any(String),
-      name: expect.any(String),
-      role: expect.any(String)
-    })
-  );
-  expect(user).not.toHaveProperty('passwordHash');
-  expect(user).not.toHaveProperty('password_hash');
-}
+const { createAuthHeader, createUserPayload } = require('./helpers/auth.helper');
+const { expectSafeUser } = require('./helpers/assert.helper');
 
 async function registerTestUser(overrides = {}) {
-  const payload = makeUserPayload(overrides);
+  const payload = createUserPayload(overrides);
 
   const response = await request(app)
     .post('/api/auth/register')
@@ -83,7 +61,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('rejects duplicate email registration', async () => {
-    const payload = makeUserPayload();
+    const payload = createUserPayload();
 
     await request(app)
       .post('/api/auth/register')
@@ -162,7 +140,7 @@ describe('GET /api/auth/me', () => {
 
     const response = await request(app)
       .get('/api/auth/me')
-      .set('Authorization', `Bearer ${registerResponse.body.token}`);
+      .set(createAuthHeader(registerResponse.body.token));
 
     expect(response.status).toBe(200);
     expectSafeUser(response.body.user);

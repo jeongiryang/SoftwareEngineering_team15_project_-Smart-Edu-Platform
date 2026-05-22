@@ -182,6 +182,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 |---|---|---|---|---|---|---|
 | TC-BE-001 | 유닛/API 테스트 | `GET /api/health` | Health Check API 응답 확인 | `npm test` | `status`가 `ok`이고 service 이름 반환 | 통과 |
 | TC-AUTH-001 | 유닛/API 테스트 | 인증 validation | 회원가입 필수값, 이메일 형식, 비밀번호 길이 검증 | `npm test` | 유효하지 않은 입력 차단 | 통과 |
+| TC-BE-002 | 유닛 테스트 | 공통 validation helper | 필수값, 이메일 형식, 비밀번호 길이 검증 helper 확인 | `npm test` | 공통 validation error 처리 | 통과 |
+| TC-BE-003 | 유닛 테스트 | 공통 error/response helper | AppError, 공통 응답 helper, async handler 동작 확인 | `npm test` | status code, error code, payload 처리 일관성 유지 | 통과 |
 | TC-SCHEDULE-001 | 유닛 테스트 | 일정/태스크 service | 일정 생성, 수정, 상태 변경 로직 검증 | 후속 작성 | 입력값에 따른 정상 처리 | 예정 |
 | TC-FOCUS-001 | 유닛 테스트 | 집중 시간 계산 | `durationMs` 기준 집중 시간 계산 검증 | 후속 작성 | 밀리초 단위 저장 기준 유지 | 예정 |
 | TC-STAT-001 | 유닛 테스트 | 통계 계산 | 학습 시간, 완료율, 히트맵 집계 검증 | 후속 작성 | 통계 계산 결과 일관성 유지 | 예정 |
@@ -225,6 +227,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
 | Backend test | `npm test` | 통과 | Jest + Supertest health check |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
+| API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
 | Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
 | Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
@@ -235,8 +238,11 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 - `src/backend/tests/health.test.js`
 - `src/backend/tests/auth.test.js`
+- `src/backend/tests/api-foundation.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
+
+공통 API 기반 테스트는 이후 기능 구현에서 재사용할 response helper, AppError, validation helper, async handler, 테스트 helper의 동작을 확인함.
 
 ---
 
@@ -305,6 +311,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 영역 | 테스트 계획 | 상태 |
 |---|---|---|
 | 인증/회원가입/로그인 API | 백엔드 회원가입, 로그인, JWT 발급/검증 테스트 완료. 프론트엔드 연동과 세부 권한 분기 테스트는 후속 작성 | 진행 중 |
+| 백엔드 공통 API 기반 | 공통 응답, 에러, validation, async handler, 테스트 helper 구조를 기반으로 이후 API 테스트 확장 | 진행 중 |
 | 사용자 프로필 | 사용자 유형, 학습 목표, 접근성 설정 검증 | 예정 |
 | 학습 일정/태스크 | 일정 CRUD, 칸반 상태 변경, 알림 연계 테스트 | 예정 |
 | 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
@@ -322,6 +329,9 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - 테스트 관련 파일
   - `src/backend/tests/health.test.js`
   - `src/backend/tests/auth.test.js`
+  - `src/backend/tests/api-foundation.test.js`
+  - `src/backend/tests/helpers/auth.helper.js`
+  - `src/backend/tests/helpers/assert.helper.js`
   - `src/backend/package.json`
   - `src/frontend/package.json`
   - `package.json`
