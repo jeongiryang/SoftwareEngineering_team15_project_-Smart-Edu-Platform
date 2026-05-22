@@ -1,0 +1,318 @@
+# Smart Edu Platform 테스트 보고서
+
+## 문서 정보
+
+| 항목 | 내용 |
+|---|---|
+| 과목 | 소프트웨어공학 |
+| 조 | 15조 |
+| 프로젝트명 | Smart Edu Platform |
+| 서비스명 | 사각사각 |
+| 조원 | 정이량, 황대겸, 박지환 |
+| 작성일 | 2026년 05월 |
+| 제출 단계 | 2단계 테스트 보고서 초안 |
+| 최종 분량 목표 | 5~10페이지 |
+
+## 목차
+
+1. [문서 개요](#1-문서-개요)
+   - [1.1 문서 목적](#11-문서-목적)
+   - [1.2 테스트 보고서 작성 기준](#12-테스트-보고서-작성-기준)
+   - [1.3 테스트 범위](#13-테스트-범위)
+   - [1.4 테스트 제외 범위](#14-테스트-제외-범위)
+2. [테스트 환경](#2-테스트-환경)
+   - [2.1 개발 환경](#21-개발-환경)
+   - [2.2 실행 환경](#22-실행-환경)
+   - [2.3 데이터베이스 환경](#23-데이터베이스-환경)
+   - [2.4 테스트 도구](#24-테스트-도구)
+3. [테스트 전략](#3-테스트-전략)
+   - [3.1 유닛 테스트 전략](#31-유닛-테스트-전략)
+   - [3.2 통합 테스트 전략](#32-통합-테스트-전략)
+   - [3.3 회귀 테스트 전략](#33-회귀-테스트-전략)
+   - [3.4 AI 보조 테스트 스크립트 활용 전략](#34-ai-보조-테스트-스크립트-활용-전략)
+4. [테스트 케이스 목록](#4-테스트-케이스-목록)
+   - [4.1 유닛 테스트 케이스](#41-유닛-테스트-케이스)
+   - [4.2 통합 테스트 케이스](#42-통합-테스트-케이스)
+   - [4.3 환경 검증 테스트 케이스](#43-환경-검증-테스트-케이스)
+5. [현재까지의 테스트 실행 결과](#5-현재까지의-테스트-실행-결과)
+6. [커버리지 결과](#6-커버리지-결과)
+7. [버그 로그](#7-버그-로그)
+8. [AI 생성/보조 테스트 스크립트 기록](#8-ai-생성보조-테스트-스크립트-기록)
+9. [향후 테스트 계획](#9-향후-테스트-계획)
+10. [부록](#10-부록)
+
+---
+
+## 1. 문서 개요
+
+### 1.1 문서 목적
+
+본 문서는 Smart Edu Platform의 2단계 구현 과정에서 수행한 테스트 결과를 누적하기 위한 테스트 보고서 초안임.
+
+교수님 안내 기준에 따라 최종 테스트 보고서에는 유닛 테스트 케이스 목록, 통합 테스트 케이스 목록, 커버리지 결과, 버그 로그, AI 생성/보조 테스트 스크립트 기록을 포함해야 함.
+
+현재 문서는 최종 보고서 완성본이 아니라, 기능 구현과 테스트 진행에 따라 결과를 계속 추가하기 위한 공식 초안임.
+
+### 1.2 테스트 보고서 작성 기준
+
+테스트 보고서는 실제 실행한 테스트 결과와 확인 가능한 근거를 기준으로 작성함.
+
+- 실제 수행한 테스트는 실행 명령과 결과를 함께 기록함.
+- 아직 구현되지 않은 기능의 테스트는 `예정` 또는 `후속 작성`으로 표시함.
+- 커버리지 수치는 실제 측정 전까지 작성하지 않음.
+- 실제 DB 접속 정보, 환경변수 값, API key 등 비밀값은 문서에 기록하지 않음.
+- 테스트 도구는 현재 프로젝트 구조에 맞춰 Jest, Supertest, Prisma CLI, Expo CLI 중심으로 정리함.
+
+### 1.3 테스트 범위
+
+현재 초안에서 다루는 테스트 범위는 다음과 같음.
+
+- 백엔드 health check API 테스트
+- Prisma schema 유효성 검증
+- Prisma Client 생성 및 초기 migration 적용 결과 기록
+- 프론트엔드 Expo 설정 확인 및 Web export 검증
+- 루트 통합 검증 명령 실행 결과 기록
+- 향후 기능 구현 시 추가할 유닛/API/통합 테스트 계획
+
+### 1.4 테스트 제외 범위
+
+현재 기능 구현 전 또는 구현 초기 단계이므로 다음 항목은 후속 작성 범위로 둠.
+
+- 인증/회원가입/로그인 API 상세 테스트
+- 학습 일정/태스크 CRUD 테스트
+- 학습 노트/AI 기능 테스트
+- 집중 시간/통계 테스트
+- 커뮤니티/관리자 기능 테스트
+- 프론트엔드 화면 단위 테스트
+- 정량 커버리지 측정 결과
+- 배포 환경 smoke test
+
+---
+
+## 2. 테스트 환경
+
+### 2.1 개발 환경
+
+| 구분 | 내용 |
+|---|---|
+| Frontend | React Native + Expo |
+| Backend | Node.js + Express |
+| DBMS | PostgreSQL |
+| DB Hosting | Neon |
+| ORM | Prisma |
+| API 방식 | REST API |
+| 인증 방향 | JWT + bcrypt |
+| 테스트 도구 | Jest, Supertest |
+
+### 2.2 실행 환경
+
+현재 로컬 실행 검증은 다음 구조를 기준으로 수행함.
+
+- 백엔드 실행 위치: `src/backend`
+- 프론트엔드 실행 위치: `src/frontend`
+- 루트 검증 명령 위치: 프로젝트 루트
+- 백엔드 기본 포트: `4000`
+- 프론트엔드 로컬 Web 기준 origin: `http://localhost:8081`
+
+### 2.3 데이터베이스 환경
+
+DB 환경은 PostgreSQL, Neon, Prisma 기준임.
+
+현재까지 확인된 DB 관련 작업은 다음과 같음.
+
+- `src/backend/.env.example`에 `DIRECT_URL` 예시 추가
+- `src/backend/prisma/schema.prisma`에 `directUrl = env("DIRECT_URL")` 반영
+- `npx prisma validate` 통과
+- `npx prisma generate` 통과
+- `npx prisma migrate dev --name init` 통과
+- 초기 migration 파일 생성
+  - `src/backend/prisma/migrations/20260521201109_init/migration.sql`
+  - `src/backend/prisma/migrations/migration_lock.toml`
+
+개인 Neon branch migration 적용 여부는 조원별 확인 예정임.
+
+### 2.4 테스트 도구
+
+| 도구 | 용도 | 현재 사용 여부 |
+|---|---|---|
+| Jest | 백엔드 테스트 실행 | 사용 중 |
+| Supertest | Express API 요청/응답 검증 | 사용 중 |
+| Prisma CLI | schema validate, generate, migration 검증 | 사용 중 |
+| Expo CLI | 프론트엔드 설정 및 Web export 검증 | 사용 중 |
+| Coverage 도구 | 테스트 커버리지 측정 | 측정 예정 |
+
+---
+
+## 3. 테스트 전략
+
+### 3.1 유닛 테스트 전략
+
+유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성할 예정임.
+
+현재 존재하는 백엔드 테스트는 health check API 응답 검증이며, 기능 구현이 진행되면 각 모듈별 service 테스트를 추가함.
+
+### 3.2 통합 테스트 전략
+
+통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
+
+현재는 `GET /api/health` 응답을 Jest + Supertest로 확인함. 이후 인증, 일정/태스크, 노트, 커뮤니티, 관리자 API가 구현되면 API 단위 통합 테스트로 확장함.
+
+### 3.3 회귀 테스트 전략
+
+회귀 테스트는 기능 추가 또는 refactor 후 기존 health check, 인증, 주요 API 테스트가 계속 통과하는지 확인하는 방식으로 운영함.
+
+루트의 `npm run check`는 백엔드 테스트, Prisma schema 검증, 프론트엔드 설정 확인, Expo Web export 검증을 한 번에 수행하는 기본 회귀 검증 명령으로 사용함.
+
+### 3.4 AI 보조 테스트 스크립트 활용 전략
+
+AI는 테스트 케이스 초안 작성, 테스트 누락 항목 검토, 실패 원인 정리, 경계값 테스트 후보 도출에 보조적으로 활용함.
+
+AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서에 반영함. AI가 제안한 테스트라도 실제 실행 결과가 확인되지 않은 항목은 완료 상태로 기록하지 않음.
+
+---
+
+## 4. 테스트 케이스 목록
+
+### 4.1 유닛 테스트 케이스
+
+| 테스트 ID | 구분 | 대상 | 테스트 내용 | 명령어 | 기대 결과 | 현재 상태 |
+|---|---|---|---|---|---|---|
+| TC-BE-001 | 유닛/API 테스트 | `GET /api/health` | Health Check API 응답 확인 | `npm test` | `status`가 `ok`이고 service 이름 반환 | 통과 |
+| TC-AUTH-001 | 유닛 테스트 | 인증 validation | 이메일, 닉네임, 토큰 입력값 검증 | 후속 작성 | 유효하지 않은 입력 차단 | 예정 |
+| TC-SCHEDULE-001 | 유닛 테스트 | 일정/태스크 service | 일정 생성, 수정, 상태 변경 로직 검증 | 후속 작성 | 입력값에 따른 정상 처리 | 예정 |
+| TC-FOCUS-001 | 유닛 테스트 | 집중 시간 계산 | `durationMs` 기준 집중 시간 계산 검증 | 후속 작성 | 밀리초 단위 저장 기준 유지 | 예정 |
+| TC-STAT-001 | 유닛 테스트 | 통계 계산 | 학습 시간, 완료율, 히트맵 집계 검증 | 후속 작성 | 통계 계산 결과 일관성 유지 | 예정 |
+
+### 4.2 통합 테스트 케이스
+
+| 테스트 ID | 구분 | 대상 | 테스트 내용 | 명령어 | 기대 결과 | 현재 상태 |
+|---|---|---|---|---|---|---|
+| TC-INT-001 | API 통합 테스트 | Health Check API | Express app 요청/응답 흐름 검증 | `npm test` | HTTP 200 및 JSON 응답 | 통과 |
+| TC-INT-002 | API 통합 테스트 | 인증 API | 회원가입, 로그인, 토큰 발급 흐름 검증 | 후속 작성 | 정상 계정 생성 및 인증 처리 | 예정 |
+| TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정과 태스크 생성/조회/수정 흐름 검증 | 후속 작성 | DB 연동 포함 정상 응답 | 예정 |
+| TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 퀴즈 생성 흐름 검증 | 후속 작성 | mock 또는 테스트 key 기준 응답 검증 | 예정 |
+| TC-INT-005 | API 통합 테스트 | 커뮤니티/관리자 API | 게시글, 댓글, 신고, 제재 흐름 검증 | 후속 작성 | 권한별 접근 제어 확인 | 예정 |
+
+### 4.3 환경 검증 테스트 케이스
+
+| 테스트 ID | 구분 | 대상 | 테스트 내용 | 명령어 | 기대 결과 | 현재 상태 |
+|---|---|---|---|---|---|---|
+| TC-ENV-001 | 환경 검증 | Prisma schema | Prisma schema 유효성 확인 | `npm run validate:prisma` | schema valid | 통과 |
+| TC-ENV-002 | 환경 검증 | 전체 검증 | backend test, Prisma validate, frontend config/export 확인 | `npm run check` | 전체 통과 | 통과 |
+| TC-ENV-003 | 환경 검증 | Expo config | Expo public config 확인 | `npm run check:frontend` | Expo config 출력 성공 | 통과 |
+| TC-FE-001 | 환경 검증 | Expo Web | Expo Web export 확인 | `npm run check:frontend:web` | Web bundle export 성공 | 통과 |
+| TC-DB-001 | DB migration | Prisma migration | 초기 migration 적용 | `npx prisma migrate dev --name init` | migration 적용 및 schema sync | 통과 |
+| TC-DB-002 | DB migration | 조원별 개인 branch | 각자 개인 Neon branch에 migration 적용 | `npx prisma migrate dev` | 개인 branch schema sync | 확인 예정 |
+
+---
+
+## 5. 현재까지의 테스트 실행 결과
+
+현재까지 확인된 실행 결과는 다음과 같음.
+
+| 구분 | 명령 또는 작업 | 결과 | 근거 |
+|---|---|---|---|
+| Backend install | backend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
+| Backend dev server | backend `npm run dev` | 통과 | Issue #14 진행 코멘트 기준 |
+| Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
+| Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
+| Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
+| Backend test | `npm test` | 통과 | Jest + Supertest health check |
+| Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
+| Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
+| Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
+| 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
+| Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
+
+현재 실제 테스트 파일은 `src/backend/tests/health.test.js`임.
+
+---
+
+## 6. 커버리지 결과
+
+현재 상태는 coverage 정량 측정 전임.
+
+유닛/통합 테스트가 기능별로 추가된 뒤 Jest coverage 설정 또는 `npm test -- --coverage` 방식으로 측정할 예정임.
+
+| 구분 | 도구 | 측정 항목 | 현재 결과 | 비고 |
+|---|---|---|---|---|
+| Backend | Jest | Statements / Branches / Functions / Lines | 측정 예정 | 기능 테스트 추가 후 측정 |
+| API Integration | Jest + Supertest | API 흐름별 통합 테스트 통과율 | 측정 예정 | 인증/일정/노트/커뮤니티 API 구현 후 측정 |
+| Frontend | 추후 결정 | 화면/컴포넌트 테스트 | 측정 예정 | 구현 범위 확정 후 결정 |
+
+커버리지 수치는 실제 측정 전까지 작성하지 않음.
+
+---
+
+## 7. 버그 로그
+
+현재까지 기능 구현 단계 전이므로 등록된 기능 버그는 없음.
+
+환경 검증 과정에서 확인한 주의 사항은 다음과 같이 누적함.
+
+| 버그 ID | 발생 구분 | 내용 | 원인 | 처리 상태 | 재검증 |
+|---|---|---|---|---|---|
+| BUG-ENV-001 | 환경 검증 | `src/backend`에서 루트 전용 검증 명령을 실행하면 script 없음 오류가 발생할 수 있음 | 일부 검증 명령은 루트 `package.json` 기준으로 정의됨 | 루트에서 재실행하는 방식으로 정리 | 통과 |
+
+추후 기능 구현 중 발견되는 오류는 `BUG-BE-*`, `BUG-FE-*`, `BUG-DB-*`, `BUG-AI-*` 형식으로 누적 예정임.
+
+---
+
+## 8. AI 생성/보조 테스트 스크립트 기록
+
+교수님 요구사항에 따라 AI 생성/보조 테스트 스크립트 기록을 별도 섹션으로 관리함.
+
+현재 `src/backend/tests/health.test.js`는 실제 존재하는 Jest + Supertest 기반 테스트 스크립트임. AI 생성 여부는 별도 커밋 또는 작업 로그 근거로 확정하지 않고, 현재 보고서에서는 AI 보조 테스트 설계/검토 항목으로 관리함.
+
+| 항목 | 내용 |
+|---|---|
+| 대상 기능 | Health Check API |
+| 테스트 파일 | `src/backend/tests/health.test.js` |
+| 도구 | Jest, Supertest |
+| AI 활용 방식 | AI를 활용해 테스트 케이스 초안 작성 또는 검토를 보조하고, 팀원이 응답 형식과 상태 코드를 검토한 뒤 반영하는 방식으로 운영 |
+| 실행 명령 | `npm test` |
+| 결과 | 통과 |
+
+향후 인증, 일정/태스크, 학습 노트, AI 학습 지원, 커뮤니티/관리자 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
+
+---
+
+## 9. 향후 테스트 계획
+
+향후 테스트는 기능 구현 순서에 맞춰 다음 항목을 추가함.
+
+| 영역 | 테스트 계획 | 상태 |
+|---|---|---|
+| 인증/회원가입/로그인 API | 회원가입, 로그인, JWT 발급/검증, 권한 분기 테스트 | 예정 |
+| 사용자 프로필 | 사용자 유형, 학습 목표, 접근성 설정 검증 | 예정 |
+| 학습 일정/태스크 | 일정 CRUD, 칸반 상태 변경, 알림 연계 테스트 | 예정 |
+| 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
+| AI 학습 지원 | AI 질의, 추천, 퀴즈 생성 API mock 테스트 | 예정 |
+| 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
+| 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
+| 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 예정 |
+| 프론트엔드 | 화면 렌더링, API service 연동, Web export 검증 | 예정 |
+| 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 | 예정 |
+
+---
+
+## 10. 부록
+
+- 테스트 관련 파일
+  - `src/backend/tests/health.test.js`
+  - `src/backend/package.json`
+  - `src/frontend/package.json`
+  - `package.json`
+
+- Prisma/DB 관련 파일
+  - `src/backend/prisma/schema.prisma`
+  - `src/backend/prisma/migrations/20260521201109_init/migration.sql`
+  - `src/backend/prisma/migrations/migration_lock.toml`
+
+- 관련 문서/이슈
+  - `docs/design/design-document.md`
+  - `docs/design/implementation-plan.md`
+  - `docs/requirements/requirements-document.md`
+  - Issue #14
+  - Issue #40
+  - PR #41
