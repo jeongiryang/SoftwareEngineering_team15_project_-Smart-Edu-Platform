@@ -5,9 +5,11 @@
   "scripts": {
     "test": "npm run test:backend",
     "test:backend": "npm --prefix src/backend test",
+    "test:db": "npm --prefix src/backend run test:db",
     "validate:prisma": "npm --prefix src/backend run prisma:validate",
     "check:frontend": "npm --prefix src/frontend run expo:config",
     "check": "npm run test:backend && npm run validate:prisma && npm run check:frontend && npm run check:frontend:web",
-    "check:frontend:web": "npm --prefix src/frontend run expo:export:web"
+    "check:frontend:web": "npm --prefix src/frontend run expo:export:web",
+    "check:db": "npm run validate:prisma && npm run test:db"
   }
 }

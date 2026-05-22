@@ -656,6 +656,7 @@ npm run validate:prisma
 npm run check:frontend
 npm run check:frontend:web
 npm run check
+npm run check:db
 ```
 
 - `npm test`: 백엔드 Jest 테스트 실행
@@ -663,6 +664,7 @@ npm run check
 - `npm run check:frontend`: Expo 설정 확인
 - `npm run check:frontend:web`: Expo Web bundle 생성 확인
 - `npm run check`: 위 검증을 한 번에 실행
+- `npm run check:db`: Prisma schema 검증과 DB smoke test를 함께 실행
 
 ### 11.2 백엔드
 
@@ -678,9 +680,22 @@ npm run dev
 ```bash
 npm test
 npx prisma validate
+npx prisma generate
 ```
 
-실제 DB migration은 아직 실행하지 않는다. `prisma migrate dev`는 DB 연결 방식과 migration 관리 방식을 확정한 뒤 실행한다.
+Prisma 7 기준으로 백엔드는 `src/backend/prisma.config.ts`를 사용한다. `schema.prisma`에는 datasource provider만 두고, 실제 연결 문자열은 `.env`와 Prisma config에서 관리한다.
+
+- `DATABASE_URL`: 애플리케이션 runtime과 PostgreSQL adapter 기반 Prisma Client에서 사용하는 연결 문자열
+- `DIRECT_URL`: Prisma CLI, schema 검증, migration 등 DB 구조 작업에서 사용하는 직접 연결 문자열
+- `@prisma/adapter-pg`, `pg`: PostgreSQL/Neon adapter 기반 Prisma Client 생성을 위해 사용하는 패키지
+
+DB 연결을 실제로 확인해야 할 때는 아래 명령을 별도로 실행한다.
+
+```bash
+npm run test:db
+```
+
+`npm run test:db`는 로컬 `.env`가 올바른 Neon dev branch를 가리킬 때만 실행한다. production DB에서는 실행하지 않는다. `npm test`와 `npm run check`는 기본 환경 검증용으로 유지하며, DB 연결이 필요한 검증은 `npm run check:db`로 분리한다.
 
 ### 11.3 프론트엔드
 
