@@ -12,6 +12,15 @@ function findUserById(id) {
   });
 }
 
+function findUserWithProfileById(id) {
+  return prisma.user.findUnique({
+    where: { id },
+    include: {
+      profile: true
+    }
+  });
+}
+
 function createUser({ email, name, passwordHash }) {
   return prisma.user.create({
     data: {
@@ -25,8 +34,21 @@ function createUser({ email, name, passwordHash }) {
   });
 }
 
+function upsertUserProfile(userId, data) {
+  return prisma.userProfile.upsert({
+    where: { userId },
+    update: data,
+    create: {
+      userId,
+      ...data
+    }
+  });
+}
+
 module.exports = {
   createUser,
   findUserByEmail,
-  findUserById
+  findUserById,
+  findUserWithProfileById,
+  upsertUserProfile
 };

@@ -196,6 +196,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-002 | API 통합 테스트 | 인증 API | 회원가입, 로그인, JWT 발급 흐름 검증 | `npm test` | 정상 계정 생성 및 인증 처리 | 통과 |
 | TC-INT-006 | API 통합 테스트 | 현재 사용자 조회 API | JWT 없이 접근 실패, 유효한 JWT 접근 성공 검증 | `npm test` | 401/200 응답 및 현재 사용자 정보 반환 | 통과 |
 | TC-INT-007 | 보안 검증 | 인증 API 응답 | 회원가입, 로그인, 현재 사용자 조회 응답의 `passwordHash` 미노출 확인 | `npm test` | 응답에 비밀번호 해시가 포함되지 않음 | 통과 |
+| TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/200 응답, 프로필 수정 반영, `passwordHash` 미노출 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정과 태스크 생성/조회/수정 흐름 검증 | 후속 작성 | DB 연동 포함 정상 응답 | 예정 |
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 퀴즈 생성 흐름 검증 | 후속 작성 | mock 또는 테스트 key 기준 응답 검증 | 예정 |
 | TC-INT-005 | API 통합 테스트 | 커뮤니티/관리자 API | 게시글, 댓글, 신고, 제재 흐름 검증 | 후속 작성 | 권한별 접근 제어 확인 | 예정 |
@@ -228,6 +229,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Backend test | `npm test` | 통과 | Jest + Supertest health check |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
+| User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
 | Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
 | Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
@@ -239,10 +241,13 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/health.test.js`
 - `src/backend/tests/auth.test.js`
 - `src/backend/tests/api-foundation.test.js`
+- `src/backend/tests/user-profile.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
 
 공통 API 기반 테스트는 이후 기능 구현에서 재사용할 response helper, AppError, validation helper, async handler, 테스트 helper의 동작을 확인함.
+
+사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 프로필 필드 검증, `passwordHash` 미노출을 확인함. 프론트엔드 화면 연동은 후속 작업으로 둠.
 
 ---
 
@@ -312,7 +317,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 |---|---|---|
 | 인증/회원가입/로그인 API | 백엔드 회원가입, 로그인, JWT 발급/검증 테스트 완료. 프론트엔드 연동과 세부 권한 분기 테스트는 후속 작성 | 진행 중 |
 | 백엔드 공통 API 기반 | 공통 응답, 에러, validation, async handler, 테스트 helper 구조를 기반으로 이후 API 테스트 확장 | 진행 중 |
-| 사용자 프로필 | 사용자 유형, 학습 목표, 접근성 설정 검증 | 예정 |
+| 사용자 프로필 | 백엔드 현재 사용자 조회와 프로필 조회/수정 API 테스트 완료. 프론트엔드 연동과 세부 프로필 확장은 후속 작성 | 진행 중 |
 | 학습 일정/태스크 | 일정 CRUD, 칸반 상태 변경, 알림 연계 테스트 | 예정 |
 | 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
 | AI 학습 지원 | AI 질의, 추천, 퀴즈 생성 API mock 테스트 | 예정 |
@@ -330,6 +335,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
   - `src/backend/tests/health.test.js`
   - `src/backend/tests/auth.test.js`
   - `src/backend/tests/api-foundation.test.js`
+  - `src/backend/tests/user-profile.test.js`
   - `src/backend/tests/helpers/auth.helper.js`
   - `src/backend/tests/helpers/assert.helper.js`
   - `src/backend/package.json`
