@@ -718,7 +718,30 @@ npm run test:db
 
 ---
 
-### 11.5 전체 요약
+### 11.5 개발용 seed 데이터
+
+개발/테스트용 기본 계정이 필요할 때만 프로젝트 루트에서 실행함.
+
+```bash
+npm run seed:dev
+```
+
+생성되는 데이터:
+
+- 개발용 일반 사용자
+- 개발용 관리자 사용자
+- 각 사용자에 대한 기본 UserProfile
+
+주의:
+
+- seed 계정 비밀번호는 개발용 기본값이며 운영 비밀번호로 사용하지 않음.
+- DB에는 plain password가 아니라 bcrypt 기반 `passwordHash`만 저장함.
+- production DB에서는 `npm run seed:dev`를 실행하지 않음.
+- `npm run seed:dev`는 본인 Neon 개인 dev branch 또는 dev-main 환경이 확실할 때만 실행함.
+
+---
+
+### 11.6 전체 요약
 
 기존 세팅이 끝난 팀원은 아래 순서만 다시 확인하면 됨.
 
