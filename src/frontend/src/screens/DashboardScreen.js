@@ -1,4 +1,4 @@
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 const featureCards = [
   '학습 일정',
@@ -9,12 +9,18 @@ const featureCards = [
   '게시판'
 ];
 
-export default function DashboardScreen({ onNavigate }) {
+export default function DashboardScreen({ onLogout, user }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Smart Edu Platform</Text>
         <Text style={styles.subtitle}>개인화 학습 관리 대시보드</Text>
+        {user ? (
+          <View style={styles.userBox}>
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+          </View>
+        ) : null}
       </View>
       <View style={styles.grid}>
         {featureCards.map((label) => (
@@ -23,7 +29,9 @@ export default function DashboardScreen({ onNavigate }) {
           </View>
         ))}
       </View>
-      <Button title="로그아웃" onPress={() => onNavigate('login')} />
+      <Pressable onPress={onLogout} style={styles.logoutButton}>
+        <Text style={styles.logoutButtonText}>로그아웃</Text>
+      </Pressable>
     </View>
   );
 }
@@ -47,6 +55,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280'
   },
+  userBox: {
+    marginTop: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    padding: 12
+  },
+  userName: {
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  userEmail: {
+    color: '#6B7280',
+    fontSize: 14,
+    marginTop: 2
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -66,5 +92,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#374151'
+  },
+  logoutButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16
+  },
+  logoutButtonText: {
+    color: '#1F2937',
+    fontSize: 16,
+    fontWeight: '700'
   }
 });

@@ -210,6 +210,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-ENV-002 | 환경 검증 | 전체 검증 | backend test, Prisma validate, frontend config/export 확인 | `npm run check` | 전체 통과 | 통과 |
 | TC-ENV-003 | 환경 검증 | Expo config | Expo public config 확인 | `npm run check:frontend` | Expo config 출력 성공 | 통과 |
 | TC-FE-001 | 환경 검증 | Expo Web | Expo Web export 확인 | `npm run check:frontend:web` | Web bundle export 성공 | 통과 |
+| TC-FE-002 | 프론트엔드 수동/환경 검증 | 인증 화면 연결 | 로그인/회원가입 화면의 Auth API service 연결, token 저장, 현재 사용자 확인 흐름 검토 | `npm run check:frontend`, `npm run check:frontend:web` | Expo config 및 Web export 성공, token 원문 미노출 | 통과 |
 | TC-ENV-004 | 환경 검증 | 개발용 seed script | production guard와 seed 환경 검증 helper 확인 | `npm test` | production 실행 방지 및 개발용 seed 구성 확인 | 통과 |
 | TC-ENV-005 | 환경 검증 | 개발용 seed 실행 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성/갱신 확인 | `npm run seed:dev` | 개발용 seed 완료 및 비밀값 미출력 | 통과 |
 | TC-DB-001 | DB migration | Prisma migration | 초기 migration 적용 | `npx prisma migrate dev --name init` | migration 적용 및 schema sync | 통과 |
@@ -239,6 +240,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
 | Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
 | Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
+| Frontend auth integration | 로그인/회원가입 화면 Auth API service 연결 | 통과 | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me` 호출 흐름과 token 저장/삭제 흐름 반영, token 원문 미기록 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -259,6 +261,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
 
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
+
+프론트엔드 인증 화면 연결은 LoginScreen/RegisterScreen/DashboardScreen과 frontend API service 기준으로 확인함. 로그인/회원가입 성공 시 token 저장, 앱 시작 시 `GET /api/auth/me` 현재 사용자 확인, 로그아웃 시 token 삭제 흐름을 반영함. 자동 화면 테스트는 아직 없으며, 이번 단계에서는 Expo config와 Web export 검증으로 빌드 가능성을 확인함. 실제 JWT token 원문은 기록하지 않음.
 
 ---
 
@@ -326,7 +330,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 | 영역 | 테스트 계획 | 상태 |
 |---|---|---|
-| 인증/회원가입/로그인 API | 백엔드 회원가입, 로그인, JWT 발급/검증 테스트 완료. 프론트엔드 연동과 세부 권한 분기 테스트는 후속 작성 | 진행 중 |
+| 인증/회원가입/로그인 API | 백엔드 회원가입, 로그인, JWT 발급/검증 테스트 완료. 프론트엔드 로그인/회원가입 화면 연결과 token 저장/현재 사용자 확인 흐름 반영 완료. 세부 권한 분기와 화면 자동 테스트는 후속 작성 | 진행 중 |
 | 백엔드 공통 API 기반 | 공통 응답, 에러, validation, async handler, 테스트 helper 구조를 기반으로 이후 API 테스트 확장 | 진행 중 |
 | 사용자 프로필 | 백엔드 현재 사용자 조회와 프로필 조회/수정 API 테스트 완료. 프론트엔드 연동과 세부 프로필 확장은 후속 작성 | 진행 중 |
 | 개발용 seed 데이터 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성 script 추가. 실제 seed 실행은 개발용 DB branch에서만 수행 | 진행 중 |
@@ -336,7 +340,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 예정 |
-| 프론트엔드 | 화면 렌더링, API service 연동, Web export 검증 | 예정 |
+| 프론트엔드 | 인증 화면 API service 연동, Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
 | 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 | 예정 |
 
 ---

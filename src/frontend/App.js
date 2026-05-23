@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import { getCurrentUser } from './src/services/api';
 
 const screens = {
   login: LoginScreen,
@@ -10,15 +11,108 @@ const screens = {
   dashboard: DashboardScreen
 };
 
+const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
+
+function getStorage() {
+  try {
+    return globalThis.localStorage || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function readStoredToken() {
+  return getStorage()?.getItem(TOKEN_STORAGE_KEY) || null;
+}
+
+function saveStoredToken(token) {
+  getStorage()?.setItem(TOKEN_STORAGE_KEY, token);
+}
+
+function removeStoredToken() {
+  getStorage()?.removeItem(TOKEN_STORAGE_KEY);
+}
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
+  const [initializing, setInitializing] = useState(true);
+  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const Screen = screens[currentScreen];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function restoreSession() {
+      const storedToken = readStoredToken();
+
+      if (!storedToken) {
+        setInitializing(false);
+        return;
+      }
+
+      try {
+        const result = await getCurrentUser(storedToken);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setToken(storedToken);
+        setUser(result.user);
+        setCurrentScreen('dashboard');
+      } catch (error) {
+        removeStoredToken();
+      } finally {
+        if (isMounted) {
+          setInitializing(false);
+        }
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function handleAuthenticated({ token: nextToken, user: nextUser }) {
+    saveStoredToken(nextToken);
+    setToken(nextToken);
+    setUser(nextUser);
+    setCurrentScreen('dashboard');
+  }
+
+  function handleLogout() {
+    removeStoredToken();
+    setToken(null);
+    setUser(null);
+    setCurrentScreen('login');
+  }
+
+  if (initializing) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" />
+        <View style={[styles.container, styles.center]}>
+          <Text style={styles.loadingText}>로그인 상태 확인 중</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
-        <Screen onNavigate={setCurrentScreen} />
+        <Screen
+          onAuthenticated={handleAuthenticated}
+          onLogout={handleLogout}
+          onNavigate={setCurrentScreen}
+          token={token}
+          user={user}
+        />
       </View>
     </SafeAreaView>
   );
@@ -31,5 +125,14 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1
+  },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  loadingText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600'
   }
 });
