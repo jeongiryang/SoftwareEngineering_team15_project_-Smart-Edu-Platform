@@ -1,47 +1,65 @@
 import { useState } from 'react';
-import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { registerUser } from '../services/api';
 
-export default function RegisterScreen({ onNavigate }) {
+export default function RegisterScreen({ onAuthenticated, onNavigate }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleRegister() {
-    console.log('register placeholder', {
-      name,
-      email,
-      passwordLength: password.length
-    });
-    onNavigate('dashboard');
+  async function handleRegister() {
+    setErrorMessage('');
+    setLoading(true);
+
+    try {
+      const result = await registerUser({
+        name: name.trim(),
+        email: email.trim(),
+        password
+      });
+
+      onAuthenticated(result);
+    } catch (error) {
+      setErrorMessage(error.message || '회원가입에 실패함');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>회원가입</Text>
       <TextInput
-        style={styles.input}
-        placeholder="이름"
-        value={name}
         onChangeText={setName}
+        placeholder="이름"
+        style={styles.input}
+        value={name}
       />
       <TextInput
-        style={styles.input}
-        placeholder="이메일"
         autoCapitalize="none"
         keyboardType="email-address"
-        value={email}
         onChangeText={setEmail}
+        placeholder="이메일"
+        style={styles.input}
+        value={email}
       />
       <TextInput
-        style={styles.input}
+        onChangeText={setPassword}
         placeholder="비밀번호"
         secureTextEntry
+        style={styles.input}
         value={password}
-        onChangeText={setPassword}
       />
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
       <View style={styles.buttonGroup}>
-        <Button title="가입하기" onPress={handleRegister} />
-        <Button title="로그인으로 돌아가기" onPress={() => onNavigate('login')} />
+        <Pressable disabled={loading} onPress={handleRegister} style={[styles.primaryButton, loading && styles.disabledButton]}>
+          {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>가입하기</Text>}
+        </Pressable>
+        <Pressable disabled={loading} onPress={() => onNavigate('login')} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>로그인으로 돌아가기</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -67,8 +85,43 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: '#FFFFFF'
   },
+  errorText: {
+    color: '#B91C1C',
+    fontSize: 14
+  },
   buttonGroup: {
     gap: 8,
     marginTop: 8
+  },
+  primaryButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 16
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  secondaryButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16
+  },
+  secondaryButtonText: {
+    color: '#1F2937',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  disabledButton: {
+    opacity: 0.7
   }
 });

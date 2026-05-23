@@ -152,6 +152,14 @@ Response 예시:
 
 ## 5. Auth API
 
+프론트엔드 로그인/회원가입 화면은 이 섹션의 Auth API를 호출함.
+
+- 로그인 화면은 `POST /api/auth/login`을 호출함.
+- 회원가입 화면은 `POST /api/auth/register`를 호출함.
+- 앱 시작 시 저장된 token이 있으면 `GET /api/auth/me`로 현재 사용자를 확인함.
+- 성공 시 token은 클라이언트 저장소에 저장하고 이후 인증 요청에 Bearer token으로 사용함.
+- 실제 JWT token 원문은 화면, 로그, 문서에 출력하지 않음.
+
 ### 5.1 회원가입
 
 | 항목 | 내용 |
@@ -954,3 +962,4 @@ npm run seed:dev
 |---|---|
 | 2026-05 | API 명세서 초안 작성, Health/Auth/User/Profile 구현 API 기준 반영 |
 | 2026-05 | Schedule/Task API 구현 완료 기준으로 명세 갱신 |
+| 2026-05 | 프론트엔드 로그인/회원가입 화면의 Auth API 연결 상태 반영 |
