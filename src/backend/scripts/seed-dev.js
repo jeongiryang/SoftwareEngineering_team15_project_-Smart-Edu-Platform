@@ -101,6 +101,58 @@ async function seedDevelopmentData(prisma) {
     users.push(await upsertSeedUser(prisma, seedUser, passwordHash));
   }
 
+  // Seed study schedules and tasks for the development user
+  const devUser = await prisma.user.findUnique({
+    where: { email: 'dev.user@example.com' }
+  });
+
+  if (devUser) {
+    // Clean up existing tasks and schedules for dev.user@example.com to avoid duplicates
+    await prisma.studyTask.deleteMany({ where: { userId: devUser.id } });
+    await prisma.studySchedule.deleteMany({ where: { userId: devUser.id } });
+
+    // Create a new schedule
+    const startAt = new Date();
+    startAt.setDate(startAt.getDate() + 1); // tomorrow
+    const endAt = new Date(startAt);
+    endAt.setHours(endAt.getHours() + 2);
+
+    const schedule = await prisma.studySchedule.create({
+      data: {
+        userId: devUser.id,
+        title: '소프트웨어공학 기말고사 준비',
+        subject: '소프트웨어공학',
+        startAt,
+        endAt,
+        priority: 'HIGH',
+        memo: '디자인 패턴 및 아키텍처 학습'
+      }
+    });
+
+    // Create tasks
+    await prisma.studyTask.create({
+      data: {
+        userId: devUser.id,
+        scheduleId: schedule.id,
+        title: '어댑터 패턴 코드 예제 풀기',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        memo: 'Express 라우터 연결 부분 복습'
+      }
+    });
+
+    await prisma.studyTask.create({
+      data: {
+        userId: devUser.id,
+        scheduleId: schedule.id,
+        title: 'Prisma 트랜잭션 공식 문서 요약',
+        status: 'DONE',
+        priority: 'HIGH',
+        memo: '원자성 보장 파트 중심'
+      }
+    });
+  }
+
   return users;
 }
 
