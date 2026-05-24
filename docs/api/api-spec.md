@@ -917,23 +917,292 @@ npm run seed:dev
 | `DELETE` | `/api/posts/:postId` | 게시글 삭제 |
 | `POST` | `/api/posts/:postId/comments` | 댓글 생성 |
 
-### 9.5 관리자 API 예정
+### 9.5 관리자 API
 
-상태: 예정
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 인증 | 필요 (`ADMIN` 권한) |
+| 설명 | 사용자 제재, 게시글/댓글 관리, 스터디 챌린지 강제 조치 등 시스템 운영 관리 기능 제공 |
 
-예상 endpoint:
+주의:
+- 모든 관리자 API는 Bearer 토큰 인증 및 `ADMIN` 권한 검증(`adminMiddleware`)이 적용되어 일반 사용자는 접근이 불가능합니다.
+- 제재나 숨김 등의 모든 조치 이력은 `AdminAction` 테이블에 기록 및 저장됩니다.
+
+---
+
+#### 9.5.1 사용자 목록 조회
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| `GET` | `/api/admin/users` | 사용자 목록 조회 |
-| `PATCH` | `/api/admin/users/:userId/status` | 사용자 상태 변경 |
-| `GET` | `/api/admin/reports` | 신고 목록 조회 |
-| `PATCH` | `/api/admin/posts/:postId/moderation` | 게시글 관리 상태 변경 |
+| `GET` | `/api/admin/users` | 등록된 모든 사용자 목록 조회 |
 
-주의:
+Response 예시:
 
-- 관리자 API는 `ADMIN` 권한 확인이 필요함.
-- 일반 사용자 API와 권한 범위를 분리함.
+```json
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "user@example.com",
+      "name": "홍길동",
+      "role": "USER",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 2,
+      "email": "dev.admin@example.com",
+      "name": "관리자",
+      "role": "ADMIN",
+      "status": "ACTIVE"
+    }
+  ]
+}
+```
+
+---
+
+#### 9.5.2 사용자 상태 변경(제재)
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/admin/users/:userId/status` | 사용자 계정 상태 변경 (제재 처리 및 해제) |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `status` | string | 예 | `ACTIVE` / `SUSPENDED` / `DEACTIVATED` |
+| `reason` | string | 아니오 | 제재 사유 |
+
+Request 예시:
+
+```json
+{
+  "status": "SUSPENDED",
+  "reason": "커뮤니티 가이드라인 반복 위반"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "홍길동",
+    "role": "USER",
+    "status": "SUSPENDED"
+  },
+  "action": {
+    "adminId": 2,
+    "targetType": "USER",
+    "targetId": 1,
+    "actionType": "SUSPEND_USER",
+    "reason": "커뮤니티 가이드라인 반복 위반"
+  }
+}
+```
+
+---
+
+#### 9.5.3 신고 및 처리 내역 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/reports` | 신고된 게시글, 신고된 댓글 목록 및 전체 처리 기록 조회 |
+
+Response 예시:
+
+```json
+{
+  "reportedPosts": [
+    {
+      "id": 992,
+      "userId": 1,
+      "category": "FREE",
+      "title": "부적절한 광고",
+      "content": "스팸 내용",
+      "reported": true,
+      "user": {
+        "id": 1,
+        "email": "user@example.com",
+        "name": "홍길동"
+      }
+    }
+  ],
+  "reportedComments": [
+    {
+      "id": 992,
+      "postId": 991,
+      "userId": 1,
+      "content": "부적절한 욕설",
+      "reported": true,
+      "user": {
+        "id": 1,
+        "email": "user@example.com",
+        "name": "홍길동"
+      },
+      "post": {
+        "id": 991,
+        "title": "학습 질문"
+      }
+    }
+  ],
+  "adminActions": [
+    {
+      "id": 1,
+      "adminId": 2,
+      "targetType": "USER",
+      "targetId": 1,
+      "actionType": "SUSPEND_USER",
+      "reason": "커뮤니티 가이드라인 위반",
+      "createdAt": "2026-05-24T20:30:00.000Z",
+      "admin": {
+        "id": 2,
+        "email": "dev.admin@example.com",
+        "name": "관리자"
+      }
+    }
+  ]
+}
+```
+
+---
+
+#### 9.5.4 게시글 관리 상태 변경 (숨김/해제)
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/admin/posts/:postId/moderation` | 신고된 게시글 숨김(삭제) 또는 유지(신고 기각) 처리 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `HIDE` (삭제 및 조치 로그 기록) / `KEEP` (신고 상태 해제) |
+| `reason` | string | 아니오 | 조치 사유 |
+
+Request 예시:
+
+```json
+{
+  "action": "HIDE",
+  "reason": "스팸 광고성 게시글 영구 차단"
+}
+```
+
+Response 예시 (HIDE 조치 시):
+
+```json
+{
+  "message": "Post moderated and hidden successfully",
+  "action": {
+    "adminId": 2,
+    "targetType": "POST",
+    "targetId": 992,
+    "actionType": "HIDE_POST",
+    "reason": "스팸 광고성 게시글 영구 차단"
+  }
+}
+```
+
+Response 예시 (KEEP 조치 시):
+
+```json
+{
+  "post": {
+    "id": 992,
+    "title": "학습 질문",
+    "reported": false
+  },
+  "message": "Post report dismissed"
+}
+```
+
+---
+
+#### 9.5.5 댓글 관리 상태 변경 (삭제/해제)
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/admin/comments/:commentId/moderation` | 신고된 댓글 삭제 또는 유지(신고 기각) 처리 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `DELETE` / `KEEP` |
+| `reason` | string | 아니오 | 조치 사유 |
+
+Request 예시:
+
+```json
+{
+  "action": "DELETE",
+  "reason": "타인 비하 및 욕설 댓글"
+}
+```
+
+Response 예시 (DELETE 조치 시):
+
+```json
+{
+  "message": "Comment deleted successfully",
+  "action": {
+    "adminId": 2,
+    "targetType": "COMMENT",
+    "targetId": 992,
+    "actionType": "DELETE_COMMENT",
+    "reason": "타인 비하 및 욕설 댓글"
+  }
+}
+```
+
+---
+
+#### 9.5.6 스터디 챌린지 제재 (강제 종료)
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/admin/challenges/:challengeId/moderation` | 부적절한 스터디 챌린지 강제 종료 처리 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `CLOSE` |
+| `reason` | string | 아니오 | 조치 사유 |
+
+Request 예시:
+
+```json
+{
+  "action": "CLOSE",
+  "reason": "부적절한 챌린지 개설"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "challenge": {
+    "id": 991,
+    "title": "부적절한 챌린지",
+    "status": "CLOSED"
+  },
+  "message": "Challenge closed successfully",
+  "action": {
+    "adminId": 2,
+    "targetType": "CHALLENGE",
+    "targetId": 991,
+    "actionType": "MODERATE_CHALLENGE",
+    "reason": "부적절한 챌린지 개설"
+  }
+}
+```
 
 ---
 

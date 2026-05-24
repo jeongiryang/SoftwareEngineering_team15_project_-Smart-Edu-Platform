@@ -200,7 +200,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/200 응답, 프로필 수정 반영, `passwordHash` 미노출 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 다른 사용자 데이터 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 사용자별 데이터 접근 제한 | 통과 |
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 퀴즈 생성 흐름 검증 | 후속 작성 | mock 또는 테스트 key 기준 응답 검증 | 예정 |
-| TC-INT-005 | API 통합 테스트 | 커뮤니티/관리자 API | 게시글, 댓글, 신고, 제재 흐름 검증 | 후속 작성 | 권한별 접근 제어 확인 | 예정 |
+| TC-INT-005 | API 통합 테스트 | 커뮤니티/관리자 API | 게시글, 댓글, 신고, 제재 흐름 검증 | `npm test` | 권한별 접근 제어 확인 및 조치 수행 | 통과 |
+
 
 ### 4.3 환경 검증 테스트 케이스
 
@@ -235,6 +236,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
+| Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트 |
+
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
@@ -259,6 +262,9 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 프로필 필드 검증, `passwordHash` 미노출을 확인함. 프론트엔드 화면 연동은 후속 작업으로 둠.
 
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
+
+관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 숨김, 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 트랜잭션 단위로 정상 수행되는지 검증함.
+
 
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
 
@@ -320,7 +326,16 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 실행 명령 | `npm test` |
 | 결과 | 통과 |
 
-향후 인증, 일정/태스크, 학습 노트, AI 학습 지원, 커뮤니티/관리자 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
+| 항목 | 내용 |
+|---|---|
+| 대상 기능 | 관리자 기능 API |
+| 테스트 파일 | `src/backend/tests/admin.test.js` |
+| 도구 | Jest, Supertest |
+| AI 활용 방식 | AI를 활용해 관리자(ADMIN) 권한 제한 및 트랜잭션 예외 상황(잘못된 제재 상태 등)에 대한 테스트 케이스를 누락 없이 도출하고 Mock Repository를 설계함 |
+| 실행 명령 | `npm test` |
+| 결과 | 통과 |
+
+향후 인증, 일정/태스크, 학습 노트, AI 학습 지원, 커뮤니티 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
 
 ---
 
@@ -339,7 +354,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | AI 학습 지원 | AI 질의, 추천, 퀴즈 생성 API mock 테스트 | 예정 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
-| 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 예정 |
+| 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 완료 |
 | 프론트엔드 | 인증 화면 API service 연동, Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
 | 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 | 예정 |
 
@@ -354,6 +369,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
   - `src/backend/tests/user-profile.test.js`
   - `src/backend/tests/schedule-task.test.js`
   - `src/backend/tests/seed-dev.test.js`
+  - `src/backend/tests/admin.test.js`
   - `src/backend/tests/helpers/auth.helper.js`
   - `src/backend/tests/helpers/assert.helper.js`
   - `src/backend/package.json`
@@ -365,6 +381,10 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
   - `src/backend/prisma/migrations/20260521201109_init/migration.sql`
   - `src/backend/prisma/migrations/migration_lock.toml`
   - `src/backend/scripts/seed-dev.js`
+  - `src/backend/src/repositories/admin.repository.js`
+  - `src/backend/src/services/admin.service.js`
+  - `src/backend/src/controllers/admin.controller.js`
+  - `src/backend/src/routes/admin.routes.js`
 
 - 관련 문서/이슈
   - `docs/design/design-document.md`
