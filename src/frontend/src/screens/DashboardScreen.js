@@ -39,8 +39,8 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
           </View>
         ))}
         {hasAdminRole && (
-          <Pressable 
-            onPress={() => onNavigate('admin')} 
+          <Pressable
+            onPress={() => onNavigate('admin')}
             style={[styles.card, styles.adminCard]}
           >
             <Text style={[styles.cardText, styles.adminCardText]}>관리자 콘솔</Text>
@@ -165,4 +165,3 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   }
 });
-

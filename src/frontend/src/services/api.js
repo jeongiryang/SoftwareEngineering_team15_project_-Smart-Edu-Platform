@@ -17,8 +17,8 @@ async function parseResponse(response) {
 export async function request(path, options = {}) {
   const method = options.method || 'GET';
   const isGet = method.toUpperCase() === 'GET';
-  const url = isGet 
-    ? `${API_BASE_URL}${path}${path.includes('?') ? '&' : '?'}_t=${Date.now()}` 
+  const url = isGet
+    ? `${API_BASE_URL}${path}${path.includes('?') ? '&' : '?'}_t=${Date.now()}`
     : `${API_BASE_URL}${path}`;
 
   const { headers: customHeaders, ...restOptions } = options;
@@ -102,16 +102,6 @@ export function moderateAdminPost(token, postId, action, reason) {
 
 export function moderateAdminComment(token, commentId, action, reason) {
   return request(`/admin/comments/${commentId}/moderation`, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ action, reason })
-  });
-}
-
-export function moderateAdminChallenge(token, challengeId, action, reason) {
-  return request(`/admin/challenges/${challengeId}/moderation`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`

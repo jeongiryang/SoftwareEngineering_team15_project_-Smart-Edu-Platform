@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
-import { 
-  ActivityIndicator, 
-  FlatList, 
-  Pressable, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  View 
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
-import { 
-  getAdminUsers, 
-  updateAdminUserStatus, 
-  getAdminReports, 
-  moderateAdminPost, 
-  moderateAdminComment 
+import {
+  getAdminUsers,
+  updateAdminUserStatus,
+  getAdminReports,
+  moderateAdminPost,
+  moderateAdminComment
 } from '../services/api';
 
 export default function AdminScreen({ onNavigate, token, user }) {
@@ -32,7 +31,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
   }
 
   const [activeTab, setActiveTab] = useState('users'); // 'users' | 'reports' | 'logs'
-  
+
   // Data States
   const [users, setUsers] = useState([]);
   const [reports, setReports] = useState({ reportedPosts: [], reportedComments: [], adminActions: [] });
@@ -80,24 +79,24 @@ export default function AdminScreen({ onNavigate, token, user }) {
   // Handle User Status Change
   async function handleUserStatusUpdate() {
     if (!actionTarget || actionTarget.type !== 'user') return;
-    
+
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
-    
+
     try {
       const targetUser = actionTarget.data;
       const result = await updateAdminUserStatus(
-        token, 
-        targetUser.id, 
-        actionStatus, 
+        token,
+        targetUser.id,
+        actionStatus,
         actionReason.trim()
       );
-      
+
       setSuccessMsg(`사용자 ${targetUser.name}님의 상태가 ${actionStatus}(으)로 성공적으로 변경되었습니다.`);
       setActionTarget(null);
       setActionReason('');
-      
+
       // Refresh current tab data without clearing success message
       loadData(true);
     } catch (err) {
@@ -110,15 +109,15 @@ export default function AdminScreen({ onNavigate, token, user }) {
   // Handle Post/Comment Moderation
   async function handleModerationUpdate() {
     if (!actionTarget || !['post', 'comment'].includes(actionTarget.type)) return;
-    
+
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
-    
+
     try {
       const targetData = actionTarget.data;
       const actType = actionTarget.actionType; // HIDE, KEEP, DELETE
-      
+
       if (actionTarget.type === 'post') {
         await moderateAdminPost(token, targetData.id, actType, actionReason.trim());
         setSuccessMsg(`게시글 #${targetData.id}에 대해 ${actType === 'HIDE' ? '숨김(삭제)' : '기각'} 조치가 완료되었습니다.`);
@@ -126,10 +125,10 @@ export default function AdminScreen({ onNavigate, token, user }) {
         await moderateAdminComment(token, targetData.id, actType, actionReason.trim());
         setSuccessMsg(`댓글 #${targetData.id}에 대해 ${actType === 'DELETE' ? '삭제' : '기각'} 조치가 완료되었습니다.`);
       }
-      
+
       setActionTarget(null);
       setActionReason('');
-      
+
       // Refresh current tab data without clearing success message
       loadData(true);
     } catch (err) {
@@ -181,7 +180,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
 
       {/* Tabs */}
       <View style={styles.tabsRow}>
-        <Pressable 
+        <Pressable
           onPress={() => { setActiveTab('users'); setActionTarget(null); }}
           style={[styles.tabButton, activeTab === 'users' && styles.tabButtonActive]}
         >
@@ -189,7 +188,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
             사용자 관리
           </Text>
         </Pressable>
-        <Pressable 
+        <Pressable
           onPress={() => { setActiveTab('reports'); setActionTarget(null); }}
           style={[styles.tabButton, activeTab === 'reports' && styles.tabButtonActive]}
         >
@@ -197,7 +196,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
             신고 콘텐츠 관리 ({reports.reportedPosts.length + reports.reportedComments.length})
           </Text>
         </Pressable>
-        <Pressable 
+        <Pressable
           onPress={() => { setActiveTab('logs'); setActionTarget(null); }}
           style={[styles.tabButton, activeTab === 'logs' && styles.tabButtonActive]}
         >
@@ -213,7 +212,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
           <Text style={styles.alertText}>{errorMsg}</Text>
         </View>
       ) : null}
-      
+
       {successMsg ? (
         <View style={styles.successAlert}>
           <Text style={styles.alertText}>{successMsg}</Text>
@@ -228,13 +227,13 @@ export default function AdminScreen({ onNavigate, token, user }) {
             {actionTarget.type === 'post' && `게시글 #${actionTarget.data.id} 관리 조치 (${actionTarget.actionType === 'HIDE' ? '삭제' : '유지'})`}
             {actionTarget.type === 'comment' && `댓글 #${actionTarget.data.id} 관리 조치 (${actionTarget.actionType === 'DELETE' ? '삭제' : '유지'})`}
           </Text>
-          
+
           {actionTarget.type === 'user' && (
             <View style={styles.modalSelectGroup}>
               <Text style={styles.inputLabel}>변경할 상태 선택:</Text>
               <View style={styles.radioRow}>
                 {['ACTIVE', 'SUSPENDED', 'DEACTIVATED'].map((status) => (
-                  <Pressable 
+                  <Pressable
                     key={status}
                     onPress={() => setActionStatus(status)}
                     style={[styles.radioButton, actionStatus === status && styles.radioButtonActive]}
@@ -261,9 +260,9 @@ export default function AdminScreen({ onNavigate, token, user }) {
           />
 
           <View style={styles.modalActions}>
-            <Pressable 
-              disabled={submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim())} 
-              onPress={actionTarget.type === 'user' ? handleUserStatusUpdate : handleModerationUpdate} 
+            <Pressable
+              disabled={submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim())}
+              onPress={actionTarget.type === 'user' ? handleUserStatusUpdate : handleModerationUpdate}
               style={[styles.modalSubmitBtn, (submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim())) && styles.disabledBtn]}
             >
               {submitting ? (
@@ -272,9 +271,9 @@ export default function AdminScreen({ onNavigate, token, user }) {
                 <Text style={styles.modalSubmitText}>적용하기</Text>
               )}
             </Pressable>
-            <Pressable 
-              disabled={submitting} 
-              onPress={() => setActionTarget(null)} 
+            <Pressable
+              disabled={submitting}
+              onPress={() => setActionTarget(null)}
               style={styles.modalCancelBtn}
             >
               <Text style={styles.modalCancelText}>취소</Text>
@@ -317,7 +316,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       </View>
                       <View style={styles.userCardFooter}>
                         <Text style={styles.roleText}>권한: {item.role}</Text>
-                        <Pressable 
+                        <Pressable
                           onPress={() => {
                             setActionTarget({ type: 'user', data: item });
                             setActionStatus(item.status);
@@ -363,7 +362,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                         <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.email})</Text>
                       </View>
                       <View style={styles.reportActions}>
-                        <Pressable 
+                        <Pressable
                           onPress={() => {
                             setActionTarget({ type: 'post', data: item, actionType: 'HIDE' });
                             setActionReason('');
@@ -372,7 +371,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                         >
                           <Text style={styles.moderationBtnText}>게시글 삭제(숨김)</Text>
                         </Pressable>
-                        <Pressable 
+                        <Pressable
                           onPress={() => {
                             setActionTarget({ type: 'post', data: item, actionType: 'KEEP' });
                             setActionReason('');
@@ -404,7 +403,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                         <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.email})</Text>
                       </View>
                       <View style={styles.reportActions}>
-                        <Pressable 
+                        <Pressable
                           onPress={() => {
                             setActionTarget({ type: 'comment', data: item, actionType: 'DELETE' });
                             setActionReason('');
@@ -413,7 +412,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                         >
                           <Text style={styles.moderationBtnText}>댓글 삭제</Text>
                         </Pressable>
-                        <Pressable 
+                        <Pressable
                           onPress={() => {
                             setActionTarget({ type: 'comment', data: item, actionType: 'KEEP' });
                             setActionReason('');
