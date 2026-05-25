@@ -876,7 +876,7 @@ npm run seed:dev
 | 인증 | 모든 엔드포인트 JWT 필요 |
 | 프론트 연동 | AI 학습 지원 화면 연결 완료 |
 | 외부 연동 | Google Generative Language API (`gemini-2.5-flash`, `.env`의 `AI_MODEL_NAME`으로 변경 가능) |
-| 환경 변수 | `AI_API_KEY`(필수), `AI_MODEL_NAME`(선택) |
+| 환경 변수 | `AI_API_KEY`(외부 provider 호출 시 필요), `AI_MODEL_NAME`(선택) |
 | 속도 제한 | 사용자별 분당 최대 5회 |
 | Fallback | API Key 미설정 또는 외부 호출 실패 시 Simulated 응답 (CI·오프라인 테스트용) |
 
