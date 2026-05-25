@@ -853,19 +853,199 @@ npm run seed:dev
 
 이 섹션은 현재 구현 완료된 후속 API와 아직 구현되지 않은 예정 API를 함께 정리함. 상태가 `구현 완료`인 API는 현재 Express route/controller/service 기준이며, 상태가 `예정`인 API는 후속 구현을 위한 초안임.
 
-### 9.1 학습 노트 API 예정
+### 9.1 학습 노트 API
 
-상태: 예정
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 인증 | 필요 (`USER`, `ADMIN`) |
+| 설명 | 로그인 사용자 본인의 학습 노트 생성, 조회, 수정, 삭제 기능 제공 |
 
-예상 endpoint:
+공통 정책:
 
-| Method | Endpoint | 설명 |
+- 모든 학습 노트 API는 JWT 인증이 필요함.
+- 현재 사용자는 `req.user` 기준으로 식별함.
+- `userId`를 request body로 받거나 신뢰하지 않음.
+- `noteId`는 양의 정수만 허용하며 숫자가 아니거나 0 이하이면 `400 VALIDATION_ERROR`를 반환함.
+- 존재하지 않는 노트 또는 다른 사용자 소유 노트는 소유권 노출을 줄이기 위해 `404 NOT_FOUND`로 처리함.
+- 응답에는 `passwordHash`, password, token 원문을 포함하지 않음.
+- `tags`는 Prisma schema 기준 `String[]`이며, 문자열 배열만 허용함.
+
+#### 9.1.1 학습 노트 생성
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/notes` |
+| 인증 | 필요 |
+| 설명 | 사용자 본인의 학습 노트를 생성함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 예 | 노트 제목 |
+| `content` | string | 예 | 노트 본문 내용 |
+| `subject` | string 또는 null | 아니오 | 과목 명 |
+| `tags` | string[] | 아니오 | 태그 배열. 생략 시 빈 배열 저장 |
+
+Request 예시:
+
+```json
+{
+  "title": "운영체제 핵심 요약",
+  "content": "프로세스와 스레드의 차이점...",
+  "subject": "CS",
+  "tags": ["OS", "면접준비"]
+}
+```
+
+Response (201 Created) 예시:
+
+```json
+{
+  "note": {
+    "id": 1,
+    "userId": 1,
+    "title": "운영체제 핵심 요약",
+    "content": "프로세스와 스레드의 차이점...",
+    "subject": "CS",
+    "tags": ["OS", "면접준비"],
+    "createdAt": "2026-05-25T12:00:00.000Z",
+    "updatedAt": "2026-05-25T12:00:00.000Z"
+  }
+}
+```
+
+#### 9.1.2 내 학습 노트 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/notes` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자가 작성한 전체 노트 목록 조회 |
+
+Response (200 OK) 예시:
+
+```json
+{
+  "notes": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "운영체제 핵심 요약",
+      "content": "프로세스와 스레드의 차이점...",
+      "subject": "CS",
+      "tags": ["OS", "면접준비"],
+      "createdAt": "2026-05-25T12:00:00.000Z",
+      "updatedAt": "2026-05-25T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### 9.1.3 학습 노트 상세 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/notes/:noteId` |
+| 인증 | 필요 |
+| 설명 | 특정 노트의 상세 정보를 조회함 (작성자 본인만 접근 가능) |
+
+Response (200 OK) 예시:
+
+```json
+{
+  "note": {
+    "id": 1,
+    "userId": 1,
+    "title": "운영체제 핵심 요약",
+    "content": "프로세스와 스레드의 차이점...",
+    "subject": "CS",
+    "tags": ["OS", "면접준비"],
+    "createdAt": "2026-05-25T12:00:00.000Z",
+    "updatedAt": "2026-05-25T12:00:00.000Z"
+  }
+}
+```
+
+#### 9.1.4 학습 노트 수정
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/notes/:noteId` |
+| 인증 | 필요 |
+| 설명 | 특정 노트를 수정함 (작성자 본인만 접근 가능) |
+
+Request Body:
+
+| 필드 | 타입 | 설명 |
 |---|---|---|
-| `GET` | `/api/notes` | 학습 노트 목록 조회 |
-| `POST` | `/api/notes` | 학습 노트 생성 |
-| `GET` | `/api/notes/:noteId` | 학습 노트 단건 조회 |
-| `PATCH` | `/api/notes/:noteId` | 학습 노트 수정 |
-| `DELETE` | `/api/notes/:noteId` | 학습 노트 삭제 |
+| `title` | string | 수정할 제목 |
+| `content` | string | 수정할 내용 |
+| `subject` | string 또는 null | 수정할 과목 |
+| `tags` | string[] | 수정할 태그 배열 |
+
+수정 요청은 위 필드 중 최소 1개 이상을 포함해야 함. 빈 body, 허용되지 않은 필드, 빈 문자열 `title`/`content`, 문자열 배열이 아닌 `tags`는 `400 VALIDATION_ERROR`로 처리함.
+
+Request 예시:
+
+```json
+{
+  "title": "운영체제 심화 요약",
+  "tags": ["OS", "면접준비", "심화"]
+}
+```
+
+Response (200 OK) 예시:
+
+```json
+{
+  "note": {
+    "id": 1,
+    "userId": 1,
+    "title": "운영체제 심화 요약",
+    "content": "프로세스와 스레드의 차이점...",
+    "subject": "CS",
+    "tags": ["OS", "면접준비", "심화"],
+    "createdAt": "2026-05-25T12:00:00.000Z",
+    "updatedAt": "2026-05-25T12:30:00.000Z"
+  }
+}
+```
+
+#### 9.1.5 학습 노트 삭제
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/notes/:noteId` |
+| 인증 | 필요 |
+| 설명 | 특정 노트를 삭제함 (작성자 본인만 접근 가능) |
+
+Response (200 OK) 예시:
+
+```json
+{
+  "message": "Study note deleted successfully"
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 빈 수정 body, 잘못된 `noteId`, 허용되지 않은 필드, 잘못된 필드 타입 |
+| `401` | `UNAUTHORIZED` | 인증 헤더 없음, Bearer token 없음, token 검증 실패 |
+| `404` | `NOT_FOUND` | 노트가 존재하지 않거나 현재 사용자 소유 노트가 아님 |
 
 ### 9.2 AI 학습 지원 API
 
@@ -1455,4 +1635,5 @@ Response 예시:
 | 2026-05 | Schedule/Task API 구현 완료 기준으로 명세 갱신 |
 | 2026-05 | 프론트엔드 로그인/회원가입 화면의 Auth API 연결 상태 반영 |
 | 2026-05-24 | AI 학습 지원 API(§9.2) 구현 완료 반영, 기본 모델 `gemini-2.5-flash`, Schedule/Task API와 동일한 표 양식으로 정리 |
+| 2026-05-25 | 학습 노트 API(§9.1) 구현 완료 내역 반영 |
 | 2026-05-25 | 관리자 화면 연결과 AI 학습 지원 화면 연결 상태 반영, AI API 한국어 응답/fallback/API key 관리 기준 보강 |
