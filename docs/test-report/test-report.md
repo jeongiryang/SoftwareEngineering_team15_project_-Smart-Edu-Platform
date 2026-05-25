@@ -212,6 +212,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-ENV-003 | 환경 검증 | Expo config | Expo public config 확인 | `npm run check:frontend` | Expo config 출력 성공 | 통과 |
 | TC-FE-001 | 환경 검증 | Expo Web | Expo Web export 확인 | `npm run check:frontend:web` | Web bundle export 성공 | 통과 |
 | TC-FE-002 | 프론트엔드 수동/환경 검증 | 인증 화면 연결 | 로그인/회원가입 화면의 Auth API service 연결, token 저장, 현재 사용자 확인 흐름 검토 | `npm run check:frontend`, `npm run check:frontend:web` | Expo config 및 Web export 성공, token 원문 미노출 | 통과 |
+| TC-FE-003 | 프론트엔드 수동/환경 검증 | 관리자 화면 연결 | ADMIN 관리자 화면 진입, 일반 USER 접근 차단, 로그아웃 후 접근 차단, 신고 처리 후 목록 갱신 확인 | `npm run check:frontend`, `npm run check:frontend:web`, 수동 확인 | 관리자 화면 접근 제어와 목록 갱신 흐름 정상, 민감정보 화면 미노출 | 통과 |
+| TC-FE-004 | 프론트엔드 수동/환경 검증 | AI 학습 지원 화면 연결 | 로그인 후 AI 화면 진입, 질문 입력/응답 표시, 한국어 응답, 에러/fallback 표시 확인 | `npm run check:frontend`, `npm run check:frontend:web`, 수동 확인 | 백엔드 AI API 호출 흐름 정상, 프론트 외부 AI API 직접 호출 없음 | 통과 |
 | TC-ENV-004 | 환경 검증 | 개발용 seed script | production guard와 seed 환경 검증 helper 확인 | `npm test` | production 실행 방지 및 개발용 seed 구성 확인 | 통과 |
 | TC-ENV-005 | 환경 검증 | 개발용 seed 실행 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성/갱신 확인 | `npm run seed:dev` | 개발용 seed 완료 및 비밀값 미출력 | 통과 |
 | TC-DB-001 | DB migration | Prisma migration | 초기 migration 적용 | `npx prisma migrate dev --name init` | migration 적용 및 schema sync | 통과 |
@@ -245,6 +247,10 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
 | Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
 | Frontend auth integration | 로그인/회원가입 화면 Auth API service 연결 | 통과 | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me` 호출 흐름과 token 저장/삭제 흐름 반영, token 원문 미기록 |
+| Admin screen integration | PR #75 관리자 화면 연결 | 통과 | ADMIN 계정 관리자 화면 진입, 일반 USER 접근 차단, 로그아웃 후 접근 차단, 신고 기각/취소 후 목록 갱신, 민감정보 화면 미노출 수동 확인 |
+| AI screen integration | PR #76 AI 학습 지원 화면 연결 | 통과 | 로그인, Dashboard, 기존 관리자 화면 유지, AI 화면 진입, 질문/응답 표시, 한국어 응답, 에러/fallback 표시, 로그아웃, 프론트 외부 AI API 직접 호출 없음 수동 확인 |
+| PR #75 자동 검증 | 관리자 화면 연결 PR 검증 | 통과 | `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`(8 suites / 103 tests passed), `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate` 통과 |
+| PR #76 자동 검증 | AI 학습 지원 화면 연결 PR 검증 | 통과 | 최신 main 반영 및 #75 변경 보존 후 `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`(8 suites / 103 tests passed), `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate` 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -274,6 +280,12 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
 
 프론트엔드 인증 화면 연결은 LoginScreen/RegisterScreen/DashboardScreen과 frontend API service 기준으로 확인함. 로그인/회원가입 성공 시 token 저장, 앱 시작 시 `GET /api/auth/me` 현재 사용자 확인, 로그아웃 시 token 삭제 흐름을 반영함. 자동 화면 테스트는 아직 없으며, 이번 단계에서는 Expo config와 Web export 검증으로 빌드 가능성을 확인함. 실제 JWT token 원문은 기록하지 않음.
+
+관리자 화면 연결은 PR #75에서 기존 관리자 API를 프론트 화면에 연결한 뒤 검증함. 자동 검증은 `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`, `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate`가 모두 통과함. 수동 확인으로 ADMIN 계정의 관리자 화면 진입, 일반 USER 접근 차단, 로그아웃 후 접근 차단, 신고 기각/취소 후 목록 갱신, 민감정보 화면 미노출을 확인함. schema/migration/package 변경은 없음.
+
+AI 학습 지원 화면 연결은 PR #76에서 최신 main을 반영하고 PR #75 관리자 화면 변경을 보존한 뒤 검증함. 자동 검증은 `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`, `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate`가 모두 통과함. 수동 확인으로 로그인, Dashboard, 기존 관리자 화면 유지, AI 학습 지원 화면 진입, 질문 입력 및 응답 표시, AI 응답 한국어 출력, 에러/fallback 표시, 로그아웃, 화면/콘솔의 token/password/API key/DB URL 원문 미노출, 프론트에서 외부 AI API를 직접 호출하지 않음을 확인함. schema/migration/package 변경은 없음.
+
+Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 DevTools에서 보일 수 있는 정상 동작임. 단, 해당 token이 포함된 스크린샷은 PR, Issue, comment, 문서에 첨부하지 않으며 실제 token 값도 문서에 작성하지 않음.
 
 ---
 
@@ -366,11 +378,11 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 | 개발용 seed 데이터 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성 script 추가. 실제 seed 실행은 개발용 DB branch에서만 수행 | 진행 중 |
 | 학습 일정/태스크 | 백엔드 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 사용자별 접근 제한 테스트 완료. 프론트엔드 연동과 알림 연계 테스트는 후속 작성 | 진행 중 |
 | 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
-| AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
+| AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
-| 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 완료 |
-| 프론트엔드 | 인증 화면 API service 연동, Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
+| 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
+| 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
 | 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 | 예정 |
 
 ---
