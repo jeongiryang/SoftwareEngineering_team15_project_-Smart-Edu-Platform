@@ -101,6 +101,111 @@ async function seedDevelopmentData(prisma) {
     users.push(await upsertSeedUser(prisma, seedUser, passwordHash));
   }
 
+  // Get the normal user to associate posts and challenges with
+  const normalUser = await prisma.user.findUnique({
+    where: { email: 'dev.user@example.com' }
+  });
+
+  if (normalUser) {
+    // 1. Seed some posts (one reported, one normal)
+    const post1 = await prisma.boardPost.upsert({
+      where: { id: 991 },
+      update: {
+        title: '학습 질문 게시글입니다.',
+        content: '소프트웨어공학 디자인 패턴에 대해 질문이 있습니다.',
+        category: 'QUESTION',
+        reported: false,
+        userId: normalUser.id
+      },
+      create: {
+        id: 991,
+        title: '학습 질문 게시글입니다.',
+        content: '소프트웨어공학 디자인 패턴에 대해 질문이 있습니다.',
+        category: 'QUESTION',
+        reported: false,
+        userId: normalUser.id
+      }
+    });
+
+    const post2 = await prisma.boardPost.upsert({
+      where: { id: 992 },
+      update: {
+        title: '부적절한 광고성 게시글',
+        content: '여기에 광고를 작성합니다. 신고해주세요.',
+        category: 'FREE',
+        reported: true,
+        userId: normalUser.id
+      },
+      create: {
+        id: 992,
+        title: '부적절한 광고성 게시글',
+        content: '여기에 광고를 작성합니다. 신고해주세요.',
+        category: 'FREE',
+        reported: true,
+        userId: normalUser.id
+      }
+    });
+
+    // 2. Seed some comments (one reported, one normal on post1)
+    await prisma.comment.upsert({
+      where: { id: 991 },
+      update: {
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '좋은 질문이네요. 저도 궁금합니다.',
+        reported: false
+      },
+      create: {
+        id: 991,
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '좋은 질문이네요. 저도 궁금합니다.',
+        reported: false
+      }
+    });
+
+    await prisma.comment.upsert({
+      where: { id: 992 },
+      update: {
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '스팸/욕설이 섞인 부적절한 댓글입니다.',
+        reported: true
+      },
+      create: {
+        id: 992,
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '스팸/욕설이 섞인 부적절한 댓글입니다.',
+        reported: true
+      }
+    });
+
+    // 3. Seed a study challenge
+    await prisma.studyChallenge.upsert({
+      where: { id: 991 },
+      update: {
+        creatorId: normalUser.id,
+        title: '매일 1시간 집중 챌린지',
+        description: '하루에 최소 60분 집중하여 공부하는 챌린지입니다.',
+        goalMinutes: 60,
+        startDate: new Date('2026-05-01T00:00:00Z'),
+        endDate: new Date('2026-06-01T00:00:00Z'),
+        status: 'IN_PROGRESS'
+      },
+      create: {
+        id: 991,
+        creatorId: normalUser.id,
+        title: '매일 1시간 집중 챌린지',
+        description: '하루에 최소 60분 집중하여 공부하는 챌린지입니다.',
+        goalMinutes: 60,
+        startDate: new Date('2026-05-01T00:00:00Z'),
+        endDate: new Date('2026-06-01T00:00:00Z'),
+        status: 'IN_PROGRESS'
+      }
+    });
+  }
+
   return users;
 }
 
