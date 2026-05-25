@@ -4,16 +4,19 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
+import AdminScreen from './src/screens/AdminScreen';
 import { getCurrentUser } from './src/services/api';
 
 const screens = {
   login: LoginScreen,
   register: RegisterScreen,
   dashboard: DashboardScreen,
-  aiLearning: AILearningScreen
+  aiLearning: AILearningScreen,
+  admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
+const authScreens = ['dashboard', 'admin', 'aiLearning'];
 
 function getStorage() {
   try {
@@ -41,17 +44,24 @@ export default function App() {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
 
-  // Security guard for authenticated screens
+  // Guard authenticated screens and keep the admin route role-gated.
+  const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
+  const Screen = screens[activeScreenName] || LoginScreen;
+
   useEffect(() => {
-    if (!initializing) {
-      const authScreens = ['dashboard', 'aiLearning'];
-      if (authScreens.includes(currentScreen) && !user) {
-        setCurrentScreen('login');
-      }
+    if (initializing) {
+      return;
+    }
+
+    if (authScreens.includes(currentScreen) && !user) {
+      setCurrentScreen('login');
+      return;
+    }
+
+    if (currentScreen === 'admin' && user.role !== 'ADMIN') {
+      setCurrentScreen('dashboard');
     }
   }, [currentScreen, user, initializing]);
-
-  const Screen = screens[currentScreen] || LoginScreen;
 
   useEffect(() => {
     let isMounted = true;

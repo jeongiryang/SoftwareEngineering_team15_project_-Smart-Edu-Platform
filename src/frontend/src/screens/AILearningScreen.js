@@ -16,19 +16,6 @@ import {
 } from '../services/api';
 
 export default function AILearningScreen({ onNavigate, token, user }) {
-  // Navigation guard fallback inside the view
-  if (!user) {
-    return (
-      <View style={[styles.container, styles.center]}>
-        <Text style={styles.errorHeader}>접근 권한이 없습니다.</Text>
-        <Text style={styles.errorSub}>로그인 후 다시 시도해 주세요.</Text>
-        <Pressable onPress={() => onNavigate('login')} style={styles.backButton}>
-          <Text style={styles.backButtonText}>로그인 하러 가기</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
 
   // Loading, Success & Error States
@@ -63,6 +50,19 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const MAX_SUMMARY_LENGTH = 3000;
   const MAX_PROBLEM_LENGTH = 1000;
   const MAX_ANSWER_LENGTH = 1000;
+
+  // Navigation guard fallback inside the view
+  if (!user) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.errorHeader}>접근 권한이 없습니다.</Text>
+        <Text style={styles.errorSub}>로그인 후 다시 시도해 주세요.</Text>
+        <Pressable onPress={() => onNavigate('login')} style={styles.backButton}>
+          <Text style={styles.backButtonText}>로그인 하러 가기</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   // Handle Tab 1 Q&A Submit
   async function handleQuestionSubmit() {
