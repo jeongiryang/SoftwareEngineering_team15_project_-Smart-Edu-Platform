@@ -225,7 +225,7 @@ async function askAIQuestion(userId, payload) {
   const answer = await useProviderOrFallback(
     'question',
     () => callGeminiAPI(
-      `Answer this study question in Korean within 3 or 4 concise sentences: ${questionText.value}`
+      `[중요] 반드시 한국어로만 답변하시오. 영어 사용 금지. Answer the following study question in 3~4 sentences. You MUST write the entire answer in Korean only. Do NOT use English: ${questionText.value}`
     ),
     () => getFallbackQuestionAnswer(questionText.value)
   );
@@ -276,7 +276,7 @@ async function generateAIRecommendation(userId) {
     'recommendation',
     async () => {
       const rawText = await callGeminiAPI(
-        `Analyze schedules [${scheduleInfo}] and tasks [${taskInfo}]. Return JSON with tips:string[] and recommendedSubject:string.`,
+        `[중요] 모든 값은 반드시 한국어로만 작성하시오. 영어 사용 절대 금지. Analyze schedules [${scheduleInfo}] and tasks [${taskInfo}]. Return a JSON object with exactly these keys: "tips" (array of 3 strings) and "recommendedSubject" (a single string). Every single character in the values MUST be written in Korean only. Do NOT use English in any value.`,
         true
       );
       return parseJsonObject(rawText);
@@ -299,7 +299,7 @@ async function summarizeText(userId, payload) {
   const summary = await useProviderOrFallback(
     'summary',
     () => callGeminiAPI(
-      `Summarize this study content as 3 Korean bullet points. Content: ${contentText.value}`
+      `[중요] 반드시 한국어로만 작성하시오. 영어 사용 금지. Summarize the following study content into exactly 3 concise bullet points. Every single word MUST be in Korean only. Do NOT use English. Content: ${contentText.value}`
     ),
     () => getFallbackSummary(contentText.value)
   );
@@ -337,8 +337,10 @@ async function analyzeWrongAnswer(userId, payload) {
     async () => {
       const rawText = await callGeminiAPI(
         [
+          '[중요] 반드시 한국어로만 작성하시오. 영어 사용 절대 금지.',
           'Analyze this wrong answer and return JSON.',
           'Schema: {"explanation":"string","weakType":"string"}',
+          'Every single character in explanation and weakType MUST be written in Korean only. Do NOT use English at all.',
           `Problem: ${problemText.value}`,
           `User answer: ${userAnswer || 'None'}`
         ].join('\n'),

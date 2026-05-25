@@ -64,6 +64,45 @@ export function getCurrentUser(token) {
   });
 }
 
+export function askAIQuestion(token, { question, noteId, allowTruncate }) {
+  return request('/ai/questions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ question, noteId, allowTruncate })
+  });
+}
+
+export function getAIRecommendation(token) {
+  return request('/ai/recommendations', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function summarizeText(token, { content, allowTruncate }) {
+  return request('/ai/summary', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ content, allowTruncate })
+  });
+}
+
+export function analyzeWrongAnswer(token, { problem, userAnswer, noteId, allowTruncate }) {
+  return request('/ai/wrong-answers', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ problem, userAnswer, noteId, allowTruncate })
+  });
+}
+
 export function getAdminUsers(token) {
   return request('/admin/users', {
     headers: {

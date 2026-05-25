@@ -33,11 +33,24 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
         ) : null}
       </View>
       <View style={styles.grid}>
-        {cards.map((label) => (
-          <View key={label} style={styles.card}>
-            <Text style={styles.cardText}>{label}</Text>
-          </View>
-        ))}
+        {cards.map((label) => {
+          const isAIFeature = label === 'AI 학습 질의';
+
+          return (
+            <Pressable
+              key={label}
+              onPress={isAIFeature ? () => onNavigate('aiLearning') : undefined}
+              style={[styles.card, isAIFeature && styles.aiCard]}
+            >
+              <Text style={[styles.cardText, isAIFeature && styles.aiCardText]}>{label}</Text>
+              {isAIFeature && (
+                <View style={styles.aiBadge}>
+                  <Text style={styles.aiBadgeText}>AI 헬퍼</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
         {hasAdminRole && (
           <Pressable
             onPress={() => onNavigate('admin')}
@@ -123,7 +136,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB'
+    borderColor: '#E5E7EB',
+    position: 'relative'
   },
   adminCard: {
     backgroundColor: '#EEF2FF',
@@ -139,6 +153,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#374151'
+  },
+  aiCard: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#C7D2FE'
+  },
+  aiCardText: {
+    color: '#4F46E5'
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#6366F1',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
+  aiBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700'
   },
   adminCardText: {
     color: '#4F46E5',
