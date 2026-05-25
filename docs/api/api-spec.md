@@ -1605,6 +1605,31 @@ Response 예시:
 }
 ```
 
+### 9.6 docs 기준 기능 구현 상태 재점검
+
+아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
+
+| 기능 | docs 근거 | 현재 상태 | 구현/문서 근거 | 후속 작업 |
+|---|---|---|---|---|
+| 로그인/회원가입/사용자 인증 | FR-01, UC-01, UC-02 | 완료 | Auth API, 프론트 로그인/회원가입 화면 연결 | 화면 자동 테스트와 배포 환경 smoke test |
+| 사용자 프로필 | FR-02, UC-03 | 부분 구현 | User/Profile API 구현 및 테스트 완료 | 프론트 프로필 화면 연결 |
+| 학습 일정 API | FR-03, UC-04 | 완료 | Schedule API 구현 및 테스트 완료 | 프론트 일정 화면 연결 |
+| 태스크/칸반 API | FR-04, UC-05 | 완료 | Task API 구현 및 테스트 완료 | 칸반 프론트 화면 연결 |
+| 마감일 알림 | FR-05, UC-06 | 미구현 | `Notification` 모델 초안 존재 | 알림 API, 프론트 알림, 테스트 추가 |
+| 학습 노트 API | FR-06, UC-08 | 완료 | PR #81, `/api/notes` CRUD API 및 테스트 반영 | 학습 노트 프론트 화면 연결 |
+| AI 학습 질의 | FR-07, UC-09 | 부분 구현 | AI MVP API와 AI 학습 지원 화면 연결 완료 | 실제 질문 품질 검증, 비용/한도 관리 |
+| AI 오답노트/추천/요약 | FR-08, FR-09, FR-19, UC-07, UC-10, UC-18 | 부분 구현 | AI 추천, 요약, 오답 분석 API 구현 | 프롬프트 히스토리 기반 자동화와 학습 데이터 개인화 고도화 |
+| AI 기반 퀴즈 생성 | FR-10, UC-19 | 미구현 | `Quiz`, `QuizQuestion` 모델 초안 존재 | 퀴즈 생성 API와 화면 구현 |
+| 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
+| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 미구현 | 커뮤니티 이식 계획 문서와 schema 모델 초안 존재 | 게시글/댓글/신고 API와 프론트 구현 |
+| 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
+| 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
+| 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
+| TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
+| 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
+| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 미구현 | 요구사항 문서에 계획됨 | 알림/보상 정책 및 테스트 설계 |
+| 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
+
 ---
 
 ## 10. 테스트 및 검증 기준
@@ -1613,10 +1638,12 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, AI 등 |
-| `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행 |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note 포함. 최신 확인 기준 9 suites / 116 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
+| `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
+| `git diff --check` | 문서/코드 diff whitespace 검증 | trailing whitespace와 EOF 문제 확인 |
 | `npm run test:db` | 실제 DB 연결 smoke test | production DB에서 실행 금지 |
 
 주의:
@@ -1637,3 +1664,4 @@ Response 예시:
 | 2026-05-24 | AI 학습 지원 API(§9.2) 구현 완료 반영, 기본 모델 `gemini-2.5-flash`, Schedule/Task API와 동일한 표 양식으로 정리 |
 | 2026-05-25 | 학습 노트 API(§9.1) 구현 완료 내역 반영 |
 | 2026-05-25 | 관리자 화면 연결과 AI 학습 지원 화면 연결 상태 반영, AI API 한국어 응답/fallback/API key 관리 기준 보강 |
+| 2026-05-26 | PR #81 merge 이후 학습 노트 CRUD API 검증 결과와 docs 기준 기능 구현 상태 재점검 결과 반영 |
