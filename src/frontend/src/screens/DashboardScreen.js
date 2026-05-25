@@ -9,7 +9,7 @@ const featureCards = [
   '게시판'
 ];
 
-export default function DashboardScreen({ onLogout, user }) {
+export default function DashboardScreen({ onLogout, onNavigate, user }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -23,11 +23,23 @@ export default function DashboardScreen({ onLogout, user }) {
         ) : null}
       </View>
       <View style={styles.grid}>
-        {featureCards.map((label) => (
-          <View key={label} style={styles.card}>
-            <Text style={styles.cardText}>{label}</Text>
-          </View>
-        ))}
+        {featureCards.map((label) => {
+          const isAIFeature = label === 'AI 학습 질의';
+          return (
+            <Pressable 
+              key={label} 
+              onPress={isAIFeature ? () => onNavigate('aiLearning') : null}
+              style={[styles.card, isAIFeature && styles.aiCard]}
+            >
+              <Text style={[styles.cardText, isAIFeature && styles.aiCardText]}>{label}</Text>
+              {isAIFeature && (
+                <View style={styles.aiBadge}>
+                  <Text style={styles.aiBadgeText}>AI 헬퍼</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
       <Pressable onPress={onLogout} style={styles.logoutButton}>
         <Text style={styles.logoutButtonText}>로그아웃</Text>
@@ -86,12 +98,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB'
+    borderColor: '#E5E7EB',
+    position: 'relative'
   },
   cardText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#374151'
+  },
+  aiCard: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#C7D2FE',
+  },
+  aiCardText: {
+    color: '#4F46E5',
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#6366F1',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  aiBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   logoutButton: {
     minHeight: 44,

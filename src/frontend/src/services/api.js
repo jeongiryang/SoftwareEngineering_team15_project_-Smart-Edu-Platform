@@ -15,12 +15,13 @@ async function parseResponse(response) {
 }
 
 export async function request(path, options = {}) {
+  const { headers: customHeaders, ...restOptions } = options;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(options.headers || {})
+      ...(customHeaders || {})
     },
-    ...options
+    ...restOptions
   });
 
   const data = await parseResponse(response);
@@ -53,3 +54,43 @@ export function getCurrentUser(token) {
     }
   });
 }
+
+export function askAIQuestion(token, { question, noteId, allowTruncate }) {
+  return request('/ai/questions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ question, noteId, allowTruncate })
+  });
+}
+
+export function getAIRecommendation(token) {
+  return request('/ai/recommendations', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function summarizeText(token, { content, allowTruncate }) {
+  return request('/ai/summary', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ content, allowTruncate })
+  });
+}
+
+export function analyzeWrongAnswer(token, { problem, userAnswer, noteId, allowTruncate }) {
+  return request('/ai/wrong-answers', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ problem, userAnswer, noteId, allowTruncate })
+  });
+}
+
