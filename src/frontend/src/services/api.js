@@ -109,4 +109,3 @@ export function moderateAdminComment(token, commentId, action, reason) {
     body: JSON.stringify({ action, reason })
   });
 }
-
