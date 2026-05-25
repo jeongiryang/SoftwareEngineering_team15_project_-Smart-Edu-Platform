@@ -153,13 +153,13 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 
 유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성함.
 
-현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 학습 노트, 집중 시간/통계, 커뮤니티 기능은 구현 시 테스트를 추가함.
+현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 집중 시간/통계, 커뮤니티 기능은 구현 시 테스트를 추가함.
 
 ### 3.2 통합 테스트 전략
 
 통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
 
-현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 학습 노트, 집중 시간/통계, 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함.
+현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 집중 시간/통계, 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함.
 
 ### 3.3 회귀 테스트 전략
 
@@ -201,7 +201,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 다른 사용자 데이터 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 사용자별 데이터 접근 제한 | 통과 |
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석, fallback, noteId 소유권, 400/401/404/429 예외 검증 | `npm test` | mock/fallback 중심으로 실제 외부 AI API 호출 없이 검증 | 통과 |
 | TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
-| TC-INT-006 | API 통합 테스트 | 학습 노트 API | 노트 CRUD, 타인 노트 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 본인 소유 데이터 접근 제한 | 통과 |
+| TC-INT-009 | API 통합 테스트 | 학습 노트 API | 노트 생성/목록/상세/수정/삭제, invalid noteId, 빈 수정 body, 필수값 누락, tags 타입, 타인 노트 접근 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 본인 소유 데이터 접근 제한 | 통과 |
 
 ### 4.3 환경 검증 테스트 케이스
 
@@ -233,14 +233,15 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과 |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(9 suites / 116 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
 | AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers` | 통과 | `src/backend/tests/ai.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429 검증 포함 |
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
-| Study Note API test | `GET/POST/PATCH/DELETE /api/notes` | 통과 | `src/backend/tests/note.test.js`의 repository mock 기반 API 테스트. 미인증 접근, 타인 소유 노트 접근 차단, 검증 로직 검증 포함 |
+| Study Note API test | `GET/POST/PATCH/DELETE /api/notes` | 통과 | `src/backend/tests/note.test.js`의 repository mock 기반 API 테스트. 미인증 접근, invalid noteId 400, 존재하지 않는 노트 404, 타인 소유 노트 접근 차단, 필수값/tags/빈 수정 body 검증 포함 |
+| Study Note focused test | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 통과 | 학습 노트 API 단일 테스트 파일 기준 1 suite / 13 tests passed |
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
@@ -277,7 +278,7 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 
 관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 삭제(HIDE action), 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 정상 수행되는지 검증함. 잘못된 id는 400, 존재하지 않는 대상은 404로 처리되는지와 관리자 자기 자신의 정지/비활성화 차단, `passwordHash` 등 민감정보 미노출도 함께 확인함.
 
-학습 노트 API 테스트는 repository mock 기반으로 학습 노트 CRUD 기능과 타인 소유 데이터 격리(`authMiddleware`)에 대한 예외 처리를 확인함.
+학습 노트 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 학습 노트 CRUD 기능과 본인 소유 데이터 접근 제한을 확인함. 미인증 요청은 401, invalid noteId와 잘못된 입력은 400, 존재하지 않거나 다른 사용자 소유 노트는 404로 처리되는지 검증함. 자동 테스트는 실제 DB 쓰기 없이 수행함.
 
 
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
@@ -389,7 +390,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 사용자 프로필 | 백엔드 현재 사용자 조회와 프로필 조회/수정 API 테스트 완료. 프론트엔드 연동과 세부 프로필 확장은 후속 작성 | 진행 중 |
 | 개발용 seed 데이터 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성 script 추가. 실제 seed 실행은 개발용 DB branch에서만 수행 | 진행 중 |
 | 학습 일정/태스크 | 백엔드 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 사용자별 접근 제한 테스트 완료. 프론트엔드 연동과 알림 연계 테스트는 후속 작성 | 진행 중 |
-| 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 완료 |
+| 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 오답노트/복습 알림 연계는 후속 AI/알림 기능과 함께 별도 검토 | 완료 |
 | AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |

@@ -1,87 +1,192 @@
-const noteRepository = require('../repositories/note.repository');
-const { NotFoundError, ForbiddenError, BadRequestError } = require('../utils/errors');
+const {
+  createNote: createNoteRecord,
+  deleteNote: deleteNoteRecord,
+  findNoteByIdAndUserId,
+  findNotesByUserId,
+  updateNote: updateNoteRecord
+} = require('../repositories/note.repository');
+const { notFoundError, validationError } = require('../utils/errors');
+const { normalizeString, parsePositiveInteger, requireFields } = require('../utils/validators');
 
-class NoteService {
-  /**
-   * 1. 학습 노트 생성
-   */
-  async createNote(userId, noteData) {
-    const { title, content, subject, tags } = noteData;
+const NOTE_FIELDS = ['title', 'content', 'subject', 'tags'];
 
-    if (!title || !title.trim()) {
-      throw new BadRequestError('노트 제목은 필수 항목입니다.');
-    }
-    if (!content || !content.trim()) {
-      throw new BadRequestError('노트 내용은 필수 항목입니다.');
-    }
-
-    return await noteRepository.createNote({
-      userId,
-      title,
-      content,
-      subject: subject || null,
-      tags: tags || [],
-    });
-  }
-
-  /**
-   * 2. 사용자의 학습 노트 전체 조회
-   */
-  async getNotesByUserId(userId) {
-    return await noteRepository.findNotesByUserId(userId);
-  }
-
-  /**
-   * 3. 학습 노트 상세 조회
-   */
-  async getNoteById(noteId, userId) {
-    const note = await noteRepository.findNoteByIdAndUserId(noteId, userId);
-    
-    if (!note) {
-      throw new NotFoundError('학습 노트를 찾을 수 없거나 접근 권한이 없습니다.');
-    }
-    
-    return note;
-  }
-
-  /**
-   * 4. 학습 노트 수정
-   */
-  async updateNote(noteId, userId, updateData) {
-    // 수정 권한이 있는지 먼저 확인
-    await this.getNoteById(noteId, userId);
-
-    const { title, content, subject, tags } = updateData;
-    const dataToUpdate = {};
-
-    if (title !== undefined) {
-      if (!title.trim()) throw new BadRequestError('노트 제목은 비워둘 수 없습니다.');
-      dataToUpdate.title = title;
-    }
-    if (content !== undefined) {
-      if (!content.trim()) throw new BadRequestError('노트 내용은 비워둘 수 없습니다.');
-      dataToUpdate.content = content;
-    }
-    if (subject !== undefined) {
-      dataToUpdate.subject = subject || null;
-    }
-    if (tags !== undefined) {
-      dataToUpdate.tags = tags || [];
-    }
-
-    return await noteRepository.updateNote(noteId, dataToUpdate);
-  }
-
-  /**
-   * 5. 학습 노트 삭제
-   */
-  async deleteNote(noteId, userId) {
-    // 삭제 권한이 있는지 먼저 확인
-    await this.getNoteById(noteId, userId);
-    
-    await noteRepository.deleteNote(noteId);
-    return { message: '학습 노트가 성공적으로 삭제되었습니다.' };
+function assertPlainObject(payload, message) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw validationError(message);
   }
 }
 
-module.exports = new NoteService();
+function assertSupportedFields(payload, allowedFields, message) {
+  const unsupportedFields = Object.keys(payload).filter((field) => !allowedFields.includes(field));
+
+  if (unsupportedFields.length > 0) {
+    throw validationError(message, { fields: unsupportedFields });
+  }
+}
+
+function normalizeRequiredStringField(value, field) {
+  if (typeof value !== 'string' || normalizeString(value) === '') {
+    throw validationError(`${field} is required`, { field });
+  }
+
+  return normalizeString(value);
+}
+
+function normalizeOptionalStringField(value, field) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    throw validationError(`${field} must be a string or null`, { field });
+  }
+
+  const normalizedValue = normalizeString(value);
+
+  return normalizedValue === '' ? null : normalizedValue;
+}
+
+function normalizeTags(value) {
+  if (value === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    throw validationError('tags must be an array of strings', { field: 'tags' });
+  }
+
+  return value.map((tag, index) => {
+    if (typeof tag !== 'string' || normalizeString(tag) === '') {
+      throw validationError('tags must be an array of non-empty strings', {
+        field: 'tags',
+        index
+      });
+    }
+
+    return normalizeString(tag);
+  });
+}
+
+function sanitizeNote(note) {
+  if (!note) {
+    return null;
+  }
+
+  return {
+    id: note.id,
+    userId: note.userId,
+    title: note.title,
+    content: note.content,
+    subject: note.subject,
+    tags: note.tags,
+    createdAt: note.createdAt,
+    updatedAt: note.updatedAt
+  };
+}
+
+function buildNoteData(payload = {}, options = { partial: false }) {
+  assertPlainObject(payload, 'Study note payload must be an object');
+  assertSupportedFields(payload, NOTE_FIELDS, 'Study note payload contains unsupported fields');
+
+  if (!options.partial) {
+    requireFields(payload, ['title', 'content'], 'title and content are required');
+  }
+
+  const data = {};
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'title')) {
+    data.title = normalizeRequiredStringField(payload.title, 'title');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'content')) {
+    data.content = normalizeRequiredStringField(payload.content, 'content');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'subject')) {
+    data.subject = normalizeOptionalStringField(payload.subject, 'subject');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'tags')) {
+    data.tags = normalizeTags(payload.tags);
+  } else if (!options.partial) {
+    data.tags = [];
+  }
+
+  if (Object.keys(data).length === 0) {
+    throw validationError('Study note update requires at least one editable field', {
+      fields: NOTE_FIELDS
+    });
+  }
+
+  return data;
+}
+
+async function createNote(userId, payload) {
+  const data = buildNoteData(payload);
+  const note = await createNoteRecord(userId, data);
+
+  return sanitizeNote(note);
+}
+
+async function getNotesByUserId(userId) {
+  const notes = await findNotesByUserId(userId);
+
+  return notes.map(sanitizeNote);
+}
+
+async function getNoteById(noteId, userId) {
+  const id = parsePositiveInteger(noteId, 'noteId');
+  const note = await findNoteByIdAndUserId(id, userId);
+
+  if (!note) {
+    throw notFoundError('Study note not found');
+  }
+
+  return sanitizeNote(note);
+}
+
+async function updateNote(noteId, userId, payload) {
+  const id = parsePositiveInteger(noteId, 'noteId');
+  const note = await findNoteByIdAndUserId(id, userId);
+
+  if (!note) {
+    throw notFoundError('Study note not found');
+  }
+
+  const data = buildNoteData(payload, { partial: true });
+  const updatedNote = await updateNoteRecord(id, userId, data);
+
+  if (!updatedNote) {
+    throw notFoundError('Study note not found');
+  }
+
+  return sanitizeNote(updatedNote);
+}
+
+async function deleteNote(noteId, userId) {
+  const id = parsePositiveInteger(noteId, 'noteId');
+  const note = await findNoteByIdAndUserId(id, userId);
+
+  if (!note) {
+    throw notFoundError('Study note not found');
+  }
+
+  const deletedCount = await deleteNoteRecord(id, userId);
+
+  if (deletedCount === 0) {
+    throw notFoundError('Study note not found');
+  }
+
+  return { message: 'Study note deleted successfully' };
+}
+
+module.exports = {
+  NOTE_FIELDS,
+  buildNoteData,
+  createNote,
+  deleteNote,
+  getNoteById,
+  getNotesByUserId,
+  sanitizeNote,
+  updateNote
+};

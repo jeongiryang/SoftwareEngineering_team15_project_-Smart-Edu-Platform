@@ -1,68 +1,337 @@
-const request = require('supertest');
-const express = require('express');
-const noteRoutes = require('../src/routes/note.routes');
-const noteService = require('../src/services/note.service');
+const mockUsers = [];
+const mockNotes = [];
+let mockNextUserId = 1;
+let mockNextNoteId = 1;
 
-// 1. Express 앱 초기화 및 라우터 연결
-const app = express();
-app.use(express.json());
+jest.mock('../src/repositories/user.repository', () => ({
+  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+    const user = {
+      id: mockNextUserId,
+      email,
+      name,
+      passwordHash,
+      role: 'USER',
+      status: 'ACTIVE'
+    };
 
-// 2. authMiddleware 모킹 (항상 로그인된 사용자 ID: 1로 가정)
-jest.mock('../src/middleware/auth.middleware', () => ({
-  authMiddleware: (req, res, next) => {
-    req.user = { id: 1, email: 'test@example.com' };
-    next();
-  }
+    mockNextUserId += 1;
+    mockUsers.push(user);
+
+    return user;
+  }),
+  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null)
 }));
 
-// 3. noteService 모킹
-jest.mock('../src/services/note.service');
+jest.mock('../src/repositories/note.repository', () => ({
+  createNote: jest.fn(async (userId, data) => {
+    const now = new Date();
+    const note = {
+      id: mockNextNoteId,
+      userId,
+      subject: null,
+      tags: [],
+      ...data,
+      createdAt: now,
+      updatedAt: now
+    };
 
-app.use('/api/notes', noteRoutes);
+    mockNextNoteId += 1;
+    mockNotes.push(note);
 
-describe('Study Note API Tests', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+    return note;
+  }),
+  deleteNote: jest.fn(async (id, userId) => {
+    const index = mockNotes.findIndex(
+      (note) => note.id === Number(id) && note.userId === Number(userId)
+    );
+
+    if (index === -1) {
+      return 0;
+    }
+
+    mockNotes.splice(index, 1);
+
+    return 1;
+  }),
+  findNoteByIdAndUserId: jest.fn(async (id, userId) => mockNotes.find(
+    (note) => note.id === Number(id) && note.userId === Number(userId)
+  ) || null),
+  findNotesByUserId: jest.fn(async (userId) => mockNotes
+    .filter((note) => note.userId === Number(userId))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())),
+  updateNote: jest.fn(async (id, userId, data) => {
+    const note = mockNotes.find(
+      (item) => item.id === Number(id) && item.userId === Number(userId)
+    );
+
+    if (!note) {
+      return null;
+    }
+
+    Object.assign(note, data, { updatedAt: new Date() });
+
+    return note;
+  })
+}));
+
+const request = require('supertest');
+const app = require('../src/app');
+const noteRepository = require('../src/repositories/note.repository');
+const { createAuthHeader, createUserPayload } = require('./helpers/auth.helper');
+
+async function registerTestUser(overrides = {}) {
+  const payload = createUserPayload(overrides);
+  const response = await request(app)
+    .post('/api/auth/register')
+    .send(payload);
+
+  return {
+    payload,
+    token: response.body.token,
+    user: response.body.user
+  };
+}
+
+async function createTestNote(token, overrides = {}) {
+  const response = await request(app)
+    .post('/api/notes')
+    .set(createAuthHeader(token))
+    .send({
+      title: '  English grammar  ',
+      content: '  Past tense summary  ',
+      subject: 'English',
+      tags: ['grammar', 'review'],
+      ...overrides
+    });
+
+  return response.body.note;
+}
+
+function expectSafeNotePayload(payload) {
+  const serialized = JSON.stringify(payload);
+
+  expect(serialized).not.toContain('passwordHash');
+  expect(serialized).not.toContain('token');
+  expect(serialized).not.toContain('JWT');
+}
+
+beforeEach(() => {
+  mockUsers.length = 0;
+  mockNotes.length = 0;
+  mockNextUserId = 1;
+  mockNextNoteId = 1;
+  jest.clearAllMocks();
+});
+
+describe('Study Note API', () => {
+  it('rejects unauthenticated note requests', async () => {
+    const response = await request(app).get('/api/notes');
+
+    expect(response.status).toBe(401);
   });
 
-  describe('POST /api/notes', () => {
-    it('학습 노트를 성공적으로 생성하고 201을 반환해야 한다', async () => {
-      const mockNote = { id: 1, userId: 1, title: '테스트 노트', content: '내용' };
-      noteService.createNote.mockResolvedValue(mockNote);
+  it('creates a note for the current user without sensitive fields', async () => {
+    const { token, user } = await registerTestUser();
 
-      const response = await request(app)
-        .post('/api/notes')
-        .send({ title: '테스트 노트', content: '내용' });
+    const response = await request(app)
+      .post('/api/notes')
+      .set(createAuthHeader(token))
+      .send({
+        title: '  Math note  ',
+        content: '  Linear equation summary  ',
+        subject: 'Math',
+        tags: ['algebra', 'review']
+      });
 
-      expect(response.status).toBe(201);
-      expect(response.body.note).toEqual(mockNote);
-      expect(noteService.createNote).toHaveBeenCalledWith(1, expect.any(Object));
-    });
+    expect(response.status).toBe(201);
+    expect(response.body.note).toEqual(
+      expect.objectContaining({
+        userId: user.id,
+        title: 'Math note',
+        content: 'Linear equation summary',
+        subject: 'Math',
+        tags: ['algebra', 'review']
+      })
+    );
+    expectSafeNotePayload(response.body);
   });
 
-  describe('GET /api/notes', () => {
-    it('사용자의 학습 노트 목록을 반환해야 한다', async () => {
-      const mockNotes = [{ id: 1, title: '테스트 1' }, { id: 2, title: '테스트 2' }];
-      noteService.getNotesByUserId.mockResolvedValue(mockNotes);
+  it('rejects note creation when required fields are missing', async () => {
+    const { token } = await registerTestUser();
 
-      const response = await request(app).get('/api/notes');
+    const response = await request(app)
+      .post('/api/notes')
+      .set(createAuthHeader(token))
+      .send({
+        title: ' '
+      });
 
-      expect(response.status).toBe(200);
-      expect(response.body.notes).toEqual(mockNotes);
-      expect(noteService.getNotesByUserId).toHaveBeenCalledWith(1);
-    });
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
   });
 
-  describe('GET /api/notes/:noteId', () => {
-    it('특정 노트의 상세 정보를 반환해야 한다', async () => {
-      const mockNote = { id: 1, userId: 1, title: '테스트 노트' };
-      noteService.getNoteById.mockResolvedValue(mockNote);
+  it('rejects unsupported tags payloads', async () => {
+    const { token } = await registerTestUser();
 
-      const response = await request(app).get('/api/notes/1');
+    const response = await request(app)
+      .post('/api/notes')
+      .set(createAuthHeader(token))
+      .send({
+        title: 'Math',
+        content: 'Formula notes',
+        tags: 'math'
+      });
 
-      expect(response.status).toBe(200);
-      expect(response.body.note).toEqual(mockNote);
-      expect(noteService.getNoteById).toHaveBeenCalledWith(1, 1);
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('lists and reads only the current user notes', async () => {
+    const { token } = await registerTestUser();
+    const { token: otherToken } = await registerTestUser();
+    const note = await createTestNote(token);
+    await createTestNote(otherToken, {
+      title: 'Other user note',
+      content: 'Private content'
     });
+
+    const listResponse = await request(app)
+      .get('/api/notes')
+      .set(createAuthHeader(token));
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.notes).toHaveLength(1);
+    expect(listResponse.body.notes[0].id).toBe(note.id);
+    expectSafeNotePayload(listResponse.body);
+
+    const detailResponse = await request(app)
+      .get(`/api/notes/${note.id}`)
+      .set(createAuthHeader(token));
+
+    expect(detailResponse.status).toBe(200);
+    expect(detailResponse.body.note.id).toBe(note.id);
+    expectSafeNotePayload(detailResponse.body);
+  });
+
+  it('updates a note owned by the current user', async () => {
+    const { token } = await registerTestUser();
+    const note = await createTestNote(token);
+
+    const response = await request(app)
+      .patch(`/api/notes/${note.id}`)
+      .set(createAuthHeader(token))
+      .send({
+        title: '  Updated title  ',
+        content: 'Updated content',
+        subject: null,
+        tags: ['updated']
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.note).toEqual(
+      expect.objectContaining({
+        id: note.id,
+        title: 'Updated title',
+        content: 'Updated content',
+        subject: null,
+        tags: ['updated']
+      })
+    );
+  });
+
+  it('rejects empty note update payloads', async () => {
+    const { token } = await registerTestUser();
+    const note = await createTestNote(token);
+
+    const response = await request(app)
+      .patch(`/api/notes/${note.id}`)
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('deletes a note and returns 404 when it is read again', async () => {
+    const { token } = await registerTestUser();
+    const note = await createTestNote(token);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/notes/${note.id}`)
+      .set(createAuthHeader(token));
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.body).toEqual({
+      message: 'Study note deleted successfully'
+    });
+
+    const detailResponse = await request(app)
+      .get(`/api/notes/${note.id}`)
+      .set(createAuthHeader(token));
+
+    expect(detailResponse.status).toBe(404);
+  });
+
+  it.each(['abc', '0', '-1'])('rejects invalid noteId "%s"', async (noteId) => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get(`/api/notes/${noteId}`)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 404 for nonexistent notes', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/notes/999999')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('NOT_FOUND');
+  });
+
+  it('blocks other users from reading, updating, or deleting a note', async () => {
+    const { token: ownerToken } = await registerTestUser();
+    const { token: otherToken } = await registerTestUser();
+    const note = await createTestNote(ownerToken);
+
+    const readResponse = await request(app)
+      .get(`/api/notes/${note.id}`)
+      .set(createAuthHeader(otherToken));
+
+    expect(readResponse.status).toBe(404);
+
+    const updateResponse = await request(app)
+      .patch(`/api/notes/${note.id}`)
+      .set(createAuthHeader(otherToken))
+      .send({
+        title: 'Unauthorized update'
+      });
+
+    expect(updateResponse.status).toBe(404);
+    expect(noteRepository.updateNote).not.toHaveBeenCalledWith(
+      note.id,
+      expect.any(Number),
+      expect.any(Object)
+    );
+
+    const deleteResponse = await request(app)
+      .delete(`/api/notes/${note.id}`)
+      .set(createAuthHeader(otherToken));
+
+    expect(deleteResponse.status).toBe(404);
+    expect(noteRepository.deleteNote).not.toHaveBeenCalledWith(note.id, expect.any(Number));
+
+    const ownerReadResponse = await request(app)
+      .get(`/api/notes/${note.id}`)
+      .set(createAuthHeader(ownerToken));
+
+    expect(ownerReadResponse.status).toBe(200);
+    expect(ownerReadResponse.body.note.title).toBe(note.title);
   });
 });
