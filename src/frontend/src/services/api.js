@@ -15,12 +15,22 @@ async function parseResponse(response) {
 }
 
 export async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const method = options.method || 'GET';
+  const isGet = method.toUpperCase() === 'GET';
+  const url = isGet 
+    ? `${API_BASE_URL}${path}${path.includes('?') ? '&' : '?'}_t=${Date.now()}` 
+    : `${API_BASE_URL}${path}`;
+
+  const { headers: customHeaders, ...restOptions } = options;
+
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
-      ...(options.headers || {})
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      ...(customHeaders || {})
     },
-    ...options
+    ...restOptions
   });
 
   const data = await parseResponse(response);
@@ -53,3 +63,60 @@ export function getCurrentUser(token) {
     }
   });
 }
+
+export function getAdminUsers(token) {
+  return request('/admin/users', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function updateAdminUserStatus(token, userId, status, reason) {
+  return request(`/admin/users/${userId}/status`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ status, reason })
+  });
+}
+
+export function getAdminReports(token) {
+  return request('/admin/reports', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function moderateAdminPost(token, postId, action, reason) {
+  return request(`/admin/posts/${postId}/moderation`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ action, reason })
+  });
+}
+
+export function moderateAdminComment(token, commentId, action, reason) {
+  return request(`/admin/comments/${commentId}/moderation`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ action, reason })
+  });
+}
+
+export function moderateAdminChallenge(token, challengeId, action, reason) {
+  return request(`/admin/challenges/${challengeId}/moderation`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ action, reason })
+  });
+}
+

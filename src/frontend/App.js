@@ -3,12 +3,14 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import AdminScreen from './src/screens/AdminScreen';
 import { getCurrentUser } from './src/services/api';
 
 const screens = {
   login: LoginScreen,
   register: RegisterScreen,
-  dashboard: DashboardScreen
+  dashboard: DashboardScreen,
+  admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
@@ -38,7 +40,16 @@ export default function App() {
   const [initializing, setInitializing] = useState(true);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
-  const Screen = screens[currentScreen];
+
+  // Role-based navigation guard to block non-admins
+  const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
+  const Screen = screens[activeScreenName];
+
+  useEffect(() => {
+    if (currentScreen === 'admin' && user?.role !== 'ADMIN') {
+      setCurrentScreen('dashboard');
+    }
+  }, [currentScreen, user]);
 
   useEffect(() => {
     let isMounted = true;
