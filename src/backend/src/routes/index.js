@@ -5,6 +5,7 @@ const scheduleRoutes = require('./schedule.routes');
 const taskRoutes = require('./task.routes');
 const userRoutes = require('./user.routes');
 const aiRoutes = require('./ai.routes');
+const adminRoutes = require('./admin.routes');
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.use('/schedules', scheduleRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/users', userRoutes);
 router.use('/ai', aiRoutes);
+router.use('/admin', adminRoutes);
 
 module.exports = router;

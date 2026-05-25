@@ -101,54 +101,149 @@ async function seedDevelopmentData(prisma) {
     users.push(await upsertSeedUser(prisma, seedUser, passwordHash));
   }
 
-  // Seed study schedules and tasks for the development user
-  const devUser = await prisma.user.findUnique({
+  // Get the normal user to associate posts and challenges with
+  const normalUser = await prisma.user.findUnique({
     where: { email: 'dev.user@example.com' }
   });
 
-  if (devUser) {
-    // Clean up existing tasks and schedules for dev.user@example.com to avoid duplicates
-    await prisma.studyTask.deleteMany({ where: { userId: devUser.id } });
-    await prisma.studySchedule.deleteMany({ where: { userId: devUser.id } });
+  if (normalUser) {
+    await prisma.studyTask.deleteMany({ where: { userId: normalUser.id } });
+    await prisma.studySchedule.deleteMany({ where: { userId: normalUser.id } });
 
-    // Create a new schedule
     const startAt = new Date();
-    startAt.setDate(startAt.getDate() + 1); // tomorrow
+    startAt.setDate(startAt.getDate() + 1);
     const endAt = new Date(startAt);
     endAt.setHours(endAt.getHours() + 2);
 
-    const schedule = await prisma.studySchedule.create({
+    const studySchedule = await prisma.studySchedule.create({
       data: {
-        userId: devUser.id,
-        title: '소프트웨어공학 기말고사 준비',
-        subject: '소프트웨어공학',
+        userId: normalUser.id,
+        title: 'Software engineering final review',
+        subject: 'Software Engineering',
         startAt,
         endAt,
         priority: 'HIGH',
-        memo: '디자인 패턴 및 아키텍처 학습'
+        memo: 'Review architecture, design patterns, and API structure'
       }
     });
 
-    // Create tasks
     await prisma.studyTask.create({
       data: {
-        userId: devUser.id,
-        scheduleId: schedule.id,
-        title: '어댑터 패턴 코드 예제 풀기',
+        userId: normalUser.id,
+        scheduleId: studySchedule.id,
+        title: 'Practice adapter pattern example',
         status: 'TODO',
         priority: 'MEDIUM',
-        memo: 'Express 라우터 연결 부분 복습'
+        memo: 'Review Express router connection flow'
       }
     });
 
     await prisma.studyTask.create({
       data: {
-        userId: devUser.id,
-        scheduleId: schedule.id,
-        title: 'Prisma 트랜잭션 공식 문서 요약',
+        userId: normalUser.id,
+        scheduleId: studySchedule.id,
+        title: 'Summarize Prisma transaction guide',
         status: 'DONE',
         priority: 'HIGH',
-        memo: '원자성 보장 파트 중심'
+        memo: 'Focus on atomicity and rollback behavior'
+      }
+    });
+
+    // 1. Seed some posts (one reported, one normal)
+    const post1 = await prisma.boardPost.upsert({
+      where: { id: 991 },
+      update: {
+        title: '학습 질문 게시글입니다.',
+        content: '소프트웨어공학 디자인 패턴에 대해 질문이 있습니다.',
+        category: 'QUESTION',
+        reported: false,
+        userId: normalUser.id
+      },
+      create: {
+        id: 991,
+        title: '학습 질문 게시글입니다.',
+        content: '소프트웨어공학 디자인 패턴에 대해 질문이 있습니다.',
+        category: 'QUESTION',
+        reported: false,
+        userId: normalUser.id
+      }
+    });
+
+    const post2 = await prisma.boardPost.upsert({
+      where: { id: 992 },
+      update: {
+        title: '부적절한 광고성 게시글',
+        content: '여기에 광고를 작성합니다. 신고해주세요.',
+        category: 'FREE',
+        reported: true,
+        userId: normalUser.id
+      },
+      create: {
+        id: 992,
+        title: '부적절한 광고성 게시글',
+        content: '여기에 광고를 작성합니다. 신고해주세요.',
+        category: 'FREE',
+        reported: true,
+        userId: normalUser.id
+      }
+    });
+
+    // 2. Seed some comments (one reported, one normal on post1)
+    await prisma.comment.upsert({
+      where: { id: 991 },
+      update: {
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '좋은 질문이네요. 저도 궁금합니다.',
+        reported: false
+      },
+      create: {
+        id: 991,
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '좋은 질문이네요. 저도 궁금합니다.',
+        reported: false
+      }
+    });
+
+    await prisma.comment.upsert({
+      where: { id: 992 },
+      update: {
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '스팸/욕설이 섞인 부적절한 댓글입니다.',
+        reported: true
+      },
+      create: {
+        id: 992,
+        postId: post1.id,
+        userId: normalUser.id,
+        content: '스팸/욕설이 섞인 부적절한 댓글입니다.',
+        reported: true
+      }
+    });
+
+    // 3. Seed a study challenge
+    await prisma.studyChallenge.upsert({
+      where: { id: 991 },
+      update: {
+        creatorId: normalUser.id,
+        title: '매일 1시간 집중 챌린지',
+        description: '하루에 최소 60분 집중하여 공부하는 챌린지입니다.',
+        goalMinutes: 60,
+        startDate: new Date('2026-05-01T00:00:00Z'),
+        endDate: new Date('2026-06-01T00:00:00Z'),
+        status: 'IN_PROGRESS'
+      },
+      create: {
+        id: 991,
+        creatorId: normalUser.id,
+        title: '매일 1시간 집중 챌린지',
+        description: '하루에 최소 60분 집중하여 공부하는 챌린지입니다.',
+        goalMinutes: 60,
+        startDate: new Date('2026-05-01T00:00:00Z'),
+        endDate: new Date('2026-06-01T00:00:00Z'),
+        status: 'IN_PROGRESS'
       }
     });
   }

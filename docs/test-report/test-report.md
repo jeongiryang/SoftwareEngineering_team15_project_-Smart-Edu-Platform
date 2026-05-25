@@ -73,7 +73,6 @@
 - 프론트엔드 Expo 설정 확인 및 Web export 검증
 - 루트 통합 검증 명령 실행 결과 기록
 - 인증, 사용자/프로필, 학습 일정/칸반 태스크 API 테스트 결과 기록
-- AI 학습 지원 API(질문, 추천, 요약, 오답 분석) 통합 테스트 결과 기록
 - 향후 기능 구현 시 추가할 유닛/API/통합 테스트 계획
 
 ### 1.4 테스트 제외 범위
@@ -82,7 +81,7 @@
 
 - 인증/회원가입/로그인 API 상세 테스트
 - 학습 일정/태스크 프론트엔드 연동 및 알림 연계 테스트
-- 학습 노트 API 테스트
+- 학습 노트/AI 기능 테스트
 - 집중 시간/통계 테스트
 - 커뮤니티/관리자 기능 테스트
 - 프론트엔드 화면 단위 테스트
@@ -187,8 +186,6 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-BE-002 | 유닛 테스트 | 공통 validation helper | 필수값, 이메일 형식, 비밀번호 길이 검증 helper 확인 | `npm test` | 공통 validation error 처리 | 통과 |
 | TC-BE-003 | 유닛 테스트 | 공통 error/response helper | AppError, 공통 응답 helper, async handler 동작 확인 | `npm test` | status code, error code, payload 처리 일관성 유지 | 통과 |
 | TC-SCHEDULE-001 | 유닛/API 테스트 | 일정/태스크 API | 일정 생성, 수정, 삭제와 태스크 생성, 수정, 상태 변경 검증 | `npm test` | 입력값에 따른 정상 처리 및 사용자별 접근 제한 | 통과 |
-| TC-AI-001 | 유닛/API 테스트 | AI 질문 API | 필수값, 글자 수 초과, `allowTruncate`, Fallback, Gemini mock 성공 검증 | `npx jest tests/ai.test.js` | 401/400/201 응답 및 `question.answer` 반환 | 통과 |
-| TC-AI-002 | 유닛/API 테스트 | AI 추천/요약/오답 API | 추천·요약·오답 분석, 글자 수 검증, Rate Limiter(6회째 429) 검증 | `npx jest tests/ai.test.js` | 401/400/200/201 응답 및 JSON 필드 구조 유지 | 통과 |
 | TC-FOCUS-001 | 유닛 테스트 | 집중 시간 계산 | `durationMs` 기준 집중 시간 계산 검증 | 후속 작성 | 밀리초 단위 저장 기준 유지 | 예정 |
 | TC-STAT-001 | 유닛 테스트 | 통계 계산 | 학습 시간, 완료율, 히트맵 집계 검증 | 후속 작성 | 통계 계산 결과 일관성 유지 | 예정 |
 
@@ -202,8 +199,9 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-007 | 보안 검증 | 인증 API 응답 | 회원가입, 로그인, 현재 사용자 조회 응답의 `passwordHash` 미노출 확인 | `npm test` | 응답에 비밀번호 해시가 포함되지 않음 | 통과 |
 | TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/200 응답, 프로필 수정 반영, `passwordHash` 미노출 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 다른 사용자 데이터 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 사용자별 데이터 접근 제한 | 통과 |
-| TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석 API 검증 (19케이스) | `npm test`, `npx jest tests/ai.test.js` | 인증·검증·Fallback·Rate Limit 동작 확인 | 통과 |
-| TC-INT-005 | API 통합 테스트 | 커뮤니티/관리자 API | 게시글, 댓글, 신고, 제재 흐름 검증 | 후속 작성 | 권한별 접근 제어 확인 | 예정 |
+| TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 퀴즈 생성 흐름 검증 | 후속 작성 | mock 또는 테스트 key 기준 응답 검증 | 예정 |
+| TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
+
 
 ### 4.3 환경 검증 테스트 케이스
 
@@ -233,13 +231,13 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest 7 suites, **64 tests passed** (2026-05-25 기준) |
+| Backend test | `npm test` | 통과 | Jest + Supertest health check |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
-| AI API test | `POST /api/ai/questions`, `recommendations`, `summary`, `wrong-answers` | 통과 | `src/backend/tests/ai.test.js` **19 tests passed** — 인증, validation, truncate, Fallback, rate limit, Gemini mock |
-| AI Gemini live smoke | `gemini-2.5-flash` generateContent | 통과 | 로컬 `AI_API_KEY` 환경에서 HTTP 200 및 실제 한글 답변 확인 (`thinkingBudget: 0` 적용, 2026-05-25 재검증) |
+| Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
+
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
@@ -256,8 +254,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/api-foundation.test.js`
 - `src/backend/tests/user-profile.test.js`
 - `src/backend/tests/schedule-task.test.js`
-- `src/backend/tests/ai.test.js`
-- `src/backend/tests/seed-dev.test.js`
+- `src/backend/tests/admin.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
 
@@ -267,11 +264,12 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
 
+관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 삭제(HIDE action), 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 정상 수행되는지 검증함. 잘못된 id는 400, 존재하지 않는 대상은 404로 처리되는지와 관리자 자기 자신의 정지/비활성화 차단, `passwordHash` 등 민감정보 미노출도 함께 확인함.
+
+
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
 
 프론트엔드 인증 화면 연결은 LoginScreen/RegisterScreen/DashboardScreen과 frontend API service 기준으로 확인함. 로그인/회원가입 성공 시 token 저장, 앱 시작 시 `GET /api/auth/me` 현재 사용자 확인, 로그아웃 시 token 삭제 흐름을 반영함. 자동 화면 테스트는 아직 없으며, 이번 단계에서는 Expo config와 Web export 검증으로 빌드 가능성을 확인함. 실제 JWT token 원문은 기록하지 않음.
-
-AI 학습 지원 API 테스트는 `src/backend/tests/ai.test.js` 기준으로 repository mock을 사용해 HTTP 요청/응답, 필수값·글자 수 검증, `allowTruncate`, Simulated Fallback, 분당 5회 Rate Limiter(6회째 429), Gemini mock 성공 경로를 확인함. Jest 실행 시 `AI_API_KEY`를 비우는 설계이므로 대부분 Fallback 경로가 호출되며, 이는 CI·오프라인 테스트를 위한 의도된 동작임. 로컬에서 `AI_API_KEY`가 설정된 경우 `gemini-2.5-flash`로 실제 Gemini 응답(HTTP 200)을 별도 확인함. API key 원문과 모델 호출 URL의 key 파라미터는 기록하지 않음.
 
 ---
 
@@ -331,15 +329,14 @@ AI 학습 지원 API 테스트는 `src/backend/tests/ai.test.js` 기준으로 re
 
 | 항목 | 내용 |
 |---|---|
-| 대상 기능 | AI 학습 지원 API |
-| 테스트 파일 | `src/backend/tests/ai.test.js` |
+| 대상 기능 | 관리자 기능 API |
+| 테스트 파일 | `src/backend/tests/admin.test.js` |
 | 도구 | Jest, Supertest |
-| AI 활용 방식 | AI를 활용해 AI 질문, 추천, 요약, 오답 분석 API의 예외 케이스(속도 제한, 에러 복구) 및 모의 응답 데이터 검증 설계를 구상하고, 팀원이 통합 테스트에 반영 |
-| 실행 명령 | `npm test` 또는 `npx jest tests/ai.test.js` |
-| 결과 | 통과 (19 tests, 2026-05-24) |
-| 비고 | 기본 Gemini 모델 `gemini-2.5-flash`, `gemini-1.5-flash` 404 이슈 해결 후 실제 응답 연동 확인 |
+| AI 활용 방식 | AI를 활용해 관리자(ADMIN) 권한 제한 및 트랜잭션 예외 상황(잘못된 제재 상태 등)에 대한 테스트 케이스를 누락 없이 도출하고 Mock Repository를 설계함 |
+| 실행 명령 | `npm test` |
+| 결과 | 통과 |
 
-향후 학습 노트, 커뮤니티/관리자 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
+향후 인증, 일정/태스크, 학습 노트, AI 학습 지원, 커뮤니티 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
 
 ---
 
@@ -355,10 +352,10 @@ AI 학습 지원 API 테스트는 `src/backend/tests/ai.test.js` 기준으로 re
 | 개발용 seed 데이터 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성 script 추가. 실제 seed 실행은 개발용 DB branch에서만 수행 | 진행 중 |
 | 학습 일정/태스크 | 백엔드 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 사용자별 접근 제한 테스트 완료. 프론트엔드 연동과 알림 연계 테스트는 후속 작성 | 진행 중 |
 | 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
-| AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API 검증 및 Rate Limiter 작동 테스트 | 완료 |
+| AI 학습 지원 | AI 질의, 추천, 퀴즈 생성 API mock 테스트 | 예정 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
-| 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 예정 |
+| 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 완료 |
 | 프론트엔드 | 인증 화면 API service 연동, Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
 | 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 | 예정 |
 
@@ -372,8 +369,8 @@ AI 학습 지원 API 테스트는 `src/backend/tests/ai.test.js` 기준으로 re
   - `src/backend/tests/api-foundation.test.js`
   - `src/backend/tests/user-profile.test.js`
   - `src/backend/tests/schedule-task.test.js`
-  - `src/backend/tests/ai.test.js`
   - `src/backend/tests/seed-dev.test.js`
+  - `src/backend/tests/admin.test.js`
   - `src/backend/tests/helpers/auth.helper.js`
   - `src/backend/tests/helpers/assert.helper.js`
   - `src/backend/package.json`
@@ -385,6 +382,10 @@ AI 학습 지원 API 테스트는 `src/backend/tests/ai.test.js` 기준으로 re
   - `src/backend/prisma/migrations/20260521201109_init/migration.sql`
   - `src/backend/prisma/migrations/migration_lock.toml`
   - `src/backend/scripts/seed-dev.js`
+  - `src/backend/src/repositories/admin.repository.js`
+  - `src/backend/src/services/admin.service.js`
+  - `src/backend/src/controllers/admin.controller.js`
+  - `src/backend/src/routes/admin.routes.js`
 
 - 관련 문서/이슈
   - `docs/design/design-document.md`
