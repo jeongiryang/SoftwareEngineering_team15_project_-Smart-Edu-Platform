@@ -20,6 +20,7 @@
    - [1.2 테스트 보고서 작성 기준](#12-테스트-보고서-작성-기준)
    - [1.3 테스트 범위](#13-테스트-범위)
    - [1.4 테스트 제외 범위](#14-테스트-제외-범위)
+   - [1.5 2단계/3단계 진행도 재점검](#15-2단계3단계-진행도-재점검)
 2. [테스트 환경](#2-테스트-환경)
    - [2.1 개발 환경](#21-개발-환경)
    - [2.2 실행 환경](#22-실행-환경)
@@ -72,7 +73,7 @@
 - Prisma Client 생성 및 초기 migration 적용 결과 기록
 - 프론트엔드 Expo 설정 확인 및 Web export 검증
 - 루트 통합 검증 명령 실행 결과 기록
-- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 관리자, AI 학습 지원 API 테스트 결과 기록
+- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 학습 노트, 관리자, AI 학습 지원 API 테스트 결과 기록
 - 프론트엔드 인증 화면, 관리자 화면, AI 학습 지원 화면 수동 확인 결과 기록
 - 향후 기능 구현 시 추가할 유닛/API/통합 테스트 계획
 
@@ -81,12 +82,40 @@
 현재 미구현 기능 또는 자동화가 아직 준비되지 않은 항목은 후속 작성 범위로 둠.
 
 - 학습 일정/태스크 프론트엔드 연동 및 알림 연계 테스트
+- 학습 노트 프론트엔드 연동 테스트
 - 집중 시간/통계 테스트
 - 커뮤니티 기능 테스트
 - 프론트엔드 화면 단위 테스트
 - 관리자 화면과 AI 화면의 자동 UI 테스트
 - 정량 커버리지 측정 결과
 - 배포 환경 smoke test
+- 최종보고서, 발표자료, 데모 영상은 3단계 산출물로 별도 작성
+
+---
+
+### 1.5 2단계/3단계 진행도 재점검
+
+1단계 요구사항/설계 산출물은 완료 상태로 보고, 이 문서는 2단계 구현/테스트와 3단계 제출 준비 관점에서 남은 작업을 정리함. 요구사항 문서와 설계 문서에 포함된 기능은 계획된 기능으로 유지하며, 현재 main 구현 여부만 완료/부분 구현/미구현으로 구분함.
+
+| 구분 | 현재 상태 | 남은 작업 |
+|---|---|---|
+| 1단계 요구사항/설계 | 완료 | 최종 제출 전 링크, 이미지, 문서 정합성 재검토 |
+| 2단계 구현/테스트 | 진행 중 | 미구현 기능 API/화면 구현, coverage 결과, 프론트 자동 테스트, 배포 전 smoke test |
+| 3단계 제출/발표 | 미착수 | 최종보고서, 배포 자료, 설치/사용 가이드, 5~10분 데모 영상, 발표자료, 데모 스크립트 |
+
+| 기능 | docs상 계획 여부 | 현재 상태 | 근거 | 후속 작업 |
+|---|---|---|---|---|
+| 로그인/회원가입/사용자 인증 | 계획됨 | 완료 | Auth API, 프론트 인증 화면, 테스트 통과 | 화면 자동 테스트와 배포 smoke test |
+| 사용자 프로필 | 계획됨 | 부분 구현 | User/Profile API 테스트 완료 | 프로필 화면 연결 |
+| 학습 일정 API | 계획됨 | 완료 | Schedule API 테스트 완료 | 프론트 일정 화면 연결 |
+| 태스크/칸반 API | 계획됨 | 완료 | Task API 테스트 완료 | 칸반 프론트 화면 연결 |
+| 학습 노트 API | 계획됨 | 완료 | PR #81, 9 suites / 116 tests passed | 학습 노트 프론트 화면 연결 |
+| AI 학습 지원 API/화면 | 계획됨 | 부분 구현 | AI MVP API, AI 화면 수동 확인 | 실제 질문 품질, 비용/한도, 개인화 고도화 |
+| 관리자 API/화면 | 계획됨 | 완료 | 관리자 API 테스트, 관리자 화면 수동 확인 | 커뮤니티 신고/챌린지 확장 연동 |
+| 집중 시간/통계/히트맵 | 계획됨 | 미구현 | schema 초안 존재, route 없음 | API, 화면, 테스트 구현 |
+| 커뮤니티 게시판 | 계획됨 | 미구현 | 이식 계획 문서와 schema 초안 존재 | 게시글/댓글/신고 API와 화면 구현 |
+| 랭킹/챌린지 | 계획됨 | 부분 구현 | schema와 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
+| TTS/STT/접근성 UI/외부 캘린더/앱 차단 | 계획됨 | 미구현 | 요구사항/설계 문서에 계획됨 | 구현 가능 범위 확정 후 별도 Issue/PR |
 
 ---
 
@@ -242,6 +271,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
 | Study Note API test | `GET/POST/PATCH/DELETE /api/notes` | 통과 | `src/backend/tests/note.test.js`의 repository mock 기반 API 테스트. 미인증 접근, invalid noteId 400, 존재하지 않는 노트 404, 타인 소유 노트 접근 차단, 필수값/tags/빈 수정 body 검증 포함 |
 | Study Note focused test | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 통과 | 학습 노트 API 단일 테스트 파일 기준 1 suite / 13 tests passed |
+| Documentation diff check | `git diff --check` | 통과 | API 명세와 테스트 보고서 최신화 작업 기준 whitespace 오류 없음 |
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
@@ -252,6 +282,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | AI screen integration | PR #76 AI 학습 지원 화면 연결 | 통과 | 로그인, Dashboard, 기존 관리자 화면 유지, AI 화면 진입, 질문/응답 표시, 한국어 응답, 에러/fallback 표시, 로그아웃, 프론트 외부 AI API 직접 호출 없음 수동 확인 |
 | PR #75 자동 검증 | 관리자 화면 연결 PR 검증 | 통과 | `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`(8 suites / 103 tests passed), `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate` 통과 |
 | PR #76 자동 검증 | AI 학습 지원 화면 연결 PR 검증 | 통과 | 최신 main 반영 및 #75 변경 보존 후 `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`(8 suites / 103 tests passed), `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate` 통과 |
+| PR #81 자동 검증 | 학습 노트 CRUD API PR 검증 | 통과 | `git diff --check origin/main...origin/feature/study-note-api`, `npm run validate:prisma`, `npm test`(9 suites / 116 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js`(1 suite / 13 tests passed), `npm run check` 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -265,6 +296,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/ai.test.js`
 - `src/backend/tests/admin.test.js`
 - `src/backend/tests/note.test.js`
+- `src/backend/tests/seed-dev.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
 
@@ -302,7 +334,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 구분 | 도구 | 측정 항목 | 현재 결과 | 비고 |
 |---|---|---|---|---|
 | Backend | Jest | Statements / Branches / Functions / Lines | 측정 예정 | 기능 테스트 추가 후 측정 |
-| API Integration | Jest + Supertest | API 흐름별 통합 테스트 통과율 | 측정 예정 | 현재 구현 API 기준으로 측정하고, 노트/커뮤니티 API 구현 시 확장 |
+| API Integration | Jest + Supertest | API 흐름별 통합 테스트 통과율 | 측정 예정 | 현재 구현 API 기준으로 측정하고, 집중 시간/통계 및 커뮤니티 API 구현 시 확장 |
 | Frontend | 추후 결정 | 화면/컴포넌트 테스트 | 측정 예정 | 구현 범위 확정 후 결정 |
 
 커버리지 수치는 실제 측정 전까지 작성하지 않음.
@@ -311,7 +343,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 
 ## 7. 버그 로그
 
-현재까지 기능 구현 단계 전이므로 등록된 기능 버그는 없음.
+현재 main 기준으로 문서에 등록된 미해결 기능 버그는 없음.
 
 환경 검증 과정에서 확인한 주의 사항은 다음과 같이 누적함.
 
@@ -375,7 +407,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 실행 명령 | `npm test` |
 | 결과 | 통과 |
 
-향후 인증, 일정/태스크, 학습 노트, AI 학습 지원, 커뮤니티 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
+향후 집중 시간/통계, 커뮤니티, 랭킹/챌린지, 프론트 화면 자동 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
 
 ---
 
@@ -390,12 +422,14 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 사용자 프로필 | 백엔드 현재 사용자 조회와 프로필 조회/수정 API 테스트 완료. 프론트엔드 연동과 세부 프로필 확장은 후속 작성 | 진행 중 |
 | 개발용 seed 데이터 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성 script 추가. 실제 seed 실행은 개발용 DB branch에서만 수행 | 진행 중 |
 | 학습 일정/태스크 | 백엔드 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 사용자별 접근 제한 테스트 완료. 프론트엔드 연동과 알림 연계 테스트는 후속 작성 | 진행 중 |
-| 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 오답노트/복습 알림 연계는 후속 AI/알림 기능과 함께 별도 검토 | 완료 |
+| 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 학습 노트 프론트 화면과 오답노트/복습 알림 연계는 후속 기능과 함께 별도 검토 | 완료 |
 | AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
 | 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
+| 2단계 품질 보강 | coverage 결과, 프론트 자동 테스트, E2E 또는 수동 시나리오 테스트, 배포 전 smoke test | 예정 |
+| 3단계 산출물 검증 | 최종보고서, 설치/사용 가이드, 데모 영상, 발표자료, 데모 스크립트 검토 | 예정 |
 | 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 | 예정 |
 
 ---
