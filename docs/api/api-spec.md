@@ -867,22 +867,217 @@ npm run seed:dev
 | `PATCH` | `/api/notes/:noteId` | 학습 노트 수정 |
 | `DELETE` | `/api/notes/:noteId` | 학습 노트 삭제 |
 
-### 9.2 AI 학습 지원 API 예정
+### 9.2 AI 학습 지원 API
 
-상태: 예정
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Base Path | `/api/ai` |
+| 인증 | 모든 엔드포인트 JWT 필요 |
+| 외부 연동 | Google Generative Language API (`gemini-2.5-flash`, `.env`의 `AI_MODEL_NAME`으로 변경 가능) |
+| 환경 변수 | `AI_API_KEY`(필수), `AI_MODEL_NAME`(선택) |
+| 속도 제한 | 사용자별 분당 최대 5회 |
+| Fallback | API Key 미설정 또는 외부 호출 실패 시 Simulated 응답 (CI·오프라인 테스트용) |
 
-예상 endpoint:
+보완 기준:
 
-| Method | Endpoint | 설명 |
+- `AI_API_KEY`는 백엔드 `.env`에서만 사용하고, 프론트엔드/문서/로그에는 실제 값을 노출하지 않음.
+- `AI_API_KEY`가 없거나 provider 호출이 실패해도 서버가 중단되지 않고 fallback 응답을 반환함.
+- 자동 테스트는 mock/fallback 중심으로 수행하며 실제 외부 AI API를 호출하지 않음.
+- rate limit은 MVP용 in-memory 방식이며, production 수준 분산 rate limit은 후속 개선 범위임.
+- AI MVP API는 기존 Prisma schema 기준으로 동작하며 schema/migration 변경 없음.
+- `noteId`를 받는 API는 현재 로그인 사용자 소유 학습 노트만 허용함.
+- invalid `noteId`는 `400 VALIDATION_ERROR`, 존재하지 않거나 다른 사용자 소유 `noteId`는 `404 NOT_FOUND`로 처리함.
+
+공통 입력 규칙:
+
+| 항목 | 내용 |
+|---|---|
+| 질문/문제/답안 최대 길이 | 1,000자 (`question`, `problem`, `userAnswer`) |
+| 요약 본문 최대 길이 | 3,000자 (`content`) |
+| 초과 시 기본 동작 | `400 VALIDATION_ERROR` (`details.currentLength`, `details.maxLength` 포함) |
+| 초과 시 선택 동작 | `allowTruncate: true`이면 한도까지만 잘라 AI 호출, 응답에 `isTruncated: true` |
+
+### 9.2.1 AI 질문 및 응답
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/ai/questions` |
+| 인증 | 필요 |
+| 설명 | 사용자의 학습 관련 질문을 Gemini에 보내 답변을 받고, `AIQuestion`에 저장한 뒤 반환함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `question` | string | 예 | 질문 내용 (최대 1,000자) |
+| `noteId` | number 또는 null | 아니오 | 관련 학습 노트 ID |
+| `allowTruncate` | boolean | 아니오 | `true`이면 1,000자 초과 시 앞부분만 사용 |
+
+Request 예시:
+
+```json
+{
+  "question": "Python에서 리스트와 튜플의 차이점은?",
+  "noteId": null
+}
+```
+
+Response 예시:
+
+```json
+{
+  "question": {
+    "id": 1,
+    "userId": 1,
+    "noteId": null,
+    "question": "Python에서 리스트와 튜플의 차이점은?",
+    "answer": "파이썬에서 리스트와 튜플은 모두 여러 값을 저장하지만, 가장 큰 차이점은 변경 가능성입니다. 리스트는 가변(mutable)이고 튜플은 불변(immutable)입니다.",
+    "subject": null,
+    "createdAt": "2026-05-24T12:00:00.000Z",
+    "isTruncated": false,
+    "originalLength": 23,
+    "maxLength": 1000
+  }
+}
+```
+
+### 9.2.2 학습 추천 생성
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/ai/recommendations` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자의 학습 일정(최근 5개)과 칸반 태스크(최근 10개)를 분석해 맞춤 팁·추천 과목을 생성하고 `AIRecommendation`에 저장한 뒤 반환함 |
+
+Request Body: 없음
+
+Response 예시:
+
+```json
+{
+  "recommendation": {
+    "id": 1,
+    "userId": 1,
+    "basisJson": {
+      "scheduleCount": 2,
+      "taskCount": 2,
+      "recentSchedules": [
+        { "title": "Math study", "subject": "Math" }
+      ],
+      "recentTasks": [
+        { "title": "Solve algebra", "status": "TODO" }
+      ]
+    },
+    "recommendationJson": {
+      "tips": [
+        "집중력이 좋은 오전 시간에 Algebra 공부를 배치하세요.",
+        "미완료된 태스크(Solve algebra)를 오늘 완료하는 것을 최우선으로 잡으세요."
+      ],
+      "recommendedSubject": "Math 복습 및 정리"
+    },
+    "createdAt": "2026-05-24T12:00:00.000Z"
+  }
+}
+```
+
+### 9.2.3 텍스트 요약
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/ai/summary` |
+| 인증 | 필요 |
+| 설명 | 학습용 텍스트를 3가지 핵심 불릿 포인트로 요약해 반환함 (DB 저장 없음) |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `content` | string | 예 | 요약할 텍스트 본문 (최대 3,000자) |
+| `allowTruncate` | boolean | 아니오 | `true`이면 3,000자 초과 시 앞부분만 사용 |
+
+Request 예시:
+
+```json
+{
+  "content": "운영체제(OS)는 컴퓨터 하드웨어와 사용자 사이에서 인터페이스 역할을 하는 시스템 소프트웨어입니다."
+}
+```
+
+Response 예시:
+
+```json
+{
+  "summary": "- 운영체제(OS)는 컴퓨터 하드웨어와 사용자 간의 인터페이스 역할을 함\n- 프로세스, 메모리, 파일 시스템, 입출력 장치 등 컴퓨터 자원을 관리함\n- 시스템 소프트웨어로서 전반적인 하드웨어 자원의 효율적인 분배를 담당함",
+  "isTruncated": false,
+  "originalLength": 59,
+  "maxLength": 3000
+}
+```
+
+### 9.2.4 오답노트 및 취약점 분석
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/ai/wrong-answers` |
+| 인증 | 필요 |
+| 설명 | 오답 문항과 사용자 답안을 분석해 해설·취약 유형을 도출하고 `WrongAnswerNote`에 저장한 뒤 반환함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `problem` | string | 예 | 오답 문제 본문 (최대 1,000자) |
+| `userAnswer` | string 또는 null | 아니오 | 사용자가 적었던 틀린 답안 (최대 1,000자) |
+| `noteId` | number 또는 null | 아니오 | 관련 학습 노트 ID |
+| `allowTruncate` | boolean | 아니오 | `true`이면 문제/답안을 각각 1,000자까지만 사용 |
+
+Request 예시:
+
+```json
+{
+  "problem": "x + 5 = 12 일 때, x의 값을 구하시오.",
+  "userAnswer": "x = 8",
+  "noteId": null
+}
+```
+
+Response 예시:
+
+```json
+{
+  "wrongAnswerNote": {
+    "id": 1,
+    "userId": 1,
+    "noteId": null,
+    "problem": "x + 5 = 12 일 때, x의 값을 구하시오.",
+    "userAnswer": "x = 8",
+    "explanation": "[연산 실수 분석] x + 5 = 12에서 양변에 5를 빼면 x = 7입니다. 8로 답을 도출한 것은 단순 덧셈/뺄셈 계산에서의 연산 실수입니다.",
+    "weakType": "연산 실수",
+    "createdAt": "2026-05-24T12:00:00.000Z",
+    "isProblemTruncated": false,
+    "originalProblemLength": 15,
+    "maxLength": 1000
+  }
+}
+```
+
+### 9.2.5 AI API 주요 에러
+
+| Status | Code | 발생 조건 |
 |---|---|---|
-| `POST` | `/api/ai/questions` | AI 학습 질의 |
-| `POST` | `/api/ai/recommendations` | 학습 추천 생성 |
-| `POST` | `/api/ai/quizzes` | AI 기반 퀴즈 생성 |
-
-주의:
-
-- 실제 AI API key는 문서에 작성하지 않음.
-- 테스트 단계에서는 mock 또는 테스트용 설정을 우선 검토함.
+| `400` | `VALIDATION_ERROR` | 필수 값 누락, 글자 수 초과, 잘못된 데이터 구조 |
+| `401` | `UNAUTHORIZED` | 인증 실패 및 토큰 유효하지 않음 |
+| `404` | `NOT_FOUND` | `noteId`가 존재하지 않거나 현재 사용자 소유 학습 노트가 아님 |
+| `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
 
 ### 9.3 집중 시간/통계 API 예정
 
@@ -1232,7 +1427,8 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile 등 |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, AI 등 |
+| `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
 | `npm run test:db` | 실제 DB 연결 smoke test | production DB에서 실행 금지 |
@@ -1252,3 +1448,4 @@ Response 예시:
 | 2026-05 | API 명세서 초안 작성, Health/Auth/User/Profile 구현 API 기준 반영 |
 | 2026-05 | Schedule/Task API 구현 완료 기준으로 명세 갱신 |
 | 2026-05 | 프론트엔드 로그인/회원가입 화면의 Auth API 연결 상태 반영 |
+| 2026-05-24 | AI 학습 지원 API(§9.2) 구현 완료 반영, 기본 모델 `gemini-2.5-flash`, Schedule/Task API와 동일한 표 양식으로 정리 |

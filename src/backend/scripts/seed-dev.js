@@ -107,6 +107,48 @@ async function seedDevelopmentData(prisma) {
   });
 
   if (normalUser) {
+    await prisma.studyTask.deleteMany({ where: { userId: normalUser.id } });
+    await prisma.studySchedule.deleteMany({ where: { userId: normalUser.id } });
+
+    const startAt = new Date();
+    startAt.setDate(startAt.getDate() + 1);
+    const endAt = new Date(startAt);
+    endAt.setHours(endAt.getHours() + 2);
+
+    const studySchedule = await prisma.studySchedule.create({
+      data: {
+        userId: normalUser.id,
+        title: 'Software engineering final review',
+        subject: 'Software Engineering',
+        startAt,
+        endAt,
+        priority: 'HIGH',
+        memo: 'Review architecture, design patterns, and API structure'
+      }
+    });
+
+    await prisma.studyTask.create({
+      data: {
+        userId: normalUser.id,
+        scheduleId: studySchedule.id,
+        title: 'Practice adapter pattern example',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        memo: 'Review Express router connection flow'
+      }
+    });
+
+    await prisma.studyTask.create({
+      data: {
+        userId: normalUser.id,
+        scheduleId: studySchedule.id,
+        title: 'Summarize Prisma transaction guide',
+        status: 'DONE',
+        priority: 'HIGH',
+        memo: 'Focus on atomicity and rollback behavior'
+      }
+    });
+
     // 1. Seed some posts (one reported, one normal)
     const post1 = await prisma.boardPost.upsert({
       where: { id: 991 },

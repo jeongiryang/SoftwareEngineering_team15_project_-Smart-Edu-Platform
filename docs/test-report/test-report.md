@@ -81,9 +81,9 @@
 
 - 인증/회원가입/로그인 API 상세 테스트
 - 학습 일정/태스크 프론트엔드 연동 및 알림 연계 테스트
-- 학습 노트/AI 기능 테스트
+- 학습 노트 기능 테스트
 - 집중 시간/통계 테스트
-- 커뮤니티/관리자 기능 테스트
+- 커뮤니티 기능 테스트
 - 프론트엔드 화면 단위 테스트
 - 정량 커버리지 측정 결과
 - 배포 환경 smoke test
@@ -199,7 +199,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-007 | 보안 검증 | 인증 API 응답 | 회원가입, 로그인, 현재 사용자 조회 응답의 `passwordHash` 미노출 확인 | `npm test` | 응답에 비밀번호 해시가 포함되지 않음 | 통과 |
 | TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/200 응답, 프로필 수정 반영, `passwordHash` 미노출 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 다른 사용자 데이터 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 사용자별 데이터 접근 제한 | 통과 |
-| TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 퀴즈 생성 흐름 검증 | 후속 작성 | mock 또는 테스트 key 기준 응답 검증 | 예정 |
+| TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석, fallback, noteId 소유권, 400/401/404/429 예외 검증 | `npm test` | mock/fallback 중심으로 실제 외부 AI API 호출 없이 검증 | 통과 |
 | TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
 
 
@@ -231,11 +231,12 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest health check |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(8 suites / 103 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
+| AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers` | 통과 | `src/backend/tests/ai.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429 검증 포함 |
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
 
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
@@ -254,6 +255,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/api-foundation.test.js`
 - `src/backend/tests/user-profile.test.js`
 - `src/backend/tests/schedule-task.test.js`
+- `src/backend/tests/ai.test.js`
 - `src/backend/tests/admin.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
@@ -263,6 +265,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 프로필 필드 검증, `passwordHash` 미노출을 확인함. 프론트엔드 화면 연동은 후속 작업으로 둠.
 
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
+
+AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기반으로 AI 질의, 학습 추천, 텍스트 요약, 오답 분석 API를 확인함. `AI_API_KEY`가 없는 경우와 provider 실패 시 fallback 응답을 사용하며, 자동 테스트에서는 실제 외부 AI API를 호출하지 않음. `noteId`는 현재 로그인 사용자 소유 학습 노트만 허용하고, invalid noteId는 400, 존재하지 않거나 다른 사용자 소유 noteId는 404로 처리되는지 검증함.
 
 관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 삭제(HIDE action), 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 정상 수행되는지 검증함. 잘못된 id는 400, 존재하지 않는 대상은 404로 처리되는지와 관리자 자기 자신의 정지/비활성화 차단, `passwordHash` 등 민감정보 미노출도 함께 확인함.
 
@@ -336,6 +340,16 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 실행 명령 | `npm test` |
 | 결과 | 통과 |
 
+| 항목 | 내용 |
+|---|---|
+| 대상 기능 | AI 학습 지원 API |
+| 테스트 파일 | `src/backend/tests/ai.test.js` |
+| 도구 | Jest, Supertest |
+| AI 활용 방식 | AI 기능의 provider 실패, fallback, 입력값 검증, noteId 소유권 검증, rate limit 테스트 케이스를 검토하고 mock repository와 mock provider 기반 테스트로 반영 |
+| 실행 명령 | `npm test` |
+| 결과 | 통과 |
+| 비고 | 자동 테스트는 실제 외부 AI API를 호출하지 않고 mock/fallback 중심으로 수행함 |
+
 향후 인증, 일정/태스크, 학습 노트, AI 학습 지원, 커뮤니티 기능 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
 
 ---
@@ -352,7 +366,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 개발용 seed 데이터 | 개발용 일반 사용자, 관리자 사용자, 기본 UserProfile 생성 script 추가. 실제 seed 실행은 개발용 DB branch에서만 수행 | 진행 중 |
 | 학습 일정/태스크 | 백엔드 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 사용자별 접근 제한 테스트 완료. 프론트엔드 연동과 알림 연계 테스트는 후속 작성 | 진행 중 |
 | 학습 노트 | 노트 작성, 오답노트, 복습 알림 연계 테스트 | 예정 |
-| AI 학습 지원 | AI 질의, 추천, 퀴즈 생성 API mock 테스트 | 예정 |
+| AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 테스트 | 완료 |
@@ -370,6 +384,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
   - `src/backend/tests/user-profile.test.js`
   - `src/backend/tests/schedule-task.test.js`
   - `src/backend/tests/seed-dev.test.js`
+  - `src/backend/tests/ai.test.js`
   - `src/backend/tests/admin.test.js`
   - `src/backend/tests/helpers/auth.helper.js`
   - `src/backend/tests/helpers/assert.helper.js`
