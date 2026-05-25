@@ -13,6 +13,10 @@ async function setUserStatus(adminId, userId, status, reason) {
     throw validationError(`Invalid status. Must be one of ${validStatuses.join(', ')}`);
   }
 
+  if (adminId === userId && ['SUSPENDED', 'DEACTIVATED'].includes(status)) {
+    throw validationError('Admin cannot suspend or deactivate own account');
+  }
+
   const user = await adminRepository.findUserById(userId);
   if (!user) {
     throw notFoundError('User not found');
@@ -26,6 +30,7 @@ async function setUserStatus(adminId, userId, status, reason) {
       targetType: 'USER',
       targetId: userId,
       actionType: 'SUSPEND_USER',
+      status,
       reason
     }
   };
@@ -57,7 +62,7 @@ async function moderateBoardPost(adminId, postId, action, reason) {
   if (action === 'HIDE') {
     await adminRepository.deletePostAndLog(adminId, postId, reason);
     return {
-      message: 'Post moderated and hidden successfully',
+      message: 'Post deleted by admin moderation successfully',
       action: {
         adminId,
         targetType: 'POST',

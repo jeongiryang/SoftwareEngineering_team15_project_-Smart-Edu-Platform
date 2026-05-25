@@ -3,6 +3,7 @@ const mockUsers = [
     id: 1,
     email: 'dev.user@example.com',
     name: '일반 사용자',
+    passwordHash: 'hashed-user-password',
     role: 'USER',
     status: 'ACTIVE'
   },
@@ -10,6 +11,7 @@ const mockUsers = [
     id: 2,
     email: 'dev.admin@example.com',
     name: '관리자 사용자',
+    passwordHash: 'hashed-admin-password',
     role: 'ADMIN',
     status: 'ACTIVE'
   }
@@ -185,6 +187,46 @@ const request = require('supertest');
 const app = require('../src/app');
 const { signToken } = require('../src/utils/jwt');
 const { createAuthHeader } = require('./helpers/auth.helper');
+const { expectNoPasswordHash } = require('./helpers/assert.helper');
+
+const protectedAdminEndpoints = [
+  { method: 'get', path: '/api/admin/users' },
+  {
+    method: 'patch',
+    path: '/api/admin/users/1/status',
+    body: { status: 'SUSPENDED', reason: 'policy violation' }
+  },
+  { method: 'get', path: '/api/admin/reports' },
+  {
+    method: 'patch',
+    path: '/api/admin/posts/992/moderation',
+    body: { action: 'KEEP' }
+  },
+  {
+    method: 'patch',
+    path: '/api/admin/comments/992/moderation',
+    body: { action: 'KEEP' }
+  },
+  {
+    method: 'patch',
+    path: '/api/admin/challenges/991/moderation',
+    body: { action: 'CLOSE' }
+  }
+];
+
+function sendAdminRequest({ method, path, token, body }) {
+  const requestBuilder = request(app)[method](path);
+
+  if (token) {
+    requestBuilder.set(createAuthHeader(token));
+  }
+
+  if (body) {
+    requestBuilder.send(body);
+  }
+
+  return requestBuilder;
+}
 
 describe('Admin APIs', () => {
   let userToken;
@@ -260,16 +302,64 @@ describe('Admin APIs', () => {
   });
 
   describe('Security and Permission checks', () => {
-    it('fails if token is missing (401)', async () => {
-      const response = await request(app).get('/api/admin/users');
-      expect(response.status).toBe(401);
-    });
+    it.each(protectedAdminEndpoints)(
+      'fails if token is missing for $method $path (401)',
+      async (endpoint) => {
+        const response = await sendAdminRequest(endpoint);
+        expect(response.status).toBe(401);
+      }
+    );
 
-    it('fails if user is not an admin (403)', async () => {
+    it.each(protectedAdminEndpoints)(
+      'fails if user is not an admin for $method $path (403)',
+      async (endpoint) => {
+        const response = await sendAdminRequest({ ...endpoint, token: userToken });
+        expect(response.status).toBe(403);
+      }
+    );
+
+    it('allows administrator access on protected endpoint', async () => {
       const response = await request(app)
         .get('/api/admin/users')
-        .set(createAuthHeader(userToken));
-      expect(response.status).toBe(403);
+        .set(createAuthHeader(adminToken));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('fails with invalid user id path parameter (400)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/users/abc/status')
+        .set(createAuthHeader(adminToken))
+        .send({ status: 'SUSPENDED' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('fails with non-positive post id path parameter (400)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/posts/0/moderation')
+        .set(createAuthHeader(adminToken))
+        .send({ action: 'HIDE' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('fails with invalid comment id path parameter (400)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/comments/not-number/moderation')
+        .set(createAuthHeader(adminToken))
+        .send({ action: 'DELETE' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('fails with invalid challenge id path parameter (400)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/challenges/not-number/moderation')
+        .set(createAuthHeader(adminToken))
+        .send({ action: 'CLOSE' });
+
+      expect(response.status).toBe(400);
     });
   });
 
@@ -281,7 +371,11 @@ describe('Admin APIs', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.users).toHaveLength(2);
-      expect(response.body.users[0]).not.toHaveProperty('passwordHash');
+      response.body.users.forEach((user) => {
+        expectNoPasswordHash(user);
+        expect(user).not.toHaveProperty('password');
+        expect(user).not.toHaveProperty('token');
+      });
     });
   });
 
@@ -296,7 +390,37 @@ describe('Admin APIs', () => {
       expect(response.body.user.status).toBe('SUSPENDED');
       expect(response.body.action.targetType).toBe('USER');
       expect(response.body.action.actionType).toBe('SUSPEND_USER');
+      expect(response.body.action.status).toBe('SUSPENDED');
       expect(response.body.action.reason).toBe('부적절한 발언');
+    });
+
+    it('fails if administrator tries to suspend own account (400)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/users/2/status')
+        .set(createAuthHeader(adminToken))
+        .send({ status: 'SUSPENDED', reason: 'self lock test' });
+
+      expect(response.status).toBe(400);
+      expect(mockUsers[1].status).toBe('ACTIVE');
+    });
+
+    it('fails if administrator tries to deactivate own account (400)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/users/2/status')
+        .set(createAuthHeader(adminToken))
+        .send({ status: 'DEACTIVATED', reason: 'self lock test' });
+
+      expect(response.status).toBe(400);
+      expect(mockUsers[1].status).toBe('ACTIVE');
+    });
+
+    it('fails if target user does not exist (404)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/users/999999/status')
+        .set(createAuthHeader(adminToken))
+        .send({ status: 'SUSPENDED', reason: 'missing user' });
+
+      expect(response.status).toBe(404);
     });
 
     it('fails with invalid status (400)', async () => {
@@ -331,8 +455,17 @@ describe('Admin APIs', () => {
         .send({ action: 'HIDE', reason: '광고글 삭제' });
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toContain('moderated and hidden');
+      expect(response.body.message).toContain('deleted by admin moderation');
       expect(mockPosts.find(p => p.id === 992)).toBeUndefined();
+    });
+
+    it('fails if target post does not exist (404)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/posts/999999/moderation')
+        .set(createAuthHeader(adminToken))
+        .send({ action: 'HIDE', reason: 'missing post' });
+
+      expect(response.status).toBe(404);
     });
 
     it('keeps post and dismisses report', async () => {
@@ -359,6 +492,15 @@ describe('Admin APIs', () => {
       expect(mockComments.find(c => c.id === 992)).toBeUndefined();
     });
 
+    it('fails if target comment does not exist (404)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/comments/999999/moderation')
+        .set(createAuthHeader(adminToken))
+        .send({ action: 'DELETE', reason: 'missing comment' });
+
+      expect(response.status).toBe(404);
+    });
+
     it('keeps comment and dismisses report', async () => {
       const response = await request(app)
         .patch('/api/admin/comments/992/moderation')
@@ -381,6 +523,15 @@ describe('Admin APIs', () => {
       expect(response.status).toBe(200);
       expect(response.body.challenge.status).toBe('CLOSED');
       expect(response.body.message).toContain('closed successfully');
+    });
+
+    it('fails if target challenge does not exist (404)', async () => {
+      const response = await request(app)
+        .patch('/api/admin/challenges/999999/moderation')
+        .set(createAuthHeader(adminToken))
+        .send({ action: 'CLOSE', reason: 'missing challenge' });
+
+      expect(response.status).toBe(404);
     });
   });
 });

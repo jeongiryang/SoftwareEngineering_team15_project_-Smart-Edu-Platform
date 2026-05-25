@@ -200,7 +200,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/200 응답, 프로필 수정 반영, `passwordHash` 미노출 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 다른 사용자 데이터 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 사용자별 데이터 접근 제한 | 통과 |
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 퀴즈 생성 흐름 검증 | 후속 작성 | mock 또는 테스트 key 기준 응답 검증 | 예정 |
-| TC-INT-005 | API 통합 테스트 | 커뮤니티/관리자 API | 게시글, 댓글, 신고, 제재 흐름 검증 | `npm test` | 권한별 접근 제어 확인 및 조치 수행 | 통과 |
+| TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
 
 
 ### 4.3 환경 검증 테스트 케이스
@@ -236,7 +236,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
-| Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트 |
+| Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
 
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
@@ -254,6 +254,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/api-foundation.test.js`
 - `src/backend/tests/user-profile.test.js`
 - `src/backend/tests/schedule-task.test.js`
+- `src/backend/tests/admin.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
 
@@ -263,7 +264,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
 
-관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 숨김, 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 트랜잭션 단위로 정상 수행되는지 검증함.
+관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 삭제(HIDE action), 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 정상 수행되는지 검증함. 잘못된 id는 400, 존재하지 않는 대상은 404로 처리되는지와 관리자 자기 자신의 정지/비활성화 차단, `passwordHash` 등 민감정보 미노출도 함께 확인함.
 
 
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.

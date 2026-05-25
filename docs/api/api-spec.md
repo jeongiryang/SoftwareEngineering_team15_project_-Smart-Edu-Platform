@@ -928,6 +928,18 @@ npm run seed:dev
 주의:
 - 모든 관리자 API는 Bearer 토큰 인증 및 `ADMIN` 권한 검증(`adminMiddleware`)이 적용되어 일반 사용자는 접근이 불가능합니다.
 - 제재나 숨김 등의 모든 조치 이력은 `AdminAction` 테이블에 기록 및 저장됩니다.
+- 사용자 응답에는 `passwordHash`, password, token 원문이 포함되지 않음.
+- id path parameter는 양의 정수만 허용하며, 숫자가 아니거나 0 이하이면 `400 VALIDATION_ERROR`를 반환함.
+- 존재하지 않는 사용자, 게시글, 댓글, 챌린지는 `404 NOT_FOUND`를 반환함.
+
+공통 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 잘못된 id, 잘못된 status/action, 관리자가 자기 자신을 정지/비활성화하려는 경우 |
+| `401` | `UNAUTHORIZED` | 인증 헤더 없음, Bearer token 없음, token 검증 실패 |
+| `403` | `FORBIDDEN` | 일반 USER 등 ADMIN 권한이 없는 사용자 접근 |
+| `404` | `NOT_FOUND` | 대상 사용자, 게시글, 댓글, 챌린지를 찾을 수 없음 |
 
 ---
 
@@ -1000,10 +1012,16 @@ Response 예시:
     "targetType": "USER",
     "targetId": 1,
     "actionType": "SUSPEND_USER",
+    "status": "SUSPENDED",
     "reason": "커뮤니티 가이드라인 반복 위반"
   }
 }
 ```
+
+정책:
+
+- 관리자는 자기 자신의 status를 `SUSPENDED`, `DEACTIVATED`로 변경할 수 없음.
+- 현재 `AdminActionType` enum은 사용자 상태 변경 로그 타입을 `SUSPEND_USER`로 관리하므로, 실제 변경된 status는 응답의 `action.status`와 대상 사용자 상태로 확인함.
 
 ---
 
@@ -1071,11 +1089,13 @@ Response 예시:
 
 ---
 
-#### 9.5.4 게시글 관리 상태 변경 (숨김/해제)
+#### 9.5.4 게시글 관리 조치 (삭제/신고 기각)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| `PATCH` | `/api/admin/posts/:postId/moderation` | 신고된 게시글 숨김(삭제) 또는 유지(신고 기각) 처리 |
+| `PATCH` | `/api/admin/posts/:postId/moderation` | 신고된 게시글 삭제 또는 유지(신고 기각) 처리 |
+
+현재 schema에는 게시글 숨김 상태 필드가 없으므로, `HIDE` action은 실제 게시글 삭제 및 관련 댓글 삭제로 처리함.
 
 Request Body:
 
@@ -1097,7 +1117,7 @@ Response 예시 (HIDE 조치 시):
 
 ```json
 {
-  "message": "Post moderated and hidden successfully",
+  "message": "Post deleted by admin moderation successfully",
   "action": {
     "adminId": 2,
     "targetType": "POST",
