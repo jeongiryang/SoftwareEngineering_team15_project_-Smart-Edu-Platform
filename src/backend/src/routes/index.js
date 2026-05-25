@@ -6,6 +6,7 @@ const taskRoutes = require('./task.routes');
 const userRoutes = require('./user.routes');
 const aiRoutes = require('./ai.routes');
 const adminRoutes = require('./admin.routes');
+const noteRoutes = require('./note.routes');
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use('/tasks', taskRoutes);
 router.use('/users', userRoutes);
 router.use('/ai', aiRoutes);
 router.use('/admin', adminRoutes);
+router.use('/notes', noteRoutes);
 
 module.exports = router;
