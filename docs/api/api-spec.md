@@ -879,6 +879,16 @@ npm run seed:dev
 | 속도 제한 | 사용자별 분당 최대 5회 |
 | Fallback | API Key 미설정 또는 외부 호출 실패 시 Simulated 응답 (CI·오프라인 테스트용) |
 
+보완 기준:
+
+- `AI_API_KEY`는 백엔드 `.env`에서만 사용하고, 프론트엔드/문서/로그에는 실제 값을 노출하지 않음.
+- `AI_API_KEY`가 없거나 provider 호출이 실패해도 서버가 중단되지 않고 fallback 응답을 반환함.
+- 자동 테스트는 mock/fallback 중심으로 수행하며 실제 외부 AI API를 호출하지 않음.
+- rate limit은 MVP용 in-memory 방식이며, production 수준 분산 rate limit은 후속 개선 범위임.
+- AI MVP API는 기존 Prisma schema 기준으로 동작하며 schema/migration 변경 없음.
+- `noteId`를 받는 API는 현재 로그인 사용자 소유 학습 노트만 허용함.
+- invalid `noteId`는 `400 VALIDATION_ERROR`, 존재하지 않거나 다른 사용자 소유 `noteId`는 `404 NOT_FOUND`로 처리함.
+
 공통 입력 규칙:
 
 | 항목 | 내용 |
@@ -1066,6 +1076,7 @@ Response 예시:
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | 필수 값 누락, 글자 수 초과, 잘못된 데이터 구조 |
 | `401` | `UNAUTHORIZED` | 인증 실패 및 토큰 유효하지 않음 |
+| `404` | `NOT_FOUND` | `noteId`가 존재하지 않거나 현재 사용자 소유 학습 노트가 아님 |
 | `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
 
 ### 9.3 집중 시간/통계 API 예정

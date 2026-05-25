@@ -48,11 +48,25 @@ function findWrongAnswerNotesByUserId(userId) {
   });
 }
 
+function findStudyNoteByIdAndUserId(noteId, userId) {
+  return prisma.studyNote.findFirst({
+    where: {
+      id: noteId,
+      userId
+    },
+    select: {
+      id: true,
+      userId: true
+    }
+  });
+}
+
 module.exports = {
   createAIQuestion,
   createAIRecommendation,
   createWrongAnswerNote,
   findAIQuestionsByUserId,
   findAIRecommendationsByUserId,
+  findStudyNoteByIdAndUserId,
   findWrongAnswerNotesByUserId
 };

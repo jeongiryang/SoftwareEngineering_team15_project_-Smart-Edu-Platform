@@ -2,10 +2,12 @@ const mockUsers = [];
 const mockQuestions = [];
 const mockRecommendations = [];
 const mockWrongAnswerNotes = [];
+const mockNotes = [];
 let mockNextUserId = 1;
 let mockNextQuestionId = 1;
 let mockNextRecommendationId = 1;
 let mockNextWrongAnswerNoteId = 1;
+let mockNextNoteId = 1;
 
 jest.mock('../src/repositories/user.repository', () => ({
   createUser: jest.fn(async ({ email, name, passwordHash }) => {
@@ -58,7 +60,10 @@ jest.mock('../src/repositories/ai.repository', () => ({
     mockNextWrongAnswerNoteId += 1;
     mockWrongAnswerNotes.push(record);
     return record;
-  })
+  }),
+  findStudyNoteByIdAndUserId: jest.fn(async (noteId, userId) =>
+    mockNotes.find((note) => note.id === Number(noteId) && note.userId === Number(userId)) || null
+  )
 }));
 
 jest.mock('../src/repositories/schedule.repository', () => ({
@@ -93,9 +98,25 @@ async function registerTestUser(overrides = {}) {
   };
 }
 
+function createMockNote(userId, overrides = {}) {
+  const note = {
+    id: mockNextNoteId,
+    userId,
+    title: 'Test note',
+    content: 'Study note content',
+    subject: 'Software Engineering',
+    tags: [],
+    ...overrides
+  };
+  mockNextNoteId += 1;
+  mockNotes.push(note);
+  return note;
+}
+
 describe('AI API integration tests', () => {
   let originalFetch;
   let originalApiKey;
+  let warnSpy;
 
   beforeAll(() => {
     originalFetch = globalThis.fetch;
@@ -112,17 +133,24 @@ describe('AI API integration tests', () => {
     mockQuestions.length = 0;
     mockRecommendations.length = 0;
     mockWrongAnswerNotes.length = 0;
+    mockNotes.length = 0;
     mockNextUserId = 1;
     mockNextQuestionId = 1;
     mockNextRecommendationId = 1;
     mockNextWrongAnswerNoteId = 1;
+    mockNextNoteId = 1;
 
-    // Reset rate limiter maps
     aiService.rateLimitMap.clear();
-
-    // Default to empty API key to test Fallback simulated responses without making network calls
     process.env.AI_API_KEY = '';
+    globalThis.fetch = jest.fn(async () => {
+      throw new Error('Unexpected external AI provider call');
+    });
     jest.clearAllMocks();
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
   });
 
   describe('POST /api/ai/questions', () => {
@@ -146,7 +174,7 @@ describe('AI API integration tests', () => {
       expect(response.body.code).toBe('VALIDATION_ERROR');
     });
 
-    it('validates maximum character length limit (1000 chars)', async () => {
+    it('validates maximum character length limit', async () => {
       const { token } = await registerTestUser();
       const longQuestion = 'a'.repeat(1001);
 
@@ -156,7 +184,7 @@ describe('AI API integration tests', () => {
         .send({ question: longQuestion });
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toContain('최대 1000자');
+      expect(response.body.message).toContain('question must be at most 1000 characters');
       expect(response.body.details).toEqual({
         field: 'question',
         currentLength: 1001,
@@ -164,7 +192,7 @@ describe('AI API integration tests', () => {
       });
     });
 
-    it('supports smart truncation when allowTruncate is true', async () => {
+    it('supports truncation when allowTruncate is true', async () => {
       const { token } = await registerTestUser();
       const longQuestion = 'a'.repeat(1005);
 
@@ -174,39 +202,36 @@ describe('AI API integration tests', () => {
         .send({ question: longQuestion, allowTruncate: true });
 
       expect(response.status).toBe(201);
-      expect(response.body.question).toBeDefined();
       expect(response.body.question.isTruncated).toBe(true);
       expect(response.body.question.originalLength).toBe(1005);
       expect(response.body.question.question).toHaveLength(1000);
     });
 
-    it('creates AI Question and returns 201 with simulated answer (Fallback mode)', async () => {
+    it('creates a fallback answer without calling an external provider when API key is missing', async () => {
       const { token } = await registerTestUser();
 
       const response = await request(app)
         .post('/api/ai/questions')
         .set(createAuthHeader(token))
-        .send({ question: '수학 숙제 어떻게 해?' });
+        .send({ question: 'How should I study design patterns?' });
 
       expect(response.status).toBe(201);
-      expect(response.body.question).toBeDefined();
-      expect(response.body.question.question).toBe('수학 숙제 어떻게 해?');
-      expect(response.body.question.answer).toContain('수학 질문에 대한 답변입니다');
+      expect(response.body.question.answer).toContain('Fallback answer');
+      expect(response.body.question.answer).not.toContain('AI_API_KEY');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 
-    it('invokes Gemini API when key is present and fetch succeeds', async () => {
+    it('uses mocked provider response when API key is present and provider succeeds', async () => {
       const { token } = await registerTestUser();
-      process.env.AI_API_KEY = 'test-api-key';
-
-      // Mock native fetch
-      globalThis.fetch = jest.fn().mockImplementation(async () => ({
+      process.env.AI_API_KEY = 'mock-provider-key';
+      globalThis.fetch = jest.fn(async () => ({
         ok: true,
         json: async () => ({
           candidates: [
             {
               content: {
                 parts: [
-                  { text: '이것은 Gemini API가 답변한 내용입니다.' }
+                  { text: 'Mock provider answer' }
                 ]
               }
             }
@@ -217,11 +242,83 @@ describe('AI API integration tests', () => {
       const response = await request(app)
         .post('/api/ai/questions')
         .set(createAuthHeader(token))
-        .send({ question: '지구의 나이는 몇 살이야?' });
+        .send({ question: 'Explain encapsulation.' });
 
       expect(response.status).toBe(201);
-      expect(response.body.question.answer).toBe('이것은 Gemini API가 답변한 내용입니다.');
-      expect(globalThis.fetch).toHaveBeenCalled();
+      expect(response.body.question.answer).toBe('Mock provider answer');
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back on provider non-OK response without logging raw provider body', async () => {
+      const { token } = await registerTestUser();
+      const rawProviderBody = 'raw provider body with internal diagnostic detail';
+      process.env.AI_API_KEY = 'mock-provider-key';
+      globalThis.fetch = jest.fn(async () => ({
+        ok: false,
+        status: 503,
+        text: async () => rawProviderBody
+      }));
+
+      const response = await request(app)
+        .post('/api/ai/questions')
+        .set(createAuthHeader(token))
+        .send({ question: 'Explain cohesion.' });
+
+      const warnOutput = warnSpy.mock.calls.flat().join(' ');
+      expect(response.status).toBe(201);
+      expect(response.body.question.answer).toContain('Fallback answer');
+      expect(warnOutput).not.toContain(rawProviderBody);
+    });
+
+    it('accepts noteId only when the note belongs to the current user', async () => {
+      const { token, user } = await registerTestUser();
+      const note = createMockNote(user.id);
+
+      const response = await request(app)
+        .post('/api/ai/questions')
+        .set(createAuthHeader(token))
+        .send({ question: 'Explain this note.', noteId: note.id });
+
+      expect(response.status).toBe(201);
+      expect(response.body.question.noteId).toBe(note.id);
+    });
+
+    it('rejects invalid noteId values', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .post('/api/ai/questions')
+        .set(createAuthHeader(token))
+        .send({ question: 'Explain this note.', noteId: 'abc' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 404 for a missing noteId', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .post('/api/ai/questions')
+        .set(createAuthHeader(token))
+        .send({ question: 'Explain this note.', noteId: 9999 });
+
+      expect(response.status).toBe(404);
+      expect(response.body.code).toBe('NOT_FOUND');
+    });
+
+    it('does not allow another user noteId', async () => {
+      const { user: owner } = await registerTestUser();
+      const { token } = await registerTestUser();
+      const note = createMockNote(owner.id);
+
+      const response = await request(app)
+        .post('/api/ai/questions')
+        .set(createAuthHeader(token))
+        .send({ question: 'Explain this note.', noteId: note.id });
+
+      expect(response.status).toBe(404);
+      expect(response.body.code).toBe('NOT_FOUND');
     });
   });
 
@@ -233,7 +330,7 @@ describe('AI API integration tests', () => {
       expect(response.status).toBe(401);
     });
 
-    it('generates study recommendations', async () => {
+    it('generates fallback study recommendations', async () => {
       const { token } = await registerTestUser();
 
       const response = await request(app)
@@ -241,11 +338,10 @@ describe('AI API integration tests', () => {
         .set(createAuthHeader(token));
 
       expect(response.status).toBe(201);
-      expect(response.body.recommendation).toBeDefined();
-      expect(response.body.recommendation.basisJson).toBeDefined();
-      expect(response.body.recommendation.recommendationJson).toBeDefined();
-      expect(response.body.recommendation.recommendationJson.recommendedSubject).toContain('Math');
+      expect(response.body.recommendation.basisJson.scheduleCount).toBe(2);
       expect(response.body.recommendation.recommendationJson.tips).toHaveLength(3);
+      expect(response.body.recommendation.recommendationJson.recommendedSubject).toBe('Math');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
     });
   });
 
@@ -267,9 +363,10 @@ describe('AI API integration tests', () => {
         .send({});
 
       expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
     });
 
-    it('validates maximum character length limit (3000 chars)', async () => {
+    it('validates maximum character length limit', async () => {
       const { token } = await registerTestUser();
       const longContent = 'a'.repeat(3001);
 
@@ -279,7 +376,7 @@ describe('AI API integration tests', () => {
         .send({ content: longContent });
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toContain('최대 3000자');
+      expect(response.body.message).toContain('content must be at most 3000 characters');
       expect(response.body.details).toEqual({
         field: 'content',
         currentLength: 3001,
@@ -287,7 +384,7 @@ describe('AI API integration tests', () => {
       });
     });
 
-    it('supports smart truncation when allowTruncate is true', async () => {
+    it('supports truncation when allowTruncate is true', async () => {
       const { token } = await registerTestUser();
       const longContent = 'a'.repeat(3005);
 
@@ -299,19 +396,20 @@ describe('AI API integration tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.isTruncated).toBe(true);
       expect(response.body.originalLength).toBe(3005);
-      expect(response.body.summary).toBeDefined();
+      expect(response.body.summary).toContain('- ');
     });
 
-    it('summarizes input text', async () => {
+    it('summarizes input text using fallback without external provider', async () => {
       const { token } = await registerTestUser();
 
       const response = await request(app)
         .post('/api/ai/summary')
         .set(createAuthHeader(token))
-        .send({ content: '운영체제는 컴퓨터 하드웨어와 사용자 사이에서...' });
+        .send({ content: 'Operating systems manage processes, memory, and file systems.' });
 
       expect(response.status).toBe(200);
       expect(response.body.summary).toContain('- ');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
     });
   });
 
@@ -333,9 +431,10 @@ describe('AI API integration tests', () => {
         .send({});
 
       expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
     });
 
-    it('validates maximum character length limit (1000 chars)', async () => {
+    it('validates maximum character length limit', async () => {
       const { token } = await registerTestUser();
       const longProblem = 'a'.repeat(1001);
 
@@ -345,7 +444,7 @@ describe('AI API integration tests', () => {
         .send({ problem: longProblem });
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toContain('최대 1000자');
+      expect(response.body.message).toContain('problem must be at most 1000 characters');
       expect(response.body.details).toEqual({
         field: 'problem',
         currentLength: 1001,
@@ -353,7 +452,7 @@ describe('AI API integration tests', () => {
       });
     });
 
-    it('supports smart truncation when allowTruncate is true', async () => {
+    it('supports truncation when allowTruncate is true', async () => {
       const { token } = await registerTestUser();
       const longProblem = 'a'.repeat(1005);
       const longAnswer = 'b'.repeat(1010);
@@ -364,7 +463,6 @@ describe('AI API integration tests', () => {
         .send({ problem: longProblem, userAnswer: longAnswer, allowTruncate: true });
 
       expect(response.status).toBe(201);
-      expect(response.body.wrongAnswerNote).toBeDefined();
       expect(response.body.wrongAnswerNote.isProblemTruncated).toBe(true);
       expect(response.body.wrongAnswerNote.isUserAnswerTruncated).toBe(true);
       expect(response.body.wrongAnswerNote.originalProblemLength).toBe(1005);
@@ -373,7 +471,7 @@ describe('AI API integration tests', () => {
       expect(response.body.wrongAnswerNote.userAnswer).toHaveLength(1000);
     });
 
-    it('analyzes wrong answer and saves to database', async () => {
+    it('analyzes wrong answer using fallback and saves the record', async () => {
       const { token } = await registerTestUser();
 
       const response = await request(app)
@@ -385,18 +483,52 @@ describe('AI API integration tests', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body.wrongAnswerNote).toBeDefined();
-      expect(response.body.wrongAnswerNote.weakType).toBe('연산 실수');
-      expect(response.body.wrongAnswerNote.explanation).toContain('사칙연산');
+      expect(response.body.wrongAnswerNote.weakType).toBe('calculation mistake');
+      expect(response.body.wrongAnswerNote.explanation).toContain('Fallback analysis');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it('accepts noteId only when the note belongs to the current user', async () => {
+      const { token, user } = await registerTestUser();
+      const note = createMockNote(user.id);
+
+      const response = await request(app)
+        .post('/api/ai/wrong-answers')
+        .set(createAuthHeader(token))
+        .send({
+          problem: 'Define cohesion.',
+          userAnswer: 'A class has many responsibilities.',
+          noteId: note.id
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.wrongAnswerNote.noteId).toBe(note.id);
+    });
+
+    it('does not allow another user noteId for wrong-answer analysis', async () => {
+      const { user: owner } = await registerTestUser();
+      const { token } = await registerTestUser();
+      const note = createMockNote(owner.id);
+
+      const response = await request(app)
+        .post('/api/ai/wrong-answers')
+        .set(createAuthHeader(token))
+        .send({
+          problem: 'Define coupling.',
+          userAnswer: 'It means no dependency.',
+          noteId: note.id
+        });
+
+      expect(response.status).toBe(404);
+      expect(response.body.code).toBe('NOT_FOUND');
     });
   });
 
-  describe('Rate Limiter', () => {
+  describe('Rate limiter', () => {
     it('allows up to 5 requests but blocks the 6th call within one minute', async () => {
       const { token } = await registerTestUser();
 
-      // Make 5 successful calls
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 5; i += 1) {
         const response = await request(app)
           .post('/api/ai/questions')
           .set(createAuthHeader(token))
@@ -404,7 +536,6 @@ describe('AI API integration tests', () => {
         expect(response.status).toBe(201);
       }
 
-      // 6th call should be rate limited (429)
       const limitResponse = await request(app)
         .post('/api/ai/questions')
         .set(createAuthHeader(token))
@@ -412,7 +543,6 @@ describe('AI API integration tests', () => {
 
       expect(limitResponse.status).toBe(429);
       expect(limitResponse.body.code).toBe('TOO_MANY_REQUESTS');
-      expect(limitResponse.body.message).toContain('AI 호출 한도를 초과했습니다');
     });
   });
 });
