@@ -246,6 +246,44 @@ async function seedDevelopmentData(prisma) {
         status: 'IN_PROGRESS'
       }
     });
+
+    await prisma.studyNote.upsert({
+      where: { id: 991 },
+      update: {
+        userId: normalUser.id,
+        title: '운영체제 핵심 요약',
+        content: '프로세스와 스레드의 차이점은...',
+        subject: 'CS',
+        tags: ['OS', '면접준비']
+      },
+      create: {
+        id: 991,
+        userId: normalUser.id,
+        title: '운영체제 핵심 요약',
+        content: '프로세스와 스레드의 차이점은...',
+        subject: 'CS',
+        tags: ['OS', '면접준비']
+      }
+    });
+
+    await prisma.studyNote.upsert({
+      where: { id: 992 },
+      update: {
+        userId: normalUser.id,
+        title: '자바스크립트 비동기 처리',
+        content: 'Promise와 async/await의 동작 원리...',
+        subject: '웹 개발',
+        tags: ['JavaScript', 'Frontend']
+      },
+      create: {
+        id: 992,
+        userId: normalUser.id,
+        title: '자바스크립트 비동기 처리',
+        content: 'Promise와 async/await의 동작 원리...',
+        subject: '웹 개발',
+        tags: ['JavaScript', 'Frontend']
+      }
+    });
   }
 
   return users;

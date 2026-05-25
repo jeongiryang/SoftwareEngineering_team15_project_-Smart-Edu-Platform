@@ -853,19 +853,189 @@ npm run seed:dev
 
 이 섹션의 API는 아직 구현되지 않은 예정 API임. 실제 구현 시 schema, 요구사항, 테스트 결과에 맞춰 세부 명세를 갱신해야 함.
 
-### 9.1 학습 노트 API 예정
+### 9.1 학습 노트 API
 
-상태: 예정
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 인증 | 필요 (`USER`, `ADMIN`) |
+| 설명 | 학습 노트 생성, 조회, 수정, 삭제 기능 제공 (타인 노트 접근 차단 로직 포함) |
 
-예상 endpoint:
+#### 9.1.1 학습 노트 생성
 
-| Method | Endpoint | 설명 |
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/notes` |
+| 인증 | 필요 |
+| 설명 | 사용자 본인의 학습 노트를 생성함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 예 | 노트 제목 |
+| `content` | string | 예 | 노트 본문 내용 |
+| `subject` | string 또는 null | 아니오 | 과목 명 |
+| `tags` | string[] | 아니오 | 태그 배열 |
+
+Request 예시:
+
+```json
+{
+  "title": "운영체제 핵심 요약",
+  "content": "프로세스와 스레드의 차이점...",
+  "subject": "CS",
+  "tags": ["OS", "면접준비"]
+}
+```
+
+Response (201 Created) 예시:
+
+```json
+{
+  "note": {
+    "id": 1,
+    "userId": 1,
+    "title": "운영체제 핵심 요약",
+    "content": "프로세스와 스레드의 차이점...",
+    "subject": "CS",
+    "tags": ["OS", "면접준비"],
+    "createdAt": "2026-05-25T12:00:00.000Z",
+    "updatedAt": "2026-05-25T12:00:00.000Z"
+  }
+}
+```
+
+#### 9.1.2 내 학습 노트 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/notes` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자가 작성한 전체 노트 목록 조회 |
+
+Response (200 OK) 예시:
+
+```json
+{
+  "notes": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "운영체제 핵심 요약",
+      "content": "프로세스와 스레드의 차이점...",
+      "subject": "CS",
+      "tags": ["OS", "면접준비"],
+      "createdAt": "2026-05-25T12:00:00.000Z",
+      "updatedAt": "2026-05-25T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### 9.1.3 학습 노트 상세 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/notes/:noteId` |
+| 인증 | 필요 |
+| 설명 | 특정 노트의 상세 정보를 조회함 (작성자 본인만 접근 가능) |
+
+Response (200 OK) 예시:
+
+```json
+{
+  "note": {
+    "id": 1,
+    "userId": 1,
+    "title": "운영체제 핵심 요약",
+    "content": "프로세스와 스레드의 차이점...",
+    "subject": "CS",
+    "tags": ["OS", "면접준비"],
+    "createdAt": "2026-05-25T12:00:00.000Z",
+    "updatedAt": "2026-05-25T12:00:00.000Z"
+  }
+}
+```
+
+#### 9.1.4 학습 노트 수정
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/notes/:noteId` |
+| 인증 | 필요 |
+| 설명 | 특정 노트를 수정함 (작성자 본인만 접근 가능) |
+
+Request Body:
+
+| 필드 | 타입 | 설명 |
 |---|---|---|
-| `GET` | `/api/notes` | 학습 노트 목록 조회 |
-| `POST` | `/api/notes` | 학습 노트 생성 |
-| `GET` | `/api/notes/:noteId` | 학습 노트 단건 조회 |
-| `PATCH` | `/api/notes/:noteId` | 학습 노트 수정 |
-| `DELETE` | `/api/notes/:noteId` | 학습 노트 삭제 |
+| `title` | string | 수정할 제목 |
+| `content` | string | 수정할 내용 |
+| `subject` | string 또는 null | 수정할 과목 |
+| `tags` | string[] | 수정할 태그 배열 |
+
+Request 예시:
+
+```json
+{
+  "title": "운영체제 심화 요약",
+  "tags": ["OS", "면접준비", "심화"]
+}
+```
+
+Response (200 OK) 예시:
+
+```json
+{
+  "note": {
+    "id": 1,
+    "userId": 1,
+    "title": "운영체제 심화 요약",
+    "content": "프로세스와 스레드의 차이점...",
+    "subject": "CS",
+    "tags": ["OS", "면접준비", "심화"],
+    "createdAt": "2026-05-25T12:00:00.000Z",
+    "updatedAt": "2026-05-25T12:30:00.000Z"
+  }
+}
+```
+
+#### 9.1.5 학습 노트 삭제
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/notes/:noteId` |
+| 인증 | 필요 |
+| 설명 | 특정 노트를 삭제함 (작성자 본인만 접근 가능) |
+
+Response (200 OK) 예시:
+
+```json
+{
+  "message": "Note deleted successfully",
+  "note": {
+    "id": 1,
+    "userId": 1,
+    "title": "운영체제 심화 요약",
+    "content": "프로세스와 스레드의 차이점...",
+    "subject": "CS",
+    "tags": ["OS", "면접준비", "심화"],
+    "createdAt": "2026-05-25T12:00:00.000Z",
+    "updatedAt": "2026-05-25T12:30:00.000Z"
+  }
+}
+```
 
 ### 9.2 AI 학습 지원 API
 
@@ -1449,3 +1619,4 @@ Response 예시:
 | 2026-05 | Schedule/Task API 구현 완료 기준으로 명세 갱신 |
 | 2026-05 | 프론트엔드 로그인/회원가입 화면의 Auth API 연결 상태 반영 |
 | 2026-05-24 | AI 학습 지원 API(§9.2) 구현 완료 반영, 기본 모델 `gemini-2.5-flash`, Schedule/Task API와 동일한 표 양식으로 정리 |
+| 2026-05-25 | 학습 노트 API(§9.1) 구현 완료 내역 반영 |
