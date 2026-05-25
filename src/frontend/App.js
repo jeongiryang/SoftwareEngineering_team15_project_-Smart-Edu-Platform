@@ -3,15 +3,20 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import AILearningScreen from './src/screens/AILearningScreen';
+import AdminScreen from './src/screens/AdminScreen';
 import { getCurrentUser } from './src/services/api';
 
 const screens = {
   login: LoginScreen,
   register: RegisterScreen,
-  dashboard: DashboardScreen
+  dashboard: DashboardScreen,
+  aiLearning: AILearningScreen,
+  admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
+const authScreens = ['dashboard', 'admin', 'aiLearning'];
 
 function getStorage() {
   try {
@@ -38,7 +43,25 @@ export default function App() {
   const [initializing, setInitializing] = useState(true);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
-  const Screen = screens[currentScreen];
+
+  // Guard authenticated screens and keep the admin route role-gated.
+  const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
+  const Screen = screens[activeScreenName] || LoginScreen;
+
+  useEffect(() => {
+    if (initializing) {
+      return;
+    }
+
+    if (authScreens.includes(currentScreen) && !user) {
+      setCurrentScreen('login');
+      return;
+    }
+
+    if (currentScreen === 'admin' && user.role !== 'ADMIN') {
+      setCurrentScreen('dashboard');
+    }
+  }, [currentScreen, user, initializing]);
 
   useEffect(() => {
     let isMounted = true;

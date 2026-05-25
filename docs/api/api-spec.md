@@ -10,7 +10,7 @@
 6. [User/Profile API](#6-userprofile-api)
 7. [Schedule/Task API](#7-scheduletask-api)
 8. [개발용 seed 데이터](#8-개발용-seed-데이터)
-9. [예정 API 초안](#9-예정-api-초안)
+9. [구현 및 예정 API](#9-구현-및-예정-api)
 10. [테스트 및 검증 기준](#10-테스트-및-검증-기준)
 11. [변경 이력](#11-변경-이력)
 
@@ -849,9 +849,9 @@ npm run seed:dev
 
 ---
 
-## 9. 예정 API 초안
+## 9. 구현 및 예정 API
 
-이 섹션의 API는 아직 구현되지 않은 예정 API임. 실제 구현 시 schema, 요구사항, 테스트 결과에 맞춰 세부 명세를 갱신해야 함.
+이 섹션은 현재 구현 완료된 후속 API와 아직 구현되지 않은 예정 API를 함께 정리함. 상태가 `구현 완료`인 API는 현재 Express route/controller/service 기준이며, 상태가 `예정`인 API는 후속 구현을 위한 초안임.
 
 ### 9.1 학습 노트 API
 
@@ -1044,20 +1044,24 @@ Response (200 OK) 예시:
 | 상태 | 구현 완료 |
 | Base Path | `/api/ai` |
 | 인증 | 모든 엔드포인트 JWT 필요 |
+| 프론트 연동 | AI 학습 지원 화면 연결 완료 |
 | 외부 연동 | Google Generative Language API (`gemini-2.5-flash`, `.env`의 `AI_MODEL_NAME`으로 변경 가능) |
-| 환경 변수 | `AI_API_KEY`(필수), `AI_MODEL_NAME`(선택) |
+| 환경 변수 | `AI_API_KEY`(외부 provider 호출 시 필요), `AI_MODEL_NAME`(선택) |
 | 속도 제한 | 사용자별 분당 최대 5회 |
 | Fallback | API Key 미설정 또는 외부 호출 실패 시 Simulated 응답 (CI·오프라인 테스트용) |
 
 보완 기준:
 
 - `AI_API_KEY`는 백엔드 `.env`에서만 사용하고, 프론트엔드/문서/로그에는 실제 값을 노출하지 않음.
+- 프론트엔드는 외부 AI provider를 직접 호출하지 않고 백엔드 `/api/ai/*` API만 호출함.
 - `AI_API_KEY`가 없거나 provider 호출이 실패해도 서버가 중단되지 않고 fallback 응답을 반환함.
 - 자동 테스트는 mock/fallback 중심으로 수행하며 실제 외부 AI API를 호출하지 않음.
 - rate limit은 MVP용 in-memory 방식이며, production 수준 분산 rate limit은 후속 개선 범위임.
 - AI MVP API는 기존 Prisma schema 기준으로 동작하며 schema/migration 변경 없음.
 - `noteId`를 받는 API는 현재 로그인 사용자 소유 학습 노트만 허용함.
 - invalid `noteId`는 `400 VALIDATION_ERROR`, 존재하지 않거나 다른 사용자 소유 `noteId`는 `404 NOT_FOUND`로 처리함.
+- 기본 provider prompt와 fallback 문구는 한국어 응답을 우선하도록 정리함.
+- 다국어 지원은 현재 핵심 구현 범위가 아니며, 기능 구현 후 UI/UX 단계에서 후속 검토함.
 
 공통 입력 규칙:
 
@@ -1288,10 +1292,12 @@ Response 예시:
 |---|---|
 | 상태 | 구현 완료 |
 | 인증 | 필요 (`ADMIN` 권한) |
+| 프론트 연동 | 관리자 화면 연결 완료 |
 | 설명 | 사용자 제재, 게시글/댓글 관리, 스터디 챌린지 강제 조치 등 시스템 운영 관리 기능 제공 |
 
 주의:
 - 모든 관리자 API는 Bearer 토큰 인증 및 `ADMIN` 권한 검증(`adminMiddleware`)이 적용되어 일반 사용자는 접근이 불가능합니다.
+- 관리자 화면 연결 작업은 기존 관리자 API를 프론트에서 호출하는 범위이며, 새 관리자 endpoint를 추가하지 않음.
 - 제재나 숨김 등의 모든 조치 이력은 `AdminAction` 테이블에 기록 및 저장됩니다.
 - 사용자 응답에는 `passwordHash`, password, token 원문이 포함되지 않음.
 - id path parameter는 양의 정수만 허용하며, 숫자가 아니거나 0 이하이면 `400 VALIDATION_ERROR`를 반환함.
@@ -1620,3 +1626,4 @@ Response 예시:
 | 2026-05 | 프론트엔드 로그인/회원가입 화면의 Auth API 연결 상태 반영 |
 | 2026-05-24 | AI 학습 지원 API(§9.2) 구현 완료 반영, 기본 모델 `gemini-2.5-flash`, Schedule/Task API와 동일한 표 양식으로 정리 |
 | 2026-05-25 | 학습 노트 API(§9.1) 구현 완료 내역 반영 |
+| 2026-05-25 | 관리자 화면 연결과 AI 학습 지원 화면 연결 상태 반영, AI API 한국어 응답/fallback/API key 관리 기준 보강 |

@@ -9,7 +9,10 @@ const featureCards = [
   '게시판'
 ];
 
-export default function DashboardScreen({ onLogout, user }) {
+export default function DashboardScreen({ onLogout, onNavigate, user }) {
+  const cards = [...featureCards];
+  const hasAdminRole = user?.role === 'ADMIN';
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -17,17 +20,46 @@ export default function DashboardScreen({ onLogout, user }) {
         <Text style={styles.subtitle}>개인화 학습 관리 대시보드</Text>
         {user ? (
           <View style={styles.userBox}>
-            <Text style={styles.userName}>{user.name}</Text>
+            <View style={styles.userInfoRow}>
+              <Text style={styles.userName}>{user.name}</Text>
+              {hasAdminRole && (
+                <View style={styles.adminBadge}>
+                  <Text style={styles.adminBadgeText}>ADMIN</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.userEmail}>{user.email}</Text>
           </View>
         ) : null}
       </View>
       <View style={styles.grid}>
-        {featureCards.map((label) => (
-          <View key={label} style={styles.card}>
-            <Text style={styles.cardText}>{label}</Text>
-          </View>
-        ))}
+        {cards.map((label) => {
+          const isAIFeature = label === 'AI 학습 질의';
+
+          return (
+            <Pressable
+              key={label}
+              onPress={isAIFeature ? () => onNavigate('aiLearning') : undefined}
+              style={[styles.card, isAIFeature && styles.aiCard]}
+            >
+              <Text style={[styles.cardText, isAIFeature && styles.aiCardText]}>{label}</Text>
+              {isAIFeature && (
+                <View style={styles.aiBadge}>
+                  <Text style={styles.aiBadgeText}>AI 헬퍼</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+        {hasAdminRole && (
+          <Pressable
+            onPress={() => onNavigate('admin')}
+            style={[styles.card, styles.adminCard]}
+          >
+            <Text style={[styles.cardText, styles.adminCardText]}>관리자 콘솔</Text>
+            <Text style={styles.adminCardSubText}>사용자 및 콘텐츠 관리</Text>
+          </Pressable>
+        )}
       </View>
       <Pressable onPress={onLogout} style={styles.logoutButton}>
         <Text style={styles.logoutButtonText}>로그아웃</Text>
@@ -63,10 +95,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 12
   },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
   userName: {
     color: '#111827',
     fontSize: 16,
     fontWeight: '700'
+  },
+  adminBadge: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
+  adminBadgeText: {
+    color: '#4F46E5',
+    fontSize: 10,
+    fontWeight: '800'
   },
   userEmail: {
     color: '#6B7280',
@@ -86,12 +136,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB'
+    borderColor: '#E5E7EB',
+    position: 'relative'
+  },
+  adminCard: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+    borderWidth: 1.5,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
   },
   cardText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#374151'
+  },
+  aiCard: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#C7D2FE'
+  },
+  aiCardText: {
+    color: '#4F46E5'
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#6366F1',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
+  aiBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700'
+  },
+  adminCardText: {
+    color: '#4F46E5',
+    fontWeight: '700'
+  },
+  adminCardSubText: {
+    color: '#818CF8',
+    fontSize: 11,
+    marginTop: 4
   },
   logoutButton: {
     minHeight: 44,
