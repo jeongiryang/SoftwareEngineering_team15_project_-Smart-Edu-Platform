@@ -299,9 +299,9 @@ AI 질의, 학습 추천, AI 서비스 처리기, 요약 생성과 학습 도메
 
 UC-12 집중 모드는 클라이언트에서 타이머를 실행하고, 학습 종료 시점에 `POST /api/focus-sessions`로 완료된 집중 세션 기록을 저장하는 방식으로 설계한다. 서버는 진행 중인 타이머 상태를 관리하지 않으며, 저장된 `durationMs` 값은 화면 표시와 통계 계산 시 분/시간 단위로 변환한다.
 
-PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보관하며, 렌더링된 이미지는 `screenshots/sequence-diagram/`에 보관한다.
+PlantUML 원본은 [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml)에 통합 보관하며, 렌더링된 이미지는 [screenshots/sequence-diagram/](../../screenshots/sequence-diagram/)에 보관한다.
 
-전체 시퀀스 이미지는 `docs/design/sequence-diagram.md`와 `screenshots/sequence-diagram/`에서 확인한다. 아래 목록은 본문 수록 여부에 따라 구분한다.
+전체 시퀀스 이미지는 [docs/design/sequence-diagram.md](./sequence-diagram.md)와 [screenshots/sequence-diagram/](../../screenshots/sequence-diagram/)에서 확인한다. 아래 목록은 본문 수록 여부에 따라 구분한다.
 
 ### 5.1 주요 시퀀스 다이어그램 목록
 
