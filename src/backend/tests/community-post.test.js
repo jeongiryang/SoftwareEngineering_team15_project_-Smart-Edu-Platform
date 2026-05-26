@@ -457,3 +457,44 @@ describe('Community Post API', () => {
     expect(ownerReadResponse.body.post.title).toBe(post.title);
   });
 });
+
+describe('Community Post repository deletePost', () => {
+  afterEach(() => {
+    jest.dontMock('../src/utils/prisma');
+  });
+
+  it('does not delete comments when ownership is not confirmed in transaction', async () => {
+    jest.resetModules();
+
+    const transactionClient = {
+      boardPost: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        deleteMany: jest.fn()
+      },
+      comment: {
+        deleteMany: jest.fn()
+      }
+    };
+    const mockPrisma = {
+      $transaction: jest.fn(async (callback) => callback(transactionClient))
+    };
+
+    jest.doMock('../src/utils/prisma', () => mockPrisma);
+
+    const realCommunityRepository = jest.requireActual('../src/repositories/community.repository');
+    const deletedCount = await realCommunityRepository.deletePost(123, 456);
+
+    expect(deletedCount).toBe(0);
+    expect(transactionClient.boardPost.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 123,
+        userId: 456
+      },
+      select: {
+        id: true
+      }
+    });
+    expect(transactionClient.comment.deleteMany).not.toHaveBeenCalled();
+    expect(transactionClient.boardPost.deleteMany).not.toHaveBeenCalled();
+  });
+});

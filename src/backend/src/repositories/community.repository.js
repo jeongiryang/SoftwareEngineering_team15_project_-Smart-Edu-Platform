@@ -87,13 +87,27 @@ async function updatePost(postId, userId, data) {
 
 async function deletePost(postId, userId) {
   return prisma.$transaction(async (tx) => {
+    const post = await tx.boardPost.findFirst({
+      where: {
+        id: postId,
+        userId
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (!post) {
+      return 0;
+    }
+
     await tx.comment.deleteMany({
-      where: { postId }
+      where: { postId: post.id }
     });
 
     const result = await tx.boardPost.deleteMany({
       where: {
-        id: postId,
+        id: post.id,
         userId
       }
     });
