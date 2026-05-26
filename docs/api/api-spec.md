@@ -1285,16 +1285,35 @@ Response 예시:
 
 상태: 예정
 
-예상 endpoint:
+커뮤니티 사용자용 API namespace는 `/api/community` 기준으로 확정함. 아래 endpoint는 아직 구현 완료가 아니라 후속 구현을 위한 예정안이며, 1차 구현 범위는 게시글 CRUD API로 제한함.
+
+1차 구현 예정 endpoint:
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| `GET` | `/api/posts` | 게시글 목록 조회 |
-| `POST` | `/api/posts` | 게시글 생성 |
-| `GET` | `/api/posts/:postId` | 게시글 단건 조회 |
-| `PATCH` | `/api/posts/:postId` | 게시글 수정 |
-| `DELETE` | `/api/posts/:postId` | 게시글 삭제 |
-| `POST` | `/api/posts/:postId/comments` | 댓글 생성 |
+| `GET` | `/api/community/posts` | 게시글 목록 조회 |
+| `POST` | `/api/community/posts` | 게시글 생성 |
+| `GET` | `/api/community/posts/:postId` | 게시글 단건 조회 |
+| `PATCH` | `/api/community/posts/:postId` | 게시글 수정 |
+| `DELETE` | `/api/community/posts/:postId` | 게시글 삭제 |
+
+1차 게시글 CRUD 구현 시 카테고리 필터는 포함하고, 검색/정렬/페이징은 구현 복잡도에 따라 같은 PR 또는 후속 PR로 분리할 수 있음. 실제 request body, response body, validation error, 권한 정책은 구현 PR에서 확정하고 이 문서에 다시 반영함.
+
+후속 구현 예정 endpoint:
+
+| Method | Endpoint 후보 | 설명 |
+|---|---|---|
+| `POST` | `/api/community/posts/:postId/comments` | 댓글 생성 |
+| `PATCH` | `/api/community/comments/:commentId` | 댓글 수정 |
+| `DELETE` | `/api/community/comments/:commentId` | 댓글 삭제 |
+| `POST` | `/api/community/posts/:postId/likes` | 좋아요 생성 |
+| `DELETE` | `/api/community/posts/:postId/likes` | 좋아요 취소 |
+| `POST` | `/api/community/posts/:postId/bookmarks` | 북마크 생성 |
+| `DELETE` | `/api/community/posts/:postId/bookmarks` | 북마크 취소 |
+
+신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표시하지 않음.
+
+관리자 신고 처리와 운영 관리는 기존 `/api/admin/...` namespace를 유지함.
 
 ### 9.5 관리자 API
 
