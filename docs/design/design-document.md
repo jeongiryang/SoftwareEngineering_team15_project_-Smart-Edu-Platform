@@ -311,6 +311,7 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 | UC-03 | 학습 일정 등록, 마감 알림, 외부 캘린더 연동 | [screenshots/sequence-diagram/UC03_CreateSchedule.png](../../screenshots/sequence-diagram/UC03_CreateSchedule.png) |
 | UC-04 | 칸반 태스크 상태 변경, 완료 시 알림 취소 | [screenshots/sequence-diagram/UC04_UpdateTaskStatus.png](../../screenshots/sequence-diagram/UC04_UpdateTaskStatus.png) |
 | UC-05, UC-06, UC-07 | AI 학습 질의, AI 오답노트 생성, 학습 추천 | [screenshots/sequence-diagram/UC05-07_AILearning.png](../../screenshots/sequence-diagram/UC05-07_AILearning.png) |
+| UC-08 | 주간 학습 랭킹 확인 | [screenshots/sequence-diagram/UC08_StudyRanking.png](../../screenshots/sequence-diagram/UC08_StudyRanking.png) |
 | UC-09, UC-21 | 스터디 챌린지 참여 및 관리자 챌린지 관리 | [screenshots/sequence-diagram/UC09-21_StudyChallenge.png](../../screenshots/sequence-diagram/UC09-21_StudyChallenge.png) |
 | UC-10, UC-18 | 게시판 이용 및 관리자 게시판 관리 | [screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png](../../screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png) |
 | UC-11 | 학습 통계 및 히트맵 조회 | [screenshots/sequence-diagram/UC11_ViewStudyStatistics.png](../../screenshots/sequence-diagram/UC11_ViewStudyStatistics.png) |
@@ -485,10 +486,10 @@ AI 활용 과정의 세부 요약은 [AI 시뮬레이션 로그](../requirements
 
 | 항목 | 관리 방식 |
 |---|---|
-| 클래스 다이어그램 PlantUML 원본 | `docs/design/plantuml/class-diagram.puml` |
-| 시퀀스 다이어그램 PlantUML 원본 | `docs/design/plantuml/sequence-diagrams.puml` |
-| 클래스 다이어그램 이미지 | `screenshots/class-diagram/class-diagram.png` |
-| 시퀀스 다이어그램 이미지 | `screenshots/sequence-diagram/` |
+| 클래스 다이어그램 PlantUML 원본 | [docs/design/plantuml/class-diagram.puml](./plantuml/class-diagram.puml) |
+| 시퀀스 다이어그램 PlantUML 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+| 클래스 다이어그램 이미지 | [screenshots/class-diagram/class-diagram.png](../../screenshots/class-diagram/class-diagram.png) |
+| 시퀀스 다이어그램 이미지 | [screenshots/sequence-diagram/](../../screenshots/sequence-diagram/) |
 
 AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어그램의 요구사항 ID, 유스케이스 ID, 용어, 이미지 경로는 조원 검토를 거쳐 정리하였다.
 
