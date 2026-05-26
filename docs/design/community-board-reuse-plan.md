@@ -183,7 +183,7 @@ routes
 
 ### 7.2 API 초안
 
-아래 API는 구현 완료가 아니라 초안/제안임. 실제 endpoint는 schema 설계와 Issue 분리 후 확정함.
+아래 API는 구현 완료가 아니라 초안/제안임. 커뮤니티 사용자용 API namespace는 `/api/community` 기준으로 확정하며, 관리자 운영 API는 기존 `/api/admin/...` 기준을 유지함.
 
 | Method | Endpoint 초안 | 설명 | 인증 |
 |---|---|---|---|
@@ -192,18 +192,40 @@ routes
 | `GET` | `/api/community/posts/:postId` | 게시글 상세 조회 | 선택 또는 필요 여부 검토 |
 | `PATCH` | `/api/community/posts/:postId` | 게시글 수정 | 필요, 작성자 본인 |
 | `DELETE` | `/api/community/posts/:postId` | 게시글 삭제 | 필요, 작성자 본인 |
-| `POST` | `/api/community/posts/:postId/comments` | 댓글 작성 | 필요 |
-| `PATCH` | `/api/community/comments/:commentId` | 댓글 수정 | 필요, 작성자 본인 |
-| `DELETE` | `/api/community/comments/:commentId` | 댓글 삭제 | 필요, 작성자 본인 |
-| `POST` | `/api/community/posts/:postId/likes` | 좋아요 | 필요 |
-| `DELETE` | `/api/community/posts/:postId/likes` | 좋아요 취소 | 필요 |
-| `POST` | `/api/community/posts/:postId/bookmarks` | 북마크 | 필요 |
-| `DELETE` | `/api/community/posts/:postId/bookmarks` | 북마크 취소 | 필요 |
-| `GET` | `/api/community/categories` | 게시판 카테고리 조회 | 불필요 또는 선택 |
-| `POST` | `/api/community/posts/:postId/reports` | 게시글 신고 | 필요 |
-| `POST` | `/api/community/comments/:commentId/reports` | 댓글 신고 | 필요 |
+| `POST` | `/api/community/posts/:postId/comments` | 댓글 작성 | 후속 |
+| `PATCH` | `/api/community/comments/:commentId` | 댓글 수정 | 후속, 작성자 본인 |
+| `DELETE` | `/api/community/comments/:commentId` | 댓글 삭제 | 후속, 작성자 본인 |
+| `POST` | `/api/community/posts/:postId/likes` | 좋아요 | 후속 |
+| `DELETE` | `/api/community/posts/:postId/likes` | 좋아요 취소 | 후속 |
+| `POST` | `/api/community/posts/:postId/bookmarks` | 북마크 | 후속 |
+| `DELETE` | `/api/community/posts/:postId/bookmarks` | 북마크 취소 | 후속 |
+| `GET` | `/api/community/categories` | 게시판 카테고리 조회 | 선택 |
+| `POST` | `/api/community/posts/:postId/reports` | 게시글 신고 | 후속 후보 |
+| `POST` | `/api/community/comments/:commentId/reports` | 댓글 신고 | 후속 후보 |
 
-기존 `docs/design/implementation-plan.md`에는 `/api/posts` 계열 초안이 있으나, 현재 프로젝트의 endpoint 충돌과 도메인 명확성을 고려하면 `/api/community/...` prefix를 붙이는 방향을 우선 검토할 수 있음. 최종 endpoint는 API 명세 갱신 시 확정해야 함.
+기존 `docs/design/implementation-plan.md`의 `/api/posts` 계열 초안은 `/api/community/posts` 기준으로 정리함. 1차 구현은 게시글 CRUD API로 제한하고, 댓글/반응/북마크/신고/관리자 연동/프론트 화면은 후속 Issue/PR에서 분리함.
+
+1차 구현 범위:
+
+- 게시글 목록 조회
+- 게시글 상세 조회
+- 게시글 작성
+- 게시글 수정
+- 게시글 삭제
+- 카테고리 필터
+- 검색/정렬/페이징은 게시글 CRUD PR에 포함할 수 있으나, 구현 복잡도에 따라 후속 PR로 분리 가능
+
+후속 구현 범위:
+
+- 댓글 API
+- 좋아요/싫어요/북마크
+- 신고 API 및 신고 이력 모델
+- 관리자 신고 처리 연동
+- 커뮤니티 프론트 화면
+- seed 데이터
+- API 명세/test-report 구현 결과 갱신
+
+신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표현하지 않음.
 
 ### 7.3 DB / Prisma 모델 초안
 
@@ -395,11 +417,11 @@ UI/UX 방향:
 | 닉네임/비밀번호 변경 | `PATCH /api/auth/me`, `PATCH /api/auth/password` | 현재 사용자/프로필 정책과 별도 검토 | 커뮤니티 이식 범위 밖 |
 | 회원 탈퇴 | `DELETE /api/auth/me` | 현재 프로젝트 계정 정책과 별도 검토 | cascade 삭제 정책 그대로 복사 금지 |
 | 마이페이지 활동 | `GET /api/auth/me/activity` | 커뮤니티 활동 요약 후보로 참고 가능 | 현재 User/Profile API와 중복 여부 확인 필요 |
-| 게시글 목록 | `GET /api/posts` | `GET /api/community/posts` 초안으로 검토 | 기존 `/api/posts`는 현재 API 명세 예정안과 충돌 가능 |
-| 게시글 상세 | `GET /api/posts/:id` | `GET /api/community/posts/:postId` 초안 | 조회수 증가 정책, 현재 사용자 반응 상태 포함 여부 결정 필요 |
-| 게시글 작성 | `POST /api/posts` | `POST /api/community/posts` 초안 | `authMiddleware`, `req.user` 기준 작성자 저장 |
-| 게시글 수정 | `PUT /api/posts/:id` | `PATCH /api/community/posts/:postId` 초안 | HTTP method와 에러 응답 규칙 현재 기준으로 조정 |
-| 게시글 삭제 | `DELETE /api/posts/:id` | `DELETE /api/community/posts/:postId` 초안 | hard delete, soft delete, hidden status 정책 결정 필요 |
+| 게시글 목록 | `GET /api/posts` | `GET /api/community/posts` 기준으로 정리 | 기존 `/api/posts`는 Smart Edu 확정 namespace와 다름 |
+| 게시글 상세 | `GET /api/posts/:id` | `GET /api/community/posts/:postId` 기준으로 정리 | 조회수 증가 정책, 현재 사용자 반응 상태 포함 여부 결정 필요 |
+| 게시글 작성 | `POST /api/posts` | `POST /api/community/posts` 기준으로 정리 | `authMiddleware`, `req.user` 기준 작성자 저장 |
+| 게시글 수정 | `PUT /api/posts/:id` | `PATCH /api/community/posts/:postId` 기준으로 정리 | HTTP method와 에러 응답 규칙 현재 기준으로 조정 |
+| 게시글 삭제 | `DELETE /api/posts/:id` | `DELETE /api/community/posts/:postId` 기준으로 정리 | hard delete, soft delete, hidden status 정책 결정 필요 |
 | 댓글 조회 | `GET /api/posts/:postId/comments` | 상세 API에 포함 또는 별도 endpoint 검토 | 댓글 수와 정렬 정책 명시 필요 |
 | 댓글 작성 | `POST /api/posts/:postId/comments` | `POST /api/community/posts/:postId/comments` 초안 | 작성자 `req.user` 기준 |
 | 댓글 수정/삭제 | `PUT/DELETE /api/comments/:id` | `/api/community/comments/:commentId` 초안 | 작성자 권한과 관리자 조치 분리 필요 |
@@ -484,15 +506,15 @@ Smart Edu에 맞게 바꿔야 할 방향:
 | `GET /api/community/posts/:postId` | 게시글 상세 조회 | 선택 또는 필요 여부 검토 | invalid id 400, not found 404 | 1차 게시글 API |
 | `PATCH /api/community/posts/:postId` | 게시글 수정 | 필요 | 작성자 본인만 가능, ADMIN은 별도 moderation API 사용 | 1차 게시글 API |
 | `DELETE /api/community/posts/:postId` | 게시글 삭제 | 필요 | 작성자 본인만 가능, 삭제 정책 확정 필요 | 1차 게시글 API |
-| `POST /api/community/posts/:postId/comments` | 댓글 작성 | 필요 | 현재 사용자 기준 작성 | 댓글 API |
-| `PATCH /api/community/comments/:commentId` | 댓글 수정 | 필요 | 작성자 본인만 가능 | 댓글 API |
-| `DELETE /api/community/comments/:commentId` | 댓글 삭제 | 필요 | 작성자 본인만 가능 | 댓글 API |
-| `POST /api/community/posts/:postId/likes` | 좋아요 생성 | 필요 | 사용자별 중복 방지 | 반응 API |
-| `DELETE /api/community/posts/:postId/likes` | 좋아요 취소 | 필요 | 본인 반응만 취소 | 반응 API |
-| `POST /api/community/posts/:postId/bookmarks` | 북마크 생성 | 필요 | 사용자별 중복 방지 | 북마크 API |
-| `DELETE /api/community/posts/:postId/bookmarks` | 북마크 취소 | 필요 | 본인 북마크만 취소 | 북마크 API |
-| `POST /api/community/posts/:postId/reports` | 게시글 신고 | 필요 | 본인 게시글 신고 허용 여부 검토 | 신고 API |
-| `POST /api/community/comments/:commentId/reports` | 댓글 신고 | 필요 | 중복 신고 정책 검토 | 신고 API |
+| `POST /api/community/posts/:postId/comments` | 댓글 작성 | 필요 | 현재 사용자 기준 작성 | 후속 댓글 API |
+| `PATCH /api/community/comments/:commentId` | 댓글 수정 | 필요 | 작성자 본인만 가능 | 후속 댓글 API |
+| `DELETE /api/community/comments/:commentId` | 댓글 삭제 | 필요 | 작성자 본인만 가능 | 후속 댓글 API |
+| `POST /api/community/posts/:postId/likes` | 좋아요 생성 | 필요 | 사용자별 중복 방지 | 후속 반응 API |
+| `DELETE /api/community/posts/:postId/likes` | 좋아요 취소 | 필요 | 본인 반응만 취소 | 후속 반응 API |
+| `POST /api/community/posts/:postId/bookmarks` | 북마크 생성 | 필요 | 사용자별 중복 방지 | 후속 북마크 API |
+| `DELETE /api/community/posts/:postId/bookmarks` | 북마크 취소 | 필요 | 본인 북마크만 취소 | 후속 북마크 API |
+| `POST /api/community/posts/:postId/reports` | 게시글 신고 | 필요 | 본인 게시글 신고 허용 여부 검토 | 후속 신고 API 후보 |
+| `POST /api/community/comments/:commentId/reports` | 댓글 신고 | 필요 | 중복 신고 정책 검토 | 후속 신고 API 후보 |
 | `GET /api/community/categories` | 카테고리 목록 조회 | 불필요 또는 선택 | enum/table 정책에 따라 결정 | 선택 |
 
 공통 처리 기준:
@@ -560,12 +582,14 @@ Smart Edu에 맞게 바꿔야 할 방향:
 
 후속 구현은 아래처럼 분리하는 것이 안전함. 각 단계는 별도 Issue/PR로 진행하는 것이 적절함.
 
-1. 커뮤니티 DB 모델/API 설계 확정
-   - 현재 `BoardPost`/`Comment` 확장 여부, reaction/bookmark/report 모델 도입 여부 결정
-2. schema/migration 별도 PR
-   - 모델/필드/관계/enum 변경 사유와 영향 API 명시
-3. 게시글 API 구현
-   - 목록/상세/작성/수정/삭제, 검색/정렬/페이징, 작성자 권한 테스트
+1. 커뮤니티 API 경로 및 1차 구현 범위 확정
+   - 사용자용 커뮤니티 API namespace는 `/api/community` 기준으로 정리
+   - 1차 구현은 게시글 CRUD API로 제한
+2. 게시글 CRUD API 구현
+   - 목록/상세/작성/수정/삭제, 카테고리 필터, 작성자 권한 테스트
+   - 검색/정렬/페이징은 복잡도에 따라 같은 PR 또는 후속 PR로 분리
+3. 커뮤니티 DB 모델 확장 검토 및 schema/migration 별도 PR
+   - reaction/bookmark/report, 답글, 조회수, status 필드 도입 여부 결정
 4. 댓글 API 구현
    - 댓글 작성/수정/삭제, 답글 여부 결정, 댓글 수 검증
 5. 좋아요/북마크 API 구현
