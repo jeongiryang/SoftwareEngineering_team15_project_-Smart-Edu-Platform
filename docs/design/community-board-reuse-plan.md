@@ -1,3 +1,11 @@
+문서 연결:
+- 상위 문서: [2단계 구현 계획 문서](./implementation-plan.md)
+- 관련 문서:
+  - [설계 문서](./design-document.md)
+  - [요구사항 문서](../requirements/requirements-document.md)
+
+---
+
 # 커뮤니티 게시판 기존 구현 분석 및 이식 계획
 
 ## 1. 문서 목적

@@ -515,6 +515,7 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
   - [클래스 다이어그램 세부 문서](./class-diagram.md)
   - [시퀀스 다이어그램 세부 문서](./sequence-diagram.md)
   - [2단계 구현 계획 문서](./implementation-plan.md)
+  - [커뮤니티 게시판 기존 구현 분석 및 이식 계획](./community-board-reuse-plan.md)
 - 클래스 다이어그램
   - PlantUML 원본
     - [전체 클래스 다이어그램](./plantuml/class-diagram.puml)
