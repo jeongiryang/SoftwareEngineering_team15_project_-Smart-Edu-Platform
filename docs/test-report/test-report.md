@@ -113,7 +113,7 @@
 | AI 학습 지원 API/화면 | 계획됨 | 부분 구현 | AI MVP API, AI 화면 수동 확인 | 실제 질문 품질, 비용/한도, 개인화 고도화 |
 | 관리자 API/화면 | 계획됨 | 완료 | 관리자 API 테스트, 관리자 화면 수동 확인 | 커뮤니티 신고/챌린지 확장 연동 |
 | 집중 시간/통계/히트맵 | 계획됨 | 미구현 | schema 초안 존재, route 없음 | API, 화면, 테스트 구현 |
-| 커뮤니티 게시판 | 계획됨 | 미구현 | 이식 계획 문서와 schema 초안 존재 | 게시글/댓글/신고 API와 화면 구현 |
+| 커뮤니티 게시판 | 계획됨 | 미구현 | 이식 계획 문서와 schema 초안 존재 | `/api/community/posts` 기준 1차 게시글 CRUD API 구현 후 댓글/신고/화면 분리 |
 | 랭킹/챌린지 | 계획됨 | 부분 구현 | schema와 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
 | TTS/STT/접근성 UI/외부 캘린더/앱 차단 | 계획됨 | 미구현 | 요구사항/설계 문서에 계획됨 | 구현 가능 범위 확정 후 별도 Issue/PR |
 
@@ -182,13 +182,13 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 
 유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성함.
 
-현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 집중 시간/통계, 커뮤니티 기능은 구현 시 테스트를 추가함.
+현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 집중 시간/통계, 커뮤니티 기능은 구현 시 테스트를 추가함. 커뮤니티 1차 구현은 `/api/community/posts` 게시글 CRUD API 테스트부터 작성함.
 
 ### 3.2 통합 테스트 전략
 
 통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
 
-현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 집중 시간/통계, 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함.
+현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 집중 시간/통계, 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함. 커뮤니티는 먼저 게시글 목록/상세/작성/수정/삭제와 작성자 권한 검증을 확인하고, 댓글/반응/신고/관리자 연동 테스트는 후속 구현 범위에서 추가함.
 
 ### 3.3 회귀 테스트 전략
 
@@ -425,7 +425,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 학습 노트 프론트 화면과 오답노트/복습 알림 연계는 후속 기능과 함께 별도 검토 | 완료 |
 | AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
-| 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
+| 커뮤니티/게시판 | 1차 게시글 CRUD API 테스트, 후속 댓글/신고/관리자 연동 흐름 테스트 | 예정 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
 | 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
 | 2단계 품질 보강 | coverage 결과, 프론트 자동 테스트, E2E 또는 수동 시나리오 테스트, 배포 전 smoke test | 예정 |

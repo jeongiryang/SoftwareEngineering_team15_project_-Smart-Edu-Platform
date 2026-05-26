@@ -166,19 +166,21 @@ API는 REST 방식으로 작성하며, 인증이 필요한 API는 JWT 인증 미
 
 | Method | Endpoint | 설명 | 관련 요구사항 | 관련 UC |
 |---|---|---|---|---|
-| GET | `/api/posts` | 게시글 목록 조회 | FR-13 | UC-10 |
-| POST | `/api/posts` | 게시글 작성 | FR-13 | UC-10 |
-| GET | `/api/posts/:postId` | 게시글 상세 조회 | FR-13 | UC-10 |
-| PATCH | `/api/posts/:postId` | 게시글 수정 | FR-13 | UC-10 |
-| DELETE | `/api/posts/:postId` | 게시글 삭제 | FR-13 | UC-10 |
-| POST | `/api/posts/:postId/comments` | 댓글 작성 | FR-13 | UC-10 |
-| POST | `/api/posts/:postId/report` | 게시글 신고 | FR-27 | UC-18 |
+| GET | `/api/community/posts` | 게시글 목록 조회 | FR-13 | UC-10 |
+| POST | `/api/community/posts` | 게시글 작성 | FR-13 | UC-10 |
+| GET | `/api/community/posts/:postId` | 게시글 상세 조회 | FR-13 | UC-10 |
+| PATCH | `/api/community/posts/:postId` | 게시글 수정 | FR-13 | UC-10 |
+| DELETE | `/api/community/posts/:postId` | 게시글 삭제 | FR-13 | UC-10 |
+| POST | `/api/community/posts/:postId/comments` | 댓글 작성(후속) | FR-13 | UC-10 |
+| POST | `/api/community/posts/:postId/reports` | 게시글 신고(후속 후보) | FR-27 | UC-18 |
 | GET | `/api/rankings/weekly` | 주간 학습 랭킹 조회 | FR-11 | UC-08 |
 | GET | `/api/challenges` | 스터디 챌린지 목록 조회 | FR-12 | UC-09 |
 | POST | `/api/challenges` | 스터디 챌린지 생성 | FR-12 | UC-09 |
 | POST | `/api/challenges/:challengeId/join` | 스터디 챌린지 참여 | FR-12 | UC-09 |
-| PATCH | `/api/admin/posts/:postId/moderate` | 관리자 게시판 관리 | FR-27 | UC-18 |
-| PATCH | `/api/admin/challenges/:challengeId/moderate` | 관리자 챌린지 관리 | FR-29 | UC-21 |
+| PATCH | `/api/admin/posts/:postId/moderation` | 관리자 게시판 관리 | FR-27 | UC-18 |
+| PATCH | `/api/admin/challenges/:challengeId/moderation` | 관리자 챌린지 관리 | FR-29 | UC-21 |
+
+커뮤니티 사용자용 API namespace는 `/api/community` 기준으로 정리한다. 1차 구현 범위는 게시글 목록/상세/작성/수정/삭제 API이며, 댓글, 좋아요/싫어요/북마크, 신고, 관리자 신고 처리 연동, 커뮤니티 프론트 화면은 후속 작업으로 분리한다. 신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정한다.
 
 ---
 
@@ -352,7 +354,7 @@ Prisma schema는 PostgreSQL 기준으로 작성한다. 테이블명은 snake_cas
 | 3 | 일정/태스크 | Schedule/Task API, `study_schedules`, `study_tasks`, `notifications` | 일정/태스크 CRUD 테스트 통과 |
 | 4 | 노트/AI MVP | Notes/AI API, `study_notes`, `ai_questions`, `quizzes`, `quiz_questions` | 노트 CRUD, AI Mock 응답 저장 테스트 통과 |
 | 5 | 집중/통계 | Statistics/Focus API, `focus_sessions`, `study_statistics` | 클라이언트 측 타이머 종료 후 완료된 집중 기록 저장 및 통계 조회 테스트 통과 |
-| 6 | 커뮤니티 | Community API, `board_posts`, `comments` | 게시글/댓글 CRUD 테스트 통과 |
+| 6 | 커뮤니티 | Community API, `board_posts`, `comments` | 1차 게시글 CRUD 테스트 통과, 댓글은 후속 구현 |
 | 7 | 관리자 | Admin API, `admin_actions` | 게시글 처리, 사용자 제재 테스트 통과 |
 | 8 | 확장 기능 | 챌린지, 랭킹, 오답노트, 추천 | MVP 완료 후 선택 구현 |
 
@@ -379,7 +381,7 @@ Prisma schema는 PostgreSQL 기준으로 작성한다. 테이블명은 snake_cas
 | 2 | 일정/태스크 | 일정 CRUD, 태스크 상태 변경, 사용자별 데이터 격리 |
 | 3 | 노트/AI | 노트 CRUD, AI Mock 응답 저장, 퀴즈 문항 생성 |
 | 4 | 통계 | 집중 시간 저장, 기간별 총 학습 시간 계산 |
-| 5 | 커뮤니티 | 게시글/댓글 작성, 신고 처리 |
+| 5 | 커뮤니티 | 1차 게시글 CRUD, 후속 댓글/신고 처리 |
 | 6 | 관리자 | 관리자 권한 확인, 사용자 제재, 게시글 관리 |
 
 ### 9.3 테스트 보고서 기록 항목
