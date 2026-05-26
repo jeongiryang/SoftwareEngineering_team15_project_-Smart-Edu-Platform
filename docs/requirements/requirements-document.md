@@ -88,8 +88,8 @@
 
 | 문서명 | 경로 | 설명 |
 |---|---|---|
-| 2026-05-06 회의록 | `docs/meeting-minutes/meeting-2026-05-06.md` | 주제 선정, 요구사항 분석 방식, 타겟 그룹 도출 |
-| 2026-05-11 회의록 | `docs/meeting-minutes/meeting-2026-05-11.md` | 구현 방향, 기능 후보, 기능/비기능 요구사항 후보 정리 |
+| 2026-05-06 회의록 | [docs/meeting-minutes/meeting-2026-05-06.md](../meeting-minutes/meeting-2026-05-06.md) | 주제 선정, 요구사항 분석 방식, 타겟 그룹 도출 |
+| 2026-05-11 회의록 | [docs/meeting-minutes/meeting-2026-05-11.md](../meeting-minutes/meeting-2026-05-11.md) | 구현 방향, 기능 후보, 기능/비기능 요구사항 후보 정리 |
 | 잠재적 실사용자 인터뷰 시뮬레이션 문서 | [docs/requirements/ai-user-interview-simulation.md](./ai-user-interview-simulation.md) | 잠재적 실사용자 관점 인터뷰 근거 |
 | 서비스 의뢰자 인터뷰 시뮬레이션 문서 | [docs/requirements/ai-client-interview-simulation.md](./ai-client-interview-simulation.md) | 의뢰자 및 이해관계자 관점 인터뷰 근거 |
 | AI 시뮬레이션 로그 | [docs/requirements/ai-simulation-log.md](./ai-simulation-log.md) | AI 활용 과정 요약 |
