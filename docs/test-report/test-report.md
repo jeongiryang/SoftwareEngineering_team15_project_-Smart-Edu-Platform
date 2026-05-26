@@ -112,7 +112,7 @@
 | 학습 노트 API | 계획됨 | 완료 | PR #81, 9 suites / 116 tests passed | 학습 노트 프론트 화면 연결 |
 | AI 학습 지원 API/화면 | 계획됨 | 부분 구현 | AI MVP API, AI 화면 수동 확인 | 실제 질문 품질, 비용/한도, 개인화 고도화 |
 | 관리자 API/화면 | 계획됨 | 완료 | 관리자 API 테스트, 관리자 화면 수동 확인 | 커뮤니티 신고/챌린지 확장 연동 |
-| 집중 시간/통계/히트맵 | 계획됨 | 미구현 | schema 초안 존재, route 없음 | API, 화면, 테스트 구현 |
+| 집중 시간/통계/히트맵 | 계획됨 | 완료 | Focus/Statistics API 및 테스트 구현 완료 | 타이머/통계 프론트 화면 연결 |
 | 커뮤니티 게시판 | 계획됨 | 미구현 | 이식 계획 문서와 schema 초안 존재 | 게시글/댓글/신고 API와 화면 구현 |
 | 랭킹/챌린지 | 계획됨 | 부분 구현 | schema와 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
 | TTS/STT/접근성 UI/외부 캘린더/앱 차단 | 계획됨 | 미구현 | 요구사항/설계 문서에 계획됨 | 구현 가능 범위 확정 후 별도 Issue/PR |
@@ -182,13 +182,13 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 
 유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성함.
 
-현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 집중 시간/통계, 커뮤니티 기능은 구현 시 테스트를 추가함.
+현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 관리자, AI 학습 지원 API, 집중 시간/통계 API와 공통 helper 검증을 포함함. 커뮤니티 기능은 구현 시 테스트를 추가함.
 
 ### 3.2 통합 테스트 전략
 
 통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
 
-현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 집중 시간/통계, 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함.
+현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Admin, AI, Focus/Statistics API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함.
 
 ### 3.3 회귀 테스트 전략
 
@@ -215,8 +215,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-BE-002 | 유닛 테스트 | 공통 validation helper | 필수값, 이메일 형식, 비밀번호 길이 검증 helper 확인 | `npm test` | 공통 validation error 처리 | 통과 |
 | TC-BE-003 | 유닛 테스트 | 공통 error/response helper | AppError, 공통 응답 helper, async handler 동작 확인 | `npm test` | status code, error code, payload 처리 일관성 유지 | 통과 |
 | TC-SCHEDULE-001 | 유닛/API 테스트 | 일정/태스크 API | 일정 생성, 수정, 삭제와 태스크 생성, 수정, 상태 변경 검증 | `npm test` | 입력값에 따른 정상 처리 및 사용자별 접근 제한 | 통과 |
-| TC-FOCUS-001 | 유닛 테스트 | 집중 시간 계산 | `durationMs` 기준 집중 시간 계산 검증 | 후속 작성 | 밀리초 단위 저장 기준 유지 | 예정 |
-| TC-STAT-001 | 유닛 테스트 | 통계 계산 | 학습 시간, 완료율, 히트맵 집계 검증 | 후속 작성 | 통계 계산 결과 일관성 유지 | 예정 |
+| TC-FOCUS-001 | 유닛/API 테스트 | 집중 세션 기록 및 조회 | `durationMs` 기준 집중 세션 저장, 사용자별 목록 조회, 날짜 필터 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 본인 세션만 기록/조회되고 잘못된 날짜 필터는 차단됨 | 통과 |
+| TC-STAT-001 | 유닛/API 테스트 | 통계 계산 | 학습 시간, 완료율, 히트맵 집계 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 통계 계산 결과와 히트맵 그룹핑이 일관되게 반환됨 | 통과 |
 
 ### 4.2 통합 테스트 케이스
 
@@ -262,7 +262,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(9 suites / 116 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(10 suites / 126 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
@@ -271,6 +271,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
 | Study Note API test | `GET/POST/PATCH/DELETE /api/notes` | 통과 | `src/backend/tests/note.test.js`의 repository mock 기반 API 테스트. 미인증 접근, invalid noteId 400, 존재하지 않는 노트 404, 타인 소유 노트 접근 차단, 필수값/tags/빈 수정 body 검증 포함 |
 | Study Note focused test | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 통과 | 학습 노트 API 단일 테스트 파일 기준 1 suite / 13 tests passed |
+| Focus/Statistics focused test | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 통과 | 집중 시간/통계 API 단일 테스트 파일 기준 1 suite / 10 tests passed |
 | Documentation diff check | `git diff --check` | 통과 | API 명세와 테스트 보고서 최신화 작업 기준 whitespace 오류 없음 |
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
@@ -283,6 +284,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | PR #75 자동 검증 | 관리자 화면 연결 PR 검증 | 통과 | `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`(8 suites / 103 tests passed), `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate` 통과 |
 | PR #76 자동 검증 | AI 학습 지원 화면 연결 PR 검증 | 통과 | 최신 main 반영 및 #75 변경 보존 후 `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`(8 suites / 103 tests passed), `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate` 통과 |
 | PR #81 자동 검증 | 학습 노트 CRUD API PR 검증 | 통과 | `git diff --check origin/main...origin/feature/study-note-api`, `npm run validate:prisma`, `npm test`(9 suites / 116 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js`(1 suite / 13 tests passed), `npm run check` 통과 |
+| Focus/Statistics API 검증 | 집중 시간/통계 API 구현 검증 | 통과 | `npm test`(10 suites / 126 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js`(1 suite / 10 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -296,6 +298,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/ai.test.js`
 - `src/backend/tests/admin.test.js`
 - `src/backend/tests/note.test.js`
+- `src/backend/tests/focus-statistics.test.js`
 - `src/backend/tests/seed-dev.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
@@ -424,7 +427,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 학습 일정/태스크 | 백엔드 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 사용자별 접근 제한 테스트 완료. 프론트엔드 연동과 알림 연계 테스트는 후속 작성 | 진행 중 |
 | 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 학습 노트 프론트 화면과 오답노트/복습 알림 연계는 후속 기능과 함께 별도 검토 | 완료 |
 | AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
-| 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
+| 집중 시간/통계 | `durationMs` 저장, 세션 목록 조회, 통계 집계, 히트맵 데이터 테스트 | 완료 |
 | 커뮤니티/게시판 | 게시글, 댓글, 신고, 랭킹 흐름 테스트 | 예정 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
 | 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |

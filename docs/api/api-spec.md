@@ -1263,15 +1263,16 @@ Response 예시:
 | `404` | `NOT_FOUND` | `noteId`가 존재하지 않거나 현재 사용자 소유 학습 노트가 아님 |
 | `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
 
-### 9.3 집중 시간/통계 API 예정
+### 9.3 집중 시간/통계 API
 
-상태: 예정
+상태: 구현 완료
 
 예상 endpoint:
 
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `POST` | `/api/focus-sessions` | 완료된 집중 세션 기록 |
+| `GET` | `/api/focus-sessions` | 로그인한 사용자의 집중 세션 목록 조회 |
 | `GET` | `/api/statistics/summary` | 학습 시간 및 완료율 요약 조회 |
 | `GET` | `/api/statistics/heatmap` | 학습 히트맵 데이터 조회 |
 
@@ -1623,8 +1624,8 @@ Response 예시:
 | 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
 | 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 미구현 | 커뮤니티 이식 계획 문서와 schema 모델 초안 존재 | 게시글/댓글/신고 API와 프론트 구현 |
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
-| 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
-| 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
+| 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 완료 | `POST /api/focus-sessions`, `GET /api/focus-sessions` 구현 및 테스트 반영 | 타이머 화면 연결 |
+| 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 완료 | `GET /api/statistics/summary`, `GET /api/statistics/heatmap` 구현 및 테스트 반영 | 시각화 화면 연결 |
 | TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
 | 복습 알림/퀘스트/보상 | FR-24, FR-26 | 미구현 | 요구사항 문서에 계획됨 | 알림/보상 정책 및 테스트 설계 |
@@ -1638,7 +1639,8 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note 포함. 최신 확인 기준 9 suites / 116 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Focus/Statistics 포함. 최신 확인 기준 10 suites / 126 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 1 suite / 10 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
