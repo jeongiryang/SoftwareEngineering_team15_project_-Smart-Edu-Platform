@@ -301,9 +301,13 @@ UC-12 집중 모드는 클라이언트에서 타이머를 실행하고, 학습 �
 
 PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보관하며, 렌더링된 이미지는 `screenshots/sequence-diagram/`에 보관한다.
 
-전체 시퀀스 이미지는 `docs/design/sequence-diagram.md`와 `screenshots/sequence-diagram/`에서 확인한다. 본문에는 구현 기준을 이해하는 데 필요한 대표 흐름만 삽입한다.
+전체 시퀀스 이미지는 `docs/design/sequence-diagram.md`와 `screenshots/sequence-diagram/`에서 확인한다. 아래 목록은 본문 수록 여부에 따라 구분한다.
 
 ### 5.1 주요 시퀀스 다이어그램 목록
+
+시퀀스 다이어그램은 전체 유스케이스 흐름을 산출물로 관리한다. 이 중 본문에 이미지와 설명을 함께 수록한 다이어그램은 **본문 수록 시퀀스 다이어그램**으로, 세부 문서와 이미지 링크를 통해 확인하는 다이어그램은 **별도 참조 시퀀스 다이어그램**으로 구분한다.
+
+#### 5.1.1 본문 수록 시퀀스 다이어그램
 
 | 유스케이스 | 주요 흐름 | 이미지 |
 |---|---|---|
@@ -311,15 +315,21 @@ PlantUML 원본은 `docs/design/plantuml/sequence-diagrams.puml`에 통합 보�
 | UC-03 | 학습 일정 등록, 마감 알림, 외부 캘린더 연동 | [screenshots/sequence-diagram/UC03_CreateSchedule.png](../../screenshots/sequence-diagram/UC03_CreateSchedule.png) |
 | UC-04 | 칸반 태스크 상태 변경, 완료 시 알림 취소 | [screenshots/sequence-diagram/UC04_UpdateTaskStatus.png](../../screenshots/sequence-diagram/UC04_UpdateTaskStatus.png) |
 | UC-05, UC-06, UC-07 | AI 학습 질의, AI 오답노트 생성, 학습 추천 | [screenshots/sequence-diagram/UC05-07_AILearning.png](../../screenshots/sequence-diagram/UC05-07_AILearning.png) |
-| UC-09, UC-21 | 스터디 챌린지 참여 및 관리자 챌린지 관리 | [screenshots/sequence-diagram/UC09-21_StudyChallenge.png](../../screenshots/sequence-diagram/UC09-21_StudyChallenge.png) |
+| UC-19 | AI 기반 퀴즈 생성 | [screenshots/sequence-diagram/UC19_GenerateQuiz.png](../../screenshots/sequence-diagram/UC19_GenerateQuiz.png) |
 | UC-10, UC-18 | 게시판 이용 및 관리자 게시판 관리 | [screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png](../../screenshots/sequence-diagram/UC10-18_BoardAndAdmin.png) |
 | UC-11 | 학습 통계 및 히트맵 조회 | [screenshots/sequence-diagram/UC11_ViewStudyStatistics.png](../../screenshots/sequence-diagram/UC11_ViewStudyStatistics.png) |
 | UC-12 | 집중 모드 및 순공 시간 측정 | [screenshots/sequence-diagram/UC12_FocusMode.png](../../screenshots/sequence-diagram/UC12_FocusMode.png) |
+
+#### 5.1.2 별도 참조 시퀀스 다이어그램
+
+| 유스케이스 | 주요 흐름 | 이미지 |
+|---|---|---|
+| UC-08 | 주간 학습 랭킹 확인 | [screenshots/sequence-diagram/UC08_StudyRanking.png](../../screenshots/sequence-diagram/UC08_StudyRanking.png) |
+| UC-09, UC-21 | 스터디 챌린지 참여 및 관리자 챌린지 관리 | [screenshots/sequence-diagram/UC09-21_StudyChallenge.png](../../screenshots/sequence-diagram/UC09-21_StudyChallenge.png) |
 | UC-13 | TTS 학습 및 요약 보기 | [screenshots/sequence-diagram/UC13_TTSAndSummary.png](../../screenshots/sequence-diagram/UC13_TTSAndSummary.png) |
 | UC-14, UC-16 | 접근성 설정 및 초등학생 친화 UI 적용 | [screenshots/sequence-diagram/UC14-16_UISettings.png](../../screenshots/sequence-diagram/UC14-16_UISettings.png) |
 | UC-15 | 퀘스트 및 보상 확인 | [screenshots/sequence-diagram/UC15_QuestAndReward.png](../../screenshots/sequence-diagram/UC15_QuestAndReward.png) |
 | UC-17 | 복습 알림 확인 | [screenshots/sequence-diagram/UC17_ReviewNotification.png](../../screenshots/sequence-diagram/UC17_ReviewNotification.png) |
-| UC-19 | AI 기반 퀴즈 생성 | [screenshots/sequence-diagram/UC19_GenerateQuiz.png](../../screenshots/sequence-diagram/UC19_GenerateQuiz.png) |
 | UC-20 | 사용자 계정 관리 및 제재 | [screenshots/sequence-diagram/UC20_UserAccountAdmin.png](../../screenshots/sequence-diagram/UC20_UserAccountAdmin.png) |
 
 ---
@@ -485,10 +495,10 @@ AI 활용 과정의 세부 요약은 [AI 시뮬레이션 로그](../requirements
 
 | 항목 | 관리 방식 |
 |---|---|
-| 클래스 다이어그램 PlantUML 원본 | `docs/design/plantuml/class-diagram.puml` |
-| 시퀀스 다이어그램 PlantUML 원본 | `docs/design/plantuml/sequence-diagrams.puml` |
-| 클래스 다이어그램 이미지 | `screenshots/class-diagram/class-diagram.png` |
-| 시퀀스 다이어그램 이미지 | `screenshots/sequence-diagram/` |
+| 클래스 다이어그램 PlantUML 원본 | [docs/design/plantuml/class-diagram.puml](./plantuml/class-diagram.puml) |
+| 시퀀스 다이어그램 PlantUML 원본 | [docs/design/plantuml/sequence-diagrams.puml](./plantuml/sequence-diagrams.puml) |
+| 클래스 다이어그램 이미지 | [screenshots/class-diagram/class-diagram.png](../../screenshots/class-diagram/class-diagram.png) |
+| 시퀀스 다이어그램 이미지 | [screenshots/sequence-diagram/](../../screenshots/sequence-diagram/) |
 
 AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어그램의 요구사항 ID, 유스케이스 ID, 용어, 이미지 경로는 조원 검토를 거쳐 정리하였다.
 
