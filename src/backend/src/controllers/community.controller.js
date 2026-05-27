@@ -14,6 +14,12 @@ const createPostController = asyncHandler(async (req, res) => {
   sendCreated(res, { post });
 });
 
+const createReactionController = asyncHandler(async (req, res) => {
+  const reaction = await communityService.createReaction(req.params.postId, req.user.id, req.body);
+
+  sendCreated(res, { reaction });
+});
+
 const listCommentsController = asyncHandler(async (req, res) => {
   const result = await communityService.listComments(req.params.postId, req.query);
 
@@ -44,6 +50,12 @@ const deletePostController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, result);
 });
 
+const deleteReactionController = asyncHandler(async (req, res) => {
+  const result = await communityService.deleteReaction(req.params.postId, req.user.id);
+
+  sendSuccess(res, 200, result);
+});
+
 const updateCommentController = asyncHandler(async (req, res) => {
   const comment = await communityService.updateComment(req.params.commentId, req.user.id, req.body);
 
@@ -59,8 +71,10 @@ const deleteCommentController = asyncHandler(async (req, res) => {
 module.exports = {
   createComment: createCommentController,
   createPost: createPostController,
+  createReaction: createReactionController,
   deleteComment: deleteCommentController,
   deletePost: deletePostController,
+  deleteReaction: deleteReactionController,
   getPostById: getPostByIdController,
   listComments: listCommentsController,
   listPosts: listPostsController,

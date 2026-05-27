@@ -6,6 +6,8 @@ const POST_CATEGORIES = ['QUESTION', 'FREE', 'STUDY_PROOF'];
 const POST_FIELDS = ['category', 'title', 'content'];
 const POST_SORTS = ['latest', 'oldest'];
 const COMMENT_FIELDS = ['content'];
+const REACTION_FIELDS = ['type'];
+const REACTION_TYPES = ['LIKE', 'DISLIKE'];
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
@@ -144,6 +146,21 @@ function sanitizeComment(comment) {
   };
 }
 
+function sanitizeReaction(reaction) {
+  if (!reaction) {
+    return null;
+  }
+
+  return {
+    id: reaction.id,
+    postId: reaction.postId,
+    userId: reaction.userId,
+    type: reaction.type,
+    createdAt: reaction.createdAt,
+    updatedAt: reaction.updatedAt
+  };
+}
+
 function buildPostData(payload = {}, options = { partial: false }) {
   assertPlainObject(payload, 'Community post payload must be an object');
   assertSupportedFields(payload, POST_FIELDS, 'Community post payload contains unsupported fields');
@@ -185,6 +202,26 @@ function buildCommentData(payload = {}) {
 
   return {
     content: normalizeRequiredStringField(payload.content, 'content')
+  };
+}
+
+function buildReactionData(payload = {}) {
+  assertPlainObject(payload, 'Community reaction payload must be an object');
+  assertSupportedFields(payload, REACTION_FIELDS, 'Community reaction payload contains unsupported fields');
+
+  if (!Object.prototype.hasOwnProperty.call(payload, 'type')) {
+    throw validationError('type is required', { field: 'type' });
+  }
+
+  if (typeof payload.type !== 'string' || !REACTION_TYPES.includes(payload.type)) {
+    throw validationError(`type must be one of ${REACTION_TYPES.join(', ')}`, {
+      field: 'type',
+      allowedValues: REACTION_TYPES
+    });
+  }
+
+  return {
+    type: payload.type
   };
 }
 
@@ -303,6 +340,20 @@ async function createComment(postId, userId, payload) {
   return sanitizeComment(comment);
 }
 
+async function createReaction(postId, userId, payload) {
+  const id = parsePositiveInteger(postId, 'postId');
+  const post = await communityRepository.findPostById(id);
+
+  if (!post) {
+    throw notFoundError('Community post not found');
+  }
+
+  const data = buildReactionData(payload);
+  const reaction = await communityRepository.upsertReaction(id, userId, data.type);
+
+  return sanitizeReaction(reaction);
+}
+
 async function updatePost(postId, userId, payload) {
   const id = parsePositiveInteger(postId, 'postId');
   const post = await communityRepository.findPostByIdAndUserId(id, userId);
@@ -373,23 +424,45 @@ async function deleteComment(commentId, userId) {
   return { message: 'Community comment deleted successfully' };
 }
 
+async function deleteReaction(postId, userId) {
+  const id = parsePositiveInteger(postId, 'postId');
+  const post = await communityRepository.findPostById(id);
+
+  if (!post) {
+    throw notFoundError('Community post not found');
+  }
+
+  const deletedCount = await communityRepository.deleteReaction(id, userId);
+
+  if (deletedCount === 0) {
+    throw notFoundError('Community reaction not found');
+  }
+
+  return { message: 'Community reaction deleted successfully' };
+}
+
 module.exports = {
   COMMENT_FIELDS,
   POST_CATEGORIES,
+  REACTION_TYPES,
   POST_SORTS,
   buildCommentData,
   buildCommentListOptions,
   buildListOptions,
   buildPostData,
+  buildReactionData,
   createComment,
   createPost,
+  createReaction,
   deleteComment,
   deletePost,
+  deleteReaction,
   getPostById,
   listComments,
   listPosts,
   sanitizeComment,
   sanitizePost,
+  sanitizeReaction,
   updateComment,
   updatePost
 };

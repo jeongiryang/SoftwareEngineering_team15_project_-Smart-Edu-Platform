@@ -23,6 +23,15 @@ const COMMENT_INCLUDE = {
   }
 };
 
+const REACTION_SELECT = {
+  id: true,
+  postId: true,
+  userId: true,
+  type: true,
+  createdAt: true,
+  updatedAt: true
+};
+
 function buildPostWhere(filters = {}) {
   const where = {};
 
@@ -131,6 +140,26 @@ function createComment(postId, userId, data) {
   });
 }
 
+function upsertReaction(postId, userId, type) {
+  return prisma.communityReaction.upsert({
+    where: {
+      postId_userId: {
+        postId,
+        userId
+      }
+    },
+    update: {
+      type
+    },
+    create: {
+      postId,
+      userId,
+      type
+    },
+    select: REACTION_SELECT
+  });
+}
+
 function findCommentByIdAndUserId(commentId, userId) {
   return prisma.comment.findFirst({
     where: {
@@ -215,9 +244,21 @@ async function deleteComment(commentId, userId) {
   return result.count;
 }
 
+async function deleteReaction(postId, userId) {
+  const result = await prisma.communityReaction.deleteMany({
+    where: {
+      postId,
+      userId
+    }
+  });
+
+  return result.count;
+}
+
 module.exports = {
   createComment,
   createPost,
+  deleteReaction,
   deleteComment,
   deletePost,
   findCommentByIdAndUserId,
@@ -225,6 +266,7 @@ module.exports = {
   findPostById,
   findPostByIdAndUserId,
   findPosts,
+  upsertReaction,
   updateComment,
   updatePost
 };
