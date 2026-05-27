@@ -4,10 +4,12 @@ const { normalizeString, parsePositiveInteger, requireFields } = require('../uti
 
 const POST_CATEGORIES = ['QUESTION', 'FREE', 'STUDY_PROOF'];
 const POST_FIELDS = ['category', 'title', 'content'];
+const POST_SORTS = ['latest', 'oldest'];
 const COMMENT_FIELDS = ['content'];
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
+const MAX_SEARCH_LENGTH = 100;
 
 function assertPlainObject(payload, message) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -44,6 +46,46 @@ function normalizeCategory(value, options = { required: true }) {
     throw validationError(`category must be one of ${POST_CATEGORIES.join(', ')}`, {
       field: 'category',
       allowedValues: POST_CATEGORIES
+    });
+  }
+
+  return value;
+}
+
+function normalizeSearch(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw validationError('search must be a string', { field: 'search' });
+  }
+
+  const search = normalizeString(value);
+
+  if (search === '') {
+    throw validationError('search must not be blank', { field: 'search' });
+  }
+
+  if (search.length > MAX_SEARCH_LENGTH) {
+    throw validationError(`search must be less than or equal to ${MAX_SEARCH_LENGTH} characters`, {
+      field: 'search',
+      max: MAX_SEARCH_LENGTH
+    });
+  }
+
+  return search;
+}
+
+function normalizeSort(value) {
+  if (value === undefined) {
+    return 'latest';
+  }
+
+  if (typeof value !== 'string' || !POST_SORTS.includes(value)) {
+    throw validationError(`sort must be one of ${POST_SORTS.join(', ')}`, {
+      field: 'sort',
+      allowedValues: POST_SORTS
     });
   }
 
@@ -158,11 +200,15 @@ function buildListOptions(query = {}) {
   }
 
   const category = query.category === undefined ? undefined : normalizeCategory(query.category);
+  const search = normalizeSearch(query.search);
+  const sort = normalizeSort(query.sort);
 
   return {
     page,
     pageSize,
-    category
+    category,
+    search,
+    sort
   };
 }
 
@@ -330,6 +376,7 @@ async function deleteComment(commentId, userId) {
 module.exports = {
   COMMENT_FIELDS,
   POST_CATEGORIES,
+  POST_SORTS,
   buildCommentData,
   buildCommentListOptions,
   buildListOptions,

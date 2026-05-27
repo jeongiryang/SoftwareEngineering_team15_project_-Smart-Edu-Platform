@@ -87,10 +87,25 @@ jest.mock('../src/repositories/community.repository', () => ({
 
     return post ? mockBuildRepositoryPost(post) : null;
   }),
-  findPosts: jest.fn(async ({ page, pageSize, category }) => {
+  findPosts: jest.fn(async ({ page, pageSize, category, search, sort = 'latest' }) => {
+    const normalizedSearch = search ? String(search).toLowerCase() : undefined;
     const filteredPosts = mockPosts
       .filter((post) => !category || post.category === category)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .filter((post) => {
+        if (!normalizedSearch) {
+          return true;
+        }
+
+        return (
+          post.title.toLowerCase().includes(normalizedSearch) ||
+          post.content.toLowerCase().includes(normalizedSearch)
+        );
+      })
+      .sort((a, b) => {
+        const direction = sort === 'oldest' ? 1 : -1;
+
+        return direction * (a.createdAt.getTime() - b.createdAt.getTime());
+      });
     const start = (page - 1) * pageSize;
 
     return {
@@ -270,12 +285,39 @@ describe('Community Post API', () => {
     '/api/community/posts?page=0',
     '/api/community/posts?pageSize=-1',
     '/api/community/posts?pageSize=51',
-    '/api/community/posts?category=NOTICE'
+    '/api/community/posts?category=NOTICE',
+    '/api/community/posts?search=',
+    '/api/community/posts?search=%20%20%20',
+    '/api/community/posts?sort=popular'
   ])('rejects invalid list query "%s"', async (path) => {
     const { token } = await registerTestUser();
 
     const response = await request(app)
       .get(path)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects non-string search query values', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/community/posts')
+      .query({ search: ['math', 'science'] })
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects search query values longer than 100 characters', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/community/posts')
+      .query({ search: 'a'.repeat(101) })
       .set(createAuthHeader(token));
 
     expect(response.status).toBe(400);
@@ -295,6 +337,114 @@ describe('Community Post API', () => {
     expect(response.body.posts).toHaveLength(1);
     expect(response.body.posts[0].id).toBe(freePost.id);
     expect(response.body.posts[0].category).toBe('FREE');
+  });
+
+  it('searches community posts by title', async () => {
+    const { token } = await registerTestUser();
+    const targetPost = await createTestPost(token, {
+      title: 'Calculus question',
+      content: 'Limit problem'
+    });
+    await createTestPost(token, {
+      title: 'Vocabulary note',
+      content: 'English study'
+    });
+
+    const response = await request(app)
+      .get('/api/community/posts?search=calc')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.posts).toHaveLength(1);
+    expect(response.body.posts[0].id).toBe(targetPost.id);
+    expect(response.body.pagination.total).toBe(1);
+  });
+
+  it('searches community posts by content', async () => {
+    const { token } = await registerTestUser();
+    await createTestPost(token, {
+      title: 'Free talk',
+      content: 'Daily study log'
+    });
+    const targetPost = await createTestPost(token, {
+      title: 'Question',
+      content: 'Geometry proof strategy'
+    });
+
+    const response = await request(app)
+      .get('/api/community/posts?search=proof')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.posts).toHaveLength(1);
+    expect(response.body.posts[0].id).toBe(targetPost.id);
+    expect(response.body.pagination.total).toBe(1);
+  });
+
+  it('applies search with category filter and sort options', async () => {
+    const { token } = await registerTestUser();
+    await createTestPost(token, {
+      category: 'QUESTION',
+      title: 'Math question',
+      content: 'calculus'
+    });
+    const firstFreePost = await createTestPost(token, {
+      category: 'FREE',
+      title: 'Math free post',
+      content: 'algebra'
+    });
+    const secondFreePost = await createTestPost(token, {
+      category: 'FREE',
+      title: 'Daily note',
+      content: 'math habit'
+    });
+    await createTestPost(token, {
+      category: 'FREE',
+      title: 'English free post',
+      content: 'vocabulary'
+    });
+
+    const response = await request(app)
+      .get('/api/community/posts?category=FREE&search=math&sort=oldest')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.posts.map((post) => post.id)).toEqual([
+      firstFreePost.id,
+      secondFreePost.id
+    ]);
+    expect(response.body.pagination.total).toBe(2);
+    expect(communityRepository.findPosts).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 10,
+      category: 'FREE',
+      search: 'math',
+      sort: 'oldest'
+    });
+  });
+
+  it('sorts community posts by latest and oldest options', async () => {
+    const { token } = await registerTestUser();
+    const firstPost = await createTestPost(token, { title: 'First post' });
+    const secondPost = await createTestPost(token, { title: 'Second post' });
+
+    const latestResponse = await request(app)
+      .get('/api/community/posts?sort=latest')
+      .set(createAuthHeader(token));
+    const oldestResponse = await request(app)
+      .get('/api/community/posts?sort=oldest')
+      .set(createAuthHeader(token));
+
+    expect(latestResponse.status).toBe(200);
+    expect(latestResponse.body.posts.map((post) => post.id)).toEqual([
+      secondPost.id,
+      firstPost.id
+    ]);
+    expect(oldestResponse.status).toBe(200);
+    expect(oldestResponse.body.posts.map((post) => post.id)).toEqual([
+      firstPost.id,
+      secondPost.id
+    ]);
   });
 
   it('reads a single community post', async () => {
@@ -461,6 +611,56 @@ describe('Community Post API', () => {
 describe('Community Post repository deletePost', () => {
   afterEach(() => {
     jest.dontMock('../src/utils/prisma');
+  });
+
+  it('builds search, category, sort and pagination query options', async () => {
+    jest.resetModules();
+
+    const mockPrisma = {
+      boardPost: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0)
+      }
+    };
+
+    jest.doMock('../src/utils/prisma', () => mockPrisma);
+
+    const realCommunityRepository = jest.requireActual('../src/repositories/community.repository');
+    const result = await realCommunityRepository.findPosts({
+      page: 2,
+      pageSize: 5,
+      category: 'QUESTION',
+      search: 'calculus',
+      sort: 'oldest'
+    });
+
+    const expectedWhere = {
+      category: 'QUESTION',
+      OR: [
+        {
+          title: {
+            contains: 'calculus',
+            mode: 'insensitive'
+          }
+        },
+        {
+          content: {
+            contains: 'calculus',
+            mode: 'insensitive'
+          }
+        }
+      ]
+    };
+
+    expect(result).toEqual({ posts: [], total: 0 });
+    expect(mockPrisma.boardPost.findMany).toHaveBeenCalledWith({
+      where: expectedWhere,
+      include: expect.any(Object),
+      orderBy: { createdAt: 'asc' },
+      skip: 5,
+      take: 5
+    });
+    expect(mockPrisma.boardPost.count).toHaveBeenCalledWith({ where: expectedWhere });
   });
 
   it('does not delete comments when ownership is not confirmed in transaction', async () => {

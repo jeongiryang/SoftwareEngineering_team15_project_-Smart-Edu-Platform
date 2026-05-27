@@ -30,18 +30,42 @@ function buildPostWhere(filters = {}) {
     where.category = filters.category;
   }
 
+  if (filters.search) {
+    where.OR = [
+      {
+        title: {
+          contains: filters.search,
+          mode: 'insensitive'
+        }
+      },
+      {
+        content: {
+          contains: filters.search,
+          mode: 'insensitive'
+        }
+      }
+    ];
+  }
+
   return where;
 }
 
-async function findPosts({ page, pageSize, category }) {
-  const where = buildPostWhere({ category });
+function buildPostOrderBy(sort = 'latest') {
+  return {
+    createdAt: sort === 'oldest' ? 'asc' : 'desc'
+  };
+}
+
+async function findPosts({ page, pageSize, category, search, sort }) {
+  const where = buildPostWhere({ category, search });
+  const orderBy = buildPostOrderBy(sort);
   const skip = (page - 1) * pageSize;
 
   const [posts, total] = await Promise.all([
     prisma.boardPost.findMany({
       where,
       include: POST_INCLUDE,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       skip,
       take: pageSize
     }),
