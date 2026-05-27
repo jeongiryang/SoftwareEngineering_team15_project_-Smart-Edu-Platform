@@ -188,7 +188,7 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 
 통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
 
-현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 커뮤니티는 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 반응 생성/전환/취소, 북마크 생성/취소와 작성자/현재 사용자 기준 권한 검증을 확인했으며, 신고/관리자 연동 테스트는 후속 구현 범위에서 추가함.
+현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 커뮤니티는 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 반응 생성/전환/취소, 북마크 생성/취소, 게시글 반응/북마크 요약 응답과 작성자/현재 사용자 기준 권한 검증을 확인했으며, 신고/관리자 연동 테스트는 후속 구현 범위에서 추가함.
 
 ### 3.3 회귀 테스트 전략
 
@@ -231,7 +231,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석, fallback, noteId 소유권, 400/401/404/429 예외 검증 | `npm test` | mock/fallback 중심으로 실제 외부 AI API 호출 없이 검증 | 통과 |
 | TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
 | TC-INT-009 | API 통합 테스트 | 학습 노트 API | 노트 생성/목록/상세/수정/삭제, invalid noteId, 빈 수정 body, 필수값 누락, tags 타입, 타인 노트 접근 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 본인 소유 데이터 접근 제한 | 통과 |
-| TC-INT-010 | API 통합 테스트 | 커뮤니티 게시글 API | 게시글 목록/상세/작성/수정/삭제, pagination, category filter, title/content search, latest/oldest sort, invalid postId, 빈 수정 body, 필수값 누락, 타인 게시글 수정/삭제 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 작성자 기준 데이터 변경 제한 | 통과 |
+| TC-INT-010 | API 통합 테스트 | 커뮤니티 게시글 API | 게시글 목록/상세/작성/수정/삭제, pagination, category filter, title/content search, latest/oldest sort, 반응/북마크 count/status 응답, invalid postId, 빈 수정 body, 필수값 누락, 타인 게시글 수정/삭제 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 작성자/현재 사용자 기준 데이터 변경 제한 | 통과 |
 | TC-INT-011 | API 통합 테스트 | 커뮤니티 댓글 API | 댓글 목록/작성/수정/삭제, pagination, invalid postId/commentId, content validation, 타인 댓글 수정/삭제 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 작성자 기준 댓글 변경 제한 | 통과 |
 | TC-INT-012 | API 통합 테스트 | 커뮤니티 반응 API | 게시글 반응 LIKE/DISLIKE 생성, 동일 type 재요청, 반응 전환, 반응 취소, invalid postId, type validation, userId spoofing 차단, 다른 사용자 반응 영향 없음 검증 | `npm test` | 400/401/201/200/404 응답 및 현재 사용자 기준 반응 변경 제한 | 통과 |
 | TC-INT-013 | API 통합 테스트 | 커뮤니티 북마크 API | 게시글 북마크 생성, 중복 북마크 요청, 북마크 취소, invalid postId, userId spoofing 차단, 다른 사용자 북마크 영향 없음 검증 | `npm test` | 400/401/201/200/404 응답 및 현재 사용자 기준 북마크 변경 제한 | 통과 |
@@ -266,7 +266,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(13 suites / 238 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(13 suites / 242 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
@@ -275,8 +275,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
 | Study Note API test | `GET/POST/PATCH/DELETE /api/notes` | 통과 | `src/backend/tests/note.test.js`의 repository mock 기반 API 테스트. 미인증 접근, invalid noteId 400, 존재하지 않는 노트 404, 타인 소유 노트 접근 차단, 필수값/tags/빈 수정 body 검증 포함 |
 | Study Note focused test | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 통과 | 학습 노트 API 단일 테스트 파일 기준 1 suite / 13 tests passed |
-| Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category/search/sort validation, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
-| Community Post focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 통과 | 커뮤니티 게시글 API 단일 테스트 파일과 repository query option 및 삭제 안전성 테스트 기준 1 suite / 44 tests passed |
+| Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category/search/sort validation, 반응/북마크 count/status 응답, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
+| Community Post focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 통과 | 커뮤니티 게시글 API 단일 테스트 파일과 repository query option 및 삭제 안전성 테스트 기준 1 suite / 48 tests passed |
 | Community Comment API test | `GET/POST/PATCH/DELETE /api/community/posts/:postId/comments`, `PATCH/DELETE /api/community/comments/:commentId` | 통과 | `src/backend/tests/community-comment.test.js`의 repository mock 기반 API 테스트. 미인증 401, pagination validation, invalid postId/commentId 400, 존재하지 않는 게시글/댓글 404, 타인 댓글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
 | Community Comment focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 통과 | 커뮤니티 댓글 API 단일 테스트 기준 1 suite / 38 tests passed |
 | Community Reaction API test | `POST/DELETE /api/community/posts/:postId/reactions` | 통과 | `src/backend/tests/community-reaction.test.js`의 repository mock 기반 API 테스트. 미인증 401, invalid postId 400, 존재하지 않는 게시글 404, LIKE/DISLIKE 생성, 동일 type 재요청, 반응 전환, 반응 취소, 다른 사용자 반응 영향 없음, 민감정보 미노출 검증 포함 |
@@ -328,7 +328,7 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 
 학습 노트 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 학습 노트 CRUD 기능과 본인 소유 데이터 접근 제한을 확인함. 미인증 요청은 401, invalid noteId와 잘못된 입력은 400, 존재하지 않거나 다른 사용자 소유 노트는 404로 처리되는지 검증함. 자동 테스트는 실제 DB 쓰기 없이 수행함.
 
-커뮤니티 게시글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts` 게시글 CRUD 기능을 확인함. 목록 조회는 pagination, category filter, title/content search, latest/oldest sort를 검증하고, 생성/수정은 `QUESTION`, `FREE`, `STUDY_PROOF` category와 `title`, `content` validation을 확인함. invalid `postId`는 400, 존재하지 않거나 다른 사용자 소유 게시글은 404로 처리하며, 응답에 `passwordHash`, password, token, email 등 불필요한 민감정보가 포함되지 않는지 확인함. 추가로 repository `findPosts` query option 구성과 `deletePost` transaction에서 소유권 확인 전에 댓글 삭제가 실행되지 않는지 검증함.
+커뮤니티 게시글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts` 게시글 CRUD 기능을 확인함. 목록 조회는 pagination, category filter, title/content search, latest/oldest sort와 반응/북마크 count/status 응답을 검증하고, 생성/수정은 `QUESTION`, `FREE`, `STUDY_PROOF` category와 `title`, `content` validation을 확인함. invalid `postId`는 400, 존재하지 않거나 다른 사용자 소유 게시글은 404로 처리하며, 응답에 `passwordHash`, password, token, email 등 불필요한 민감정보가 포함되지 않는지 확인함. 추가로 repository `findPosts` query option 구성, `findPostEngagementSummaries` 집계 query 구성, `deletePost` transaction에서 소유권 확인 전에 댓글 삭제가 실행되지 않는지 검증함.
 
 커뮤니티 댓글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/comments` 댓글 목록/작성과 `/api/community/comments/:commentId` 댓글 수정/삭제 기능을 확인함. 목록 조회는 pagination과 대상 게시글 존재 여부를 검증하고, 작성/수정은 `content` validation과 지원하지 않는 field 차단을 확인함. invalid `postId`/`commentId`는 400, 존재하지 않는 게시글/댓글 또는 다른 사용자 소유 댓글은 404로 처리하며, 응답에 `passwordHash`, password, token, email 등 불필요한 민감정보가 포함되지 않는지 확인함.
 

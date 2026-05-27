@@ -3,7 +3,7 @@ const { sendCreated, sendSuccess } = require('../utils/apiResponse');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const listPostsController = asyncHandler(async (req, res) => {
-  const result = await communityService.listPosts(req.query);
+  const result = await communityService.listPosts(req.query, req.user.id);
 
   sendSuccess(res, 200, result);
 });
@@ -39,7 +39,7 @@ const createCommentController = asyncHandler(async (req, res) => {
 });
 
 const getPostByIdController = asyncHandler(async (req, res) => {
-  const post = await communityService.getPostById(req.params.postId);
+  const post = await communityService.getPostById(req.params.postId, req.user.id);
 
   sendSuccess(res, 200, { post });
 });

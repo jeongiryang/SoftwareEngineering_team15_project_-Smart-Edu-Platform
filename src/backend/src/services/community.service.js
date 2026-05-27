@@ -126,6 +126,30 @@ function sanitizePost(post) {
   };
 }
 
+function buildDefaultEngagementSummary() {
+  return {
+    likeCount: 0,
+    dislikeCount: 0,
+    bookmarkCount: 0,
+    myReaction: null,
+    isBookmarked: false
+  };
+}
+
+function sanitizePostWithEngagement(post, engagementSummary) {
+  const sanitizedPost = sanitizePost(post);
+
+  if (!sanitizedPost) {
+    return null;
+  }
+
+  return {
+    ...sanitizedPost,
+    ...buildDefaultEngagementSummary(),
+    ...(engagementSummary || {})
+  };
+}
+
 function sanitizeComment(comment) {
   if (!comment) {
     return null;
@@ -287,13 +311,17 @@ function buildCommentListOptions(query = {}) {
   };
 }
 
-async function listPosts(query) {
+async function listPosts(query, userId) {
   const options = buildListOptions(query);
   const { posts, total } = await communityRepository.findPosts(options);
+  const summaries = await communityRepository.findPostEngagementSummaries(
+    posts.map((post) => post.id),
+    userId
+  );
   const totalPages = Math.ceil(total / options.pageSize);
 
   return {
-    posts: posts.map(sanitizePost),
+    posts: posts.map((post) => sanitizePostWithEngagement(post, summaries.get(post.id))),
     pagination: {
       page: options.page,
       pageSize: options.pageSize,
@@ -310,7 +338,7 @@ async function createPost(userId, payload) {
   return sanitizePost(post);
 }
 
-async function getPostById(postId) {
+async function getPostById(postId, userId) {
   const id = parsePositiveInteger(postId, 'postId');
   const post = await communityRepository.findPostById(id);
 
@@ -318,7 +346,9 @@ async function getPostById(postId) {
     throw notFoundError('Community post not found');
   }
 
-  return sanitizePost(post);
+  const summaries = await communityRepository.findPostEngagementSummaries([id], userId);
+
+  return sanitizePostWithEngagement(post, summaries.get(id));
 }
 
 async function listComments(postId, query) {
@@ -519,6 +549,7 @@ module.exports = {
   sanitizeBookmark,
   sanitizeComment,
   sanitizePost,
+  sanitizePostWithEngagement,
   sanitizeReaction,
   updateComment,
   updatePost

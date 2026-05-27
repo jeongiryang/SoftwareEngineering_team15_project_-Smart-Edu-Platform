@@ -91,6 +91,118 @@ async function findPosts({ page, pageSize, category, search, sort }) {
   return { posts, total };
 }
 
+async function findPostEngagementSummaries(postIds, userId) {
+  const ids = [...new Set(postIds.map(Number))].filter((id) => Number.isInteger(id) && id > 0);
+
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const [reactionCounts, bookmarkCounts, currentUserReactions, currentUserBookmarks] =
+    await Promise.all([
+      prisma.communityReaction.groupBy({
+        by: ['postId', 'type'],
+        where: {
+          postId: {
+            in: ids
+          }
+        },
+        _count: {
+          id: true
+        }
+      }),
+      prisma.communityBookmark.groupBy({
+        by: ['postId'],
+        where: {
+          postId: {
+            in: ids
+          }
+        },
+        _count: {
+          id: true
+        }
+      }),
+      prisma.communityReaction.findMany({
+        where: {
+          postId: {
+            in: ids
+          },
+          userId
+        },
+        select: {
+          postId: true,
+          type: true
+        }
+      }),
+      prisma.communityBookmark.findMany({
+        where: {
+          postId: {
+            in: ids
+          },
+          userId
+        },
+        select: {
+          postId: true
+        }
+      })
+    ]);
+
+  const summaries = new Map(
+    ids.map((id) => [
+      id,
+      {
+        likeCount: 0,
+        dislikeCount: 0,
+        bookmarkCount: 0,
+        myReaction: null,
+        isBookmarked: false
+      }
+    ])
+  );
+
+  reactionCounts.forEach((row) => {
+    const summary = summaries.get(row.postId);
+
+    if (!summary) {
+      return;
+    }
+
+    if (row.type === 'LIKE') {
+      summary.likeCount = row._count.id;
+    }
+
+    if (row.type === 'DISLIKE') {
+      summary.dislikeCount = row._count.id;
+    }
+  });
+
+  bookmarkCounts.forEach((row) => {
+    const summary = summaries.get(row.postId);
+
+    if (summary) {
+      summary.bookmarkCount = row._count.id;
+    }
+  });
+
+  currentUserReactions.forEach((reaction) => {
+    const summary = summaries.get(reaction.postId);
+
+    if (summary) {
+      summary.myReaction = reaction.type;
+    }
+  });
+
+  currentUserBookmarks.forEach((bookmark) => {
+    const summary = summaries.get(bookmark.postId);
+
+    if (summary) {
+      summary.isBookmarked = true;
+    }
+  });
+
+  return summaries;
+}
+
 function createPost(userId, data) {
   return prisma.boardPost.create({
     data: {
@@ -301,6 +413,7 @@ module.exports = {
   findCommentsByPostId,
   findPostById,
   findPostByIdAndUserId,
+  findPostEngagementSummaries,
   findPosts,
   upsertBookmark,
   upsertReaction,
