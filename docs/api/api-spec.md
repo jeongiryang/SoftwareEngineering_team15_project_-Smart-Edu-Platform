@@ -1632,10 +1632,12 @@ Error:
 
 | Method | Endpoint 후보 | 설명 |
 |---|---|---|
-| `POST` | `/api/community/posts/:postId/likes` | 좋아요 생성 |
-| `DELETE` | `/api/community/posts/:postId/likes` | 좋아요 취소 |
+| `POST` | `/api/community/posts/:postId/reactions` | 좋아요/싫어요 반응 생성 또는 전환 |
+| `DELETE` | `/api/community/posts/:postId/reactions` | 반응 취소 |
 | `POST` | `/api/community/posts/:postId/bookmarks` | 북마크 생성 |
 | `DELETE` | `/api/community/posts/:postId/bookmarks` | 북마크 취소 |
+
+반응/북마크 API는 `ReactionType`, `CommunityReaction`, `CommunityBookmark` schema/migration 반영 후 별도 구현 PR에서 request/response/error 정책을 확정함.
 
 신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표시하지 않음.
 
