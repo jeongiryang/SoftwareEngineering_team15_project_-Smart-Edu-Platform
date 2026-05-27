@@ -1,8 +1,10 @@
 const express = require('express');
 const {
+  createBookmark,
   createComment,
   createPost,
   createReaction,
+  deleteBookmark,
   deleteComment,
   deletePost,
   deleteReaction,
@@ -22,6 +24,8 @@ router.get('/posts/:postId/comments', authMiddleware, listComments);
 router.post('/posts/:postId/comments', authMiddleware, createComment);
 router.post('/posts/:postId/reactions', authMiddleware, createReaction);
 router.delete('/posts/:postId/reactions', authMiddleware, deleteReaction);
+router.post('/posts/:postId/bookmarks', authMiddleware, createBookmark);
+router.delete('/posts/:postId/bookmarks', authMiddleware, deleteBookmark);
 router.get('/posts/:postId', authMiddleware, getPostById);
 router.patch('/posts/:postId', authMiddleware, updatePost);
 router.delete('/posts/:postId', authMiddleware, deletePost);
