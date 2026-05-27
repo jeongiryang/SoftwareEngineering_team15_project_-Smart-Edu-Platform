@@ -1289,7 +1289,7 @@ Response 예시:
 | 기본 namespace | `/api/community` |
 | 인증 | 필요 (`Authorization: Bearer <JWT_TOKEN>`) |
 | 사용 모델 | `BoardPost`, `PostCategory`, `Comment` |
-| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, pagination, category filter |
+| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
 | 제외 범위 | 답글, 좋아요/싫어요, 북마크, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
 
 커뮤니티 게시글 API는 `routes → controllers → services → repositories → Prisma` 구조로 구현함. 기존 DB 과제 커뮤니티 레포의 기능 흐름과 정보 구조는 참고하지만, 기존 코드와 static HTML/CSS/Vanilla JS UI는 복사하지 않음.
@@ -1300,9 +1300,11 @@ Response 예시:
 - 게시글 작성자와 댓글 작성자는 request body의 `userId`가 아니라 `req.user.id` 기준으로 저장함.
 - `postId`, `commentId`, `page`, `pageSize`는 positive integer로 검증함.
 - `category`는 `QUESTION`, `FREE`, `STUDY_PROOF` 중 하나만 허용함.
-- 목록 정렬은 최신순(`createdAt desc`) 고정임.
+- 게시글 목록 `search`는 `title`, `content`에 대해 대소문자 구분 없이 포함 검색을 수행함.
+- `search`가 제공되었으나 trim 결과가 빈 문자열이거나 100자를 초과하면 `400 VALIDATION_ERROR`로 처리함.
+- 게시글 목록 `sort`는 `latest`(최신순, 기본값)와 `oldest`(오래된순)만 허용함.
 - 댓글 목록 정렬은 오래된순(`createdAt asc`) 고정임.
-- 검색과 사용자 지정 정렬은 이번 1차 구현 범위에서 제외함.
+- viewCount, reaction, bookmark, comment count 기반 정렬은 후속 범위로 둠.
 - 게시글 상세 조회는 인증된 사용자라면 작성자가 아니어도 가능하며, 존재하지 않는 게시글은 404로 처리함.
 - 게시글 수정/삭제는 작성자 본인만 가능하며, 타 사용자 게시글 또는 존재하지 않는 게시글 수정/삭제는 404로 처리함.
 - 댓글 목록/작성은 대상 게시글 존재 여부를 먼저 확인하며, 존재하지 않는 게시글은 404로 처리함.
@@ -1321,6 +1323,8 @@ Query:
 | `page` | 선택 | positive integer, 기본값 `1` |
 | `pageSize` | 선택 | positive integer, 기본값 `10`, 최대 `50` |
 | `category` | 선택 | `QUESTION`, `FREE`, `STUDY_PROOF` 중 하나 |
+| `search` | 선택 | `title`, `content` 대상 포함 검색. trim 후 빈 문자열 또는 100자 초과는 400 |
+| `sort` | 선택 | `latest` 또는 `oldest`. 기본값 `latest` |
 
 Response `200`:
 
@@ -1353,7 +1357,7 @@ Response `200`:
 
 Error:
 
-- `400`: invalid `page`, `pageSize`, `category`
+- `400`: invalid `page`, `pageSize`, `category`, `search`, `sort`
 - `401`: 인증 token 없음 또는 유효하지 않음
 
 #### 9.4.2 게시글 생성
@@ -1979,9 +1983,9 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment 포함. 최신 확인 기준 11 suites / 188 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment 포함. 최신 확인 기준 11 suites / 198 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 34 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 44 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
