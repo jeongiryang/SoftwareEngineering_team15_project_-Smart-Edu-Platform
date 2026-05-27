@@ -14,6 +14,15 @@ const POST_INCLUDE = {
   }
 };
 
+const COMMENT_INCLUDE = {
+  user: {
+    select: {
+      id: true,
+      name: true
+    }
+  }
+};
+
 function buildPostWhere(filters = {}) {
   const where = {};
 
@@ -69,6 +78,45 @@ function findPostByIdAndUserId(postId, userId) {
   });
 }
 
+async function findCommentsByPostId({ postId, page, pageSize }) {
+  const where = { postId };
+  const skip = (page - 1) * pageSize;
+
+  const [comments, total] = await Promise.all([
+    prisma.comment.findMany({
+      where,
+      include: COMMENT_INCLUDE,
+      orderBy: { createdAt: 'asc' },
+      skip,
+      take: pageSize
+    }),
+    prisma.comment.count({ where })
+  ]);
+
+  return { comments, total };
+}
+
+function createComment(postId, userId, data) {
+  return prisma.comment.create({
+    data: {
+      postId,
+      userId,
+      ...data
+    },
+    include: COMMENT_INCLUDE
+  });
+}
+
+function findCommentByIdAndUserId(commentId, userId) {
+  return prisma.comment.findFirst({
+    where: {
+      id: commentId,
+      userId
+    },
+    include: COMMENT_INCLUDE
+  });
+}
+
 async function updatePost(postId, userId, data) {
   const result = await prisma.boardPost.updateMany({
     where: {
@@ -83,6 +131,22 @@ async function updatePost(postId, userId, data) {
   }
 
   return findPostByIdAndUserId(postId, userId);
+}
+
+async function updateComment(commentId, userId, data) {
+  const result = await prisma.comment.updateMany({
+    where: {
+      id: commentId,
+      userId
+    },
+    data
+  });
+
+  if (result.count === 0) {
+    return null;
+  }
+
+  return findCommentByIdAndUserId(commentId, userId);
 }
 
 async function deletePost(postId, userId) {
@@ -116,11 +180,27 @@ async function deletePost(postId, userId) {
   });
 }
 
+async function deleteComment(commentId, userId) {
+  const result = await prisma.comment.deleteMany({
+    where: {
+      id: commentId,
+      userId
+    }
+  });
+
+  return result.count;
+}
+
 module.exports = {
+  createComment,
   createPost,
+  deleteComment,
   deletePost,
+  findCommentByIdAndUserId,
+  findCommentsByPostId,
   findPostById,
   findPostByIdAndUserId,
   findPosts,
+  updateComment,
   updatePost
 };

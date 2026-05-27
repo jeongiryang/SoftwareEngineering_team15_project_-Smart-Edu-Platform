@@ -14,6 +14,18 @@ const createPostController = asyncHandler(async (req, res) => {
   sendCreated(res, { post });
 });
 
+const listCommentsController = asyncHandler(async (req, res) => {
+  const result = await communityService.listComments(req.params.postId, req.query);
+
+  sendSuccess(res, 200, result);
+});
+
+const createCommentController = asyncHandler(async (req, res) => {
+  const comment = await communityService.createComment(req.params.postId, req.user.id, req.body);
+
+  sendCreated(res, { comment });
+});
+
 const getPostByIdController = asyncHandler(async (req, res) => {
   const post = await communityService.getPostById(req.params.postId);
 
@@ -32,10 +44,26 @@ const deletePostController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, result);
 });
 
+const updateCommentController = asyncHandler(async (req, res) => {
+  const comment = await communityService.updateComment(req.params.commentId, req.user.id, req.body);
+
+  sendSuccess(res, 200, { comment });
+});
+
+const deleteCommentController = asyncHandler(async (req, res) => {
+  const result = await communityService.deleteComment(req.params.commentId, req.user.id);
+
+  sendSuccess(res, 200, result);
+});
+
 module.exports = {
+  createComment: createCommentController,
   createPost: createPostController,
+  deleteComment: deleteCommentController,
   deletePost: deletePostController,
   getPostById: getPostByIdController,
+  listComments: listCommentsController,
   listPosts: listPostsController,
+  updateComment: updateCommentController,
   updatePost: updatePostController
 };

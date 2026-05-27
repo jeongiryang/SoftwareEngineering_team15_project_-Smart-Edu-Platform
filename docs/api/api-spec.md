@@ -1285,25 +1285,28 @@ Response 예시:
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | 1차 게시글 CRUD API 구현 완료 |
+| 상태 | 1차 게시글 CRUD 및 댓글 API 구현 완료 |
 | 기본 namespace | `/api/community` |
 | 인증 | 필요 (`Authorization: Bearer <JWT_TOKEN>`) |
-| 사용 모델 | `BoardPost`, `PostCategory` |
-| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, pagination, category filter |
-| 제외 범위 | 댓글, 좋아요/싫어요, 북마크, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
+| 사용 모델 | `BoardPost`, `PostCategory`, `Comment` |
+| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, pagination, category filter |
+| 제외 범위 | 답글, 좋아요/싫어요, 북마크, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
 
 커뮤니티 게시글 API는 `routes → controllers → services → repositories → Prisma` 구조로 구현함. 기존 DB 과제 커뮤니티 레포의 기능 흐름과 정보 구조는 참고하지만, 기존 코드와 static HTML/CSS/Vanilla JS UI는 복사하지 않음.
 
 공통 정책:
 
-- 모든 게시글 API는 인증이 필요함.
-- 작성자는 request body의 `userId`가 아니라 `req.user.id` 기준으로 저장함.
-- `postId`, `page`, `pageSize`는 positive integer로 검증함.
+- 모든 게시글/댓글 API는 인증이 필요함.
+- 게시글 작성자와 댓글 작성자는 request body의 `userId`가 아니라 `req.user.id` 기준으로 저장함.
+- `postId`, `commentId`, `page`, `pageSize`는 positive integer로 검증함.
 - `category`는 `QUESTION`, `FREE`, `STUDY_PROOF` 중 하나만 허용함.
 - 목록 정렬은 최신순(`createdAt desc`) 고정임.
+- 댓글 목록 정렬은 오래된순(`createdAt asc`) 고정임.
 - 검색과 사용자 지정 정렬은 이번 1차 구현 범위에서 제외함.
 - 게시글 상세 조회는 인증된 사용자라면 작성자가 아니어도 가능하며, 존재하지 않는 게시글은 404로 처리함.
 - 게시글 수정/삭제는 작성자 본인만 가능하며, 타 사용자 게시글 또는 존재하지 않는 게시글 수정/삭제는 404로 처리함.
+- 댓글 목록/작성은 대상 게시글 존재 여부를 먼저 확인하며, 존재하지 않는 게시글은 404로 처리함.
+- 댓글 수정/삭제는 작성자 본인만 가능하며, 타 사용자 댓글 또는 존재하지 않는 댓글 수정/삭제는 404로 처리함.
 - 응답에는 `passwordHash`, password, token, email 등 불필요한 민감정보를 포함하지 않음.
 - 게시글 삭제 시 현재 schema의 `Comment` relation에 cascade가 없으므로, 작성자 소유 게시글 확인 후 연결 댓글을 먼저 삭제하고 게시글을 삭제함.
 
@@ -1485,13 +1488,146 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음 또는 작성자 불일치
 
+#### 9.4.6 댓글 목록 조회
+
+`GET /api/community/posts/:postId/comments`
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `page` | 선택 | positive integer, 기본값 `1` |
+| `pageSize` | 선택 | positive integer, 기본값 `10`, 최대 `50` |
+
+Response `200`:
+
+```json
+{
+  "comments": [
+    {
+      "id": 1,
+      "postId": 1,
+      "userId": 1,
+      "content": "댓글 내용입니다.",
+      "createdAt": "2026-05-26T00:00:00.000Z",
+      "updatedAt": "2026-05-26T00:00:00.000Z",
+      "author": {
+        "id": 1,
+        "name": "사용자 이름"
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `postId`, invalid `page`, invalid `pageSize`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 게시글 없음
+
+#### 9.4.7 댓글 생성
+
+`POST /api/community/posts/:postId/comments`
+
+Request body:
+
+```json
+{
+  "content": "댓글 내용입니다."
+}
+```
+
+Response `201`:
+
+```json
+{
+  "comment": {
+    "id": 1,
+    "postId": 1,
+    "userId": 1,
+    "content": "댓글 내용입니다.",
+    "createdAt": "2026-05-26T00:00:00.000Z",
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "author": {
+      "id": 1,
+      "name": "사용자 이름"
+    }
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `postId`, `content` 누락 또는 빈 문자열, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 게시글 없음
+
+#### 9.4.8 댓글 수정
+
+`PATCH /api/community/comments/:commentId`
+
+Request body:
+
+```json
+{
+  "content": "수정된 댓글 내용입니다."
+}
+```
+
+Response `200`:
+
+```json
+{
+  "comment": {
+    "id": 1,
+    "postId": 1,
+    "userId": 1,
+    "content": "수정된 댓글 내용입니다.",
+    "createdAt": "2026-05-26T00:00:00.000Z",
+    "updatedAt": "2026-05-26T00:10:00.000Z",
+    "author": {
+      "id": 1,
+      "name": "사용자 이름"
+    }
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`, 빈 body, `content` 누락 또는 빈 문자열, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음 또는 작성자 불일치
+
+#### 9.4.9 댓글 삭제
+
+`DELETE /api/community/comments/:commentId`
+
+Response `200`:
+
+```json
+{
+  "message": "Community comment deleted successfully"
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음 또는 작성자 불일치
+
 후속 구현 예정 endpoint:
 
 | Method | Endpoint 후보 | 설명 |
 |---|---|---|
-| `POST` | `/api/community/posts/:postId/comments` | 댓글 생성 |
-| `PATCH` | `/api/community/comments/:commentId` | 댓글 수정 |
-| `DELETE` | `/api/community/comments/:commentId` | 댓글 삭제 |
 | `POST` | `/api/community/posts/:postId/likes` | 좋아요 생성 |
 | `DELETE` | `/api/community/posts/:postId/likes` | 좋아요 취소 |
 | `POST` | `/api/community/posts/:postId/bookmarks` | 북마크 생성 |
@@ -1826,7 +1962,7 @@ Response 예시:
 | AI 오답노트/추천/요약 | FR-08, FR-09, FR-19, UC-07, UC-10, UC-18 | 부분 구현 | AI 추천, 요약, 오답 분석 API 구현 | 프롬프트 히스토리 기반 자동화와 학습 데이터 개인화 고도화 |
 | AI 기반 퀴즈 생성 | FR-10, UC-19 | 미구현 | `Quiz`, `QuizQuestion` 모델 초안 존재 | 퀴즈 생성 API와 화면 구현 |
 | 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
-| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API 및 테스트 완료 | 댓글/반응/북마크/신고 API와 프론트 구현 |
+| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API와 댓글 API 및 테스트 완료 | 반응/북마크/신고 API와 프론트 구현 |
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
 | 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
 | 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
@@ -1843,9 +1979,10 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post 포함. 최신 확인 기준 10 suites / 150 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment 포함. 최신 확인 기준 11 suites / 188 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 34 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -1872,3 +2009,4 @@ Response 예시:
 | 2026-05-25 | 관리자 화면 연결과 AI 학습 지원 화면 연결 상태 반영, AI API 한국어 응답/fallback/API key 관리 기준 보강 |
 | 2026-05-26 | PR #81 merge 이후 학습 노트 CRUD API 검증 결과와 docs 기준 기능 구현 상태 재점검 결과 반영 |
 | 2026-05-26 | 커뮤니티 게시글 CRUD API(§9.4) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-26 | 커뮤니티 댓글 API(§9.4.6~§9.4.9) 구현 완료 내역과 테스트 결과 반영 |
