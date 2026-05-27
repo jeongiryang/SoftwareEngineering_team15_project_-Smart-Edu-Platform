@@ -5,6 +5,7 @@
 - 관련 문서:
   - [요구사항 문서](../requirements/requirements-document.md)
   - [아키텍처 개요](./architecture-overview.md)
+  - [커뮤니티 게시판 기존 구현 분석 및 이식 계획](./community-board-reuse-plan.md)
 
 ---
 

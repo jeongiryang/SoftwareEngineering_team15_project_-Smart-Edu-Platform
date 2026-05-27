@@ -73,7 +73,7 @@
 - Prisma Client 생성 및 초기 migration 적용 결과 기록
 - 프론트엔드 Expo 설정 확인 및 Web export 검증
 - 루트 통합 검증 명령 실행 결과 기록
-- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 학습 노트, 관리자, AI 학습 지원 API 테스트 결과 기록
+- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 학습 노트, 커뮤니티 게시글, 관리자, AI 학습 지원 API 테스트 결과 기록
 - 프론트엔드 인증 화면, 관리자 화면, AI 학습 지원 화면 수동 확인 결과 기록
 - 향후 기능 구현 시 추가할 유닛/API/통합 테스트 계획
 
@@ -84,7 +84,7 @@
 - 학습 일정/태스크 프론트엔드 연동 및 알림 연계 테스트
 - 학습 노트 프론트엔드 연동 테스트
 - 집중 시간/통계 테스트
-- 커뮤니티 기능 테스트
+- 커뮤니티 댓글/반응/신고/관리자 연동 및 프론트 화면 테스트
 - 프론트엔드 화면 단위 테스트
 - 관리자 화면과 AI 화면의 자동 UI 테스트
 - 정량 커버리지 측정 결과
@@ -109,11 +109,11 @@
 | 사용자 프로필 | 계획됨 | 부분 구현 | User/Profile API 테스트 완료 | 프로필 화면 연결 |
 | 학습 일정 API | 계획됨 | 완료 | Schedule API 테스트 완료 | 프론트 일정 화면 연결 |
 | 태스크/칸반 API | 계획됨 | 완료 | Task API 테스트 완료 | 칸반 프론트 화면 연결 |
-| 학습 노트 API | 계획됨 | 완료 | PR #81, 9 suites / 116 tests passed | 학습 노트 프론트 화면 연결 |
+| 학습 노트 API | 계획됨 | 완료 | PR #81, 학습 노트 API 테스트 완료 | 학습 노트 프론트 화면 연결 |
 | AI 학습 지원 API/화면 | 계획됨 | 부분 구현 | AI MVP API, AI 화면 수동 확인 | 실제 질문 품질, 비용/한도, 개인화 고도화 |
 | 관리자 API/화면 | 계획됨 | 완료 | 관리자 API 테스트, 관리자 화면 수동 확인 | 커뮤니티 신고/챌린지 확장 연동 |
 | 집중 시간/통계/히트맵 | 계획됨 | 완료 | Focus/Statistics API 및 테스트 구현 완료 | 타이머/통계 프론트 화면 연결 |
-| 커뮤니티 게시판 | 계획됨 | 미구현 | 이식 계획 문서와 schema 초안 존재 | `/api/community/posts` 기준 1차 게시글 CRUD API 구현 후 댓글/신고/화면 분리 |
+| 커뮤니티 게시판 | 계획됨 | 부분 구현 | `/api/community/posts` 게시글 CRUD API 및 테스트 완료 | 댓글/반응/북마크/신고/관리자 연동/프론트 화면 분리 구현 |
 | 랭킹/챌린지 | 계획됨 | 부분 구현 | schema와 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
 | TTS/STT/접근성 UI/외부 캘린더/앱 차단 | 계획됨 | 미구현 | 요구사항/설계 문서에 계획됨 | 구현 가능 범위 확정 후 별도 Issue/PR |
 
@@ -182,13 +182,14 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 
 유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성함.
 
-현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 관리자, AI 학습 지원 API, 집중 시간/통계 API와 공통 helper 검증을 포함함. 커뮤니티 기능은 구현 시 테스트를 추가함. 커뮤니티 1차 구현은 `/api/community/posts` 게시글 CRUD API 테스트부터 작성함.
+
+현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 커뮤니티 게시글, 관리자, AI 학습 지원 API, 집중 시간/통계 API와 공통 helper 검증을 포함함. 커뮤니티는 1차 게시글 CRUD API 테스트를 완료한 뒤 댓글/반응/신고/관리자 연동 테스트를 후속으로 확장함.
 
 ### 3.2 통합 테스트 전략
 
 통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
 
-현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Admin, AI, Focus/Statistics API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함. 커뮤니티는 먼저 게시글 목록/상세/작성/수정/삭제와 작성자 권한 검증을 확인하고, 댓글/반응/신고/관리자 연동 테스트는 후속 구현 범위에서 추가함.
+현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Community Post, Admin, AI, Focus/Statistics API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 이후 커뮤니티 API가 구현되면 API 단위 통합 테스트를 확장함. 커뮤니티는 게시글 목록/상세/작성/수정/삭제와 작성자 권한 검증을 1차로 확인했으며, 댓글/반응/신고/관리자 연동 테스트는 후속 구현 범위에서 추가함.
 
 ### 3.3 회귀 테스트 전략
 
@@ -231,6 +232,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석, fallback, noteId 소유권, 400/401/404/429 예외 검증 | `npm test` | mock/fallback 중심으로 실제 외부 AI API 호출 없이 검증 | 통과 |
 | TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
 | TC-INT-009 | API 통합 테스트 | 학습 노트 API | 노트 생성/목록/상세/수정/삭제, invalid noteId, 빈 수정 body, 필수값 누락, tags 타입, 타인 노트 접근 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 본인 소유 데이터 접근 제한 | 통과 |
+| TC-INT-010 | API 통합 테스트 | 커뮤니티 게시글 API | 게시글 목록/상세/작성/수정/삭제, pagination, category filter, invalid postId, 빈 수정 body, 필수값 누락, 타인 게시글 수정/삭제 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 작성자 기준 데이터 변경 제한 | 통과 |
 
 ### 4.3 환경 검증 테스트 케이스
 
@@ -262,7 +264,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(10 suites / 126 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(10 suites / 150 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
@@ -272,6 +274,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Study Note API test | `GET/POST/PATCH/DELETE /api/notes` | 통과 | `src/backend/tests/note.test.js`의 repository mock 기반 API 테스트. 미인증 접근, invalid noteId 400, 존재하지 않는 노트 404, 타인 소유 노트 접근 차단, 필수값/tags/빈 수정 body 검증 포함 |
 | Study Note focused test | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 통과 | 학습 노트 API 단일 테스트 파일 기준 1 suite / 13 tests passed |
 | Focus/Statistics focused test | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 통과 | 집중 시간/통계 API 단일 테스트 파일 기준 1 suite / 10 tests passed |
+| Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category validation, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
+| Community Post focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 통과 | 커뮤니티 게시글 API 단일 테스트 파일과 repository 삭제 안전성 테스트 기준 1 suite / 34 tests passed |
 | Documentation diff check | `git diff --check` | 통과 | API 명세와 테스트 보고서 최신화 작업 기준 whitespace 오류 없음 |
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
@@ -299,6 +303,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/admin.test.js`
 - `src/backend/tests/note.test.js`
 - `src/backend/tests/focus-statistics.test.js`
+- `src/backend/tests/community-post.test.js`
 - `src/backend/tests/seed-dev.test.js`
 
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
@@ -314,6 +319,8 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 삭제(HIDE action), 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 정상 수행되는지 검증함. 잘못된 id는 400, 존재하지 않는 대상은 404로 처리되는지와 관리자 자기 자신의 정지/비활성화 차단, `passwordHash` 등 민감정보 미노출도 함께 확인함.
 
 학습 노트 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 학습 노트 CRUD 기능과 본인 소유 데이터 접근 제한을 확인함. 미인증 요청은 401, invalid noteId와 잘못된 입력은 400, 존재하지 않거나 다른 사용자 소유 노트는 404로 처리되는지 검증함. 자동 테스트는 실제 DB 쓰기 없이 수행함.
+
+커뮤니티 게시글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts` 게시글 CRUD 기능을 확인함. 목록 조회는 pagination과 category filter를 검증하고, 생성/수정은 `QUESTION`, `FREE`, `STUDY_PROOF` category와 `title`, `content` validation을 확인함. invalid `postId`는 400, 존재하지 않거나 다른 사용자 소유 게시글은 404로 처리하며, 응답에 `passwordHash`, password, token, email 등 불필요한 민감정보가 포함되지 않는지 확인함. 추가로 repository `deletePost` transaction에서 소유권 확인 전에 댓글 삭제가 실행되지 않는지 검증함. 댓글/반응/신고/관리자 연동 테스트는 후속 구현 범위로 둠.
 
 
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
@@ -410,7 +417,16 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 실행 명령 | `npm test` |
 | 결과 | 통과 |
 
-향후 집중 시간/통계, 커뮤니티, 랭킹/챌린지, 프론트 화면 자동 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
+| 항목 | 내용 |
+|---|---|
+| 대상 기능 | 커뮤니티 게시글 API |
+| 테스트 파일 | `src/backend/tests/community-post.test.js` |
+| 도구 | Jest, Supertest |
+| AI 활용 방식 | AI를 활용해 커뮤니티 게시글 CRUD, pagination, category filter, 작성자 소유권 검증 테스트 케이스를 설계함 |
+| 실행 명령 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` |
+| 결과 | 통과 |
+
+향후 집중 시간/통계, 커뮤니티 댓글/반응/신고/관리자 연동, 랭킹/챌린지, 프론트 화면 자동 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
 
 ---
 
@@ -428,7 +444,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 학습 노트 프론트 화면과 오답노트/복습 알림 연계는 후속 기능과 함께 별도 검토 | 완료 |
 | AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 세션 목록 조회, 통계 집계, 히트맵 데이터 테스트 | 완료 |
-| 커뮤니티/게시판 | 1차 게시글 CRUD API 테스트, 후속 댓글/신고/관리자 연동 흐름 테스트 | 예정 |
+| 커뮤니티/게시판 | 1차 게시글 CRUD API 테스트 완료. 후속 댓글/반응/북마크/신고/관리자 연동 흐름 테스트는 기능 구현 순서에 맞춰 추가 | 진행 중 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
 | 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
 | 2단계 품질 보강 | coverage 결과, 프론트 자동 테스트, E2E 또는 수동 시나리오 테스트, 배포 전 smoke test | 예정 |
