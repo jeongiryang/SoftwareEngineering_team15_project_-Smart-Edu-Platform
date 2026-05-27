@@ -32,6 +32,13 @@ const REACTION_SELECT = {
   updatedAt: true
 };
 
+const BOOKMARK_SELECT = {
+  id: true,
+  postId: true,
+  userId: true,
+  createdAt: true
+};
+
 function buildPostWhere(filters = {}) {
   const where = {};
 
@@ -160,6 +167,23 @@ function upsertReaction(postId, userId, type) {
   });
 }
 
+function upsertBookmark(postId, userId) {
+  return prisma.communityBookmark.upsert({
+    where: {
+      postId_userId: {
+        postId,
+        userId
+      }
+    },
+    update: {},
+    create: {
+      postId,
+      userId
+    },
+    select: BOOKMARK_SELECT
+  });
+}
+
 function findCommentByIdAndUserId(commentId, userId) {
   return prisma.comment.findFirst({
     where: {
@@ -255,9 +279,21 @@ async function deleteReaction(postId, userId) {
   return result.count;
 }
 
+async function deleteBookmark(postId, userId) {
+  const result = await prisma.communityBookmark.deleteMany({
+    where: {
+      postId,
+      userId
+    }
+  });
+
+  return result.count;
+}
+
 module.exports = {
   createComment,
   createPost,
+  deleteBookmark,
   deleteReaction,
   deleteComment,
   deletePost,
@@ -266,6 +302,7 @@ module.exports = {
   findPostById,
   findPostByIdAndUserId,
   findPosts,
+  upsertBookmark,
   upsertReaction,
   updateComment,
   updatePost

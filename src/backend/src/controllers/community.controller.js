@@ -20,6 +20,12 @@ const createReactionController = asyncHandler(async (req, res) => {
   sendCreated(res, { reaction });
 });
 
+const createBookmarkController = asyncHandler(async (req, res) => {
+  const bookmark = await communityService.createBookmark(req.params.postId, req.user.id, req.body);
+
+  sendCreated(res, { bookmark });
+});
+
 const listCommentsController = asyncHandler(async (req, res) => {
   const result = await communityService.listComments(req.params.postId, req.query);
 
@@ -56,6 +62,12 @@ const deleteReactionController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, result);
 });
 
+const deleteBookmarkController = asyncHandler(async (req, res) => {
+  const result = await communityService.deleteBookmark(req.params.postId, req.user.id);
+
+  sendSuccess(res, 200, result);
+});
+
 const updateCommentController = asyncHandler(async (req, res) => {
   const comment = await communityService.updateComment(req.params.commentId, req.user.id, req.body);
 
@@ -69,9 +81,11 @@ const deleteCommentController = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  createBookmark: createBookmarkController,
   createComment: createCommentController,
   createPost: createPostController,
   createReaction: createReactionController,
+  deleteBookmark: deleteBookmarkController,
   deleteComment: deleteCommentController,
   deletePost: deletePostController,
   deleteReaction: deleteReactionController,

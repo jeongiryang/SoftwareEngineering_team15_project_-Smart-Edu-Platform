@@ -8,6 +8,7 @@ const POST_SORTS = ['latest', 'oldest'];
 const COMMENT_FIELDS = ['content'];
 const REACTION_FIELDS = ['type'];
 const REACTION_TYPES = ['LIKE', 'DISLIKE'];
+const BOOKMARK_FIELDS = [];
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
@@ -161,6 +162,19 @@ function sanitizeReaction(reaction) {
   };
 }
 
+function sanitizeBookmark(bookmark) {
+  if (!bookmark) {
+    return null;
+  }
+
+  return {
+    id: bookmark.id,
+    postId: bookmark.postId,
+    userId: bookmark.userId,
+    createdAt: bookmark.createdAt
+  };
+}
+
 function buildPostData(payload = {}, options = { partial: false }) {
   assertPlainObject(payload, 'Community post payload must be an object');
   assertSupportedFields(payload, POST_FIELDS, 'Community post payload contains unsupported fields');
@@ -223,6 +237,13 @@ function buildReactionData(payload = {}) {
   return {
     type: payload.type
   };
+}
+
+function buildBookmarkData(payload = {}) {
+  assertPlainObject(payload, 'Community bookmark payload must be an object');
+  assertSupportedFields(payload, BOOKMARK_FIELDS, 'Community bookmark payload contains unsupported fields');
+
+  return {};
 }
 
 function buildListOptions(query = {}) {
@@ -354,6 +375,20 @@ async function createReaction(postId, userId, payload) {
   return sanitizeReaction(reaction);
 }
 
+async function createBookmark(postId, userId, payload) {
+  const id = parsePositiveInteger(postId, 'postId');
+  const post = await communityRepository.findPostById(id);
+
+  if (!post) {
+    throw notFoundError('Community post not found');
+  }
+
+  buildBookmarkData(payload);
+  const bookmark = await communityRepository.upsertBookmark(id, userId);
+
+  return sanitizeBookmark(bookmark);
+}
+
 async function updatePost(postId, userId, payload) {
   const id = parsePositiveInteger(postId, 'postId');
   const post = await communityRepository.findPostByIdAndUserId(id, userId);
@@ -441,25 +476,47 @@ async function deleteReaction(postId, userId) {
   return { message: 'Community reaction deleted successfully' };
 }
 
+async function deleteBookmark(postId, userId) {
+  const id = parsePositiveInteger(postId, 'postId');
+  const post = await communityRepository.findPostById(id);
+
+  if (!post) {
+    throw notFoundError('Community post not found');
+  }
+
+  const deletedCount = await communityRepository.deleteBookmark(id, userId);
+
+  if (deletedCount === 0) {
+    throw notFoundError('Community bookmark not found');
+  }
+
+  return { message: 'Community bookmark deleted successfully' };
+}
+
 module.exports = {
+  BOOKMARK_FIELDS,
   COMMENT_FIELDS,
   POST_CATEGORIES,
   REACTION_TYPES,
   POST_SORTS,
+  buildBookmarkData,
   buildCommentData,
   buildCommentListOptions,
   buildListOptions,
   buildPostData,
   buildReactionData,
+  createBookmark,
   createComment,
   createPost,
   createReaction,
+  deleteBookmark,
   deleteComment,
   deletePost,
   deleteReaction,
   getPostById,
   listComments,
   listPosts,
+  sanitizeBookmark,
   sanitizeComment,
   sanitizePost,
   sanitizeReaction,
