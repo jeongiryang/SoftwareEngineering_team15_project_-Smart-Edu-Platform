@@ -5,18 +5,23 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import ScheduleScreen from './src/screens/ScheduleScreen';
+import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import { getCurrentUser } from './src/services/api';
+import { colors } from './src/styles/theme';
 
 const screens = {
   login: LoginScreen,
   register: RegisterScreen,
   dashboard: DashboardScreen,
   aiLearning: AILearningScreen,
-  admin: AdminScreen
+  admin: AdminScreen,
+  schedule: ScheduleScreen,
+  taskBoard: TaskBoardScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning'];
+const authScreens = ['dashboard', 'admin', 'aiLearning', 'schedule', 'taskBoard'];
 
 function getStorage() {
   try {
@@ -144,7 +149,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F8FA'
+    backgroundColor: colors.background
   },
   container: {
     flex: 1
@@ -154,8 +159,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   loadingText: {
-    color: '#374151',
+    color: colors.ink,
     fontSize: 16,
-    fontWeight: '600'
+    fontWeight: '700'
   }
 });
