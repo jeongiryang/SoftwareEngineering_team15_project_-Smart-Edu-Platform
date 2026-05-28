@@ -1,4 +1,4 @@
-export const colors = {
+const lightPalette = {
   background: '#FCF8EF',
   surface: '#FFFFFF',
   surfaceWarm: '#FFF9EE',
@@ -18,12 +18,76 @@ export const colors = {
   warning: '#A65C39',
   warningSoft: '#FCEFE7',
   danger: '#AE4945',
-  dangerSoft: '#FCEDEC'
+  dangerSoft: '#FCEDEC',
+  shadow: '#29404B'
 };
+
+const darkPalette = {
+  background: '#101923',
+  surface: '#172235',
+  surfaceWarm: '#1D2B3C',
+  cream: '#342919',
+  creamStrong: '#A9854A',
+  mint: '#77D6C8',
+  mintDeep: '#9DEDE3',
+  mintSoft: '#163F3B',
+  blue: '#91B8EA',
+  blueDeep: '#D6E7FF',
+  blueSoft: '#1A314D',
+  ink: '#F6F0E4',
+  muted: '#BAC7C8',
+  line: '#33475C',
+  success: '#74D7B7',
+  successSoft: '#143A34',
+  warning: '#F0B37B',
+  warningSoft: '#3A291F',
+  danger: '#F08B84',
+  dangerSoft: '#3F2325',
+  shadow: '#050A10'
+};
+
+const highContrastPalette = {
+  background: '#050505',
+  surface: '#0B0B0B',
+  surfaceWarm: '#111111',
+  cream: '#FFF4B8',
+  creamStrong: '#FFE066',
+  mint: '#66FFF0',
+  mintDeep: '#9FFFF8',
+  mintSoft: '#062522',
+  blue: '#8AB4FF',
+  blueDeep: '#D8E8FF',
+  blueSoft: '#061A35',
+  ink: '#FFFFFF',
+  muted: '#EFEFEF',
+  line: '#FFFFFF',
+  success: '#76FFB5',
+  successSoft: '#052715',
+  warning: '#FFD166',
+  warningSoft: '#2B1F00',
+  danger: '#FF8A8A',
+  dangerSoft: '#300808',
+  shadow: '#000000'
+};
+
+export const themePalettes = {
+  light: lightPalette,
+  dark: darkPalette,
+  highContrast: highContrastPalette
+};
+
+function cssColor(name) {
+  return `var(--sagak-color-${name}, ${lightPalette[name]})`;
+}
+
+export const colors = Object.keys(lightPalette).reduce((acc, key) => {
+  acc[key] = cssColor(key);
+  return acc;
+}, {});
 
 export const shadows = {
   card: {
-    shadowColor: '#29404B',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
     shadowRadius: 22,

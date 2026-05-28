@@ -18,7 +18,8 @@ import CommunityScreen from './src/screens/CommunityScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import { getCurrentUser } from './src/services/api';
-import { AccessibilityProvider } from './src/contexts/AccessibilityContext';
+import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
+import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
 
 const screens = {
   home: LandingScreen,
@@ -129,6 +130,14 @@ function removeStoredToken() {
 }
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppRoot />
+    </ThemeProvider>
+  );
+}
+
+function AppRoot() {
   const [currentScreen, setCurrentScreen] = useState(readScreenFromLocation);
   const [initializing, setInitializing] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -232,28 +241,33 @@ export default function App() {
 
   if (initializing) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
-        <AppHeader activeScreen="home" onNavigate={navigateTo} />
-        <View style={styles.loadingShell}>
-          <PanelSkeleton rows={4} />
-          <PanelSkeleton rows={3} />
-        </View>
-      </SafeAreaView>
+      <AccessibilityProvider token={token}>
+        <AppChrome
+          activeScreenName="home"
+          navigateTo={navigateTo}
+          showLogoutModal={false}
+          user={null}
+        >
+          <View style={styles.loadingShell}>
+            <PanelSkeleton rows={4} />
+            <PanelSkeleton rows={3} />
+          </View>
+        </AppChrome>
+      </AccessibilityProvider>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
-      <AppHeader
-        activeScreen={activeScreenName}
-        onLogout={() => setShowLogoutModal(true)}
-        onNavigate={navigateTo}
+    <AccessibilityProvider token={token}>
+      <AppChrome
+        activeScreenName={activeScreenName}
+        handleLogout={handleLogout}
+        navigateTo={navigateTo}
+        setShowLogoutModal={setShowLogoutModal}
+        showLogoutModal={showLogoutModal}
         user={user}
-      />
-      <View style={styles.container}>
-        <AccessibilityProvider token={token}>
+      >
+        <View style={styles.container}>
           <Screen
             onAuthenticated={handleAuthenticated}
             onLogout={() => setShowLogoutModal(true)}
@@ -262,16 +276,50 @@ export default function App() {
             token={token}
             user={user}
           />
-        </AccessibilityProvider>
-      </View>
+        </View>
+      </AppChrome>
+    </AccessibilityProvider>
+  );
+}
+
+function AppChrome({
+  activeScreenName,
+  children,
+  handleLogout,
+  navigateTo,
+  setShowLogoutModal,
+  showLogoutModal,
+  user
+}) {
+  const { preference } = useAccessibility();
+  const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
+  const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
+
+  useEffect(() => {
+    setHighContrastActive(Boolean(preference.highContrast));
+  }, [preference.highContrast, setHighContrastActive]);
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar
+        barStyle={isDarkSurface ? 'light-content' : 'dark-content'}
+        backgroundColor={palette.surface}
+      />
+      <AppHeader
+        activeScreen={activeScreenName}
+        onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
+        onNavigate={navigateTo}
+        user={user}
+      />
+      {children}
       <ConfirmModal
         confirmLabel="로그아웃"
         description="진행 중인 화면을 나가고 사각사각 소개 화면으로 돌아갑니다."
         destructive
-        onCancel={() => setShowLogoutModal(false)}
+        onCancel={() => setShowLogoutModal?.(false)}
         onConfirm={handleLogout}
         title="로그아웃하시겠어요?"
-        visible={showLogoutModal}
+        visible={Boolean(showLogoutModal)}
       />
     </SafeAreaView>
   );
