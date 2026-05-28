@@ -163,21 +163,27 @@ export default function LandingScreen({ onNavigate }) {
       </View>
 
       <View style={styles.footer}>
-        <View style={styles.footerCopy}>
-          <Text style={styles.footerCopyright}>© 2026 CWNU Software Engineering Team 15 · 사각사각</Text>
-          <Text style={styles.footerDescription}>Personalized Smart Edu Platform</Text>
+        <View style={styles.footerInner}>
+          <View style={styles.footerCopy}>
+            <Text style={styles.footerCopyright}>© 2026 CWNU Software Engineering Team 15 · 사각사각</Text>
+            <Text style={styles.footerDescription}>Personalized Smart Edu Platform</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="GitHub Repository"
+            accessibilityRole="link"
+            onPress={openGitHubRepository}
+            style={(state) => [styles.githubButton, ...interactiveStateStyles(state)]}
+            title="GitHub"
+          >
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.githubMark}>
+              <View style={[styles.githubEar, styles.githubEarLeft]} />
+              <View style={[styles.githubEar, styles.githubEarRight]} />
+              <View style={styles.githubHead} />
+              <View style={styles.githubBody} />
+              <View style={styles.githubTail} />
+            </View>
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityLabel="GitHub Repository"
-          accessibilityRole="link"
-          onPress={openGitHubRepository}
-          style={(state) => [styles.githubButton, ...interactiveStateStyles(state)]}
-          title="GitHub"
-        >
-          <Text accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.githubIconText}>
-            GH
-          </Text>
-        </Pressable>
       </View>
     </ScrollView>
   );
@@ -457,15 +463,21 @@ const styles = StyleSheet.create({
     paddingVertical: 22,
     borderTopWidth: 1,
     borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  footerInner: {
+    maxWidth: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 14
+    justifyContent: 'center',
+    gap: 12
   },
   footerCopy: {
-    flex: 1,
-    minWidth: 240,
+    minWidth: 0,
+    maxWidth: '100%',
+    flexShrink: 1,
     gap: 5
   },
   footerCopyright: {
@@ -488,10 +500,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  githubIconText: {
-    color: colors.blueDeep,
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0
+  githubMark: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    position: 'relative'
+  },
+  githubEar: {
+    position: 'absolute',
+    top: 1,
+    width: 9,
+    height: 9,
+    borderRadius: 3,
+    backgroundColor: colors.blueDeep,
+    transform: [{ rotate: '45deg' }]
+  },
+  githubEarLeft: {
+    left: 4
+  },
+  githubEarRight: {
+    right: 4
+  },
+  githubHead: {
+    width: 22,
+    height: 18,
+    marginTop: 5,
+    borderRadius: 10,
+    backgroundColor: colors.blueDeep
+  },
+  githubBody: {
+    width: 10,
+    height: 7,
+    marginTop: -2,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+    backgroundColor: colors.blueDeep
+  },
+  githubTail: {
+    position: 'absolute',
+    right: 0,
+    bottom: 5,
+    width: 8,
+    height: 5,
+    borderBottomLeftRadius: 6,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: colors.blueDeep,
+    transform: [{ rotate: '-18deg' }]
   }
 });
