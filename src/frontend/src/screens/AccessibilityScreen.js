@@ -716,7 +716,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
           <View style={styles.modalBackdrop}>
             <View style={styles.modalPanel}>
               <Text style={styles.modalStep}>
-                {isKidMode 
+                {isKidMode
                   ? `💡 사용법 안내 (${voiceGuideStep + 1}/${kidVoiceGuideSteps.length})`
                   : `GUIDE (${voiceGuideStep + 1}/${voiceGuideSteps.length})`}
               </Text>
