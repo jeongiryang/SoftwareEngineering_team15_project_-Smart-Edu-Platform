@@ -145,6 +145,30 @@ export function getTasks(token, scheduleId) {
   });
 }
 
+export function getFocusSessions(token, params = {}) {
+  return request(`/focus-sessions${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getStatisticsSummary(token, params = {}) {
+  return request(`/statistics/summary${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getStatisticsHeatmap(token, params = {}) {
+  return request(`/statistics/heatmap${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function createTask(token, payload) {
   return request('/tasks', {
     method: 'POST',
