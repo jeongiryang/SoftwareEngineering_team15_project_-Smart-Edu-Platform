@@ -72,6 +72,100 @@ export function getCurrentUser(token) {
   });
 }
 
+export function getSchedules(token) {
+  return request('/schedules', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createSchedule(token, payload) {
+  return request('/schedules', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function getScheduleDetail(token, scheduleId) {
+  return request(`/schedules/${scheduleId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function updateSchedule(token, scheduleId, payload) {
+  return request(`/schedules/${scheduleId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteSchedule(token, scheduleId) {
+  return request(`/schedules/${scheduleId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getTasks(token, scheduleId) {
+  const query = scheduleId ? `?scheduleId=${scheduleId}` : '';
+
+  return request(`/tasks${query}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createTask(token, payload) {
+  return request('/tasks', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateTask(token, taskId, payload) {
+  return request(`/tasks/${taskId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateTaskStatus(token, taskId, status) {
+  return request(`/tasks/${taskId}/status`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ status })
+  });
+}
+
+export function deleteTask(token, taskId) {
+  return request(`/tasks/${taskId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function askAIQuestion(token, { question, noteId, allowTruncate }) {
   return request('/ai/questions', {
     method: 'POST',

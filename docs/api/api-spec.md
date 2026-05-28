@@ -1263,23 +1263,184 @@ Response 예시:
 | `404` | `NOT_FOUND` | `noteId`가 존재하지 않거나 현재 사용자 소유 학습 노트가 아님 |
 | `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
 
-### 9.3 집중 시간/통계 API 예정
+### 9.3 집중 시간/통계 API
 
-상태: 예정
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 기본 namespace | `/api` |
+| 인증 | 필요 |
+| 관련 요구사항 | `FR-15`, `FR-16`, `FR-17`, `UC-11`, `UC-12` |
+| 사용 모델 | `FocusSession`, `StudyTask` |
+| 구현 범위 | 완료된 집중 세션 기록/조회, 기간별 학습 시간 요약, 기간별 히트맵 데이터 조회 |
+| 제외 범위 | 앱 차단/방해금지 권한 제어, 진행 중 타이머 상태 관리, 프론트 타이머/통계 시각화 화면 |
 
-예상 endpoint:
+공통 정책:
 
-| Method | Endpoint | 설명 |
+- 모든 Focus/Statistics API는 인증이 필요함.
+- 현재 사용자는 request body나 query의 `userId`가 아니라 `req.user.id` 기준으로 처리함.
+- `durationMs`는 클라이언트가 측정한 최종 순공 시간이며 millisecond 단위 positive integer만 허용함.
+- 서버는 `startedAt < endedAt`을 검증하지만, 일시정지/재개를 포함한 순공 시간 측정 가능성을 고려해 `durationMs`와 `endedAt - startedAt`의 완전 일치를 강제하지 않음.
+- 날짜/시간 값은 ISO timestamp를 권장함.
+- `startDate`, `endDate` query에 `YYYY-MM-DD` 형식만 전달하면 UTC 기준 해당 날짜 전체를 포함함.
+  - 예: `endDate=2026-05-31`은 `2026-05-31T23:59:59.999Z`까지 포함함.
+- 히트맵의 날짜 key는 서버에서 `startedAt`의 UTC 날짜(`YYYY-MM-DD`) 기준으로 그룹핑함.
+- KST 등 사용자 현지 시간대 기준 시각화는 프론트 또는 후속 통계 고도화에서 별도 보정이 필요함.
+- `taskId`를 전달하면 현재 사용자 소유 `StudyTask`인지 확인하며, 없거나 타 사용자 소유이면 404로 처리함.
+- 응답에는 `passwordHash`, password, token/JWT, email 등 민감정보를 포함하지 않음.
+
+#### 9.3.1 집중 세션 기록
+
+`POST /api/focus-sessions`
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `taskId` | number 또는 null | 아니오 | 연결할 학습 태스크 ID. 현재 사용자 소유 태스크만 허용 |
+| `startedAt` | string | 예 | 집중 시작 시각. ISO timestamp 권장 |
+| `endedAt` | string | 예 | 집중 종료 시각. `startedAt`보다 늦어야 함 |
+| `durationMs` | number | 예 | 클라이언트가 측정한 최종 순공 시간(ms) |
+| `memo` | string 또는 null | 아니오 | 집중 세션 메모 |
+
+Response `201`:
+
+```json
+{
+  "focusSession": {
+    "id": 1,
+    "userId": 1,
+    "taskId": 10,
+    "startedAt": "2026-05-28T01:00:00.000Z",
+    "endedAt": "2026-05-28T02:00:00.000Z",
+    "durationMs": 3600000,
+    "memo": "Deep focus",
+    "createdAt": "2026-05-28T02:00:10.000Z"
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
 |---|---|---|
-| `POST` | `/api/focus-sessions` | 완료된 집중 세션 기록 |
-| `GET` | `/api/statistics/summary` | 학습 시간 및 완료율 요약 조회 |
-| `GET` | `/api/statistics/heatmap` | 학습 히트맵 데이터 조회 |
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 잘못된 날짜, `durationMs`가 positive integer가 아님, 지원하지 않는 body field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+| `404` | `NOT_FOUND` | `taskId`가 존재하지 않거나 현재 사용자 소유가 아님 |
 
-구현 기준:
+#### 9.3.2 집중 세션 목록 조회
 
-- 집중 시간은 `durationMs` 기준으로 저장함.
-- 타이머 카운팅은 클라이언트에서 처리함.
-- 서버는 완료된 집중 세션 기록만 저장함.
+`GET /api/focus-sessions`
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `startDate` | 조건부 | 기간 조회 시작일 또는 시작 시각. `endDate`와 함께 전달 |
+| `endDate` | 조건부 | 기간 조회 종료일 또는 종료 시각. `startDate`와 함께 전달 |
+
+Response `200`:
+
+```json
+{
+  "focusSessions": [
+    {
+      "id": 1,
+      "userId": 1,
+      "taskId": 10,
+      "startedAt": "2026-05-28T01:00:00.000Z",
+      "endedAt": "2026-05-28T02:00:00.000Z",
+      "durationMs": 3600000,
+      "memo": "Deep focus",
+      "createdAt": "2026-05-28T02:00:10.000Z"
+    }
+  ]
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `startDate`/`endDate` 중 하나만 전달, 잘못된 날짜, 시작일이 종료일보다 늦음, 지원하지 않는 query field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+
+#### 9.3.3 학습 통계 요약 조회
+
+`GET /api/statistics/summary`
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `startDate` | 예 | 기간 조회 시작일 또는 시작 시각 |
+| `endDate` | 예 | 기간 조회 종료일 또는 종료 시각 |
+
+Response `200`:
+
+```json
+{
+  "summary": {
+    "totalMinutes": 120,
+    "completionRate": 67,
+    "sessionCount": 2,
+    "taskCount": 3
+  }
+}
+```
+
+계산 기준:
+
+- `totalMinutes`: 기간 내 현재 사용자 `FocusSession.durationMs` 합계를 분 단위로 내림 변환함.
+- `completionRate`: 기간 내 현재 사용자 `StudyTask` 중 `DONE` 상태 비율을 정수 percent로 반올림함.
+- `sessionCount`: 기간 내 현재 사용자 집중 세션 수.
+- `taskCount`: 기간 내 현재 사용자 태스크 수.
+- 데이터가 없으면 `totalMinutes: 0`, `completionRate: 0`, `sessionCount: 0`, `taskCount: 0`을 반환함.
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 날짜 누락, 잘못된 날짜, 시작일이 종료일보다 늦음, 지원하지 않는 query field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+
+#### 9.3.4 학습 히트맵 조회
+
+`GET /api/statistics/heatmap`
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `startDate` | 예 | 기간 조회 시작일 또는 시작 시각 |
+| `endDate` | 예 | 기간 조회 종료일 또는 종료 시각 |
+
+Response `200`:
+
+```json
+{
+  "heatmap": {
+    "2026-05-28": {
+      "durationMs": 5400000,
+      "sessionCount": 2
+    }
+  }
+}
+```
+
+계산 기준:
+
+- 현재 사용자 집중 세션만 집계함.
+- 날짜 key는 `startedAt`의 UTC 날짜(`YYYY-MM-DD`) 기준임.
+- 같은 날짜의 `durationMs`를 합산하고 `sessionCount`를 누적함.
+- 데이터가 없으면 빈 객체 `{}`를 반환함.
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 날짜 누락, 잘못된 날짜, 시작일이 종료일보다 늦음, 지원하지 않는 query field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
 
 ### 9.4 커뮤니티/게시판 API
 
@@ -2477,11 +2638,11 @@ Response 예시:
 | AI 학습 질의 | FR-07, UC-09 | 부분 구현 | AI MVP API와 AI 학습 지원 화면 연결 완료 | 실제 질문 품질 검증, 비용/한도 관리 |
 | AI 오답노트/추천/요약 | FR-08, FR-09, FR-19, UC-07, UC-10, UC-18 | 부분 구현 | AI 추천, 요약, 오답 분석 API 구현 | 프롬프트 히스토리 기반 자동화와 학습 데이터 개인화 고도화 |
 | AI 기반 퀴즈 생성 | FR-10, UC-19 | 미구현 | `Quiz`, `QuizQuestion` 모델 초안 존재 | 퀴즈 생성 API와 화면 구현 |
-| 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
+| 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
 | 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API, 관리자 신고 조회/처리 API 및 테스트 완료 | 프론트 구현 |
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
-| 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
-| 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
+| 스톱워치/타이머/집중 시간 | FR-15, UC-12 | 완료 | `POST /api/focus-sessions`, `GET /api/focus-sessions` 구현 및 테스트 반영 | 타이머 화면 연결 |
+| 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-11 | 완료 | `GET /api/statistics/summary`, `GET /api/statistics/heatmap` 구현 및 테스트 반영 | 시각화 화면 연결 |
 | TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
 | 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, 보상 schema/migration 추가 | 알림 API와 보상 정책 고도화 |
@@ -2495,7 +2656,8 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 16 suites / 321 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, AI, Study Note, Focus/Statistics, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준은 테스트 실행 결과에 맞춰 테스트 보고서에 기록 |
+| `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |

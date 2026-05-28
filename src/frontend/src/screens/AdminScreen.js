@@ -15,6 +15,8 @@ import {
   moderateAdminPost,
   moderateAdminComment
 } from '../services/api';
+import { PanelSkeleton } from '../components/Skeleton';
+import { colors, shadows } from '../styles/theme';
 
 export default function AdminScreen({ onNavigate, token, user }) {
   // Access Guard check inside component
@@ -285,8 +287,9 @@ export default function AdminScreen({ onNavigate, token, user }) {
       {/* Main Content Area */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="#2563EB" size="large" />
-          <Text style={styles.loadingText}>데이터 불러오는 중...</Text>
+          <Text style={styles.loadingText}>운영 데이터를 불러오는 중입니다.</Text>
+          <PanelSkeleton rows={4} />
+          <PanelSkeleton rows={2} />
         </View>
       ) : (
         <View style={styles.body}>
@@ -468,10 +471,14 @@ export default function AdminScreen({ onNavigate, token, user }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC'
+    backgroundColor: colors.background
   },
   contentContainer: {
-    padding: 24,
+    width: '100%',
+    maxWidth: 1080,
+    alignSelf: 'center',
+    padding: 28,
+    paddingBottom: 48,
     gap: 20
   },
   center: {
@@ -482,12 +489,12 @@ const styles = StyleSheet.create({
   errorHeader: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#EF4444',
+    color: colors.danger,
     marginBottom: 8
   },
   errorSub: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.muted,
     marginBottom: 20
   },
   header: {
@@ -495,47 +502,50 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.line,
     paddingBottom: 16
   },
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#0F172A'
+    color: colors.ink
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.muted,
     marginTop: 4
   },
   backButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    borderColor: colors.line,
+    borderRadius: 21,
     paddingHorizontal: 14,
     paddingVertical: 8
   },
   backButtonText: {
-    color: '#334155',
+    color: colors.blueDeep,
     fontWeight: '600',
     fontSize: 14
   },
   tabsRow: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 4,
-    gap: 4
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: 7,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.line
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 10,
+    minHeight: 47,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6
+    borderRadius: 13
   },
   tabButtonActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.mint,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -543,41 +553,42 @@ const styles = StyleSheet.create({
     elevation: 1
   },
   tabButtonText: {
-    color: '#64748B',
+    color: colors.muted,
     fontWeight: '600',
     fontSize: 14
   },
   tabButtonTextActive: {
-    color: '#0F172A',
+    color: colors.surface,
     fontWeight: '700'
   },
   errorAlert: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
-    borderRadius: 8,
+    borderColor: '#F1CCC9',
+    borderRadius: 13,
     padding: 12
   },
   successAlert: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.successSoft,
     borderWidth: 1,
-    borderColor: '#86EFAC',
-    borderRadius: 8,
+    borderColor: '#B6DDCE',
+    borderRadius: 13,
     padding: 12
   },
   alertText: {
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '500'
   },
   modalPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: '#6366F1',
-    borderRadius: 12,
-    padding: 18,
+    borderColor: colors.mint,
+    borderRadius: 20,
+    padding: 22,
     gap: 12,
-    shadowColor: '#6366F1',
+    ...shadows.card,
+    shadowColor: colors.mintDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -586,9 +597,9 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.ink,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.line,
     paddingBottom: 8
   },
   modalSelectGroup: {
@@ -597,7 +608,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569'
+    color: colors.muted
   },
   radioRow: {
     flexDirection: 'row',
@@ -608,31 +619,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC'
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm
   },
   radioButtonActive: {
-    borderColor: '#6366F1',
-    backgroundColor: '#EEF2FF'
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
   },
   radioText: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 13,
     fontWeight: '600'
   },
   radioTextActive: {
-    color: '#4F46E5',
+    color: colors.mintDeep,
     fontWeight: '700'
   },
   reasonInput: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    borderColor: colors.line,
+    borderRadius: 12,
     padding: 10,
     fontSize: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfaceWarm,
     textAlignVertical: 'top'
   },
   modalActions: {
@@ -642,27 +653,27 @@ const styles = StyleSheet.create({
   },
   modalSubmitBtn: {
     flex: 2,
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
+    backgroundColor: colors.blue,
+    borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center'
   },
   modalSubmitText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 14
   },
   modalCancelBtn: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center'
   },
   modalCancelText: {
-    color: '#475569',
+    color: colors.ink,
     fontWeight: '600',
     fontSize: 14
   },
@@ -670,12 +681,11 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
+    gap: 16,
     gap: 12
   },
   loadingText: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 14
   },
   body: {
@@ -692,46 +702,46 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A'
+    color: colors.ink
   },
   subSectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#475569',
+    color: colors.ink,
     borderLeftWidth: 3,
-    borderLeftColor: '#6366F1',
+    borderLeftColor: colors.mint,
     paddingLeft: 8
   },
   refreshBtn: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 6,
+    backgroundColor: colors.mintSoft,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6
   },
   refreshBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569'
+    color: colors.mintDeep
   },
   list: {
     gap: 12
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.muted,
     textAlign: 'center',
     padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.line,
     borderStyle: 'dashed'
   },
   userCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 17,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.line,
     padding: 16,
     gap: 12
   },
@@ -743,11 +753,11 @@ const styles = StyleSheet.create({
   userCardName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A'
+    color: colors.ink
   },
   userCardEmail: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.muted,
     marginTop: 2
   },
   badge: {
@@ -760,51 +770,51 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   statusActive: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.successSoft,
     borderWidth: 1,
     borderColor: '#86EFAC',
   },
   statusActiveText: {
-    color: '#166534'
+    color: colors.success
   },
   statusSuspended: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.cream,
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
   statusSuspendedText: {
-    color: '#92400E'
+    color: colors.warning
   },
   statusDeactivated: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
     borderColor: '#FCA5A5',
   },
   statusDeactivatedText: {
-    color: '#991B1B'
+    color: colors.danger
   },
   statusDefault: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.blueSoft,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.line,
   },
   userCardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.line,
     paddingTop: 10
   },
   roleText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.muted,
     fontWeight: '500'
   },
   actionBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: colors.blue,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 6
@@ -812,13 +822,13 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4F46E5'
+    color: colors.blue
   },
   reportCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 17,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.line,
     padding: 16,
     gap: 10
   },
@@ -829,7 +839,7 @@ const styles = StyleSheet.create({
   reportCategory: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#EF4444'
+    color: colors.warning
   },
   reportTargetId: {
     fontSize: 11,
@@ -838,21 +848,21 @@ const styles = StyleSheet.create({
   reportTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A'
+    color: colors.ink
   },
   reportContent: {
     fontSize: 14,
-    color: '#334155',
+    color: colors.ink,
     lineHeight: 20
   },
   reportInfoRow: {
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.line,
     paddingTop: 8
   },
   reportMeta: {
     fontSize: 12,
-    color: '#64748B'
+    color: colors.muted
   },
   reportActions: {
     flexDirection: 'row',
@@ -866,21 +876,21 @@ const styles = StyleSheet.create({
     borderRadius: 6
   },
   dangerBtn: {
-    backgroundColor: '#EF4444'
+    backgroundColor: colors.danger
   },
   safeBtn: {
-    backgroundColor: '#10B981'
+    backgroundColor: colors.success
   },
   moderationBtnText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 12,
     fontWeight: '700'
   },
   logCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.line,
     padding: 14,
     gap: 8
   },
@@ -892,8 +902,8 @@ const styles = StyleSheet.create({
   logActionType: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#4F46E5',
-    backgroundColor: '#EEF2FF',
+    color: colors.blue,
+    backgroundColor: colors.blueSoft,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4
@@ -907,11 +917,11 @@ const styles = StyleSheet.create({
   },
   logInfoText: {
     fontSize: 12,
-    color: '#475569'
+    color: colors.ink
   },
   logReason: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.muted,
     fontStyle: 'italic',
     marginTop: 2
   }

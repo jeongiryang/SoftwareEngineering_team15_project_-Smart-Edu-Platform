@@ -7,6 +7,8 @@ const userRoutes = require('./user.routes');
 const aiRoutes = require('./ai.routes');
 const adminRoutes = require('./admin.routes');
 const noteRoutes = require('./note.routes');
+const focusRoutes = require('./focus.routes');
+const statisticsRoutes = require('./statistics.routes');
 const communityRoutes = require('./community.routes');
 const rewardRoutes = require('./reward.routes');
 
@@ -20,6 +22,8 @@ router.use('/users', userRoutes);
 router.use('/ai', aiRoutes);
 router.use('/admin', adminRoutes);
 router.use('/notes', noteRoutes);
+router.use('/focus-sessions', focusRoutes);
+router.use('/statistics', statisticsRoutes);
 router.use('/community', communityRoutes);
 router.use('/rewards', rewardRoutes);
 
