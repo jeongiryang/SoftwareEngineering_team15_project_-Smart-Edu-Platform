@@ -2515,6 +2515,177 @@ Response 예시:
 }
 ```
 
+---
+
+#### 9.5.9 보상 배지 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/rewards/badges` | 관리자 권한으로 등록된 보상 배지 목록을 조회함 |
+
+Response 예시:
+
+```json
+{
+  "badges": [
+    {
+      "id": 1,
+      "code": "TOTAL_STUDY_60",
+      "name": "60분 집중 학습",
+      "description": "누적 60분 이상 공부하면 획득",
+      "iconUrl": "/assets/badges/total-study-60.png",
+      "condition": "TOTAL_STUDY_MINUTES >= 60",
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+Error:
+
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+
+---
+
+#### 9.5.10 보상 배지 생성/수정
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/admin/rewards/badges` | 새 보상 배지를 생성함 |
+| `PATCH` | `/api/admin/rewards/badges/:badgeId` | 기존 보상 배지 정보를 수정함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `code` | string | 생성 시 필수 | 배지 고유 코드, 공백 trim 후 저장 |
+| `name` | string | 생성 시 필수 | 배지 이름 |
+| `description` | string \| null | 선택 | 배지 설명 |
+| `iconUrl` | string \| null | 선택 | 프론트에서 사용할 이미지 경로 또는 URL |
+| `condition` | string \| null | 선택 | 획득 조건 설명 |
+
+Request 예시:
+
+```json
+{
+  "code": "TOTAL_STUDY_60",
+  "name": "60분 집중 학습",
+  "description": "누적 60분 이상 공부하면 획득",
+  "iconUrl": "/assets/badges/total-study-60.png",
+  "condition": "TOTAL_STUDY_MINUTES >= 60"
+}
+```
+
+Response 예시 (`POST`):
+
+```json
+{
+  "badge": {
+    "id": 1,
+    "code": "TOTAL_STUDY_60",
+    "name": "60분 집중 학습",
+    "description": "누적 60분 이상 공부하면 획득",
+    "iconUrl": "/assets/badges/total-study-60.png",
+    "condition": "TOTAL_STUDY_MINUTES >= 60",
+    "createdAt": "2026-05-28T00:00:00.000Z",
+    "updatedAt": "2026-05-28T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: 잘못된 `badgeId`, 필수값 누락, 길이 초과, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+- `404`: 수정 대상 배지가 존재하지 않음
+- `409`: 중복된 `code`
+
+비고:
+
+- `iconUrl`은 이미지 파일 자체를 DB에 저장하는 방식이 아니라, 프론트에서 사용할 경로/URL 문자열만 저장함.
+
+---
+
+#### 9.5.11 보상 퀘스트 목록 조회/생성/수정
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/rewards/quests` | 등록된 보상 퀘스트 목록을 조회함 |
+| `POST` | `/api/admin/rewards/quests` | 새 보상 퀘스트를 생성함 |
+| `PATCH` | `/api/admin/rewards/quests/:questId` | 기존 보상 퀘스트를 수정함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `code` | string | 생성 시 필수 | 퀘스트 고유 코드 |
+| `title` | string | 생성 시 필수 | 퀘스트 제목 |
+| `description` | string \| null | 선택 | 퀘스트 설명 |
+| `type` | string | 생성 시 필수 | `TOTAL_STUDY_MINUTES` / `TASK_COMPLETION` |
+| `targetValue` | integer | 생성 시 필수 | 목표 수치, 0 이상 정수 |
+| `rewardPoints` | integer | 생성 시 필수 | 지급 포인트, 0 이상 정수 |
+| `badgeId` | integer \| null | 선택 | 달성 시 지급할 배지 id |
+| `isActive` | boolean | 선택 | 활성화 여부 |
+
+Request 예시:
+
+```json
+{
+  "code": "TOTAL_STUDY_60",
+  "title": "누적 60분 공부하기",
+  "description": "집중 학습 시간을 누적 60분 이상 기록하세요.",
+  "type": "TOTAL_STUDY_MINUTES",
+  "targetValue": 60,
+  "rewardPoints": 50,
+  "badgeId": 1,
+  "isActive": true
+}
+```
+
+Response 예시 (`GET`):
+
+```json
+{
+  "quests": [
+    {
+      "id": 1,
+      "code": "TOTAL_STUDY_60",
+      "title": "누적 60분 공부하기",
+      "description": "집중 학습 시간을 누적 60분 이상 기록하세요.",
+      "type": "TOTAL_STUDY_MINUTES",
+      "targetValue": 60,
+      "rewardPoints": 50,
+      "badgeId": 1,
+      "isActive": true,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z",
+      "badge": {
+        "id": 1,
+        "code": "TOTAL_STUDY_60",
+        "name": "60분 집중 학습",
+        "iconUrl": "/assets/badges/total-study-60.png"
+      }
+    }
+  ]
+}
+```
+
+Error:
+
+- `400`: 잘못된 `questId`, 필수값 누락, 잘못된 `type`, 음수 값, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+- `404`: 수정 대상 퀘스트 또는 참조한 배지가 존재하지 않음
+- `409`: 중복된 `code`
+
+비고:
+
+- 현재 지원하는 퀘스트 타입은 `TOTAL_STUDY_MINUTES`, `TASK_COMPLETION` 두 가지임.
+- `badgeId`를 `null`로 보내면 배지 없이 포인트만 지급하는 퀘스트로 저장 가능함.
+
 ### 9.6 보상 API
 
 | 항목 | 내용 |
@@ -2645,7 +2816,7 @@ Response 예시:
 | 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-11 | 완료 | `GET /api/statistics/summary`, `GET /api/statistics/heatmap` 구현 및 테스트 반영 | 시각화 화면 연결 |
 | TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
-| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, 보상 schema/migration 추가 | 알림 API와 보상 정책 고도화 |
+| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, `/api/admin/rewards/badges`, `/api/admin/rewards/quests`, 보상 schema/migration 및 관리자 CRUD API 추가 | 알림 API와 보상 정책 고도화, 프론트 보상 화면 연결 |
 | 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
 
 ---
@@ -2656,7 +2827,7 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, AI, Study Note, Focus/Statistics, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준은 테스트 실행 결과에 맞춰 테스트 보고서에 기록 |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 19 suites / 357 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
@@ -2666,6 +2837,7 @@ Response 예시:
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 커뮤니티 내 북마크 목록 API 단일 테스트 | 1 suite / 14 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
