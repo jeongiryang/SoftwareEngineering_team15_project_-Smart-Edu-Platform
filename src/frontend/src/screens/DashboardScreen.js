@@ -51,8 +51,10 @@ const featureCards = [
   },
   {
     label: '학습 통계',
-    summary: '주간 학습량과 히트맵 시각화 화면은 준비 중입니다. 통계 API와 연결해 확장할 예정입니다.',
-    status: '준비 중'
+    summary: '주간 집중 시간 막대와 최근 4주 히트맵으로 학습 흐름을 확인할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'statistics',
+    tone: 'mint'
   }
 ];
 
@@ -768,10 +770,10 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         <View style={styles.noticeCard}>
           <Text style={styles.noticeTitle}>현재 연결 상태</Text>
           <Text style={styles.noticeText}>
-            일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
-            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 준비 중이며, 연결되면 이 대시보드에서 바로 이동할 수 있습니다.
-          </Text>
-        </View>
+              일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
+              댓글 흐름을 확인할 수 있습니다. 학습 통계 화면에서는 집중 시간과 완료율 흐름을 그래프로 확인할 수 있습니다.
+            </Text>
+          </View>
       </ScrollView>
       <FeatureGuideModal
         onClose={() => setShowAIGuide(false)}

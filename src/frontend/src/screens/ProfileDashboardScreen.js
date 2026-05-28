@@ -497,6 +497,11 @@ export default function ProfileDashboardScreen({ onNavigate, token, user }) {
                   <Text style={styles.quickTitle}>칸반 정리</Text>
                   <Text style={styles.quickText}>TODO에서 DONE까지 보기</Text>
                 </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => onNavigate('statistics')} style={(state) => [styles.quickButton, ...interactiveStateStyles(state, { kind: 'card' })]}>
+                  <Text style={styles.quickIcon}>▥</Text>
+                  <Text style={styles.quickTitle}>통계 확인</Text>
+                  <Text style={styles.quickText}>주간 집중 흐름 보기</Text>
+                </Pressable>
                 <Pressable accessibilityRole="button" onPress={() => onNavigate('community')} style={(state) => [styles.quickButton, ...interactiveStateStyles(state, { kind: 'card' })]}>
                   <Text style={styles.quickIcon}>💬</Text>
                   <Text style={styles.quickTitle}>커뮤니티</Text>
