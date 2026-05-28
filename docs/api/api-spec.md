@@ -1289,8 +1289,8 @@ Response 예시:
 | 기본 namespace | `/api/community` |
 | 인증 | 필요 (`Authorization: Bearer <JWT_TOKEN>`) |
 | 사용 모델 | `BoardPost`, `PostCategory`, `Comment`, `ReactionType`, `CommunityReaction`, `CommunityBookmark` |
-| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
-| 제외 범위 | 답글, 내 북마크 목록, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
+| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, 내 북마크 목록 조회, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
+| 제외 범위 | 답글, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
 
 커뮤니티 게시글 API는 `routes → controllers → services → repositories → Prisma` 구조로 구현함. 기존 DB 과제 커뮤니티 레포의 기능 흐름과 정보 구조는 참고하지만, 기존 코드와 static HTML/CSS/Vanilla JS UI는 복사하지 않음.
 
@@ -1747,13 +1747,68 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음 또는 현재 사용자의 북마크 없음
 
-후속 구현 예정 endpoint:
+#### 9.4.14 내 북마크 목록 조회
 
-| Method | Endpoint 후보 | 설명 |
+`GET /api/community/bookmarks`
+
+Query:
+
+| 이름 | 필수 | 설명 |
 |---|---|---|
-| `GET` | `/api/community/bookmarks` | 내 북마크 목록 조회 |
+| `page` | 선택 | positive integer, 기본값 `1` |
+| `pageSize` | 선택 | positive integer, 기본값 `10`, 최대 `50` |
+| `sort` | 선택 | `latest` 또는 `oldest`. 기본값 `latest`, 북마크 생성일 기준 정렬 |
 
-내 북마크 목록 API는 후속 범위로 둠. 게시글 목록/상세 응답의 반응/북마크 count/status는 `GET /api/community/posts`, `GET /api/community/posts/:postId` 응답에 반영함.
+Response `200`:
+
+```json
+{
+  "bookmarks": [
+    {
+      "bookmarkId": 1,
+      "bookmarkedAt": "2026-05-28T00:00:00.000Z",
+      "post": {
+        "id": 1,
+        "userId": 1,
+        "category": "QUESTION",
+        "title": "학습 질문",
+        "content": "문제 관련 질문입니다.",
+        "createdAt": "2026-05-26T00:00:00.000Z",
+        "updatedAt": "2026-05-26T00:00:00.000Z",
+        "author": {
+          "id": 1,
+          "name": "사용자 이름"
+        },
+        "commentCount": 0,
+        "likeCount": 0,
+        "dislikeCount": 0,
+        "bookmarkCount": 1,
+        "myReaction": null,
+        "isBookmarked": true
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+정책:
+
+- 현재 인증 사용자가 북마크한 게시글만 조회함.
+- `sort=latest`는 북마크 생성일 `createdAt desc`, `sort=oldest`는 `createdAt asc` 기준임.
+- `post.isBookmarked`는 이 목록에서 항상 `true`임.
+- `post.myReaction`은 현재 인증 사용자의 반응 기준이며 `LIKE`, `DISLIKE`, `null` 중 하나임.
+- 다른 사용자의 반응/북마크는 `likeCount`, `dislikeCount`, `bookmarkCount`에만 반영함.
+
+Error:
+
+- `400`: invalid `page`, `pageSize`, `sort`
+- `401`: 인증 token 없음 또는 유효하지 않음
 
 신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표시하지 않음.
 
@@ -2084,7 +2139,7 @@ Response 예시:
 | AI 오답노트/추천/요약 | FR-08, FR-09, FR-19, UC-07, UC-10, UC-18 | 부분 구현 | AI 추천, 요약, 오답 분석 API 구현 | 프롬프트 히스토리 기반 자동화와 학습 데이터 개인화 고도화 |
 | AI 기반 퀴즈 생성 | FR-10, UC-19 | 미구현 | `Quiz`, `QuizQuestion` 모델 초안 존재 | 퀴즈 생성 API와 화면 구현 |
 | 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
-| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API 및 테스트 완료 | 내 북마크 목록/신고 API와 프론트 구현 |
+| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API 및 테스트 완료 | 신고 API와 프론트 구현 |
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
 | 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
 | 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
@@ -2101,12 +2156,13 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark 포함. 최신 확인 기준 13 suites / 242 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List 포함. 최신 확인 기준 14 suites / 256 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 24 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 커뮤니티 내 북마크 목록 API 단일 테스트 | 1 suite / 14 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -2136,3 +2192,4 @@ Response 예시:
 | 2026-05-26 | 커뮤니티 댓글 API(§9.4.6~§9.4.9) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 반응 API(§9.4.10~§9.4.11) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 북마크 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |

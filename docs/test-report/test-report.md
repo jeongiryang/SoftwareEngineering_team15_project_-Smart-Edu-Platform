@@ -73,7 +73,7 @@
 - Prisma Client 생성 및 초기 migration 적용 결과 기록
 - 프론트엔드 Expo 설정 확인 및 Web export 검증
 - 루트 통합 검증 명령 실행 결과 기록
-- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 학습 노트, 커뮤니티 게시글/댓글/반응/북마크, 관리자, AI 학습 지원 API 테스트 결과 기록
+- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 학습 노트, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록, 관리자, AI 학습 지원 API 테스트 결과 기록
 - 프론트엔드 인증 화면, 관리자 화면, AI 학습 지원 화면 수동 확인 결과 기록
 - 향후 기능 구현 시 추가할 유닛/API/통합 테스트 계획
 
@@ -84,7 +84,7 @@
 - 학습 일정/태스크 프론트엔드 연동 및 알림 연계 테스트
 - 학습 노트 프론트엔드 연동 테스트
 - 집중 시간/통계 테스트
-- 커뮤니티 내 북마크 목록/신고/관리자 연동 및 프론트 화면 테스트
+- 커뮤니티 신고/관리자 연동 및 프론트 화면 테스트
 - 프론트엔드 화면 단위 테스트
 - 관리자 화면과 AI 화면의 자동 UI 테스트
 - 정량 커버리지 측정 결과
@@ -113,7 +113,7 @@
 | AI 학습 지원 API/화면 | 계획됨 | 부분 구현 | AI MVP API, AI 화면 수동 확인 | 실제 질문 품질, 비용/한도, 개인화 고도화 |
 | 관리자 API/화면 | 계획됨 | 완료 | 관리자 API 테스트, 관리자 화면 수동 확인 | 커뮤니티 신고/챌린지 확장 연동 |
 | 집중 시간/통계/히트맵 | 계획됨 | 미구현 | schema 초안 존재, route 없음 | API, 화면, 테스트 구현 |
-| 커뮤니티 게시판 | 계획됨 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API 테스트 완료 | 내 북마크 목록/신고/관리자 연동/프론트 화면 분리 구현 |
+| 커뮤니티 게시판 | 계획됨 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API 테스트 완료 | 신고/관리자 연동/프론트 화면 분리 구현 |
 | 랭킹/챌린지 | 계획됨 | 부분 구현 | schema와 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
 | TTS/STT/접근성 UI/외부 캘린더/앱 차단 | 계획됨 | 미구현 | 요구사항/설계 문서에 계획됨 | 구현 가능 범위 확정 후 별도 Issue/PR |
 
@@ -182,13 +182,13 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 
 유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성함.
 
-현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 커뮤니티 게시글/댓글/반응/북마크, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 집중 시간/통계는 구현 시 테스트를 추가하고, 커뮤니티는 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API 테스트를 완료한 뒤 내 북마크 목록/신고/관리자 연동 테스트를 후속으로 확장함.
+현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 집중 시간/통계는 구현 시 테스트를 추가하고, 커뮤니티는 신고/관리자 연동 테스트를 후속으로 확장함.
 
 ### 3.2 통합 테스트 전략
 
 통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
 
-현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 커뮤니티는 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 반응 생성/전환/취소, 북마크 생성/취소, 게시글 반응/북마크 요약 응답과 작성자/현재 사용자 기준 권한 검증을 확인했으며, 신고/관리자 연동 테스트는 후속 구현 범위에서 추가함.
+현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 커뮤니티는 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 반응 생성/전환/취소, 북마크 생성/취소, 내 북마크 목록, 게시글 반응/북마크 요약 응답과 작성자/현재 사용자 기준 권한 검증을 확인했으며, 신고/관리자 연동 테스트는 후속 구현 범위에서 추가함.
 
 ### 3.3 회귀 테스트 전략
 
@@ -266,7 +266,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(13 suites / 242 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(14 suites / 256 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
@@ -283,6 +283,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Community Reaction focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 통과 | 커뮤니티 반응 API 단일 테스트 기준 1 suite / 24 tests passed |
 | Community Bookmark API test | `POST/DELETE /api/community/posts/:postId/bookmarks` | 통과 | `src/backend/tests/community-bookmark.test.js`의 repository mock 기반 API 테스트. 미인증 401, invalid postId 400, 존재하지 않는 게시글 404, 북마크 생성, 중복 북마크 요청, 북마크 취소, 다른 사용자 북마크 영향 없음, 민감정보 미노출 검증 포함 |
 | Community Bookmark focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 통과 | 커뮤니티 북마크 API 단일 테스트 기준 1 suite / 16 tests passed |
+| Community Bookmark List API test | `GET /api/community/bookmarks` | 통과 | `src/backend/tests/community-bookmark-list.test.js`의 repository mock 기반 API 테스트. 미인증 401, current user 기준 목록 조회, pagination, latest/oldest sort, invalid query 400, 반응/북마크 count/status 응답, 민감정보 미노출 검증 포함 |
+| Community Bookmark List focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 통과 | 커뮤니티 내 북마크 목록 API 단일 테스트 기준 1 suite / 14 tests passed |
 | Documentation diff check | `git diff --check` | 통과 | API 명세와 테스트 보고서 최신화 작업 기준 whitespace 오류 없음 |
 | Dev seed guard test | 개발용 seed script production guard 및 seed 구성 | 통과 | `src/backend/tests/seed-dev.test.js` |
 | Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
@@ -334,7 +336,9 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 
 커뮤니티 반응 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/reactions` 반응 생성/전환/취소 기능을 확인함. `LIKE`, `DISLIKE` type validation, 지원하지 않는 field와 `userId` spoofing 차단, 동일 type 재요청 시 중복 row 방지, 다른 type 전환, 현재 사용자 반응 취소, 다른 사용자 반응 영향 없음, 민감정보 미노출을 검증함.
 
-커뮤니티 북마크 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/bookmarks` 북마크 생성/취소 기능을 확인함. 지원하지 않는 field와 `userId` spoofing 차단, 중복 북마크 요청 시 중복 row 방지, 현재 사용자 북마크 취소, 다른 사용자 북마크 영향 없음, 민감정보 미노출을 검증함. 내 북마크 목록, 신고/관리자 연동 테스트는 후속 구현 범위로 둠.
+커뮤니티 북마크 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/bookmarks` 북마크 생성/취소 기능을 확인함. 지원하지 않는 field와 `userId` spoofing 차단, 중복 북마크 요청 시 중복 row 방지, 현재 사용자 북마크 취소, 다른 사용자 북마크 영향 없음, 민감정보 미노출을 검증함.
+
+커뮤니티 내 북마크 목록 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/bookmarks` 목록 조회 기능을 확인함. 현재 사용자 북마크만 반환하고, 다른 사용자 북마크는 목록에 포함하지 않으며, `latest`/`oldest` 정렬과 pagination metadata, 게시글별 `commentCount`, `likeCount`, `dislikeCount`, `bookmarkCount`, `myReaction`, `isBookmarked` 응답을 검증함. 신고/관리자 연동 테스트는 후속 구현 범위로 둠.
 
 
 개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
@@ -440,7 +444,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 실행 명령 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` |
 | 결과 | 통과 |
 
-향후 집중 시간/통계, 커뮤니티 내 북마크 목록/신고/관리자 연동, 랭킹/챌린지, 프론트 화면 자동 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
+향후 집중 시간/통계, 커뮤니티 신고/관리자 연동, 랭킹/챌린지, 프론트 화면 자동 테스트를 작성할 때 AI 보조 테스트 스크립트 기록을 항목별로 추가함.
 
 ---
 
@@ -458,7 +462,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 학습 노트 프론트 화면과 오답노트/복습 알림 연계는 후속 기능과 함께 별도 검토 | 완료 |
 | AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 통계 집계, 히트맵 데이터 테스트 | 예정 |
-| 커뮤니티/게시판 | 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API 테스트 완료. 후속 내 북마크 목록/신고/관리자 연동 흐름 테스트는 기능 구현 순서에 맞춰 추가 | 진행 중 |
+| 커뮤니티/게시판 | 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API 테스트 완료. 후속 신고/관리자 연동 흐름 테스트는 기능 구현 순서에 맞춰 추가 | 진행 중 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
 | 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
 | 2단계 품질 보강 | coverage 결과, 프론트 자동 테스트, E2E 또는 수동 시나리오 테스트, 배포 전 smoke test | 예정 |

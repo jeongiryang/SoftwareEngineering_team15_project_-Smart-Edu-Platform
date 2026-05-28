@@ -39,6 +39,12 @@ const BOOKMARK_SELECT = {
   createdAt: true
 };
 
+const BOOKMARK_LIST_INCLUDE = {
+  post: {
+    include: POST_INCLUDE
+  }
+};
+
 function buildPostWhere(filters = {}) {
   const where = {};
 
@@ -248,6 +254,27 @@ async function findCommentsByPostId({ postId, page, pageSize }) {
   return { comments, total };
 }
 
+async function findBookmarksByUserId({ userId, page, pageSize, sort = 'latest' }) {
+  const where = { userId };
+  const orderBy = {
+    createdAt: sort === 'oldest' ? 'asc' : 'desc'
+  };
+  const skip = (page - 1) * pageSize;
+
+  const [bookmarks, total] = await Promise.all([
+    prisma.communityBookmark.findMany({
+      where,
+      include: BOOKMARK_LIST_INCLUDE,
+      orderBy,
+      skip,
+      take: pageSize
+    }),
+    prisma.communityBookmark.count({ where })
+  ]);
+
+  return { bookmarks, total };
+}
+
 function createComment(postId, userId, data) {
   return prisma.comment.create({
     data: {
@@ -410,6 +437,7 @@ module.exports = {
   deleteComment,
   deletePost,
   findCommentByIdAndUserId,
+  findBookmarksByUserId,
   findCommentsByPostId,
   findPostById,
   findPostByIdAndUserId,
