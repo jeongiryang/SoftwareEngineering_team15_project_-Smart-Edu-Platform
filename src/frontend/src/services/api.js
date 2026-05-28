@@ -90,6 +90,42 @@ export function claimRewardQuest(token, questId) {
   });
 }
 
+export function getShopItems(token) {
+  return request('/shop/items', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getMyShop(token) {
+  return request('/shop/me', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function purchaseShopItem(token, itemId) {
+  return request(`/shop/items/${itemId}/purchase`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function equipShopItem(token, itemId) {
+  return request(`/shop/items/${itemId}/equip`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
 export function getSchedules(token) {
   return request('/schedules', {
     headers: {

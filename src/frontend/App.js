@@ -13,6 +13,7 @@ import AdminScreen from './src/screens/AdminScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import TaskBoardScreen from './src/screens/TaskBoardScreen';
+import PointShopScreen from './src/screens/PointShopScreen';
 import { getCurrentUser } from './src/services/api';
 
 const screens = {
@@ -24,11 +25,12 @@ const screens = {
   community: CommunityScreen,
   schedule: ScheduleScreen,
   taskBoard: TaskBoardScreen,
+  pointShop: PointShopScreen,
   admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard'];
+const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'pointShop'];
 
 const screenPaths = {
   home: '/',
@@ -39,6 +41,7 @@ const screenPaths = {
   community: '/community',
   schedule: '/schedule',
   taskBoard: '/task-board',
+  pointShop: '/shop',
   admin: '/admin'
 };
 
