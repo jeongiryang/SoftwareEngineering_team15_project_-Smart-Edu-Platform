@@ -1285,12 +1285,12 @@ Response 예시:
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | 1차 게시글 CRUD, 댓글 API, 반응/북마크 API, 사용자 신고 API 구현 완료 |
+| 상태 | 1차 게시글 CRUD, 댓글 API, 반응/북마크 API, 사용자 신고 API, 관리자 신고 조회/처리 API 구현 완료 |
 | 기본 namespace | `/api/community` |
 | 인증 | 필요 (`Authorization: Bearer <JWT_TOKEN>`) |
 | 사용 모델 | `BoardPost`, `PostCategory`, `Comment`, `ReactionType`, `CommunityReaction`, `CommunityBookmark`, `CommunityReport` |
 | 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, 내 북마크 목록 조회, 게시글/댓글 사용자 신고 생성, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
-| 제외 범위 | 답글, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
+| 제외 범위 | 답글, 프론트 화면, seed 데이터 |
 
 커뮤니티 게시글 API는 `routes → controllers → services → repositories → Prisma` 구조로 구현함. 기존 DB 과제 커뮤니티 레포의 기능 흐름과 정보 구조는 참고하지만, 기존 코드와 static HTML/CSS/Vanilla JS UI는 복사하지 않음.
 
@@ -1909,12 +1909,12 @@ Error:
 |---|---|
 | 상태 | 구현 완료 |
 | 인증 | 필요 (`ADMIN` 권한) |
-| 프론트 연동 | 관리자 화면 연결 완료 |
+| 프론트 연동 | 기본 관리자 화면 연결 완료, 커뮤니티 신고 처리 화면은 후속 범위 |
 | 설명 | 사용자 제재, 게시글/댓글 관리, 스터디 챌린지 강제 조치 등 시스템 운영 관리 기능 제공 |
 
 주의:
 - 모든 관리자 API는 Bearer 토큰 인증 및 `ADMIN` 권한 검증(`adminMiddleware`)이 적용되어 일반 사용자는 접근이 불가능합니다.
-- 관리자 화면 연결 작업은 기존 관리자 API를 프론트에서 호출하는 범위이며, 새 관리자 endpoint를 추가하지 않음.
+- 커뮤니티 신고 조회/처리 API는 백엔드 기준으로 구현되었으며, 관리자 화면 연동은 후속 범위임.
 - 제재나 숨김 등의 모든 조치 이력은 `AdminAction` 테이블에 기록 및 저장됩니다.
 - 사용자 응답에는 `passwordHash`, password, token 원문이 포함되지 않음.
 - id path parameter는 양의 정수만 허용하며, 숫자가 아니거나 0 이하이면 `400 VALIDATION_ERROR`를 반환함.
@@ -2018,6 +2018,8 @@ Response 예시:
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `GET` | `/api/admin/reports` | 신고된 게시글, 신고된 댓글 목록 및 전체 처리 기록 조회 |
+| `GET` | `/api/admin/community/reports` | `CommunityReport` 기반 커뮤니티 신고 목록 조회 |
+| `PATCH` | `/api/admin/community/reports/:reportId` | 커뮤니티 신고 기각/처리 상태 변경 |
 
 Response 예시:
 
@@ -2077,7 +2079,147 @@ Response 예시:
 
 ---
 
-#### 9.5.4 게시글 관리 조치 (삭제/신고 기각)
+#### 9.5.4 커뮤니티 신고 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/community/reports` | `CommunityReport` 기반 커뮤니티 신고 목록을 조회함 |
+
+Query Params:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `status` | string | 아니오 | `PENDING`, `DISMISSED`, `RESOLVED` 중 하나 |
+| `targetType` | string | 아니오 | `POST`, `COMMENT` 중 하나 |
+| `page` | number | 아니오 | positive integer, 기본값 `1` |
+| `pageSize` | number | 아니오 | positive integer, 기본값 `10`, 최대 `50` |
+
+Response 예시:
+
+```json
+{
+  "reports": [
+    {
+      "id": 301,
+      "reporterId": 1,
+      "targetType": "POST",
+      "postId": 101,
+      "commentId": null,
+      "reason": "스팸 게시글",
+      "status": "PENDING",
+      "resolvedById": null,
+      "resolvedAt": null,
+      "resolutionNote": null,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z",
+      "reporter": {
+        "id": 1,
+        "email": "user@example.com",
+        "name": "사용자",
+        "role": "USER",
+        "status": "ACTIVE"
+      },
+      "resolvedBy": null,
+      "post": {
+        "id": 101,
+        "category": "QUESTION",
+        "title": "신고된 게시글",
+        "reported": true,
+        "author": {
+          "id": 3,
+          "email": "author@example.com",
+          "name": "작성자",
+          "role": "USER",
+          "status": "ACTIVE"
+        }
+      },
+      "comment": null
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `status`, `targetType`, `page`, `pageSize` 또는 지원하지 않는 query field
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+
+정책:
+
+- `ADMIN` 사용자만 조회할 수 있음.
+- 신고자, 처리자, 대상 게시글/댓글의 최소 정보만 반환함.
+- 관리자 API 특성상 사용자 email은 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
+
+---
+
+#### 9.5.5 커뮤니티 신고 처리
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/admin/community/reports/:reportId` | 커뮤니티 신고를 기각 또는 처리 완료로 변경함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `DISMISS` 또는 `RESOLVE` |
+| `resolutionNote` | string | 아니오 | 처리 메모, 500자 이하 |
+
+Request 예시:
+
+```json
+{
+  "action": "RESOLVE",
+  "resolutionNote": "정책 위반으로 처리함"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "report": {
+    "id": 301,
+    "targetType": "POST",
+    "postId": 101,
+    "commentId": null,
+    "reason": "스팸 게시글",
+    "status": "RESOLVED",
+    "resolvedById": 2,
+    "resolvedAt": "2026-05-28T01:00:00.000Z",
+    "resolutionNote": "정책 위반으로 처리함"
+  },
+  "message": "Community report resolved successfully"
+}
+```
+
+Error:
+
+- `400`: invalid `reportId`, invalid `action`, invalid `resolutionNote`, 지원하지 않는 body field
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+- `404`: 신고 내역 없음
+- `409`: 이미 `DISMISSED` 또는 `RESOLVED`로 처리된 신고 재처리
+
+정책:
+
+- `DISMISS`는 `CommunityReport.status`를 `DISMISSED`로 변경함.
+- `RESOLVE`는 `CommunityReport.status`를 `RESOLVED`로 변경함.
+- 처리 시 `resolvedById`, `resolvedAt`, `resolutionNote`를 저장함.
+- 같은 대상에 남은 `PENDING` 신고가 없으면 `BoardPost.reported` 또는 `Comment.reported`를 `false`로 갱신함.
+- 같은 대상에 다른 `PENDING` 신고가 남아 있으면 대상 `reported` flag를 `true`로 유지함.
+- 신고 대상 게시글/댓글 삭제 또는 숨김 처리는 이번 API에서 수행하지 않으며 후속 범위로 분리함.
+
+---
+
+#### 9.5.6 게시글 관리 조치 (삭제/신고 기각)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -2131,7 +2273,7 @@ Response 예시 (KEEP 조치 시):
 
 ---
 
-#### 9.5.5 댓글 관리 상태 변경 (삭제/해제)
+#### 9.5.7 댓글 관리 상태 변경 (삭제/해제)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -2170,7 +2312,7 @@ Response 예시 (DELETE 조치 시):
 
 ---
 
-#### 9.5.6 스터디 챌린지 제재 (강제 종료)
+#### 9.5.8 스터디 챌린지 제재 (강제 종료)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -2228,7 +2370,7 @@ Response 예시:
 | AI 오답노트/추천/요약 | FR-08, FR-09, FR-19, UC-07, UC-10, UC-18 | 부분 구현 | AI 추천, 요약, 오답 분석 API 구현 | 프롬프트 히스토리 기반 자동화와 학습 데이터 개인화 고도화 |
 | AI 기반 퀴즈 생성 | FR-10, UC-19 | 미구현 | `Quiz`, `QuizQuestion` 모델 초안 존재 | 퀴즈 생성 API와 화면 구현 |
 | 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
-| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API 및 테스트 완료 | 관리자 신고 처리 API와 프론트 구현 |
+| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API, 관리자 신고 조회/처리 API 및 테스트 완료 | 프론트 구현 |
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
 | 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
 | 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
@@ -2245,7 +2387,7 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 15 suites / 292 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 16 suites / 321 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
@@ -2253,6 +2395,7 @@ Response 예시:
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 커뮤니티 내 북마크 목록 API 단일 테스트 | 1 suite / 14 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -2284,3 +2427,4 @@ Response 예시:
 | 2026-05-27 | 커뮤니티 북마크 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.15~§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |
