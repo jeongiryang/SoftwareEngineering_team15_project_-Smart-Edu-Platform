@@ -3,9 +3,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   getAccessibilityPreferences,
+  getPendingFocusSessionQueue,
   getReviewReminders,
   getStatisticsHeatmap,
-  getStatisticsSummary
+  getStatisticsSummary,
+  retryPendingFocusSessions
 } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -198,6 +200,13 @@ export default function StatisticsScreen({ onNavigate, token }) {
   const [heatmap, setHeatmap] = useState({});
   const [reviewPreference, setReviewPreference] = useState({ reviewReminderEnabled: false });
   const [reviewReminders, setReviewReminders] = useState([]);
+  const [pendingFocusQueue, setPendingFocusQueue] = useState([]);
+  const [syncingFocusQueue, setSyncingFocusQueue] = useState(false);
+  const [focusQueueMessage, setFocusQueueMessage] = useState('');
+
+  function refreshPendingFocusQueue() {
+    setPendingFocusQueue(getPendingFocusSessionQueue());
+  }
 
   async function loadStatistics({ silent = false } = {}) {
     if (!token) {
@@ -246,12 +255,45 @@ export default function StatisticsScreen({ onNavigate, token }) {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      refreshPendingFocusQueue();
     }
   }
 
   useEffect(() => {
+    refreshPendingFocusQueue();
     loadStatistics();
   }, [token]);
+
+  async function handleRetryFocusQueue() {
+    if (!token) {
+      return;
+    }
+
+    setSyncingFocusQueue(true);
+    setFocusQueueMessage('');
+
+    try {
+      const result = await retryPendingFocusSessions(token);
+      refreshPendingFocusQueue();
+
+      if (result.submitted.length > 0 && result.failed > 0) {
+        setFocusQueueMessage(`${result.submitted.length}개를 저장했고 ${result.failed}개는 아직 대기 중입니다.`);
+        await loadStatistics({ silent: true });
+      } else if (result.submitted.length > 0) {
+        setFocusQueueMessage(`${result.submitted.length}개의 집중 기록을 서버에 다시 저장했습니다.`);
+        await loadStatistics({ silent: true });
+      } else if (result.failed > 0) {
+        setFocusQueueMessage('아직 전송되지 않은 집중 기록이 있습니다. 네트워크 상태를 확인해 주세요.');
+      } else {
+        setFocusQueueMessage('전송 대기 중인 집중 기록이 없습니다.');
+      }
+    } catch (error) {
+      setFocusQueueMessage(error.message || '집중 기록 재전송에 실패했습니다.');
+      refreshPendingFocusQueue();
+    } finally {
+      setSyncingFocusQueue(false);
+    }
+  }
 
   const chartData = useMemo(() => {
     const weekDays = buildDateSeries(7).map((date) => ({
@@ -311,6 +353,36 @@ export default function StatisticsScreen({ onNavigate, token }) {
           <Text style={styles.refreshButtonText}>{refreshing ? '갱신 중' : '새로고침'}</Text>
         </Pressable>
       </View>
+
+      {pendingFocusQueue.length > 0 || focusQueueMessage ? (
+        <View style={[styles.offlineQueueCard, shadows.card]}>
+          <View style={styles.offlineQueueCopy}>
+            <Text style={styles.offlineQueueTitle}>저장 대기 중인 집중 기록</Text>
+            <Text style={styles.offlineQueueText}>
+              {pendingFocusQueue.length > 0
+                ? `${pendingFocusQueue.length}개의 집중 기록이 브라우저에 임시 저장되어 있습니다. 네트워크가 안정되면 다시 전송할 수 있습니다.`
+                : focusQueueMessage}
+            </Text>
+            {pendingFocusQueue.length > 0 && focusQueueMessage ? (
+              <Text style={styles.offlineQueueHint}>{focusQueueMessage}</Text>
+            ) : null}
+          </View>
+          {pendingFocusQueue.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={syncingFocusQueue}
+              onPress={handleRetryFocusQueue}
+              style={(state) => [
+                styles.offlineQueueButton,
+                syncingFocusQueue && styles.disabledButton,
+                ...interactiveStateStyles(state, { disabled: syncingFocusQueue })
+              ]}
+            >
+              <Text style={styles.offlineQueueButtonText}>{syncingFocusQueue ? '전송 중...' : '다시 전송'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       {loading ? (
         <View style={styles.skeletonGrid}>
@@ -553,6 +625,55 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6
+  },
+  offlineQueueCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft,
+    padding: 18,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 14
+  },
+  offlineQueueCopy: {
+    flex: 1,
+    minWidth: 240,
+    gap: 5
+  },
+  offlineQueueTitle: {
+    color: colors.warning,
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  offlineQueueText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '700'
+  },
+  offlineQueueHint: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
+  },
+  offlineQueueButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  offlineQueueButtonText: {
+    color: colors.warning,
+    fontSize: 13,
+    fontWeight: '900'
   },
   skeletonGrid: {
     gap: 16
