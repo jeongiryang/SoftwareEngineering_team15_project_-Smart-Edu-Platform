@@ -2515,7 +2515,115 @@ Response 예시:
 }
 ```
 
-### 9.6 docs 기준 기능 구현 상태 재점검
+### 9.6 보상 API
+
+| 항목 | 내용 |
+|---|---|
+| 관련 요구사항 | FR-24 퀘스트/뱃지/포인트 |
+| 인증 | 모든 엔드포인트 JWT 필요 |
+| 구현 범위 | 내 보상 현황 조회, 달성 퀘스트 보상 수령 |
+| 주요 모델 | `RewardAccount`, `Badge`, `UserBadge`, `RewardQuest`, `UserQuest`, `PointTransaction` |
+
+#### 9.6.1 내 보상 현황 조회
+
+| 항목 | 내용 |
+|---|---|
+| Method | `GET` |
+| URL | `/api/rewards/me` |
+| 설명 | 현재 사용자의 포인트 지갑, 퀘스트 진행 현황, 획득 뱃지, 최근 포인트 내역을 조회함 |
+
+Response 예시:
+
+```json
+{
+  "rewards": {
+    "account": {
+      "id": 1,
+      "userId": 1,
+      "pointBalance": 120,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z"
+    },
+    "metrics": {
+      "totalStudyMinutes": 60,
+      "completedTaskCount": 1
+    },
+    "quests": [
+      {
+        "id": 1,
+        "code": "TOTAL_STUDY_60",
+        "title": "누적 60분 공부하기",
+        "type": "TOTAL_STUDY_MINUTES",
+        "targetValue": 60,
+        "rewardPoints": 50,
+        "progressValue": 60,
+        "progressRate": 1,
+        "status": "ACHIEVED",
+        "badge": {
+          "id": 1,
+          "code": "TOTAL_STUDY_60",
+          "name": "60분 집중 학습",
+          "iconUrl": "/assets/badges/total-study-60.png"
+        }
+      }
+    ],
+    "badges": [],
+    "recentPointTransactions": []
+  }
+}
+```
+
+#### 9.6.2 달성 퀘스트 보상 수령
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| URL | `/api/rewards/quests/:questId/claim` |
+| 설명 | `ACHIEVED` 상태의 퀘스트 보상을 수령하고 포인트와 뱃지를 반영함 |
+
+Response 예시:
+
+```json
+{
+  "reward": {
+    "account": {
+      "id": 1,
+      "userId": 1,
+      "pointBalance": 170
+    },
+    "quest": {
+      "id": 1,
+      "code": "TOTAL_STUDY_60",
+      "status": "CLAIMED",
+      "rewardPoints": 50
+    },
+    "badge": {
+      "id": 1,
+      "badge": {
+        "code": "TOTAL_STUDY_60",
+        "name": "60분 집중 학습"
+      }
+    },
+    "pointTransaction": {
+      "type": "EARN",
+      "amount": 50,
+      "sourceType": "REWARD_QUEST",
+      "sourceId": 1
+    }
+  }
+}
+```
+
+주요 에러:
+
+| HTTP | code | 상황 |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | `questId`가 양의 정수가 아님 |
+| 401 | `UNAUTHORIZED` | 인증 토큰 없음/잘못됨 |
+| 404 | `NOT_FOUND` | 퀘스트가 존재하지 않음 |
+| 409 | `CONFLICT` | 아직 달성하지 않았거나 이미 수령한 퀘스트 |
+
+### 9.7 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -2537,7 +2645,7 @@ Response 예시:
 | 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-11 | 완료 | `GET /api/statistics/summary`, `GET /api/statistics/heatmap` 구현 및 테스트 반영 | 시각화 화면 연결 |
 | TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
-| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 미구현 | 요구사항 문서에 계획됨 | 알림/보상 정책 및 테스트 설계 |
+| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, 보상 schema/migration 추가 | 알림 API와 보상 정책 고도화 |
 | 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
 
 ---

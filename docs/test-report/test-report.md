@@ -74,7 +74,7 @@
 - Prisma Client 생성 및 초기 migration 적용 결과 기록
 - 프론트엔드 Expo 설정 확인 및 Web export 검증
 - 루트 통합 검증 명령 실행 결과 기록
-- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 학습 노트, 집중 시간/통계, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록/사용자 신고, 관리자 커뮤니티 신고 처리, 관리자, AI 학습 지원 API 테스트 결과 기록
+- 인증, 사용자/프로필, 학습 일정/칸반 태스크, 학습 노트, 집중 시간/통계, 보상, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록/사용자 신고, 관리자 커뮤니티 신고 처리, 관리자, AI 학습 지원 API 테스트 결과 기록
 - 프론트엔드 인증 화면, 관리자 화면, AI 학습 지원 화면 수동 확인 결과 기록
 - 향후 기능 구현 시 추가할 유닛/API/통합 테스트 계획
 
@@ -113,6 +113,7 @@
 | AI 학습 지원 API/화면 | 계획됨 | 부분 구현 | AI MVP API, AI 화면 수동 확인 | 실제 질문 품질, 비용/한도, 개인화 고도화 |
 | 관리자 API/화면 | 계획됨 | 완료 | 관리자 API 테스트, 관리자 화면 수동 확인 | 커뮤니티 신고/챌린지 확장 연동 |
 | 집중 시간/통계/히트맵 | 계획됨 | 완료 | Focus/Statistics API 및 테스트 구현 완료 | 타이머/통계 프론트 화면 연결 |
+| 보상/퀘스트/뱃지/포인트 | 계획됨 | 부분 구현 | Reward API, 보상 schema/migration, 보상 API 테스트 반영 | 보상 화면, 관리자용 보상 관리, 보상 정책 고도화 |
 | 커뮤니티 게시판 | 계획됨 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API, 관리자 신고 처리 API 테스트 완료 | 프론트 화면 분리 구현 |
 | 랭킹/챌린지 | 계획됨 | 부분 구현 | schema와 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
 | TTS/STT/접근성 UI/외부 캘린더/앱 차단 | 계획됨 | 미구현 | 요구사항/설계 문서에 계획됨 | 구현 가능 범위 확정 후 별도 Issue/PR |
@@ -199,13 +200,13 @@ PR별 자동 검증 결과는 GitHub PR의 `Checks` 탭과 저장소 `Actions` �
 
 유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성함.
 
-현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 집중 시간/통계, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록/사용자 신고, 관리자 커뮤니티 신고 처리, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 커뮤니티 프론트 화면 테스트는 후속으로 확장함.
+현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 집중 시간/통계, 보상, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록/사용자 신고, 관리자 커뮤니티 신고 처리, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 커뮤니티 프론트 화면 테스트는 후속으로 확장함.
 
 ### 3.2 통합 테스트 전략
 
 통합 테스트는 Express API 요청/응답, 인증 흐름, DB 연동, Prisma repository 흐름을 중심으로 작성할 예정임.
 
-현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Focus/Statistics, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Admin Community Report, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 집중 시간/통계는 세션 기록, 사용자별 조회, 날짜 필터, 요약 통계, 히트맵 그룹핑, spoofing/unsupported field 차단을 확인함. 커뮤니티는 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 반응 생성/전환/취소, 북마크 생성/취소, 내 북마크 목록, 사용자 게시글/댓글 신고, 관리자 신고 목록/처리, 게시글 반응/북마크 요약 응답과 작성자/현재 사용자/ADMIN 기준 권한 검증을 확인했음.
+현재는 `GET /api/health`뿐 아니라 Auth, User/Profile, Schedule/Task, Study Note, Focus/Statistics, Reward, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Admin Community Report, Admin, AI API를 Jest + Supertest와 repository/provider mock 기반으로 확인함. 집중 시간/통계는 세션 기록, 사용자별 조회, 날짜 필터, 요약 통계, 히트맵 그룹핑, spoofing/unsupported field 차단을 확인함. 보상 API는 인증, 현재 사용자 기준 보상 현황 조회, 달성 퀘스트 수령, invalid questId validation, 미달성 퀘스트 수령 차단, 민감정보 미노출을 확인함. 커뮤니티는 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 반응 생성/전환/취소, 북마크 생성/취소, 내 북마크 목록, 사용자 게시글/댓글 신고, 관리자 신고 목록/처리, 게시글 반응/북마크 요약 응답과 작성자/현재 사용자/ADMIN 기준 권한 검증을 확인했음.
 
 ### 3.3 회귀 테스트 전략
 
@@ -285,7 +286,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(17 suites / 339 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(18 suites / 345 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
@@ -298,6 +299,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Study Note focused test | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 통과 | 학습 노트 API 단일 테스트 파일 기준 1 suite / 13 tests passed |
 | Focus/Statistics API test | `GET/POST /api/focus-sessions`, `GET /api/statistics/summary`, `GET /api/statistics/heatmap` | 통과 | `src/backend/tests/focus-statistics.test.js`의 repository mock 기반 API 테스트. 미인증 401, `durationMs` validation, unsupported field/userId spoofing 차단, task 소유권 404, 사용자별 목록/통계 조회, 날짜 필터, 빈 데이터 summary/heatmap, 민감정보 미노출 검증 포함 |
 | Focus/Statistics focused test | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 통과 | 집중 시간/통계 API 단일 테스트 기준 1 suite / 18 tests passed |
+| Reward API test | `GET /api/rewards/me`, `POST /api/rewards/quests/:questId/claim` | 통과 | `src/backend/tests/reward.test.js`의 repository mock 기반 API 테스트. 미인증 401, 보상 현황 조회, 달성 퀘스트 보상 수령, invalid questId 400, 미달성 퀘스트 수령 409, 민감정보 미노출 검증 포함 |
+| Reward focused test | `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js` | 통과 | 보상 API 단일 테스트 기준 1 suite / 6 tests passed |
 | Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category/search/sort validation, 반응/북마크 count/status 응답, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
 | Community Post focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 통과 | 커뮤니티 게시글 API 단일 테스트 파일과 repository query option 및 삭제 안전성 테스트 기준 1 suite / 48 tests passed |
 | Community Comment API test | `GET/POST/PATCH/DELETE /api/community/posts/:postId/comments`, `PATCH/DELETE /api/community/comments/:commentId` | 통과 | `src/backend/tests/community-comment.test.js`의 repository mock 기반 API 테스트. 미인증 401, pagination validation, invalid postId/commentId 400, 존재하지 않는 게시글/댓글 404, 타인 댓글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
@@ -323,6 +326,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | PR #76 자동 검증 | AI 학습 지원 화면 연결 PR 검증 | 통과 | 최신 main 반영 및 #75 변경 보존 후 `npm run check:frontend`, `npm run check:frontend:web`, `npm run check`, `npm test`(8 suites / 103 tests passed), `git diff --check origin/main...HEAD`, `npm run validate:prisma`, `npm --prefix src/backend run prisma:generate` 통과 |
 | PR #81 자동 검증 | 학습 노트 CRUD API PR 검증 | 통과 | `git diff --check origin/main...origin/feature/study-note-api`, `npm run validate:prisma`, `npm test`(9 suites / 116 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js`(1 suite / 13 tests passed), `npm run check` 통과 |
 | Focus/Statistics API 검증 | 집중 시간/통계 API 구현 검증 | 통과 | `npm test`(17 suites / 339 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js`(1 suite / 18 tests passed) 통과 |
+| Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -338,6 +342,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/admin-community-report.test.js`
 - `src/backend/tests/note.test.js`
 - `src/backend/tests/focus-statistics.test.js`
+- `src/backend/tests/reward.test.js`
 - `src/backend/tests/community-post.test.js`
 - `src/backend/tests/community-comment.test.js`
 - `src/backend/tests/community-reaction.test.js`
@@ -361,6 +366,8 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 관리자 커뮤니티 신고 처리 API 테스트는 repository mock 기반으로 실제 `/api/admin/community/reports` route, `authMiddleware`, `adminMiddleware`, service validation 흐름을 통과시키며 `CommunityReport` 목록 조회와 처리 기능을 확인함. 목록 조회는 `status`, `targetType`, pagination validation을 검증하고, 처리 API는 `DISMISS`/`RESOLVE` action, `resolutionNote`, 이미 처리된 신고 재처리 409, `resolvedById`/`resolvedAt`/`resolutionNote` 저장, 같은 대상에 남은 PENDING 신고 여부에 따른 `BoardPost.reported`/`Comment.reported` 동기화를 검증함. 신고 대상 삭제/숨김 처리와 프론트 화면 연동은 후속 범위로 둠.
 
 학습 노트 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 학습 노트 CRUD 기능과 본인 소유 데이터 접근 제한을 확인함. 미인증 요청은 401, invalid noteId와 잘못된 입력은 400, 존재하지 않거나 다른 사용자 소유 노트는 404로 처리되는지 검증함. 자동 테스트는 실제 DB 쓰기 없이 수행함.
+
+보상 API 테스트는 repository mock 기반으로 실제 Express route와 `authMiddleware`, service validation 흐름을 통과시키며 `/api/rewards/me` 보상 현황 조회와 `/api/rewards/quests/:questId/claim` 보상 수령 기능을 확인함. 보상 현황 응답은 포인트 지갑, 퀘스트 진행도, 뱃지, 포인트 내역을 포함하고, 보상 수령은 달성 상태 퀘스트만 처리함. invalid `questId`는 400, 미달성 퀘스트 수령은 409로 처리되는지 확인하며, 응답에 password, token/JWT, email 등 민감정보가 포함되지 않는지 검증함. 중복 수령 방지는 repository transaction에서 `userId`와 `ACHIEVED` 상태 조건으로 처리하는 정책을 둠.
 
 커뮤니티 게시글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts` 게시글 CRUD 기능을 확인함. 목록 조회는 pagination, category filter, title/content search, latest/oldest sort와 반응/북마크 count/status 응답을 검증하고, 생성/수정은 `QUESTION`, `FREE`, `STUDY_PROOF` category와 `title`, `content` validation을 확인함. invalid `postId`는 400, 존재하지 않거나 다른 사용자 소유 게시글은 404로 처리하며, 응답에 `passwordHash`, password, token, email 등 불필요한 민감정보가 포함되지 않는지 확인함. 추가로 repository `findPosts` query option 구성, `findPostEngagementSummaries` 집계 query 구성, `deletePost` transaction에서 소유권 확인 전에 댓글 삭제가 실행되지 않는지 검증함.
 
@@ -496,6 +503,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 | 학습 노트 | 노트 CRUD, 인증/권한, invalid noteId, 필수값/tags 검증, 삭제 후 재조회 404 테스트 완료. 학습 노트 프론트 화면과 오답노트/복습 알림 연계는 후속 기능과 함께 별도 검토 | 완료 |
 | AI 학습 지원 | AI 질의, 추천, 요약, 오답 분석 API mock/fallback 테스트와 AI 학습 지원 화면 수동 확인 완료. 실제 외부 AI API 호출 검증은 비용/키 관리 이슈로 자동 테스트 범위에서 제외 | 완료 |
 | 집중 시간/통계 | `durationMs` 저장, 세션 목록 조회, 통계 집계, 히트맵 데이터 테스트 | 완료 |
+| 보상 | 보상 현황 조회, 퀘스트 진행도, 달성 퀘스트 보상 수령, invalid questId, 미달성 퀘스트 수령 차단, 민감정보 미노출 테스트 완료. 보상 화면과 관리자용 보상 관리 API는 후속 작성 | 진행 중 |
 | 커뮤니티/게시판 | 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API, 관리자 신고 처리 API 테스트 완료. 후속 프론트 화면 연동은 기능 구현 순서에 맞춰 추가 | 진행 중 |
 | 관리자 기능 | 사용자 제재, 게시글 관리, 챌린지 관리, 커뮤니티 신고 처리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
 | 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
@@ -518,6 +526,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
   - `src/backend/tests/admin.test.js`
   - `src/backend/tests/note.test.js`
   - `src/backend/tests/focus-statistics.test.js`
+  - `src/backend/tests/reward.test.js`
   - `src/backend/tests/community-post.test.js`
   - `src/backend/tests/community-comment.test.js`
   - `src/backend/tests/community-reaction.test.js`
