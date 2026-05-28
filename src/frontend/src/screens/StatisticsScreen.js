@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PanelSkeleton } from '../components/Skeleton';
-import { getStatisticsHeatmap, getStatisticsSummary } from '../services/api';
+import {
+  getAccessibilityPreferences,
+  getReviewReminders,
+  getStatisticsHeatmap,
+  getStatisticsSummary
+} from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const EMPTY_SUMMARY = {
@@ -61,6 +66,64 @@ function buildDateSeries(days) {
 
 function getHeatmapMinutes(heatmap, dateKey) {
   return Math.floor(Number(heatmap?.[dateKey]?.durationMs || 0) / (1000 * 60));
+}
+
+function formatDateLabel(dateKey) {
+  const date = new Date(`${dateKey}T00:00:00`);
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    weekday: 'short'
+  }).format(date);
+}
+
+function addDays(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return toDateKey(date);
+}
+
+function buildStreakInfo(heatmap) {
+  const days = buildDateSeries(28).map((date) => ({
+    ...date,
+    minutes: getHeatmapMinutes(heatmap, date.key)
+  }));
+  let current = 0;
+  let best = 0;
+  let running = 0;
+
+  for (let index = days.length - 1; index >= 0; index -= 1) {
+    if (days[index].minutes <= 0) {
+      break;
+    }
+    current += 1;
+  }
+
+  days.forEach((day) => {
+    if (day.minutes > 0) {
+      running += 1;
+      best = Math.max(best, running);
+    } else {
+      running = 0;
+    }
+  });
+
+  const today = days[days.length - 1] || { minutes: 0 };
+  return {
+    current,
+    best,
+    todayMinutes: today.minutes,
+    todayLearned: today.minutes > 0
+  };
+}
+
+function buildSpacedReviewPlan() {
+  return [1, 3, 7, 14].map((days) => ({
+    key: `t-plus-${days}`,
+    label: `T+${days}`,
+    dateKey: addDays(days),
+    description: days <= 3 ? '기억이 흐려지기 전 짧게 재확인' : '장기 기억으로 넘기기 위한 반복 복습'
+  }));
 }
 
 function getHeatColor(minutes, maxMinutes) {
@@ -133,6 +196,8 @@ export default function StatisticsScreen({ onNavigate, token }) {
   const [weekSummary, setWeekSummary] = useState(EMPTY_SUMMARY);
   const [monthSummary, setMonthSummary] = useState(EMPTY_SUMMARY);
   const [heatmap, setHeatmap] = useState({});
+  const [reviewPreference, setReviewPreference] = useState({ reviewReminderEnabled: false });
+  const [reviewReminders, setReviewReminders] = useState([]);
 
   async function loadStatistics({ silent = false } = {}) {
     if (!token) {
@@ -164,6 +229,18 @@ export default function StatisticsScreen({ onNavigate, token }) {
       setWeekSummary(weekResult?.summary || EMPTY_SUMMARY);
       setMonthSummary(monthResult?.summary || EMPTY_SUMMARY);
       setHeatmap(heatmapResult?.heatmap || {});
+
+      const [preferenceResult, remindersResult] = await Promise.allSettled([
+        getAccessibilityPreferences(token),
+        getReviewReminders(token)
+      ]);
+
+      if (preferenceResult.status === 'fulfilled') {
+        setReviewPreference(preferenceResult.value?.preference || { reviewReminderEnabled: false });
+      }
+      if (remindersResult.status === 'fulfilled') {
+        setReviewReminders(remindersResult.value?.reminders || []);
+      }
     } catch (loadError) {
       setError(loadError.message || '학습 통계를 불러오지 못했습니다.');
     } finally {
@@ -197,6 +274,16 @@ export default function StatisticsScreen({ onNavigate, token }) {
       story: buildStory({ todaySummary, weekSummary, weekBars: weekDays })
     };
   }, [heatmap, todaySummary, weekSummary]);
+
+  const streakInfo = useMemo(() => buildStreakInfo(heatmap), [heatmap]);
+  const spacedReviewPlan = useMemo(() => buildSpacedReviewPlan(), []);
+  const upcomingReviewReminders = useMemo(
+    () => [...reviewReminders]
+      .filter((reminder) => !reminder.readAt)
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+      .slice(0, 3),
+    [reviewReminders]
+  );
 
   const hasAnyData = monthSummary.totalMinutes > 0 || monthSummary.sessionCount > 0 || monthSummary.taskCount > 0;
   const averageMinutes = monthSummary.sessionCount > 0
@@ -248,6 +335,73 @@ export default function StatisticsScreen({ onNavigate, token }) {
             <SummaryCard label="이번 주 집중" value={formatMinutes(weekSummary.totalMinutes)} helper={`완료율 ${weekSummary.completionRate || 0}%`} tone="blue" />
             <SummaryCard label="최근 4주 집중" value={formatMinutes(monthSummary.totalMinutes)} helper={`${monthSummary.sessionCount || 0}회 세션`} />
             <SummaryCard label="평균 세션" value={formatMinutes(averageMinutes)} helper={`태스크 ${monthSummary.taskCount || 0}개 기준`} />
+          </View>
+
+          <View style={styles.streakReviewGrid}>
+            <View style={[styles.streakCard, shadows.card]}>
+              <View>
+                <Text style={styles.streakEyebrow}>STREAK</Text>
+                <Text style={styles.streakTitle}>연속 학습 {streakInfo.current}일</Text>
+                <Text style={styles.streakText}>
+                  {streakInfo.todayLearned
+                    ? `오늘 ${formatMinutes(streakInfo.todayMinutes)} 기록으로 streak가 이어지고 있습니다.`
+                    : '오늘 기록이 아직 없습니다. 짧은 집중 세션을 남기면 streak가 다시 시작됩니다.'}
+                </Text>
+              </View>
+              <View style={styles.streakMetaRow}>
+                <View style={styles.streakMeta}>
+                  <Text style={styles.streakMetaValue}>{streakInfo.best}일</Text>
+                  <Text style={styles.streakMetaLabel}>최근 4주 최고</Text>
+                </View>
+                <Pressable accessibilityRole="button" onPress={() => onNavigate('profile')} style={(state) => [styles.streakAction, ...interactiveStateStyles(state)]}>
+                  <Text style={styles.streakActionText}>프로필에서 보기</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={[styles.reviewPlanCard, shadows.card]}>
+              <View style={styles.reviewPlanHeader}>
+                <View>
+                  <Text style={styles.streakEyebrow}>SPACED REVIEW</Text>
+                  <Text style={styles.streakTitle}>망각곡선 복습 예정</Text>
+                </View>
+                <Text style={[styles.reminderStatus, reviewPreference.reviewReminderEnabled && styles.reminderStatusActive]}>
+                  {reviewPreference.reviewReminderEnabled ? '알림 켜짐' : '선택형 알림'}
+                </Text>
+              </View>
+              <Text style={styles.streakText}>
+                T+1, T+3, T+7, T+14일 기준으로 다시 볼 타이밍을 제안합니다. 실제 push 알림은 접근성/복습 알림 설정에서 사용자가 켜는 방식입니다.
+              </Text>
+              <View style={styles.reviewCycleList}>
+                {spacedReviewPlan.map((item) => (
+                  <View key={item.key} style={styles.reviewCycleItem}>
+                    <Text style={styles.reviewCycleLabel}>{item.label}</Text>
+                    <View style={styles.reviewCycleCopy}>
+                      <Text style={styles.reviewCycleDate}>{formatDateLabel(item.dateKey)}</Text>
+                      <Text style={styles.reviewCycleText}>{item.description}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+              {upcomingReviewReminders.length > 0 ? (
+                <View style={styles.upcomingReminderBox}>
+                  <Text style={styles.upcomingReminderTitle}>등록된 복습 알림</Text>
+                  {upcomingReviewReminders.map((reminder) => (
+                    <Text key={reminder.id} style={styles.upcomingReminderText}>
+                      {formatDateLabel(toDateKey(new Date(reminder.scheduledAt)))} · {reminder.message}
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.upcomingReminderBox}>
+                  <Text style={styles.upcomingReminderTitle}>아직 등록된 복습 알림이 없습니다.</Text>
+                  <Text style={styles.upcomingReminderText}>필요한 경우 접근성 화면에서 원하는 시간에 알림을 직접 등록할 수 있습니다.</Text>
+                </View>
+              )}
+              <Pressable accessibilityRole="button" onPress={() => onNavigate('accessibility')} style={(state) => [styles.reviewPlanButton, ...interactiveStateStyles(state)]}>
+                <Text style={styles.reviewPlanButtonText}>복습 알림 설정하기</Text>
+              </Pressable>
+            </View>
           </View>
 
           {!hasAnyData ? <EmptyAction onPress={() => onNavigate('schedule')} /> : null}
@@ -440,6 +594,180 @@ const styles = StyleSheet.create({
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '700'
+  },
+  streakReviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  streakCard: {
+    flex: 1,
+    minWidth: 280,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.surface,
+    padding: 22,
+    gap: 18
+  },
+  reviewPlanCard: {
+    flex: 2,
+    minWidth: 320,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 22,
+    gap: 14
+  },
+  streakEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1
+  },
+  streakTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 6
+  },
+  streakText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6
+  },
+  streakMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10
+  },
+  streakMeta: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  streakMetaValue: {
+    color: colors.blueDeep,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  streakMetaLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  streakAction: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  streakActionText: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  reviewPlanHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10
+  },
+  reminderStatus: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft,
+    color: colors.warning,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  reminderStatusActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep
+  },
+  reviewCycleList: {
+    gap: 8
+  },
+  reviewCycleItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 12
+  },
+  reviewCycleLabel: {
+    minWidth: 44,
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  reviewCycleCopy: {
+    flex: 1,
+    gap: 3
+  },
+  reviewCycleDate: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  reviewCycleText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  upcomingReminderBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.blueSoft,
+    padding: 14,
+    gap: 6
+  },
+  upcomingReminderTitle: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  upcomingReminderText: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
+  },
+  reviewPlanButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    ...interactions.transition
+  },
+  reviewPlanButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
   },
   errorBox: {
     borderRadius: 22,
