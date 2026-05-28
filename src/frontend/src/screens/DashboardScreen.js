@@ -381,6 +381,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               >
                 <Text style={styles.secondaryButtonText}>일정 보기</Text>
               </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('profile')}
+                style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.secondaryButtonText}>프로필 보기</Text>
+              </Pressable>
             </View>
           </View>
 

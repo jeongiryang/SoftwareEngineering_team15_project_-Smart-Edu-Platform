@@ -8,6 +8,7 @@ import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import ProfileDashboardScreen from './src/screens/ProfileDashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import AccessibilityScreen from './src/screens/AccessibilityScreen';
@@ -22,6 +23,7 @@ const screens = {
   login: LoginScreen,
   register: RegisterScreen,
   dashboard: DashboardScreen,
+  profile: ProfileDashboardScreen,
   aiLearning: AILearningScreen,
   community: CommunityScreen,
   schedule: ScheduleScreen,
@@ -31,13 +33,14 @@ const screens = {
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility'];
+const authScreens = ['dashboard', 'profile', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility'];
 
 const screenPaths = {
   home: '/',
   login: '/login',
   register: '/register',
   dashboard: '/dashboard',
+  profile: '/profile',
   aiLearning: '/ai',
   community: '/community',
   schedule: '/schedule',
