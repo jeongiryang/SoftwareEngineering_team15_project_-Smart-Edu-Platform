@@ -22,6 +22,57 @@ import { colors, interactions, interactiveStateStyles, shadows } from '../styles
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const AI_MOCK_MODE_STORAGE_KEY = 'smartEdu.aiMockMode';
+const AI_CHAT_ROOMS_STORAGE_KEY = 'smartEdu.aiChatRooms';
+
+function createDefaultChatRoom() {
+  return {
+    id: `room-${Date.now()}`,
+    title: '새 AI 대화',
+    messages: [],
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function readStoredChatRooms() {
+  try {
+    const rawValue = globalThis.localStorage?.getItem(AI_CHAT_ROOMS_STORAGE_KEY);
+    const parsed = rawValue ? JSON.parse(rawValue) : null;
+
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed
+        .filter((room) => room && typeof room.id === 'string')
+        .map((room) => ({
+          id: room.id,
+          title: room.title || 'AI 대화',
+          messages: Array.isArray(room.messages) ? room.messages : [],
+          updatedAt: room.updatedAt || new Date().toISOString()
+        }))
+        .slice(0, 8);
+    }
+  } catch (error) {
+    // Ignore malformed browser storage and fall back to a clean session.
+  }
+
+  return [createDefaultChatRoom()];
+}
+
+function writeStoredChatRooms(rooms) {
+  try {
+    globalThis.localStorage?.setItem(AI_CHAT_ROOMS_STORAGE_KEY, JSON.stringify(rooms.slice(0, 8)));
+  } catch (error) {
+    // localStorage is unavailable in some native or restricted browser contexts.
+  }
+}
+
+function createRoomTitle(question) {
+  const cleanQuestion = String(question || '').replace(/\s+/g, ' ').trim();
+
+  if (!cleanQuestion) {
+    return 'AI 대화';
+  }
+
+  return cleanQuestion.length > 22 ? `${cleanQuestion.slice(0, 22)}...` : cleanQuestion;
+}
 
 function readStoredMockMode() {
   try {
@@ -117,6 +168,11 @@ function getAIErrorMessage(error) {
 export default function AILearningScreen({ onNavigate, token, user }) {
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
   const previewUrlRef = useRef(null);
+  const initialChatRoomsRef = useRef(null);
+
+  if (!initialChatRoomsRef.current) {
+    initialChatRoomsRef.current = readStoredChatRooms();
+  }
 
   // Loading, Success & Error States
   const [loading, setLoading] = useState(false);
@@ -128,7 +184,9 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
   // Tab 1: AI 학습 질의 (Q&A) States
   const [questionInput, setQuestionInput] = useState('');
-  const [recentQnaList, setRecentQnaList] = useState([]); // [{ question, answer, isTruncated }]
+  const [chatRooms, setChatRooms] = useState(initialChatRoomsRef.current);
+  const [activeChatRoomId, setActiveChatRoomId] = useState(initialChatRoomsRef.current[0]?.id);
+  const [recentQnaList, setRecentQnaList] = useState(initialChatRoomsRef.current[0]?.messages || []); // [{ question, answer, isTruncated }]
 
   // Tab 2: 맞춤 학습 추천 (Recommendation) States
   const [recommendationResult, setRecommendationResult] = useState(null); // { recommendedSubject, tips }
@@ -158,6 +216,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   useEffect(() => {
     writeStoredMockMode(isMockMode);
   }, [isMockMode]);
+
+  useEffect(() => {
+    writeStoredChatRooms(chatRooms);
+  }, [chatRooms]);
 
   useEffect(() => () => {
     if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
@@ -234,6 +296,49 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     input.click();
   }
 
+  function addQnaEntry(entry) {
+    const normalizedEntry = {
+      id: `qna-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: new Date().toISOString(),
+      ...entry
+    };
+
+    setRecentQnaList((prev) => [normalizedEntry, ...prev]);
+    setChatRooms((prevRooms) => prevRooms.map((room) => {
+      if (room.id !== activeChatRoomId) {
+        return room;
+      }
+
+      const nextMessages = [normalizedEntry, ...(room.messages || [])].slice(0, 20);
+      return {
+        ...room,
+        title: room.messages?.length ? room.title : createRoomTitle(entry.question),
+        messages: nextMessages,
+        updatedAt: normalizedEntry.createdAt
+      };
+    }));
+  }
+
+  function createChatRoom() {
+    const nextRoom = createDefaultChatRoom();
+    setChatRooms((prevRooms) => [nextRoom, ...prevRooms].slice(0, 8));
+    setActiveChatRoomId(nextRoom.id);
+    setRecentQnaList([]);
+    resetFeedback();
+    setSuccessMsg('새 AI 대화방을 열었습니다.');
+  }
+
+  function selectChatRoom(roomId) {
+    const targetRoom = chatRooms.find((room) => room.id === roomId);
+    if (!targetRoom) {
+      return;
+    }
+
+    setActiveChatRoomId(roomId);
+    setRecentQnaList(targetRoom.messages || []);
+    resetFeedback();
+  }
+
   function showMockImageInsight() {
     if (!imageAttachment) {
       setImageUploadError('먼저 이미지를 첨부해 주세요.');
@@ -241,15 +346,13 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     }
 
     resetFeedback();
-    setRecentQnaList((prev) => [
-      {
-        question: `[이미지 첨부 데모] ${imageAttachment.name}`,
-        answer:
-          '현재 1차 구현은 실제 외부 AI Vision 분석을 수행하지 않습니다. 첨부한 이미지는 브라우저 미리보기로만 표시되며 서버에 업로드되지 않습니다. 실제 OCR/PDF 자동 노트·퀴즈 생성은 후속 Issue에서 파일 처리 정책과 비용을 확인한 뒤 검토합니다.',
-        isTruncated: false
-      },
-      ...prev
-    ]);
+    addQnaEntry({
+      question: `[이미지 첨부 데모] ${imageAttachment.name}`,
+      answer:
+        '현재 1차 구현은 실제 외부 AI Vision 분석을 수행하지 않습니다. 첨부한 이미지는 브라우저 미리보기로만 표시되며 서버에 업로드되지 않습니다. 실제 OCR/PDF 자동 노트·퀴즈 생성은 후속 Issue에서 파일 처리 정책과 비용을 확인한 뒤 검토합니다.',
+      isTruncated: false,
+      isMock: true
+    });
     setSuccessMsg('이미지 첨부 데모 응답을 추가했습니다. 실제 분석 결과가 아닌 안내용 mock 응답입니다.');
   }
 
@@ -281,15 +384,12 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
     try {
       if (isMockMode) {
-        setRecentQnaList((prev) => [
-          {
-            question: questionText,
-            answer: createMockQuestionAnswer(questionText),
-            isTruncated: false,
-            isMock: true
-          },
-          ...prev
-        ]);
+        addQnaEntry({
+          question: questionText,
+          answer: createMockQuestionAnswer(questionText),
+          isTruncated: false,
+          isMock: true
+        });
         setQuestionInput('');
         setSuccessMsg('Mock 모드 응답을 추가했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.');
         return;
@@ -302,15 +402,12 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       });
 
       const qnaRecord = response.question;
-      setRecentQnaList((prev) => [
-        {
-          question: qnaRecord.question,
-          answer: qnaRecord.answer,
-          isTruncated: qnaRecord.isTruncated,
-          isMock: false
-        },
-        ...prev
-      ]);
+      addQnaEntry({
+        question: qnaRecord.question,
+        answer: qnaRecord.answer,
+        isTruncated: qnaRecord.isTruncated,
+        isMock: false
+      });
       setQuestionInput('');
       setSuccessMsg('AI 답변 생성이 성공적으로 완료되었습니다.');
     } catch (err) {
@@ -448,6 +545,8 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     }
   }
 
+  const activeChatRoom = chatRooms.find((room) => room.id === activeChatRoomId) || chatRooms[0];
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
@@ -573,6 +672,46 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         {/* TAB 1: AI 학습 질의 */}
         {activeTab === 'qna' && (
           <View style={styles.tabContent}>
+            <View style={styles.chatRoomPanel}>
+              <View style={styles.chatRoomHeader}>
+                <View>
+                  <Text style={styles.chatRoomTitle}>AI 대화방</Text>
+                  <Text style={styles.chatRoomDesc}>
+                    최근 질문 흐름을 대화방 단위로 나눠 봅니다. 현재는 브라우저에 저장되는 1차 구조입니다.
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={createChatRoom}
+                  style={(state) => [styles.newChatButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.newChatButtonText}>새 대화</Text>
+                </Pressable>
+              </View>
+              <View style={styles.chatRoomList}>
+                {chatRooms.map((room) => (
+                  <Pressable
+                    key={room.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: room.id === activeChatRoomId }}
+                    onPress={() => selectChatRoom(room.id)}
+                    style={(state) => [
+                      styles.chatRoomChip,
+                      room.id === activeChatRoomId && styles.chatRoomChipActive,
+                      ...interactiveStateStyles(state)
+                    ]}
+                  >
+                    <Text style={[styles.chatRoomChipTitle, room.id === activeChatRoomId && styles.chatRoomChipTitleActive]}>
+                      {room.title}
+                    </Text>
+                    <Text style={[styles.chatRoomChipMeta, room.id === activeChatRoomId && styles.chatRoomChipMetaActive]}>
+                      {(room.messages || []).length}개 대화
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
             <View style={styles.formCard}>
               <View style={styles.formHeader}>
                 <Text style={styles.formTitle}>AI에게 질문하기</Text>
@@ -669,7 +808,9 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
             {/* Q&A Recent List */}
             <View style={styles.resultSection}>
-              <Text style={styles.resultTitle}>최근 학습 질의 내역 ({recentQnaList.length})</Text>
+              <Text style={styles.resultTitle}>
+                {activeChatRoom?.title || 'AI 대화'} 대화 내역 ({recentQnaList.length})
+              </Text>
               {recentQnaList.length === 0 ? (
                 <View style={styles.emptyCard}>
                   <Text style={styles.emptyTitle}>아직 질문 내역이 없습니다.</Text>
@@ -1095,6 +1236,88 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     gap: 16
+  },
+  chatRoomPanel: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 18,
+    gap: 14,
+    ...shadows.card,
+    ...interactions.transition
+  },
+  chatRoomHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  chatRoomTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '900'
+  },
+  chatRoomDesc: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4
+  },
+  newChatButton: {
+    minHeight: 40,
+    borderRadius: 999,
+    backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  newChatButtonText: {
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  chatRoomList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  chatRoomChip: {
+    minHeight: 48,
+    minWidth: 150,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    justifyContent: 'center',
+    gap: 3,
+    ...interactions.transition
+  },
+  chatRoomChipActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  chatRoomChipTitle: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  chatRoomChipTitleActive: {
+    color: colors.mintDeep
+  },
+  chatRoomChipMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  chatRoomChipMetaActive: {
+    color: colors.mintDeep
   },
   formCard: {
     backgroundColor: colors.surface,
