@@ -16,6 +16,9 @@ jobs:
   verify:
     name: Validate, test, and check
     runs-on: ubuntu-latest
+    env:
+      DIRECT_URL: postgresql://ci_user:ci_password@localhost:5432/smart_edu_ci?schema=public
+      DATABASE_URL: postgresql://ci_user:ci_password@localhost:5432/smart_edu_ci?schema=public
 
     steps:
       - name: Checkout repository
