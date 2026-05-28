@@ -32,7 +32,10 @@ export async function request(path, options = {}) {
   const data = await parseResponse(response);
 
   if (!response.ok) {
-    throw new Error(data.message || `API request failed: ${response.status}`);
+    const error = new Error(data.message || `API request failed: ${response.status}`);
+    error.status = response.status;
+    error.code = data.code;
+    throw error;
   }
 
   return data;
