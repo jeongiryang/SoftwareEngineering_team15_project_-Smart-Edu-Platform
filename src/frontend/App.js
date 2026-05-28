@@ -255,6 +255,7 @@ export default function App() {
             onAuthenticated={handleAuthenticated}
             onLogout={() => setShowLogoutModal(true)}
             onNavigate={navigateTo}
+            onUserUpdate={setUser}
             token={token}
             user={user}
           />

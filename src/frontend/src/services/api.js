@@ -68,6 +68,26 @@ export function getCurrentUser(token) {
   });
 }
 
+export function updateCurrentUser(token, payload) {
+  return request('/users/me', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function changeCurrentUserPassword(token, payload) {
+  return request('/users/me/password', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
 export function getMyRewards(token) {
   return request('/rewards/me', {
     headers: {
