@@ -391,7 +391,7 @@ export default function PointShopScreen({ token, user }) {
           <View style={[styles.statCard, styles.pointCard]}>
             <Text style={styles.statLabel}>현재 포인트</Text>
             <Text style={styles.pointValue}>{formatNumber(shop.account?.pointBalance)}P</Text>
-            <Text style={styles.statHint}>퀘스트 보상으로 포인트를 모은 뒤 원하는 아이템을 구매해보세요.</Text>
+            <Text style={[styles.statHint, styles.pointHint]}>퀘스트 보상으로 포인트를 모은 뒤 원하는 아이템을 구매해보세요.</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>구매한 아이템</Text>
@@ -571,6 +571,9 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     lineHeight: 20
+  },
+  pointHint: {
+    color: '#D7E4F5'
   },
   messageBox: {
     borderRadius: 18,
