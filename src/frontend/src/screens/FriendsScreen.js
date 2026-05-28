@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   deleteFriend,
@@ -38,6 +39,20 @@ function getFriendlyError(error, fallback) {
   }
 
   return error?.message || fallback;
+}
+
+function getFriendSearchFeedback(keyword) {
+  const trimmedKeyword = keyword.trim();
+
+  if (!trimmedKeyword) {
+    return { tone: 'info', message: '이름 또는 이메일 일부를 입력해 친구를 찾을 수 있어요.' };
+  }
+
+  if (trimmedKeyword.length < 2) {
+    return { tone: 'warning', message: '검색어는 두 글자 이상 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '검색할 준비가 됐어요. 친구 요청은 결과에서 보낼 수 있어요.' };
 }
 
 function RelationshipBadge({ status }) {
@@ -374,6 +389,7 @@ export default function FriendsScreen({ onNavigate, token }) {
                 <Text style={styles.primaryButtonText}>{searching ? '검색 중' : '검색'}</Text>
               </Pressable>
             </View>
+            <FieldFeedback {...getFriendSearchFeedback(searchKeyword)} />
             {searchResults.length ? (
               <View style={styles.listGroup}>
                 {searchResults.map(renderSearchResult)}

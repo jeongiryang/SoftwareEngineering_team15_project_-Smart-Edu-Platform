@@ -1,7 +1,52 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import FieldFeedback from '../components/FieldFeedback';
 import { registerUser } from '../services/api';
 import { colors, shadows } from '../styles/theme';
+
+function getNameFeedback(name) {
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    return { tone: 'info', message: '이름 또는 닉네임을 입력해 주세요.' };
+  }
+
+  if (trimmedName.length < 2) {
+    return { tone: 'warning', message: '두 글자 이상 입력하면 더 알아보기 쉬워요.' };
+  }
+
+  if (trimmedName.length > 30) {
+    return { tone: 'error', message: '30자 이하로 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '좋은 이름이에요. 계속 진행할 수 있어요.' };
+}
+
+function getEmailFeedback(email) {
+  const trimmedEmail = email.trim();
+
+  if (!trimmedEmail) {
+    return { tone: 'info', message: '로그인에 사용할 이메일을 입력해 주세요.' };
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return { tone: 'warning', message: '이메일 형식을 확인해 주세요.' };
+  }
+
+  return { tone: 'success', message: '이메일 형식이 좋아요.' };
+}
+
+function getPasswordFeedback(password) {
+  if (!password) {
+    return { tone: 'info', message: '8자 이상 비밀번호를 입력해 주세요.' };
+  }
+
+  if (password.length < 8) {
+    return { tone: 'warning', message: '8자 이상으로 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '안전하게 사용할 수 있는 길이예요.' };
+}
 
 export default function RegisterScreen({ onAuthenticated, onNavigate }) {
   const [name, setName] = useState('');
@@ -46,10 +91,13 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.subtitle}>사각사각에서 나만의 학습 공간을 만드세요.</Text>
         <Text style={styles.label}>이름</Text>
         <TextInput onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
+        <FieldFeedback {...getNameFeedback(name)} />
         <Text style={styles.label}>이메일</Text>
         <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor={colors.muted} style={styles.input} value={email} />
+        <FieldFeedback {...getEmailFeedback(email)} />
         <Text style={styles.label}>비밀번호</Text>
         <TextInput onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
+        <FieldFeedback {...getPasswordFeedback(password)} />
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         <Pressable accessibilityRole="button" disabled={loading} onPress={handleRegister} style={[styles.primaryButton, loading && styles.disabledButton]}>
           {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>가입하고 시작하기</Text>}
