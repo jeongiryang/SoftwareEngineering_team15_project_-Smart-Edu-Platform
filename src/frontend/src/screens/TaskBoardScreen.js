@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   View
 } from 'react-native';
 import CalendarDatePicker from '../components/CalendarDatePicker';
+import { PanelSkeleton } from '../components/Skeleton';
 import TimeWheelPicker from '../components/TimeWheelPicker';
 import {
   createTask,
@@ -178,6 +178,18 @@ function getColumnTone(status) {
   }
 
   return styles.doneColumn;
+}
+
+function getEmptyColumnText(status) {
+  if (status === 'TODO') {
+    return '오늘의 학습 목표를 하나 추가하면 이곳에서 시작할 수 있습니다.';
+  }
+
+  if (status === 'IN_PROGRESS') {
+    return 'TODO 태스크를 진행 중으로 옮기면 현재 집중할 일이 모입니다.';
+  }
+
+  return '완료한 태스크가 쌓이면 오늘의 성취를 바로 확인할 수 있습니다.';
 }
 
 export default function TaskBoardScreen({ onNavigate, token }) {
@@ -456,8 +468,8 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
       {loading ? (
         <View style={[styles.panel, styles.loadingPanel, shadows.card]}>
-          <ActivityIndicator color={colors.blue} size="small" />
           <Text style={styles.loadingText}>태스크 목록 불러오는 중</Text>
+          <PanelSkeleton rows={3} />
         </View>
       ) : (
         <ScrollView
@@ -480,7 +492,17 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
               {group.tasks.length === 0 ? (
                 <View style={styles.emptyColumn}>
-                  <Text style={styles.emptyText}>해당 상태의 태스크가 없습니다.</Text>
+                  <Text style={styles.emptyTitle}>
+                    {group.status === 'TODO' ? '첫 태스크를 추가해 보세요.' : '아직 이동된 태스크가 없습니다.'}
+                  </Text>
+                  <Text style={styles.emptyText}>{getEmptyColumnText(group.status)}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={resetForm}
+                    style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                  >
+                    <Text style={styles.emptyActionText}>입력 폼 확인하기</Text>
+                  </Pressable>
                 </View>
               ) : (
                 group.tasks.map((task) => (
@@ -806,8 +828,6 @@ const styles = StyleSheet.create({
   },
   loadingPanel: {
     minHeight: 160,
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: 10
   },
   loadingText: {
@@ -871,12 +891,36 @@ const styles = StyleSheet.create({
   emptyColumn: {
     borderRadius: 20,
     backgroundColor: colors.surface,
-    padding: 18
+    padding: 18,
+    gap: 8
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
   },
   emptyText: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 20
+  },
+  emptyActionButton: {
+    alignSelf: 'flex-start',
+    minHeight: 36,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 13,
+    justifyContent: 'center',
+    marginTop: 4
+  },
+  emptyActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   },
   itemCard: {
     borderRadius: 22,

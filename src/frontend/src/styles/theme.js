@@ -60,5 +60,14 @@ export const designGuidelines = {
     'spatialUi',
     'passkeyLogin',
     'collaborationPresence'
-  ]
+  ],
+  firstPassSurfaces: {
+    dashboard: ['bentoGrid', 'dataStorytelling', 'emptyStateAction'],
+    community: ['skeletonUi', 'customModal', 'microInteraction', 'calmInterface'],
+    schedule: ['skeletonUi', 'emptyStateAction', 'accessibilityFirst'],
+    taskBoard: ['skeletonUi', 'emptyStateAction', 'microInteraction'],
+    aiLearning: ['smartOnboarding', 'aiTransparency', 'privacyControl'],
+    accessibility: ['accessibilityFirst', 'privacyControl'],
+    admin: ['skeletonUi', 'emptyStateAction', 'calmInterface']
+  }
 };

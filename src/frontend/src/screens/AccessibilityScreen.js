@@ -500,6 +500,25 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
         </Pressable>
       </View>
 
+      <View style={styles.patternInfoGrid}>
+        <View style={styles.patternInfoCard}>
+          <Text style={styles.patternInfoTitle}>{isKidMode ? '기기 기능을 써요' : '브라우저 음성 기능'}</Text>
+          <Text style={styles.patternInfoText}>
+            {isKidMode
+              ? '읽어주기와 말로 쓰기는 기기와 브라우저가 도와주는 기능이에요.'
+              : 'TTS/STT는 AI 호출이 아니라 브라우저와 기기 음성 기능을 사용합니다.'}
+          </Text>
+        </View>
+        <View style={styles.patternInfoCard}>
+          <Text style={styles.patternInfoTitle}>{isKidMode ? '내가 고를 수 있어요' : '선택형 접근성'}</Text>
+          <Text style={styles.patternInfoText}>
+            {isKidMode
+              ? '큰 글씨, 고대비, 쉬운 말, 알림은 필요할 때 직접 켜고 끌 수 있어요.'
+              : '큰 글씨, 고대비, 쉬운 용어, 복습 알림은 사용자가 직접 켜고 끄는 선택형 설정입니다.'}
+          </Text>
+        </View>
+      </View>
+
       {loading ? (
         <View style={styles.panel}>
           <ActivityIndicator color={colors.blue} />
@@ -1005,6 +1024,31 @@ const styles = StyleSheet.create({
   helperText: {
     color: colors.muted,
     fontSize: 12
+  },
+  patternInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  patternInfoCard: {
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    flex: 1,
+    minWidth: 220,
+    padding: 14
+  },
+  patternInfoTitle: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  patternInfoText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 19,
+    marginTop: 6
   },
   scaleRow: {
     flexDirection: 'row',
