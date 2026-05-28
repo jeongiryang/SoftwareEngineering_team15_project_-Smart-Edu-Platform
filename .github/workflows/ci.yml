@@ -19,6 +19,7 @@ jobs:
     env:
       DIRECT_URL: postgresql://ci_user:ci_password@localhost:5432/smart_edu_ci?schema=public
       DATABASE_URL: postgresql://ci_user:ci_password@localhost:5432/smart_edu_ci?schema=public
+      JWT_SECRET: ci-test-jwt-secret
 
     steps:
       - name: Checkout repository

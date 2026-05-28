@@ -188,7 +188,7 @@ CI workflow는 `.github/workflows/ci.yml`에 정의하며, PR 생성/업데이�
 - `npm test`
 - `npm run check`
 
-CI에서는 실제 DB에 영향을 주는 명령을 실행하지 않음. `npx prisma migrate dev`, `prisma migrate deploy`, `npm run test:db`, seed 실행은 자동화 대상에서 제외하며, migration 파일이 포함된 PR의 실제 로컬 개발 DB 적용은 팀원이 별도로 수행함. Prisma 설정 검증에 필요한 DB URL 환경변수는 실제 접속용 값이 아닌 CI 전용 placeholder 값으로만 설정함.
+CI에서는 실제 DB에 영향을 주는 명령을 실행하지 않음. `npx prisma migrate dev`, `prisma migrate deploy`, `npm run test:db`, seed 실행은 자동화 대상에서 제외하며, migration 파일이 포함된 PR의 실제 로컬 개발 DB 적용은 팀원이 별도로 수행함. Prisma 설정 검증에 필요한 DB URL과 인증 테스트에 필요한 JWT secret은 실제 운영 값이 아닌 CI 전용 placeholder 값으로만 설정함.
 
 PR별 자동 검증 결과는 GitHub PR의 `Checks` 탭과 저장소 `Actions` 탭에서 확인함. 이 기록은 2단계 테스트 보고서에서 자동 검증 체계 도입 근거로 활용함.
 
