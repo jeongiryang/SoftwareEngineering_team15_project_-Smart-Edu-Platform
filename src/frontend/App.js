@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 import AppHeader from './src/components/AppHeader';
 import ConfirmModal from './src/components/ConfirmModal';
@@ -30,6 +30,71 @@ const screens = {
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
 const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard'];
 
+const screenPaths = {
+  home: '/',
+  login: '/login',
+  register: '/register',
+  dashboard: '/dashboard',
+  aiLearning: '/ai',
+  community: '/community',
+  schedule: '/schedule',
+  taskBoard: '/task-board',
+  admin: '/admin'
+};
+
+const pathScreens = Object.entries(screenPaths).reduce((acc, [screen, path]) => {
+  acc[path] = screen;
+  return acc;
+}, {});
+
+function canUseBrowserHistory() {
+  return Boolean(globalThis.window?.history && globalThis.window?.location);
+}
+
+function normalizePathname(pathname) {
+  if (!pathname || pathname === '/') {
+    return '/';
+  }
+
+  return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+}
+
+function getScreenFromPath(pathname) {
+  return pathScreens[normalizePathname(pathname)] || null;
+}
+
+function getPathForScreen(screen) {
+  return screenPaths[screen] || screenPaths.home;
+}
+
+function readScreenFromLocation() {
+  if (!canUseBrowserHistory()) {
+    return 'home';
+  }
+
+  return getScreenFromPath(globalThis.window.location.pathname) || 'home';
+}
+
+function syncBrowserPath(screen, { replace = false } = {}) {
+  if (!canUseBrowserHistory()) {
+    return;
+  }
+
+  const nextPath = getPathForScreen(screen);
+  const currentPath = normalizePathname(globalThis.window.location.pathname);
+
+  if (currentPath === nextPath) {
+    return;
+  }
+
+  const method = replace ? 'replaceState' : 'pushState';
+  globalThis.window.history[method]({ screen }, '', nextPath);
+}
+
+function normalizeScreen(screen) {
+  return screens[screen] ? screen : 'home';
+}
+
 function getStorage() {
   try {
     return globalThis.localStorage || null;
@@ -51,7 +116,7 @@ function removeStoredToken() {
 }
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('home');
+  const [currentScreen, setCurrentScreen] = useState(readScreenFromLocation);
   const [initializing, setInitializing] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [token, setToken] = useState(null);
@@ -60,20 +125,42 @@ export default function App() {
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LandingScreen;
 
+  const navigateTo = useCallback((screen, options = {}) => {
+    const nextScreen = normalizeScreen(screen);
+    setCurrentScreen(nextScreen);
+    syncBrowserPath(nextScreen, options);
+  }, []);
+
+  useEffect(() => {
+    if (!canUseBrowserHistory()) {
+      return undefined;
+    }
+
+    function handlePopState() {
+      setCurrentScreen(readScreenFromLocation());
+    }
+
+    globalThis.window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      globalThis.window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   useEffect(() => {
     if (initializing) {
       return;
     }
 
     if (authScreens.includes(currentScreen) && !user) {
-      setCurrentScreen('login');
+      navigateTo('login', { replace: true });
       return;
     }
 
     if (currentScreen === 'admin' && user?.role !== 'ADMIN') {
-      setCurrentScreen('dashboard');
+      navigateTo('dashboard', { replace: true });
     }
-  }, [currentScreen, user, initializing]);
+  }, [currentScreen, user, initializing, navigateTo]);
 
   useEffect(() => {
     let isMounted = true;
@@ -95,7 +182,10 @@ export default function App() {
 
         setToken(storedToken);
         setUser(result.user);
-        setCurrentScreen('dashboard');
+        const requestedScreen = readScreenFromLocation();
+        const nextScreen = authScreens.includes(requestedScreen) ? requestedScreen : 'dashboard';
+        setCurrentScreen(nextScreen);
+        syncBrowserPath(nextScreen, { replace: true });
       } catch (error) {
         removeStoredToken();
       } finally {
@@ -116,7 +206,7 @@ export default function App() {
     saveStoredToken(nextToken);
     setToken(nextToken);
     setUser(nextUser);
-    setCurrentScreen('dashboard');
+    navigateTo('dashboard', { replace: true });
   }
 
   function handleLogout() {
@@ -124,14 +214,14 @@ export default function App() {
     setShowLogoutModal(false);
     setToken(null);
     setUser(null);
-    setCurrentScreen('home');
+    navigateTo('home', { replace: true });
   }
 
   if (initializing) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="dark-content" />
-        <AppHeader activeScreen="home" onNavigate={setCurrentScreen} />
+        <AppHeader activeScreen="home" onNavigate={navigateTo} />
         <View style={styles.loadingShell}>
           <PanelSkeleton rows={4} />
           <PanelSkeleton rows={3} />
@@ -146,14 +236,14 @@ export default function App() {
       <AppHeader
         activeScreen={activeScreenName}
         onLogout={() => setShowLogoutModal(true)}
-        onNavigate={setCurrentScreen}
+        onNavigate={navigateTo}
         user={user}
       />
       <View style={styles.container}>
         <Screen
           onAuthenticated={handleAuthenticated}
           onLogout={() => setShowLogoutModal(true)}
-          onNavigate={setCurrentScreen}
+          onNavigate={navigateTo}
           token={token}
           user={user}
         />
