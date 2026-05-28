@@ -72,6 +72,24 @@ export function getCurrentUser(token) {
   });
 }
 
+export function getMyRewards(token) {
+  return request('/rewards/me', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function claimRewardQuest(token, questId) {
+  return request(`/rewards/quests/${questId}/claim`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
 export function getSchedules(token) {
   return request('/schedules', {
     headers: {
