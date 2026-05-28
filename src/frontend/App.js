@@ -5,6 +5,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import CommunityScreen from './src/screens/CommunityScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import { getCurrentUser } from './src/services/api';
@@ -15,13 +16,14 @@ const screens = {
   register: RegisterScreen,
   dashboard: DashboardScreen,
   aiLearning: AILearningScreen,
-  admin: AdminScreen,
+  community: CommunityScreen,
   schedule: ScheduleScreen,
-  taskBoard: TaskBoardScreen
+  taskBoard: TaskBoardScreen,
+  admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning', 'schedule', 'taskBoard'];
+const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard'];
 
 function getStorage() {
   try {
@@ -49,7 +51,6 @@ export default function App() {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
 
-  // Guard authenticated screens and keep the admin route role-gated.
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LoginScreen;
 

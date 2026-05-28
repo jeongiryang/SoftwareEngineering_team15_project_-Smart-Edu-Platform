@@ -4,39 +4,41 @@ import { colors, shadows } from '../styles/theme';
 const featureCards = [
   {
     label: 'AI 학습 센터',
-    summary: '질문, 추천, 요약, 오답 분석을 한 화면에서 바로 이어갑니다.',
-    status: '사용 가능',
+    summary: '질문, 추천, 요약, 오답 분석을 한 화면에서 이어갈 수 있습니다.',
+    status: '연결됨',
     screen: 'aiLearning',
     tone: 'featured'
   },
   {
     label: '학습 일정',
-    summary: '날짜와 시간을 나눠 입력하며 일정 CRUD를 정리합니다.',
-    status: '사용 가능',
+    summary: '날짜와 시간을 입력해 학습 일정을 생성, 수정, 삭제할 수 있습니다.',
+    status: '연결됨',
     screen: 'schedule',
     tone: 'mint'
   },
   {
     label: '칸반 보드',
-    summary: '연결 일정과 함께 할 일을 TODO부터 DONE까지 관리합니다.',
-    status: '사용 가능',
+    summary: '일정과 연결된 태스크를 TODO부터 DONE까지 관리합니다.',
+    status: '연결됨',
     screen: 'taskBoard',
     tone: 'warm'
   },
   {
+    label: '커뮤니티',
+    summary: '게시글, 댓글, 반응, 북마크, 신고 기능을 사용할 수 있습니다.',
+    status: '연결됨',
+    screen: 'community',
+    tone: 'green'
+  },
+  {
     label: '집중 시간',
-    summary: '집중 세션 기록과 타이머 연동은 후속 연결 예정입니다.',
-    status: 'API 준비됨'
+    summary: '집중 세션 기록과 타이머 연동 화면은 후속 단계에서 연결합니다.',
+    status: '후속 연결'
   },
   {
     label: '학습 통계',
-    summary: '주간 학습량과 성취도 시각화가 이어서 연결될 예정입니다.',
-    status: 'API 준비됨'
-  },
-  {
-    label: '게시판',
-    summary: '스터디 기록 공유와 커뮤니티 흐름은 다음 단계에서 붙습니다.',
-    status: 'API 준비됨'
+    summary: '주간 학습량과 히트맵 시각화 화면은 후속 단계에서 연결합니다.',
+    status: '후속 연결'
   }
 ];
 
@@ -74,6 +76,17 @@ function getCardStyle(tone) {
     };
   }
 
+  if (tone === 'green') {
+    return {
+      container: styles.greenCard,
+      title: styles.greenTitle,
+      summary: styles.defaultSummary,
+      status: styles.greenStatus,
+      statusText: styles.greenStatusText,
+      link: styles.greenLink
+    };
+  }
+
   return {
     container: styles.defaultCard,
     title: styles.defaultTitle,
@@ -92,17 +105,19 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
       <View style={styles.hero}>
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>SAGAKSAGAK DASHBOARD</Text>
-          <Text style={styles.title}>{user?.name || '학습자'}님,{'\n'}오늘 학습 흐름을 바로 이어가요</Text>
+          <Text style={styles.title}>{user?.name || '사용자'}의{'\n'}학습 흐름을 이어갑니다</Text>
           <Text style={styles.subtitle}>
-            최신 UI/UX PR의 크림, 민트, 딥 블루 톤을 기준으로 현재 연결된 일정, 칸반, AI 화면을 한
-            흐름으로 묶었습니다.
+            현재 연결된 AI, 커뮤니티, 일정, 칸반 화면을 한 곳에서 확인하고 이동할 수 있습니다.
           </Text>
           <View style={styles.heroButtonRow}>
             <Pressable onPress={() => onNavigate('aiLearning')} style={styles.primaryButton}>
               <Text style={styles.primaryButtonText}>AI 학습 센터</Text>
             </Pressable>
+            <Pressable onPress={() => onNavigate('community')} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>커뮤니티 보기</Text>
+            </Pressable>
             <Pressable onPress={() => onNavigate('schedule')} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>일정 바로 보기</Text>
+              <Text style={styles.secondaryButtonText}>일정 보기</Text>
             </Pressable>
           </View>
         </View>
@@ -125,7 +140,7 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
-          <Text style={styles.sectionSub}>이미 사용할 수 있는 화면과 후속 연결 대상을 구분해서 보여줍니다.</Text>
+          <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 표시합니다.</Text>
         </View>
       </View>
 
@@ -146,7 +161,7 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
               <Text style={[styles.cardTitle, cardStyle.title]}>{card.label}</Text>
               <Text style={[styles.cardSummary, cardStyle.summary]}>{card.summary}</Text>
               <Text style={[styles.cardLink, cardStyle.link]}>
-                {card.screen ? '화면으로 이동  ->' : '연결 준비 중'}
+                {card.screen ? '화면으로 이동 ->' : '연결 준비 중'}
               </Text>
             </Pressable>
           );
@@ -158,17 +173,17 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
               <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
             </View>
             <Text style={styles.cardTitle}>관리자 콘솔</Text>
-            <Text style={styles.cardSummary}>사용자 상태와 관리자용 데이터 조회 흐름을 확인할 수 있습니다.</Text>
-            <Text style={[styles.cardLink, styles.defaultLink]}>콘솔로 이동  -></Text>
+            <Text style={styles.cardSummary}>사용자 상태와 관리자 데이터 조회 흐름을 확인할 수 있습니다.</Text>
+            <Text style={[styles.cardLink, styles.defaultLink]}>콘솔로 이동 -></Text>
           </Pressable>
         ) : null}
       </View>
 
       <View style={styles.noticeCard}>
-        <Text style={styles.noticeTitle}>현재 테스트 포인트</Text>
+        <Text style={styles.noticeTitle}>현재 연결 상태</Text>
         <Text style={styles.noticeText}>
-          일정 화면에서는 날짜와 시간 분리 입력, 태스크 화면에서는 상태 변경과 일정 연결, AI 화면에서는 기존
-          학습 지원 흐름을 함께 확인하면 됩니다.
+          일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
+          댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 대상으로 남겨둡니다.
         </Text>
       </View>
     </ScrollView>
@@ -358,6 +373,10 @@ const styles = StyleSheet.create({
   warmCard: {
     backgroundColor: colors.surfaceWarm
   },
+  greenCard: {
+    backgroundColor: colors.successSoft,
+    borderColor: '#B6E3CF'
+  },
   adminCard: {
     backgroundColor: colors.blueSoft
   },
@@ -384,6 +403,12 @@ const styles = StyleSheet.create({
   readyStatusText: {
     color: colors.mintDeep
   },
+  greenStatus: {
+    backgroundColor: colors.surface
+  },
+  greenStatusText: {
+    color: colors.success
+  },
   pendingStatus: {
     backgroundColor: colors.mintSoft
   },
@@ -407,6 +432,9 @@ const styles = StyleSheet.create({
   featuredTitle: {
     color: colors.surface
   },
+  greenTitle: {
+    color: colors.success
+  },
   cardSummary: {
     fontSize: 13,
     lineHeight: 21,
@@ -428,6 +456,9 @@ const styles = StyleSheet.create({
   },
   featuredLink: {
     color: colors.mint
+  },
+  greenLink: {
+    color: colors.success
   },
   pendingLink: {
     color: colors.muted

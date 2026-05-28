@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -74,6 +75,43 @@ function buildTaskPayload(form) {
     priority: form.priority,
     memo: form.memo.trim() || null
   };
+}
+
+function isValidDateTime(value) {
+  if (!value) {
+    return true;
+  }
+
+  return !Number.isNaN(new Date(value).getTime());
+}
+
+function validateTaskForm(form) {
+  const title = form.title.trim();
+
+  if (!title) {
+    return '태스크 제목을 입력해 주세요.';
+  }
+
+  const dueAt = form.dueDate.trim() ? combineDateTime(form.dueDate, form.dueTime) : null;
+
+  if (dueAt && !isValidDateTime(dueAt)) {
+    return '마감 날짜와 시간을 확인해 주세요.';
+  }
+
+  return '';
+}
+
+function confirmAction(title, message) {
+  if (typeof globalThis.confirm === 'function') {
+    return Promise.resolve(globalThis.confirm(message));
+  }
+
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: '취소', style: 'cancel', onPress: () => resolve(false) },
+      { text: '삭제', style: 'destructive', onPress: () => resolve(true) }
+    ]);
+  });
 }
 
 function formatDateForDisplay(value) {
@@ -219,6 +257,14 @@ export default function TaskBoardScreen({ onNavigate, token }) {
     setErrorMsg('');
     setSuccessMsg('');
 
+    const validationMessage = validateTaskForm(form);
+
+    if (validationMessage) {
+      setErrorMsg(validationMessage);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       if (editingTaskId) {
         await updateTask(token, editingTaskId, buildTaskPayload(form));
@@ -238,6 +284,12 @@ export default function TaskBoardScreen({ onNavigate, token }) {
   }
 
   async function handleDelete(taskId) {
+    const confirmed = await confirmAction('태스크 삭제', '선택한 태스크를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.');
+
+    if (!confirmed) {
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -269,6 +321,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
       await loadData(true);
     } catch (error) {
       setErrorMsg(error.message || '태스크 상태 변경에 실패했습니다.');
+      await loadData(true);
     } finally {
       setSubmitting(false);
     }
@@ -279,10 +332,9 @@ export default function TaskBoardScreen({ onNavigate, token }) {
       <View style={styles.hero}>
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>KANBAN BOARD</Text>
-          <Text style={styles.title}>컬럼은 또렷하게, 카드는 썸네일처럼{'\n'}한눈에 읽히는 보드로 바꿨습니다</Text>
+          <Text style={styles.title}>태스크를 상태별로 나누어{'\n'}학습 흐름을 확인하세요</Text>
           <Text style={styles.subtitle}>
-            참고 이미지처럼 각 컬럼과 카드의 구분을 강하게 주고, 카드 상단에 커버 썸네일 느낌을 넣어 사진형 카드처럼
-            보이도록 정리했습니다. 실제 사진 업로드 기능은 아직 없어서 우선 시각적 프리뷰로 표현합니다.
+            TODO, IN PROGRESS, DONE 컬럼에서 태스크를 확인하고 필요한 상태 변경을 바로 적용할 수 있습니다.
           </Text>
         </View>
         <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>

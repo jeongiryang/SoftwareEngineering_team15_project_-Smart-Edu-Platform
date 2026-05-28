@@ -23,6 +23,20 @@ const getReports = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, reports);
 });
 
+const listCommunityReports = asyncHandler(async (req, res) => {
+  const result = await adminService.listCommunityReports(req.query);
+  sendSuccess(res, 200, result);
+});
+
+const processCommunityReport = asyncHandler(async (req, res) => {
+  const { reportId } = req.params;
+  const adminId = req.user.id;
+  const targetReportId = parsePositiveInteger(reportId, 'reportId');
+
+  const result = await adminService.processCommunityReport(adminId, targetReportId, req.body);
+  sendSuccess(res, 200, result);
+});
+
 const moderatePost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const { action, reason } = req.body;
@@ -57,6 +71,8 @@ module.exports = {
   getUsers,
   updateUserStatus,
   getReports,
+  listCommunityReports,
+  processCommunityReport,
   moderatePost,
   moderateComment: moderateCommentController,
   moderateChallenge: moderateChallengeController

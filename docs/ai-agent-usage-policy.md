@@ -290,3 +290,74 @@ merge 전 확인:
 - 원격 저장소에 영향을 주는 작업은 신중하게 처리함.
 - 작업 흐름은 Issue와 PR에 남김.
 - 팀원이 같은 구조를 이해할 수 있도록 문서와 댓글을 남김.
+
+---
+
+## 16. GitHub Actions CI 기반 방어선
+
+- PR은 GitHub Actions CI 검증 대상임.
+- CI는 PR 생성/업데이트와 main 반영 시 자동 실행되는 것을 기본으로 함.
+- 현재 자동 검증 명령은 다음 기준을 사용함.
+  - `npm run validate:prisma`
+  - `npm --prefix src/backend run prisma:generate`
+  - `npm test`
+  - `npm run check`
+- CI에서는 실제 DB에 영향을 줄 수 있는 명령을 실행하지 않음.
+  - `npx prisma migrate dev`
+  - `prisma migrate deploy`
+  - `npm run test:db`
+  - seed 실행
+- CI가 실패하면 실패 원인을 확인하고 수정 commit을 추가한 뒤 다시 검증함.
+- CI 실패를 무시하고 merge하지 않음.
+- PR 검토자는 GitHub PR의 Checks 탭 또는 Actions 탭에서 실패 step과 로그를 확인함.
+
+---
+
+## 17. GitHub Actions workflow 파일 관리
+
+- `.github/workflows/*.yml` 파일은 CI 동작에 직접 영향을 주므로 팀원이 임의로 수정하지 않음.
+- workflow 수정이 필요한 경우 별도 Issue 또는 PR에서 목적과 영향 범위를 명확히 한 뒤 진행함.
+- workflow 변경 PR은 실행 명령, 제외 명령, DB 영향 여부, 검증 결과를 본문에 남김.
+- AI 에이전트에게도 workflow 파일을 임의로 수정하지 않도록 작업 범위를 명확히 지정함.
+- 기존 작업 브랜치가 workflow 도입 이전에 생성된 경우, 최신 main 반영 여부를 확인한 뒤 PR을 갱신함.
+
+---
+
+## 18. schema/migration 변경 고지 기준
+
+- Prisma schema 변경 또는 migration 추가가 있으면 PR 본문에 반드시 명시함.
+- migration 포함 PR은 추가된 모델, enum, relation, index, constraint, onDelete 정책을 요약함.
+- 실제 DB에 migration을 적용했는지 여부와 실행하지 않은 DB 영향 명령을 본문에 남김.
+- schema/migration 변경은 팀 카카오톡에도 공유하여 팀원이 최신 main 반영과 로컬 migration 적용 필요 여부를 알 수 있게 함.
+- 운영 DB 또는 공유 DB에는 임의로 migration을 적용하지 않음.
+- 팀원은 최신 main을 받은 뒤 개인 로컬/개발 DB 기준으로 migration 적용 여부를 확인함.
+- 실제 DB URL, API key, JWT secret, token 원문 등 민감정보는 PR, Issue, 문서, CI 로그에 작성하지 않음.
+
+---
+
+## 19. 레포 운영 4중 방어선
+
+레포 안정성을 위해 아래 네 단계를 기본 방어선으로 둠.
+
+1. AI 에이전트 폭주 방지 규칙
+   - AGENTS.md와 본 문서의 금지 명령, 작업 범위, 민감정보 처리 기준을 우선 적용함.
+   - AI 에이전트는 사용자가 명시한 범위 밖의 파일을 수정하지 않음.
+2. 최소 2명 리뷰 및 PR 검토
+   - 기능 PR은 리뷰어 확인과 Codex 검토를 거쳐 main 반영 여부를 판단함.
+   - PR 본문에는 변경 파일, 테스트 결과, 제외 범위, schema/migration 여부를 명시함.
+3. GitHub Actions CI check
+   - Prisma 검증, Prisma Client 생성, Jest 테스트, 프로젝트 check를 자동으로 실행함.
+   - CI 실패 PR은 원인 확인과 수정 commit 후 다시 검증함.
+4. 주기적 백업
+   - 팀원은 중요한 작업 전후로 로컬 사본, 압축본, 별도 브랜치 등 관리 가능한 방식으로 백업을 남김.
+   - 백업은 AI 에이전트 오작동, 잘못된 merge, 예기치 않은 대규모 변경에 대한 복구 기준으로 활용함.
+
+---
+
+## 20. 백업 권장 기준
+
+- 대규모 AI 에이전트 작업 전에는 현재 작업물 백업을 권장함.
+- schema/migration, workflow, 주요 프론트 화면, 대규모 API 변경 전후에는 백업 상태를 확인함.
+- 백업은 로컬 사본, 압축본, 별도 브랜치 등 팀원이 관리 가능한 방식으로 수행할 수 있음.
+- 백업 파일에는 `.env`, 실제 DB URL, API key, JWT secret, token 원문 등 민감정보를 포함하지 않음.
+- 잘못된 변경이 발생하면 추가 push를 중단하고 현재 상태와 실행한 명령을 공유한 뒤 복구 방향을 정함.

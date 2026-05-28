@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -103,6 +104,40 @@ function buildSchedulePayload(form, isEdit = false) {
   return payload;
 }
 
+function isValidDateTime(value) {
+  if (!value) {
+    return true;
+  }
+
+  return !Number.isNaN(new Date(value).getTime());
+}
+
+function validateScheduleForm(form) {
+  const title = form.title.trim();
+
+  if (!title) {
+    return '일정 제목을 입력해 주세요.';
+  }
+
+  const startAt = combineDateTime(form.startDate, form.startTime);
+
+  if (!startAt || !isValidDateTime(startAt)) {
+    return '시작 날짜와 시간을 확인해 주세요.';
+  }
+
+  const endAt = form.endDate.trim() ? combineDateTime(form.endDate, form.endTime) : null;
+
+  if (endAt && !isValidDateTime(endAt)) {
+    return '종료 날짜와 시간을 확인해 주세요.';
+  }
+
+  if (endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+    return '종료 일시는 시작 일시보다 뒤여야 합니다.';
+  }
+
+  return '';
+}
+
 function formatDateForDisplay(value) {
   if (!value) {
     return '-';
@@ -140,6 +175,19 @@ function addOneHour(dateText, timeText) {
     date: base.toISOString().slice(0, 10),
     time: base.toISOString().slice(11, 16)
   };
+}
+
+function confirmAction(title, message) {
+  if (typeof globalThis.confirm === 'function') {
+    return Promise.resolve(globalThis.confirm(message));
+  }
+
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: '취소', style: 'cancel', onPress: () => resolve(false) },
+      { text: '삭제', style: 'destructive', onPress: () => resolve(true) }
+    ]);
+  });
 }
 
 function getPriorityLabel(priority) {
@@ -258,6 +306,14 @@ export default function ScheduleScreen({ onNavigate, token }) {
     setErrorMsg('');
     setSuccessMsg('');
 
+    const validationMessage = validateScheduleForm(form);
+
+    if (validationMessage) {
+      setErrorMsg(validationMessage);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       if (editingScheduleId) {
         await updateSchedule(token, editingScheduleId, buildSchedulePayload(form, true));
@@ -277,6 +333,12 @@ export default function ScheduleScreen({ onNavigate, token }) {
   }
 
   async function handleDelete(scheduleId) {
+    const confirmed = await confirmAction('일정 삭제', '선택한 일정을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.');
+
+    if (!confirmed) {
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -312,11 +374,11 @@ export default function ScheduleScreen({ onNavigate, token }) {
       return;
     }
 
-      setForm((current) => ({
-        ...current,
-        endDate: next.date,
-        endTime: next.time
-      }));
+    setForm((current) => ({
+      ...current,
+      endDate: next.date,
+      endTime: next.time
+    }));
   }
 
   return (
@@ -324,10 +386,9 @@ export default function ScheduleScreen({ onNavigate, token }) {
       <View style={styles.hero}>
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>SCHEDULE PLANNER</Text>
-          <Text style={styles.title}>달력에서 날짜를 고르고{'\n'}시간은 드래그하듯 맞춰보세요</Text>
+          <Text style={styles.title}>날짜와 시간을 선택해{'\n'}학습 일정을 정리하세요</Text>
           <Text style={styles.subtitle}>
-            삼성 캘린더 느낌을 참고해 날짜는 월간 그리드, 시간은 세로 스크롤 선택으로 바꿨습니다. 직접 입력보다
-            덜 헷갈리고 현재 선택값도 더 잘 보이게 정리했습니다.
+            월간 달력과 시간 선택 도구로 시작·종료 일시를 정하고, 과목과 우선순위를 함께 기록할 수 있습니다.
           </Text>
         </View>
         <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>
