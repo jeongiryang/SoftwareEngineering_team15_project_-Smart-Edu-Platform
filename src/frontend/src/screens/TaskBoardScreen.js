@@ -9,6 +9,7 @@ import {
   View
 } from 'react-native';
 import CalendarDatePicker from '../components/CalendarDatePicker';
+import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
 import TimeWheelPicker from '../components/TimeWheelPicker';
 import {
@@ -179,6 +180,46 @@ function buildDdayPlan(form) {
   });
 
   return { error: '', items };
+}
+
+function getTaskTitleFeedback(title) {
+  const trimmedTitle = title.trim();
+
+  if (!trimmedTitle) {
+    return { tone: 'info', message: '태스크 제목을 입력하면 칸반에 바로 추가할 수 있어요.' };
+  }
+
+  if (trimmedTitle.length < 2) {
+    return { tone: 'warning', message: '조금 더 구체적인 태스크 이름이 좋아요.' };
+  }
+
+  return { tone: 'success', message: '태스크 제목이 준비됐어요.' };
+}
+
+function getDdayGoalFeedback(form, plan) {
+  if (!form.goalTitle.trim()) {
+    return { tone: 'info', message: '목표명을 입력하면 D-Day 계획을 미리 볼 수 있어요.' };
+  }
+
+  if (plan.error) {
+    return { tone: 'warning', message: plan.error };
+  }
+
+  return { tone: 'success', message: `${plan.items.length}개 태스크로 나눠서 생성할 수 있어요.` };
+}
+
+function getDdayUnitsFeedback(units) {
+  const totalUnits = Number.parseInt(units, 10);
+
+  if (!units) {
+    return { tone: 'info', message: '총 분량을 숫자로 입력해 주세요.' };
+  }
+
+  if (!Number.isInteger(totalUnits) || totalUnits < 1 || totalUnits > 60) {
+    return { tone: 'error', message: '분량은 1개부터 60개 사이로 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '분량 입력이 좋아요.' };
 }
 
 function confirmAction(title, message) {
@@ -504,6 +545,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
               style={styles.input}
               value={ddayForm.goalTitle}
             />
+            <FieldFeedback {...getDdayGoalFeedback(ddayForm, ddayPlan)} />
           </View>
           <View style={[styles.fieldGroup, styles.ddayField]}>
             <Text style={styles.label}>마감일</Text>
@@ -525,6 +567,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
               style={styles.input}
               value={ddayForm.units}
             />
+            <FieldFeedback {...getDdayUnitsFeedback(ddayForm.units)} />
           </View>
         </View>
 
@@ -628,6 +671,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
             style={styles.input}
             value={form.title}
           />
+          <FieldFeedback {...getTaskTitleFeedback(form.title)} />
         </View>
 
         <View style={styles.fieldGroup}>

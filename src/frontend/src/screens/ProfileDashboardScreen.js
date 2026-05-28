@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   changeCurrentUserPassword,
@@ -94,6 +95,60 @@ function maskEmail(email = '') {
 
   const visible = localPart.slice(0, Math.min(3, localPart.length));
   return `${visible}${localPart.length > 3 ? '***' : ''}@${domain}`;
+}
+
+function getProfileNameFeedback(name, currentName) {
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    return { tone: 'warning', message: '닉네임을 입력해 주세요.' };
+  }
+
+  if (trimmedName.length < 2) {
+    return { tone: 'warning', message: '두 글자 이상 입력하면 더 알아보기 쉬워요.' };
+  }
+
+  if (trimmedName.length > 30) {
+    return { tone: 'error', message: '30자 이하로 입력해 주세요.' };
+  }
+
+  if (trimmedName === String(currentName || '').trim()) {
+    return { tone: 'info', message: '현재 사용 중인 닉네임이에요.' };
+  }
+
+  return { tone: 'success', message: '형식상 사용할 수 있는 닉네임이에요. 멋지네요!' };
+}
+
+function getCurrentPasswordFeedback(currentPassword) {
+  if (!currentPassword) {
+    return { tone: 'info', message: '현재 비밀번호를 입력해야 변경할 수 있어요.' };
+  }
+
+  return { tone: 'success', message: '현재 비밀번호를 입력했어요.' };
+}
+
+function getNewPasswordFeedback(newPassword) {
+  if (!newPassword) {
+    return { tone: 'info', message: '새 비밀번호는 8자 이상으로 입력해 주세요.' };
+  }
+
+  if (newPassword.length < 8) {
+    return { tone: 'warning', message: '8자 이상으로 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '새 비밀번호 길이가 좋아요.' };
+}
+
+function getConfirmPasswordFeedback(newPassword, confirmPassword) {
+  if (!confirmPassword) {
+    return { tone: 'info', message: '새 비밀번호를 한 번 더 입력해 주세요.' };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { tone: 'error', message: '두 비밀번호가 아직 일치하지 않아요.' };
+  }
+
+  return { tone: 'success', message: '두 비밀번호가 일치해요.' };
 }
 
 function getInitial(name = '') {
@@ -654,6 +709,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                     <Text style={styles.formButtonText}>{savingName ? '저장 중' : '저장'}</Text>
                   </Pressable>
                 </View>
+                <FieldFeedback {...getProfileNameFeedback(nameForm, user?.name)} />
               </View>
 
               <View style={styles.passwordBox}>
@@ -666,6 +722,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   style={styles.textInput}
                   value={passwordForm.currentPassword}
                 />
+                <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
                 <TextInput
                   onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
                   placeholder="새 비밀번호"
@@ -674,6 +731,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   style={styles.textInput}
                   value={passwordForm.newPassword}
                 />
+                <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
                 <TextInput
                   onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
                   placeholder="새 비밀번호 확인"
@@ -682,6 +740,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   style={styles.textInput}
                   value={passwordForm.confirmPassword}
                 />
+                <FieldFeedback {...getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword)} />
                 <Pressable
                   accessibilityRole="button"
                   disabled={changingPassword}
