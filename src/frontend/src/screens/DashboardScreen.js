@@ -574,9 +574,6 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                           <Text style={styles.badgeDescription}>
                             {userBadge.badge?.description || '설명 없이 등록된 배지입니다.'}
                           </Text>
-                          <Text style={styles.badgeMeta}>
-                            {shouldShowImage ? '배지 이미지 연결됨' : '기본 배지 아이콘 표시 중'}
-                          </Text>
                         </View>
                       </View>
                         );
@@ -1151,10 +1148,6 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18
-  },
-  badgeMeta: {
-    color: colors.blueDeep,
-    fontSize: 11
   },
   transactionRow: {
     flexDirection: 'row',
