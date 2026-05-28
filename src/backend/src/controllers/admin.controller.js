@@ -37,6 +37,44 @@ const processCommunityReport = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, result);
 });
 
+const listRewardBadgesController = asyncHandler(async (req, res) => {
+  const result = await adminService.listRewardBadges();
+
+  sendSuccess(res, 200, result);
+});
+
+const createRewardBadgeController = asyncHandler(async (req, res) => {
+  const result = await adminService.createRewardBadge(req.body);
+
+  sendSuccess(res, 201, result);
+});
+
+const updateRewardBadgeController = asyncHandler(async (req, res) => {
+  const targetBadgeId = parsePositiveInteger(req.params.badgeId, 'badgeId');
+  const result = await adminService.updateRewardBadge(targetBadgeId, req.body);
+
+  sendSuccess(res, 200, result);
+});
+
+const listRewardQuestsController = asyncHandler(async (req, res) => {
+  const result = await adminService.listRewardQuests();
+
+  sendSuccess(res, 200, result);
+});
+
+const createRewardQuestController = asyncHandler(async (req, res) => {
+  const result = await adminService.createRewardQuest(req.body);
+
+  sendSuccess(res, 201, result);
+});
+
+const updateRewardQuestController = asyncHandler(async (req, res) => {
+  const targetQuestId = parsePositiveInteger(req.params.questId, 'questId');
+  const result = await adminService.updateRewardQuest(targetQuestId, req.body);
+
+  sendSuccess(res, 200, result);
+});
+
 const moderatePost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const { action, reason } = req.body;
@@ -75,5 +113,11 @@ module.exports = {
   processCommunityReport,
   moderatePost,
   moderateComment: moderateCommentController,
-  moderateChallenge: moderateChallengeController
+  moderateChallenge: moderateChallengeController,
+  listRewardBadges: listRewardBadgesController,
+  createRewardBadge: createRewardBadgeController,
+  updateRewardBadge: updateRewardBadgeController,
+  listRewardQuests: listRewardQuestsController,
+  createRewardQuest: createRewardQuestController,
+  updateRewardQuest: updateRewardQuestController
 };
