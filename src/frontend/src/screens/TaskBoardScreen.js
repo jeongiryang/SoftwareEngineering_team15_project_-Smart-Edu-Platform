@@ -24,6 +24,7 @@ import { colors, interactions, interactiveStateStyles, shadows } from '../styles
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
 const STATUS_OPTIONS = ['TODO', 'IN_PROGRESS', 'DONE'];
 const QUICK_TIME_OPTIONS = ['09:00', '13:00', '18:00', '21:00'];
+const DEFAULT_DDAY_UNITS = '8';
 
 function formatDatePart(value) {
   if (!value) {
@@ -67,6 +68,22 @@ function createInitialForm() {
   };
 }
 
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function createInitialDdayForm() {
+  return {
+    goalTitle: '',
+    deadline: formatDatePart(addDays(new Date(), 14)),
+    scope: '',
+    units: DEFAULT_DDAY_UNITS,
+    priority: 'HIGH'
+  };
+}
+
 function buildTaskPayload(form) {
   return {
     title: form.title.trim(),
@@ -99,6 +116,69 @@ function validateTaskForm(form) {
   }
 
   return '';
+}
+
+function parseDateOnly(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTodayDateOnly() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function buildDdayPlan(form) {
+  const title = form.goalTitle.trim();
+  const scope = form.scope.trim();
+  const deadline = parseDateOnly(form.deadline.trim());
+  const totalUnits = Number.parseInt(form.units, 10);
+
+  if (!title) {
+    return { error: '목표명을 입력해 주세요.', items: [] };
+  }
+
+  if (!deadline) {
+    return { error: '마감일을 확인해 주세요.', items: [] };
+  }
+
+  if (!Number.isInteger(totalUnits) || totalUnits < 1 || totalUnits > 60) {
+    return { error: '분량은 1개부터 60개 사이로 입력해 주세요.', items: [] };
+  }
+
+  const today = getTodayDateOnly();
+
+  if (deadline < today) {
+    return { error: '마감일은 오늘 이후로 선택해 주세요.', items: [] };
+  }
+
+  const dayCount = Math.max(1, Math.floor((deadline.getTime() - today.getTime()) / 86400000) + 1);
+  const taskCount = Math.min(totalUnits, dayCount);
+  const chunkSize = Math.ceil(totalUnits / taskCount);
+
+  const items = Array.from({ length: taskCount }, (_, index) => {
+    const startUnit = index * chunkSize + 1;
+    const endUnit = Math.min(totalUnits, (index + 1) * chunkSize);
+    const dayOffset = taskCount === 1 ? 0 : Math.round((index * (dayCount - 1)) / (taskCount - 1));
+    const dueDate = formatDatePart(addDays(today, dayOffset));
+    const rangeLabel = startUnit === endUnit ? `${startUnit}회차` : `${startUnit}-${endUnit}회차`;
+
+    return {
+      dueDate,
+      title: `${title} ${rangeLabel}`,
+      memo: [
+        `D-Day 자동 계획: 전체 ${totalUnits}개 분량 중 ${rangeLabel}`,
+        scope ? `학습 범위: ${scope}` : '',
+        `마감일: ${form.deadline}`
+      ].filter(Boolean).join('\n')
+    };
+  });
+
+  return { error: '', items };
 }
 
 function confirmAction(title, message) {
@@ -201,6 +281,8 @@ export default function TaskBoardScreen({ onNavigate, token }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [form, setForm] = useState(createInitialForm());
+  const [ddayForm, setDdayForm] = useState(createInitialDdayForm());
+  const [generatingPlan, setGeneratingPlan] = useState(false);
 
   async function loadData(keepMessage = false) {
     setLoading(true);
@@ -237,9 +319,17 @@ export default function TaskBoardScreen({ onNavigate, token }) {
       })),
     [tasks]
   );
+  const ddayPlan = useMemo(() => buildDdayPlan(ddayForm), [ddayForm]);
 
   function handleChange(field, value) {
     setForm((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function handleDdayChange(field, value) {
+    setDdayForm((current) => ({
       ...current,
       [field]: value
     }));
@@ -339,6 +429,40 @@ export default function TaskBoardScreen({ onNavigate, token }) {
     }
   }
 
+  async function handleCreateDdayPlan() {
+    if (ddayPlan.error) {
+      setErrorMsg(ddayPlan.error);
+      setSuccessMsg('');
+      return;
+    }
+
+    setGeneratingPlan(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      await Promise.all(
+        ddayPlan.items.map((item) =>
+          createTask(token, {
+            title: item.title,
+            scheduleId: null,
+            dueDate: combineDateTime(item.dueDate, '18:00'),
+            priority: ddayForm.priority,
+            memo: item.memo
+          })
+        )
+      );
+
+      setSuccessMsg(`D-Day 계획으로 ${ddayPlan.items.length}개의 TODO 태스크를 만들었습니다.`);
+      setDdayForm(createInitialDdayForm());
+      await loadData(true);
+    } catch (error) {
+      setErrorMsg(error.message || 'D-Day 계획 생성에 실패했습니다.');
+    } finally {
+      setGeneratingPlan(false);
+    }
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.hero}>
@@ -355,6 +479,141 @@ export default function TaskBoardScreen({ onNavigate, token }) {
       </View>
 
       <TaskSummary tasks={tasks} />
+
+      <View style={[styles.panel, styles.ddayPanel, shadows.card]}>
+        <View style={styles.ddayHeader}>
+          <View style={styles.ddayHeaderCopy}>
+            <Text style={styles.panelEyebrow}>D-DAY PLANNER</Text>
+            <Text style={styles.panelTitle}>마감일까지 학습 분량 자동 쪼개기</Text>
+            <Text style={styles.ddayDescription}>
+              시험일과 전체 분량을 넣으면 남은 기간에 맞춰 TODO 태스크를 균등하게 만들어 줍니다.
+            </Text>
+          </View>
+          <View style={styles.ddayBadge}>
+            <Text style={styles.ddayBadgeText}>frontend batch</Text>
+          </View>
+        </View>
+
+        <View style={styles.ddayFormGrid}>
+          <View style={[styles.fieldGroup, styles.ddayField]}>
+            <Text style={styles.label}>목표명</Text>
+            <TextInput
+              onChangeText={(value) => handleDdayChange('goalTitle', value)}
+              placeholder="중간고사 수학 대비"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={ddayForm.goalTitle}
+            />
+          </View>
+          <View style={[styles.fieldGroup, styles.ddayField]}>
+            <Text style={styles.label}>마감일</Text>
+            <TextInput
+              onChangeText={(value) => handleDdayChange('deadline', value)}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={ddayForm.deadline}
+            />
+          </View>
+          <View style={[styles.fieldGroup, styles.ddayField]}>
+            <Text style={styles.label}>전체 분량</Text>
+            <TextInput
+              keyboardType="number-pad"
+              onChangeText={(value) => handleDdayChange('units', value.replace(/[^0-9]/g, ''))}
+              placeholder="8"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={ddayForm.units}
+            />
+          </View>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>학습 범위</Text>
+          <TextInput
+            multiline
+            numberOfLines={3}
+            onChangeText={(value) => handleDdayChange('scope', value)}
+            placeholder="교과서 3~5단원, 기출 20문항"
+            placeholderTextColor={colors.muted}
+            style={[styles.input, styles.ddayScopeInput]}
+            value={ddayForm.scope}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>생성 우선순위</Text>
+          <View style={styles.optionRow}>
+            {PRIORITY_OPTIONS.map((option) => (
+              <Pressable
+                accessibilityRole="button"
+                key={option}
+                onPress={() => handleDdayChange('priority', option)}
+                style={(state) => [
+                  styles.pillButton,
+                  ddayForm.priority === option && styles.pillButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text style={[styles.pillButtonText, ddayForm.priority === option && styles.pillButtonTextActive]}>
+                  {option}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.ddayPreview}>
+          <View style={styles.ddayPreviewHeader}>
+            <Text style={styles.selectionTitle}>생성 미리보기</Text>
+            <Text style={styles.selectionText}>
+              {ddayPlan.error ? ddayPlan.error : `${ddayPlan.items.length}개 태스크가 TODO로 생성됩니다.`}
+            </Text>
+          </View>
+          {ddayPlan.error ? null : (
+            <View style={styles.ddayPreviewList}>
+              {ddayPlan.items.slice(0, 4).map((item) => (
+                <View key={`${item.dueDate}-${item.title}`} style={styles.ddayPreviewItem}>
+                  <Text style={styles.ddayPreviewDate}>{item.dueDate}</Text>
+                  <Text style={styles.ddayPreviewTitle}>{item.title}</Text>
+                </View>
+              ))}
+              {ddayPlan.items.length > 4 ? (
+                <Text style={styles.ddayMoreText}>외 {ddayPlan.items.length - 4}개 태스크</Text>
+              ) : null}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.actionRow}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={generatingPlan || Boolean(ddayPlan.error)}
+            onPress={handleCreateDdayPlan}
+            style={(state) => [
+              styles.primaryButton,
+              (generatingPlan || Boolean(ddayPlan.error)) && styles.disabledButton,
+              ...interactiveStateStyles(state, { disabled: generatingPlan || Boolean(ddayPlan.error) })
+            ]}
+          >
+            <Text style={styles.primaryButtonText}>
+              {generatingPlan ? '계획 생성 중...' : 'D-Day 태스크 생성'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={generatingPlan}
+            onPress={() => setDdayForm(createInitialDdayForm())}
+            style={(state) => [
+              styles.secondaryButton,
+              generatingPlan && styles.disabledButton,
+              ...interactiveStateStyles(state, { disabled: generatingPlan })
+            ]}
+          >
+            <Text style={styles.secondaryButtonText}>입력 초기화</Text>
+          </Pressable>
+        </View>
+      </View>
 
       <View style={[styles.panel, styles.formPanel, shadows.card]}>
         <Text style={styles.panelEyebrow}>{editingTaskId ? 'EDIT MODE' : 'NEW TASK'}</Text>
@@ -716,6 +975,97 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 23,
     fontWeight: '800'
+  },
+  ddayPanel: {
+    gap: 16,
+    backgroundColor: colors.surface
+  },
+  ddayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    flexWrap: 'wrap'
+  },
+  ddayHeaderCopy: {
+    flex: 1,
+    minWidth: 240,
+    gap: 6
+  },
+  ddayDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 21
+  },
+  ddayBadge: {
+    minHeight: 34,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    paddingHorizontal: 12,
+    justifyContent: 'center'
+  },
+  ddayBadgeText: {
+    color: colors.mintDeep,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase'
+  },
+  ddayFormGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+  ddayField: {
+    flex: 1,
+    minWidth: 190
+  },
+  ddayScopeInput: {
+    minHeight: 88,
+    textAlignVertical: 'top'
+  },
+  ddayPreview: {
+    borderRadius: 18,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    gap: 12
+  },
+  ddayPreviewHeader: {
+    gap: 4
+  },
+  ddayPreviewList: {
+    gap: 8
+  },
+  ddayPreviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  ddayPreviewDate: {
+    minWidth: 92,
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  ddayPreviewTitle: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  ddayMoreText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
   },
   fieldGroup: {
     gap: 8
