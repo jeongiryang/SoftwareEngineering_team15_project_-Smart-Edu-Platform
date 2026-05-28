@@ -16,14 +16,10 @@ async function parseResponse(response) {
 
 export async function request(path, options = {}) {
   const method = options.method || 'GET';
-  const isGet = method.toUpperCase() === 'GET';
-  const url = isGet
-    ? `${API_BASE_URL}${path}${path.includes('?') ? '&' : '?'}_t=${Date.now()}`
-    : `${API_BASE_URL}${path}`;
 
   const { headers: customHeaders, ...restOptions } = options;
 
-  const response = await fetch(url, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',

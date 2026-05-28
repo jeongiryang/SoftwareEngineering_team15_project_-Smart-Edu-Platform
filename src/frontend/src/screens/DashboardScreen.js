@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
-import { PanelSkeleton } from '../components/Skeleton';
+import { SkeletonBlock } from '../components/Skeleton';
 import { claimRewardQuest, getMyRewards } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -191,6 +191,42 @@ function buildRewardInsight(rewardData, activeQuests) {
   }
 
   return '아직 보상 기록이 많지 않습니다. 오늘의 일정과 태스크를 먼저 채워 보상 흐름을 시작해 보세요.';
+}
+
+function RewardPanelSkeleton() {
+  return (
+    <View style={styles.rewardSkeletonShell}>
+      <View style={styles.rewardSkeletonHeader}>
+        <SkeletonBlock height={18} width="28%" />
+        <SkeletonBlock height={38} style={styles.rewardSkeletonButton} width={110} />
+      </View>
+      <View style={styles.rewardSkeletonStats}>
+        <View style={styles.rewardSkeletonPointCard}>
+          <SkeletonBlock height={12} width="42%" />
+          <SkeletonBlock height={34} width="58%" />
+          <SkeletonBlock height={12} width="78%" />
+        </View>
+        {[0, 1, 2].map((item) => (
+          <View key={item} style={styles.rewardSkeletonMetricCard}>
+            <SkeletonBlock height={12} width="54%" />
+            <SkeletonBlock height={28} width="44%" />
+          </View>
+        ))}
+      </View>
+      <View style={styles.rewardSkeletonGrid}>
+        <View style={styles.rewardSkeletonPanel}>
+          <SkeletonBlock height={16} width="36%" />
+          <SkeletonBlock height={74} />
+          <SkeletonBlock height={74} />
+        </View>
+        <View style={styles.rewardSkeletonPanel}>
+          <SkeletonBlock height={16} width="46%" />
+          <SkeletonBlock height={54} />
+          <SkeletonBlock height={54} />
+        </View>
+      </View>
+    </View>
+  );
 }
 
 export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
@@ -383,13 +419,6 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               >
                 <Text style={styles.secondaryButtonText}>일정 보기</Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => onNavigate('profile')}
-                style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
-              >
-                <Text style={styles.secondaryButtonText}>프로필 보기</Text>
-              </Pressable>
             </View>
           </View>
 
@@ -402,6 +431,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <View style={styles.memberBadge}>
               <Text style={styles.memberBadgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onNavigate('profile')}
+              style={(state) => [styles.profileLinkButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.profileLinkText}>마이페이지</Text>
+            </Pressable>
             <Pressable accessibilityRole="button" onPress={onLogout} style={(state) => [styles.logoutButton, ...interactiveStateStyles(state)]}>
               <Text style={styles.logoutButtonText}>로그아웃</Text>
             </Pressable>
@@ -429,10 +465,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
           </View>
 
           {rewardLoading ? (
-            <View style={styles.rewardLoading}>
-              <Text style={styles.loadingText}>보상 정보를 불러오는 중입니다.</Text>
-              <PanelSkeleton rows={3} />
-            </View>
+            <RewardPanelSkeleton />
           ) : (
             <>
               <View style={styles.rewardStats}>
@@ -914,8 +947,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5
   },
+  profileLinkButton: {
+    marginTop: 18,
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  profileLinkText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800'
+  },
   logoutButton: {
-    marginTop: 20,
+    marginTop: 10,
     minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
@@ -973,17 +1022,57 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800'
   },
-  rewardLoading: {
-    minHeight: 120,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceWarm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10
+  rewardSkeletonShell: {
+    gap: 18
   },
-  loadingText: {
-    color: colors.muted,
-    fontSize: 13
+  rewardSkeletonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 14
+  },
+  rewardSkeletonButton: {
+    borderRadius: 999
+  },
+  rewardSkeletonStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14
+  },
+  rewardSkeletonPointCard: {
+    flexGrow: 1,
+    minWidth: 220,
+    minHeight: 144,
+    borderRadius: 24,
+    padding: 20,
+    gap: 18,
+    backgroundColor: colors.blueSoft
+  },
+  rewardSkeletonMetricCard: {
+    flexGrow: 1,
+    minWidth: 180,
+    minHeight: 118,
+    borderRadius: 24,
+    padding: 20,
+    gap: 18,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  rewardSkeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18
+  },
+  rewardSkeletonPanel: {
+    flex: 1,
+    minWidth: 280,
+    borderRadius: 22,
+    padding: 18,
+    gap: 14,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line
   },
   rewardStats: {
     flexDirection: 'row',
