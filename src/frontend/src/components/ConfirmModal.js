@@ -22,15 +22,22 @@ export default function ConfirmModal({
           {description ? <Text style={styles.description}>{description}</Text> : null}
           {children ? <View style={styles.body}>{children}</View> : null}
           <View style={styles.actions}>
-            <Pressable accessibilityRole="button" onPress={onCancel} style={styles.cancelButton}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${cancelLabel} 버튼`}
+              onPress={onCancel}
+              style={({ pressed }) => [styles.cancelButton, pressed && styles.buttonPressed]}
+            >
               <Text style={styles.cancelText}>{cancelLabel}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={`${confirmLabel} 버튼`}
               disabled={confirmDisabled}
               onPress={onConfirm}
-              style={[
+              style={({ pressed }) => [
                 styles.confirmButton,
+                pressed && styles.buttonPressed,
                 destructive && styles.dangerButton,
                 confirmDisabled && styles.disabledButton
               ]}
@@ -123,5 +130,9 @@ const styles = StyleSheet.create({
   confirmText: {
     color: colors.surface,
     fontWeight: '700'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   }
 });

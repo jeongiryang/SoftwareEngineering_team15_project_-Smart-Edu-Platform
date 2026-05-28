@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   View
 } from 'react-native';
 import DateRangeCalendarPicker from '../components/DateRangeCalendarPicker';
+import { PanelSkeleton } from '../components/Skeleton';
 import TimeWheelPicker from '../components/TimeWheelPicker';
 import {
   createSchedule,
@@ -521,13 +521,20 @@ export default function ScheduleScreen({ onNavigate, token }) {
 
           {loading ? (
             <View style={styles.centerBox}>
-              <ActivityIndicator color={colors.blue} size="small" />
               <Text style={styles.loadingText}>일정 목록 불러오는 중</Text>
+              <PanelSkeleton rows={3} />
             </View>
           ) : sortedSchedules.length === 0 ? (
             <View style={styles.emptyBox}>
               <Text style={styles.emptyTitle}>등록된 일정이 아직 없습니다.</Text>
               <Text style={styles.emptyText}>왼쪽에서 날짜와 시간을 먼저 고르면 일정 흐름을 훨씬 쉽게 만들 수 있습니다.</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={resetForm}
+                style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+              >
+                <Text style={styles.emptyActionText}>첫 일정 입력 준비</Text>
+              </Pressable>
             </View>
           ) : (
             sortedSchedules.map((schedule) => (
@@ -842,8 +849,6 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   centerBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 28,
     gap: 10
   },
@@ -858,6 +863,24 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 18,
     gap: 6
+  },
+  emptyActionButton: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginTop: 8
+  },
+  emptyActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   },
   emptyTitle: {
     color: colors.ink,

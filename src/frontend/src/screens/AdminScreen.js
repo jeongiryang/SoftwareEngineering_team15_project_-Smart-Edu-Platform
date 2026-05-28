@@ -168,6 +168,22 @@ export default function AdminScreen({ onNavigate, token, user }) {
     }
   }
 
+  function renderEmptyState(title, description) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>{title}</Text>
+        <Text style={styles.emptyText}>{description}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => loadData(true)}
+          style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+        >
+          <Text style={styles.emptyActionText}>다시 확인하기</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
@@ -304,7 +320,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                 </Pressable>
               </View>
               {users.length === 0 ? (
-                <Text style={styles.emptyText}>사용자가 없습니다.</Text>
+                renderEmptyState('등록된 사용자가 없습니다.', '새 사용자가 가입하면 이 목록에서 상태와 권한을 확인할 수 있습니다.')
               ) : (
                 <View style={styles.list}>
                   {users.map((item) => (
@@ -351,7 +367,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
               {/* Reported Posts Sub-section */}
               <Text style={styles.subSectionTitle}>신고된 게시글 ({reports.reportedPosts.length})</Text>
               {reports.reportedPosts.length === 0 ? (
-                <Text style={styles.emptyText}>신고된 게시글이 없습니다.</Text>
+                renderEmptyState('신고된 게시글이 없습니다.', '처리가 필요한 신고가 생기면 이 영역에 먼저 표시됩니다.')
               ) : (
                 <View style={styles.list}>
                   {reports.reportedPosts.map((item) => (
@@ -393,7 +409,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
               {/* Reported Comments Sub-section */}
               <Text style={[styles.subSectionTitle, { marginTop: 24 }]}>신고된 댓글 ({reports.reportedComments.length})</Text>
               {reports.reportedComments.length === 0 ? (
-                <Text style={styles.emptyText}>신고된 댓글이 없습니다.</Text>
+                renderEmptyState('신고된 댓글이 없습니다.', '댓글 신고가 접수되면 삭제 또는 기각 조치를 여기에서 진행합니다.')
               ) : (
                 <View style={styles.list}>
                   {reports.reportedComments.map((item) => (
@@ -443,7 +459,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                 </Pressable>
               </View>
               {reports.adminActions.length === 0 ? (
-                <Text style={styles.emptyText}>감사 기록이 없습니다.</Text>
+                renderEmptyState('감사 기록이 없습니다.', '관리 조치를 수행하면 처리자, 대상, 사유가 감사 로그에 쌓입니다.')
               ) : (
                 <View style={styles.list}>
                   {reports.adminActions.map((item) => (
@@ -727,16 +743,44 @@ const styles = StyleSheet.create({
   list: {
     gap: 12
   },
-  emptyText: {
-    fontSize: 14,
-    color: colors.muted,
-    textAlign: 'center',
-    padding: 20,
+  emptyState: {
+    alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
     borderColor: colors.line,
-    borderStyle: 'dashed'
+    borderRadius: 18,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    gap: 8,
+    padding: 20
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800',
+    textAlign: 'center'
+  },
+  emptyText: {
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 20,
+    textAlign: 'center'
+  },
+  emptyActionButton: {
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginTop: 4
+  },
+  emptyActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   },
   userCard: {
     backgroundColor: colors.surface,

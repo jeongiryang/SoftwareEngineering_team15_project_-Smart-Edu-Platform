@@ -29,17 +29,30 @@ export default function FeatureGuideModal({ onClose, onContinue, visible }) {
             <Text style={styles.featureText}>본문 요약으로 빠른 복습</Text>
             <Text style={styles.featureText}>오답 입력 후 취약 원인 분석</Text>
           </View>
-          <Pressable onPress={() => setDoNotShowAgain((selected) => !selected)} style={styles.preference}>
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: doNotShowAgain }}
+            onPress={() => setDoNotShowAgain((selected) => !selected)}
+            style={({ pressed }) => [styles.preference, pressed && styles.buttonPressed]}
+          >
             <View style={[styles.checkbox, doNotShowAgain && styles.checkboxSelected]}>
               {doNotShowAgain ? <Text style={styles.checkmark}>✓</Text> : null}
             </View>
             <Text style={styles.preferenceText}>다음부터 이 안내 보지 않기</Text>
           </Pressable>
           <View style={styles.actions}>
-            <Pressable onPress={handleClose} style={styles.cancelButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleClose}
+              style={({ pressed }) => [styles.cancelButton, pressed && styles.buttonPressed]}
+            >
               <Text style={styles.cancelText}>닫기</Text>
             </Pressable>
-            <Pressable onPress={handleContinue} style={styles.confirmButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleContinue}
+              style={({ pressed }) => [styles.confirmButton, pressed && styles.buttonPressed]}
+            >
               <Text style={styles.confirmText}>AI 학습 시작</Text>
             </Pressable>
           </View>
@@ -159,5 +172,9 @@ const styles = StyleSheet.create({
   confirmText: {
     color: colors.surface,
     fontWeight: '700'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   }
 });

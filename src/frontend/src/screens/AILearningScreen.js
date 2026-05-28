@@ -227,6 +227,27 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         </Pressable>
       </View>
 
+      <View style={styles.transparencyPanel}>
+        <View style={styles.transparencyCard}>
+          <Text style={styles.transparencyLabel}>AI 사용 안내</Text>
+          <Text style={styles.transparencyText}>
+            질문과 요약 요청은 AI 학습 API로 전달되며, 답변은 학습 보조용으로 확인합니다.
+          </Text>
+        </View>
+        <View style={styles.transparencyCard}>
+          <Text style={styles.transparencyLabel}>음성 기능 구분</Text>
+          <Text style={styles.transparencyText}>
+            음성 입력과 읽어주기는 접근성 센터의 브라우저 기능을 사용하며 AI 호출과 분리됩니다.
+          </Text>
+        </View>
+        <View style={styles.transparencyCard}>
+          <Text style={styles.transparencyLabel}>입력 전 확인</Text>
+          <Text style={styles.transparencyText}>
+            비밀번호, 토큰, 개인 연락처 같은 민감한 정보는 질문에 포함하지 않는 것이 원칙입니다.
+          </Text>
+        </View>
+      </View>
+
       {/* Navigation Tabs */}
       <View style={styles.tabsRow}>
         <Pressable
@@ -322,7 +343,15 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <Text style={styles.resultTitle}>최근 학습 질의 내역 ({recentQnaList.length})</Text>
               {recentQnaList.length === 0 ? (
                 <View style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>질문한 내역이 없습니다. 위에 모르는 내용을 물어보세요!</Text>
+                  <Text style={styles.emptyTitle}>아직 질문 내역이 없습니다.</Text>
+                  <Text style={styles.emptyText}>오늘 헷갈린 개념 하나를 짧게 적으면 답변 흐름을 바로 시작할 수 있습니다.</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setQuestionInput('오늘 헷갈린 개념: ')}
+                    style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                  >
+                    <Text style={styles.emptyActionText}>질문 입력 준비</Text>
+                  </Pressable>
                 </View>
               ) : (
                 recentQnaList.map((item, idx) => (
@@ -565,6 +594,31 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 4
   },
+  transparencyPanel: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  transparencyCard: {
+    flex: 1,
+    minWidth: 220,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16
+  },
+  transparencyLabel: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  transparencyText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 19,
+    marginTop: 6
+  },
   backButton: {
     minHeight: 38,
     alignItems: 'center',
@@ -718,13 +772,37 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 24,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    gap: 8
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800',
+    textAlign: 'center'
   },
   emptyText: {
     color: colors.muted,
     fontSize: 13,
     fontWeight: '500',
     textAlign: 'center'
+  },
+  emptyActionButton: {
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginTop: 4
+  },
+  emptyActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   },
   qnaCard: {
     backgroundColor: colors.surface,

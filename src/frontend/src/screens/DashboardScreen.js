@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
+import { PanelSkeleton } from '../components/Skeleton';
 import { claimRewardQuest, getMyRewards } from '../services/api';
 import { colors, shadows } from '../styles/theme';
 
@@ -170,6 +171,26 @@ function buildClaimMessage(result) {
   return `${points}포인트를 받았습니다.`;
 }
 
+function buildRewardInsight(rewardData, activeQuests) {
+  const availableQuestCount = activeQuests.filter((quest) => quest.status === 'ACHIEVED').length;
+  const progressQuestCount = activeQuests.filter((quest) => quest.status === 'IN_PROGRESS').length;
+  const badgeCount = rewardData.badges?.length || 0;
+
+  if (availableQuestCount > 0) {
+    return `수령 가능한 보상이 ${availableQuestCount}개 있습니다. 오늘은 퀘스트 보상을 먼저 확인해 보세요.`;
+  }
+
+  if (progressQuestCount > 0) {
+    return `진행 중인 퀘스트 ${progressQuestCount}개가 있습니다. 일정과 칸반을 채우면 보상 진행률이 함께 올라갑니다.`;
+  }
+
+  if (badgeCount > 0) {
+    return `현재 ${badgeCount}개의 배지를 모았습니다. 다음 퀘스트가 열리면 이어서 보상을 쌓을 수 있습니다.`;
+  }
+
+  return '아직 보상 기록이 많지 않습니다. 오늘의 일정과 태스크를 먼저 채워 보상 흐름을 시작해 보세요.';
+}
+
 export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const hasAdminRole = user?.role === 'ADMIN';
   const [showAIGuide, setShowAIGuide] = useState(false);
@@ -215,6 +236,10 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         ? rewardData.recentPointTransactions || []
         : (rewardData.recentPointTransactions || []).slice(0, 5),
     [rewardData.recentPointTransactions, showAllTransactions]
+  );
+  const rewardInsight = useMemo(
+    () => buildRewardInsight(rewardData, activeQuests),
+    [activeQuests, rewardData]
   );
 
   function isGuideDismissed() {
@@ -392,8 +417,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
           {rewardLoading ? (
             <View style={styles.rewardLoading}>
-              <ActivityIndicator color={colors.blue} />
               <Text style={styles.loadingText}>보상 정보를 불러오는 중입니다.</Text>
+              <PanelSkeleton rows={3} />
             </View>
           ) : (
             <>
@@ -412,6 +437,11 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 <View style={styles.metricCard}>
                   <Text style={styles.metricLabel}>완료한 태스크</Text>
                   <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.completedTaskCount)}개</Text>
+                </View>
+
+                <View style={styles.storyCard}>
+                  <Text style={styles.storyLabel}>오늘의 보상 흐름</Text>
+                  <Text style={styles.storyText}>{rewardInsight}</Text>
                 </View>
               </View>
 
@@ -438,6 +468,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 등록된 퀘스트가 없습니다.</Text>
                       <Text style={styles.emptyText}>관리자 화면에서 보상 퀘스트를 추가하면 이곳에 표시됩니다.</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => onNavigate('schedule')}
+                        style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                      >
+                        <Text style={styles.emptyActionText}>오늘 일정부터 채우기</Text>
+                      </Pressable>
                     </View>
                   ) : (
                     activeQuests.map((quest) => (
@@ -465,17 +502,18 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                         <View style={styles.questFooter}>
                           <View>
-                            <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
-                            <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
-                          </View>
+                              <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
+                              <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                            </View>
 
                           {quest.status === 'ACHIEVED' ? (
                             <Pressable
                               accessibilityRole="button"
                               disabled={claimingQuestId === quest.id}
                               onPress={() => handleClaimQuest(quest.id)}
-                              style={[
+                              style={({ pressed }) => [
                                 styles.claimButton,
+                                pressed && styles.buttonPressed,
                                 claimingQuestId === quest.id && styles.claimButtonDisabled
                               ]}
                             >
@@ -602,6 +640,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 획득한 배지가 없습니다.</Text>
                       <Text style={styles.emptyText}>퀘스트를 달성하고 보상을 수령하면 배지가 여기에 표시됩니다.</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => onNavigate('taskBoard')}
+                        style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                      >
+                        <Text style={styles.emptyActionText}>태스크 완료하러 가기</Text>
+                      </Pressable>
                     </View>
                   )}
 
@@ -639,6 +684,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 포인트 적립 내역이 없습니다.</Text>
                       <Text style={styles.emptyText}>보상을 수령하면 최근 적립 내역을 이곳에서 볼 수 있습니다.</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => loadRewards({ silent: true })}
+                        style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                      >
+                        <Text style={styles.emptyActionText}>보상 다시 확인하기</Text>
+                      </Pressable>
                     </View>
                   )}
                 </View>
@@ -958,6 +1010,26 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 16
   },
+  storyCard: {
+    flexGrow: 1,
+    minWidth: 240,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm
+  },
+  storyLabel: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  storyText: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 12
+  },
   errorBanner: {
     borderRadius: 16,
     paddingHorizontal: 16,
@@ -1191,6 +1263,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 18,
     gap: 6
+  },
+  emptyActionButton: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginTop: 8
+  },
+  emptyActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   },
   emptyTitle: {
     color: colors.ink,

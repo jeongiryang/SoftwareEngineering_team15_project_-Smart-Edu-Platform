@@ -14,7 +14,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
       <Pressable
         accessibilityRole="button"
         onPress={() => onNavigate(screen)}
-        style={[styles.navItem, active && styles.navItemActive]}
+        style={({ pressed }) => [styles.navItem, active && styles.navItemActive, pressed && styles.buttonPressed]}
       >
         <Text style={[styles.navText, active && styles.navTextActive]}>{label}</Text>
       </Pressable>
@@ -24,7 +24,11 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
   return (
     <View style={styles.shell}>
       <View style={styles.header}>
-        <Pressable onPress={() => onNavigate(authenticated ? 'dashboard' : 'home')} style={styles.brand}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onNavigate(authenticated ? 'dashboard' : 'home')}
+          style={({ pressed }) => [styles.brand, pressed && styles.buttonPressed]}
+        >
           <Image source={icon} style={styles.logo} />
           <View>
             <Text style={styles.brandName}>사각사각</Text>
@@ -55,12 +59,20 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
           {authenticated ? (
             <>
               <Text style={styles.userLabel}>{user.name}님</Text>
-              <Pressable accessibilityRole="button" onPress={onLogout} style={styles.outlineButton}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onLogout}
+                style={({ pressed }) => [styles.outlineButton, pressed && styles.buttonPressed]}
+              >
                 <Text style={styles.outlineText}>로그아웃</Text>
               </Pressable>
             </>
           ) : (
-            <Pressable accessibilityRole="button" onPress={() => onNavigate('register')} style={styles.primaryButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onNavigate('register')}
+              style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+            >
               <Text style={styles.primaryText}>무료로 시작하기</Text>
             </Pressable>
           )}
@@ -179,5 +191,9 @@ const styles = StyleSheet.create({
     color: colors.blueDeep,
     fontSize: 13,
     fontWeight: '700'
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
   }
 });
