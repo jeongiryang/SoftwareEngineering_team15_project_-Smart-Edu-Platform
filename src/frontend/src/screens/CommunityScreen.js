@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,6 +25,9 @@ import {
   updateCommunityComment,
   updateCommunityPost
 } from '../services/api';
+import ConfirmModal from '../components/ConfirmModal';
+import { PanelSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { colors, shadows } from '../styles/theme';
 
 const CATEGORIES = [
   { value: 'QUESTION', label: '질문' },
@@ -114,6 +115,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     title: '',
     content: ''
   });
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [reportReason, setReportReason] = useState('');
   const [loading, setLoading] = useState(false);
@@ -287,14 +289,12 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   }
 
   function confirmDeletePost(post) {
-    Alert.alert('게시글 삭제', '이 게시글을 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: () => deletePost(post)
-      }
-    ]);
+    resetMessages();
+    setDeleteTarget({
+      type: 'post',
+      id: post.id,
+      title: post.title
+    });
   }
 
   async function deletePost(post) {
@@ -304,6 +304,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     try {
       await deleteCommunityPost(token, post.id);
       setSuccessMessage('게시글을 삭제했습니다.');
+      setDeleteTarget(null);
       setSelectedPost(null);
       setPostFormMode(null);
       await loadPosts();
@@ -376,14 +377,12 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   }
 
   function confirmDeleteComment(comment) {
-    Alert.alert('댓글 삭제', '이 댓글을 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: () => deleteComment(comment)
-      }
-    ]);
+    resetMessages();
+    setDeleteTarget({
+      type: 'comment',
+      id: comment.id,
+      title: comment.content
+    });
   }
 
   async function deleteComment(comment) {
@@ -393,6 +392,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     try {
       await deleteCommunityComment(token, comment.id);
       setSuccessMessage('댓글을 삭제했습니다.');
+      setDeleteTarget(null);
       await loadPostDetail(selectedPost.id, commentPage);
       await loadPosts();
     } catch (error) {
@@ -400,6 +400,19 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function submitDeleteTarget() {
+    if (!deleteTarget) {
+      return;
+    }
+
+    if (deleteTarget.type === 'post') {
+      await deletePost(deleteTarget);
+      return;
+    }
+
+    await deleteComment(deleteTarget);
   }
 
   async function refreshAfterPostAction(postId) {
@@ -493,7 +506,12 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       setReportReason('');
       setSuccessMessage('신고가 접수되었습니다.');
     } catch (error) {
-      setErrorMessage(error.message || '신고 처리에 실패했습니다.');
+      const message = error.message || '';
+      setErrorMessage(
+        message.includes('409') || message.includes('이미') || message.includes('duplicate')
+          ? '이미 신고한 대상입니다. 관리자 검토를 기다려 주세요.'
+          : message || '신고 처리에 실패했습니다.'
+      );
     } finally {
       setBusy(false);
     }
@@ -501,6 +519,8 @@ export default function CommunityScreen({ onNavigate, token, user }) {
 
   function openDetail(post) {
     resetMessages();
+    setDeleteTarget(null);
+    setReportTarget(null);
     setPostFormMode(null);
     setCommentContent('');
     setEditingComment(null);
@@ -521,6 +541,8 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     setActiveTab(nextTab);
     setSelectedPost(null);
     setPostFormMode(null);
+    setDeleteTarget(null);
+    setReportTarget(null);
     setErrorMessage('');
     setSuccessMessage('');
   }
@@ -537,10 +559,18 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           <Text style={styles.subtitle}>질문, 자유 글, 학습 인증을 한곳에서 확인합니다.</Text>
         </View>
         <View style={styles.headerActions}>
-          <Pressable onPress={() => onNavigate('dashboard')} style={styles.secondaryButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onNavigate('dashboard')}
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.secondaryButtonText}>대시보드</Text>
           </Pressable>
-          <Pressable onPress={openCreateForm} style={styles.primaryButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={openCreateForm}
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.primaryButtonText}>글쓰기</Text>
           </Pressable>
         </View>
@@ -548,16 +578,28 @@ export default function CommunityScreen({ onNavigate, token, user }) {
 
       <View style={styles.tabRow}>
         <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'posts' }}
           onPress={() => switchTab('posts')}
-          style={[styles.tabButton, activeTab === 'posts' && styles.tabButtonActive]}
+          style={({ pressed }) => [
+            styles.tabButton,
+            activeTab === 'posts' && styles.tabButtonActive,
+            pressed && styles.buttonPressed
+          ]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'posts' && styles.tabButtonTextActive]}>
             게시글
           </Text>
         </Pressable>
         <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'bookmarks' }}
           onPress={() => switchTab('bookmarks')}
-          style={[styles.tabButton, activeTab === 'bookmarks' && styles.tabButtonActive]}
+          style={({ pressed }) => [
+            styles.tabButton,
+            activeTab === 'bookmarks' && styles.tabButtonActive,
+            pressed && styles.buttonPressed
+          ]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'bookmarks' && styles.tabButtonTextActive]}>
             내 북마크
@@ -577,27 +619,20 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       ) : null}
 
       {postFormMode ? renderPostForm() : null}
-      {reportTarget ? renderReportPanel() : null}
+      {renderDeleteModal()}
+      {renderReportModal()}
 
       {activeTab === 'posts' ? renderPostFilters() : renderBookmarkFilters()}
 
       <View style={styles.layout}>
         <View style={styles.listPane}>
-          {loading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator color="#2563EB" />
-              <Text style={styles.mutedText}>목록을 불러오는 중입니다.</Text>
-            </View>
-          ) : activeTab === 'posts' ? renderPostList() : renderBookmarkList()}
+          {loading ? renderListSkeleton(activeTab === 'bookmarks') : activeTab === 'posts' ? renderPostList() : renderBookmarkList()}
           {renderPagination(currentPageInfo, currentPage, setCurrentPage)}
         </View>
 
         <View style={styles.detailPane}>
           {detailLoading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator color="#2563EB" />
-              <Text style={styles.mutedText}>상세 정보를 불러오는 중입니다.</Text>
-            </View>
+            renderDetailSkeleton()
           ) : selectedPost ? (
             renderPostDetail()
           ) : (
@@ -611,6 +646,99 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     </ScrollView>
   );
 
+  function renderListSkeleton(isBookmarkList = false) {
+    return (
+      <View style={styles.skeletonStack}>
+        {Array.from({ length: isBookmarkList ? 2 : 3 }).map((_, index) => (
+          <View key={index} style={[styles.card, styles.skeletonCard]}>
+            <View style={styles.cardHeader}>
+              <SkeletonBlock height={24} width={80} />
+              <SkeletonBlock height={12} width={110} />
+            </View>
+            <SkeletonBlock height={22} width="82%" />
+            <SkeletonBlock height={14} width="100%" />
+            <SkeletonBlock height={14} width="70%" />
+            <View style={styles.metricRow}>
+              <SkeletonBlock height={24} width={64} />
+              <SkeletonBlock height={24} width={70} />
+              <SkeletonBlock height={24} width={76} />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  function renderDetailSkeleton() {
+    return (
+      <View style={styles.detailCard}>
+        <PanelSkeleton rows={4} />
+        <View style={styles.commentSection}>
+          <SkeletonBlock height={18} width={90} />
+          <SkeletonBlock height={68} width="100%" />
+        </View>
+      </View>
+    );
+  }
+
+  function renderDeleteModal() {
+    const isPost = deleteTarget?.type === 'post';
+
+    return (
+      <ConfirmModal
+        cancelLabel="취소"
+        confirmDisabled={busy || !deleteTarget}
+        confirmLabel={isPost ? '게시글 삭제' : '댓글 삭제'}
+        description={
+          isPost
+            ? '삭제한 게시글은 되돌릴 수 없습니다. 댓글과 반응도 함께 정리됩니다.'
+            : '삭제한 댓글은 되돌릴 수 없습니다.'
+        }
+        destructive
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={submitDeleteTarget}
+        title={isPost ? '게시글을 삭제할까요?' : '댓글을 삭제할까요?'}
+        visible={Boolean(deleteTarget)}
+      >
+        <Text style={styles.modalTargetText} numberOfLines={2}>
+          {deleteTarget?.title || ''}
+        </Text>
+      </ConfirmModal>
+    );
+  }
+
+  function renderReportModal() {
+    return (
+      <ConfirmModal
+        cancelLabel="취소"
+        confirmDisabled={busy || !reportReason.trim()}
+        confirmLabel="신고 접수"
+        description="관리자가 확인할 수 있도록 신고 사유를 구체적으로 적어 주세요."
+        destructive
+        onCancel={() => {
+          setReportTarget(null);
+          setReportReason('');
+        }}
+        onConfirm={submitReport}
+        title={reportTarget?.type === 'post' ? '게시글 신고' : '댓글 신고'}
+        visible={Boolean(reportTarget)}
+      >
+        <Text style={styles.modalTargetText} numberOfLines={2}>
+          대상: {reportTarget?.label || ''}
+        </Text>
+        <TextInput
+          multiline
+          onChangeText={setReportReason}
+          placeholder="신고 사유를 입력해 주세요. 500자까지 입력할 수 있습니다."
+          style={[styles.input, styles.reportArea]}
+          textAlignVertical="top"
+          value={reportReason}
+        />
+        <Text style={styles.counterText}>{reportReason.trim().length}/500</Text>
+      </ConfirmModal>
+    );
+  }
+
   function renderPostFilters() {
     return (
       <View style={styles.filterPanel}>
@@ -623,7 +751,11 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             style={styles.searchInput}
             value={searchDraft}
           />
-          <Pressable onPress={handleSearchSubmit} style={styles.primaryButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={handleSearchSubmit}
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.primaryButtonText}>검색</Text>
           </Pressable>
         </View>
@@ -720,38 +852,20 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           value={postForm.content}
         />
         <View style={styles.actionRow}>
-          <Pressable disabled={busy} onPress={submitPostForm} style={[styles.primaryButton, busy && styles.disabled]}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={submitPostForm}
+            style={({ pressed }) => [styles.primaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.primaryButtonText}>{postFormMode === 'edit' ? '수정 저장' : '작성 완료'}</Text>
           </Pressable>
-          <Pressable disabled={busy} onPress={closePostForm} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>취소</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  function renderReportPanel() {
-    return (
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>신고 사유 입력</Text>
-        <Text style={styles.mutedText} numberOfLines={2}>
-          대상: {reportTarget.label}
-        </Text>
-        <TextInput
-          multiline
-          onChangeText={setReportReason}
-          placeholder="신고 사유를 입력해 주세요. 500자까지 입력할 수 있습니다."
-          style={[styles.input, styles.reportArea]}
-          textAlignVertical="top"
-          value={reportReason}
-        />
-        <Text style={styles.counterText}>{reportReason.trim().length}/500</Text>
-        <View style={styles.actionRow}>
-          <Pressable disabled={busy} onPress={submitReport} style={[styles.dangerButton, busy && styles.disabled]}>
-            <Text style={styles.dangerButtonText}>신고 접수</Text>
-          </Pressable>
-          <Pressable disabled={busy} onPress={() => setReportTarget(null)} style={styles.secondaryButton}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={closePostForm}
+            style={({ pressed }) => [styles.secondaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.secondaryButtonText}>취소</Text>
           </Pressable>
         </View>
@@ -763,8 +877,16 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     if (posts.length === 0) {
       return (
         <View style={styles.emptyBox}>
+          <Text style={styles.emptyIcon}>글</Text>
           <Text style={styles.emptyTitle}>게시글이 없습니다.</Text>
           <Text style={styles.emptyText}>검색 조건을 바꾸거나 첫 게시글을 작성해 보세요.</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={openCreateForm}
+            style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.emptyActionText}>첫 글 작성하기</Text>
+          </Pressable>
         </View>
       );
     }
@@ -776,8 +898,16 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     if (bookmarks.length === 0) {
       return (
         <View style={styles.emptyBox}>
+          <Text style={styles.emptyIcon}>저장</Text>
           <Text style={styles.emptyTitle}>북마크한 게시글이 없습니다.</Text>
           <Text style={styles.emptyText}>관심 있는 게시글에서 북마크를 눌러 저장할 수 있습니다.</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => switchTab('posts')}
+            style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.emptyActionText}>커뮤니티 둘러보기</Text>
+          </Pressable>
         </View>
       );
     }
@@ -792,41 +922,67 @@ export default function CommunityScreen({ onNavigate, token, user }) {
 
   function renderPostCard(post) {
     return (
-      <View key={post.id} style={[styles.card, selectedPost?.id === post.id && styles.cardActive]}>
+      <View key={post.id} style={[styles.card, shadows.card, selectedPost?.id === post.id && styles.cardActive]}>
         <View style={styles.cardHeader}>
           <Text style={styles.categoryBadge}>{getCategoryLabel(post.category)}</Text>
           <Text style={styles.dateText}>{formatDate(post.createdAt)}</Text>
         </View>
         <Text style={styles.cardTitle}>{post.title}</Text>
         <Text style={styles.cardContent}>{getPreview(post.content)}</Text>
-        <Text style={styles.authorText}>작성자: {post.author?.name || '알 수 없음'}</Text>
+        <View style={styles.cardMetaRow}>
+          <Text style={styles.authorText}>작성자: {post.author?.name || '알 수 없음'}</Text>
+          {post.isBookmarked ? <Text style={styles.savedBadge}>저장됨</Text> : null}
+        </View>
         {renderEngagement(post)}
         <View style={styles.cardActions}>
-          <Pressable onPress={() => openDetail(post)} style={styles.secondaryButton}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${post.title} 상세 보기`}
+            onPress={() => openDetail(post)}
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.secondaryButtonText}>상세</Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${post.title} 좋아요`}
             disabled={busy}
             onPress={() => toggleReaction(post, 'LIKE')}
-            style={[styles.smallButton, post.myReaction === 'LIKE' && styles.smallButtonActive]}
+            style={({ pressed }) => [
+              styles.smallButton,
+              post.myReaction === 'LIKE' && styles.smallButtonActive,
+              pressed && styles.buttonPressed
+            ]}
           >
             <Text style={[styles.smallButtonText, post.myReaction === 'LIKE' && styles.smallButtonTextActive]}>
               좋아요
             </Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${post.title} 싫어요`}
             disabled={busy}
             onPress={() => toggleReaction(post, 'DISLIKE')}
-            style={[styles.smallButton, post.myReaction === 'DISLIKE' && styles.smallButtonActive]}
+            style={({ pressed }) => [
+              styles.smallButton,
+              post.myReaction === 'DISLIKE' && styles.smallButtonActive,
+              pressed && styles.buttonPressed
+            ]}
           >
             <Text style={[styles.smallButtonText, post.myReaction === 'DISLIKE' && styles.smallButtonTextActive]}>
               싫어요
             </Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${post.title} 북마크 ${post.isBookmarked ? '해제' : '추가'}`}
             disabled={busy}
             onPress={() => toggleBookmark(post)}
-            style={[styles.smallButton, post.isBookmarked && styles.bookmarkButtonActive]}
+            style={({ pressed }) => [
+              styles.smallButton,
+              post.isBookmarked && styles.bookmarkButtonActive,
+              pressed && styles.buttonPressed
+            ]}
           >
             <Text style={[styles.smallButtonText, post.isBookmarked && styles.bookmarkButtonTextActive]}>
               {post.isBookmarked ? '북마크됨' : '북마크'}
@@ -852,53 +1008,89 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     const ownPost = isOwnContent(selectedPost, user);
 
     return (
-      <View style={styles.detailCard}>
+      <View style={[styles.detailCard, shadows.card]}>
         <View style={styles.cardHeader}>
           <Text style={styles.categoryBadge}>{getCategoryLabel(selectedPost.category)}</Text>
           <Text style={styles.dateText}>{formatDate(selectedPost.createdAt)}</Text>
         </View>
         <Text style={styles.detailTitle}>{selectedPost.title}</Text>
         <Text style={styles.authorText}>작성자: {selectedPost.author?.name || '알 수 없음'}</Text>
-        <Text style={styles.detailContent}>{selectedPost.content}</Text>
+        <View style={styles.detailBody}>
+          <Text style={styles.detailContent}>{selectedPost.content}</Text>
+        </View>
         {renderEngagement(selectedPost)}
-        <View style={styles.cardActions}>
+        <View style={styles.detailActionPanel}>
+          <Text style={styles.actionPanelTitle}>반응과 저장</Text>
+          <View style={styles.cardActions}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="게시글 좋아요"
             disabled={busy}
             onPress={() => toggleReaction(selectedPost, 'LIKE')}
-            style={[styles.smallButton, selectedPost.myReaction === 'LIKE' && styles.smallButtonActive]}
+            style={({ pressed }) => [
+              styles.smallButton,
+              selectedPost.myReaction === 'LIKE' && styles.smallButtonActive,
+              pressed && styles.buttonPressed
+            ]}
           >
             <Text style={[styles.smallButtonText, selectedPost.myReaction === 'LIKE' && styles.smallButtonTextActive]}>
               좋아요
             </Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="게시글 싫어요"
             disabled={busy}
             onPress={() => toggleReaction(selectedPost, 'DISLIKE')}
-            style={[styles.smallButton, selectedPost.myReaction === 'DISLIKE' && styles.smallButtonActive]}
+            style={({ pressed }) => [
+              styles.smallButton,
+              selectedPost.myReaction === 'DISLIKE' && styles.smallButtonActive,
+              pressed && styles.buttonPressed
+            ]}
           >
             <Text style={[styles.smallButtonText, selectedPost.myReaction === 'DISLIKE' && styles.smallButtonTextActive]}>
               싫어요
             </Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={selectedPost.isBookmarked ? '게시글 북마크 해제' : '게시글 북마크 추가'}
             disabled={busy}
             onPress={() => toggleBookmark(selectedPost)}
-            style={[styles.smallButton, selectedPost.isBookmarked && styles.bookmarkButtonActive]}
+            style={({ pressed }) => [
+              styles.smallButton,
+              selectedPost.isBookmarked && styles.bookmarkButtonActive,
+              pressed && styles.buttonPressed
+            ]}
           >
             <Text style={[styles.smallButtonText, selectedPost.isBookmarked && styles.bookmarkButtonTextActive]}>
               {selectedPost.isBookmarked ? '북마크 해제' : '북마크'}
             </Text>
           </Pressable>
-          <Pressable onPress={() => openReport('post', selectedPost)} style={styles.warningButton}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="게시글 신고"
+            onPress={() => openReport('post', selectedPost)}
+            style={({ pressed }) => [styles.warningButton, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.warningButtonText}>게시글 신고</Text>
           </Pressable>
+          </View>
         </View>
         {ownPost ? (
           <View style={styles.ownerActions}>
-            <Pressable onPress={() => openEditPostForm(selectedPost)} style={styles.secondaryButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => openEditPostForm(selectedPost)}
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+            >
               <Text style={styles.secondaryButtonText}>게시글 수정</Text>
             </Pressable>
-            <Pressable onPress={() => confirmDeletePost(selectedPost)} style={styles.dangerButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => confirmDeletePost(selectedPost)}
+              style={({ pressed }) => [styles.dangerButton, pressed && styles.buttonPressed]}
+            >
               <Text style={styles.dangerButtonText}>게시글 삭제</Text>
             </Pressable>
           </View>
@@ -922,12 +1114,21 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             textAlignVertical="top"
             value={commentContent}
           />
-          <Pressable disabled={busy} onPress={submitComment} style={[styles.primaryButton, busy && styles.disabled]}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={submitComment}
+            style={({ pressed }) => [styles.primaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
+          >
             <Text style={styles.primaryButtonText}>댓글 작성</Text>
           </Pressable>
         </View>
         {comments.length === 0 ? (
-          <Text style={styles.emptyText}>아직 댓글이 없습니다.</Text>
+          <View style={styles.emptyCommentBox}>
+            <Text style={styles.emptyIcon}>댓글</Text>
+            <Text style={styles.emptyTitle}>아직 댓글이 없습니다.</Text>
+            <Text style={styles.emptyText}>궁금한 점이나 응원을 첫 댓글로 남겨 보세요.</Text>
+          </View>
         ) : (
           comments.map((comment) => renderComment(comment))
         )}
@@ -956,10 +1157,19 @@ export default function CommunityScreen({ onNavigate, token, user }) {
               value={editingCommentContent}
             />
             <View style={styles.actionRow}>
-              <Pressable disabled={busy} onPress={submitCommentEdit} style={styles.primaryButton}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={submitCommentEdit}
+                style={({ pressed }) => [styles.primaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
+              >
                 <Text style={styles.primaryButtonText}>저장</Text>
               </Pressable>
-              <Pressable onPress={() => setEditingComment(null)} style={styles.secondaryButton}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setEditingComment(null)}
+                style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+              >
                 <Text style={styles.secondaryButtonText}>취소</Text>
               </Pressable>
             </View>
@@ -969,15 +1179,28 @@ export default function CommunityScreen({ onNavigate, token, user }) {
         )}
         {!isEditing ? (
           <View style={styles.cardActions}>
-            <Pressable onPress={() => openReport('comment', comment)} style={styles.warningButton}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="댓글 신고"
+              onPress={() => openReport('comment', comment)}
+              style={({ pressed }) => [styles.warningButton, pressed && styles.buttonPressed]}
+            >
               <Text style={styles.warningButtonText}>댓글 신고</Text>
             </Pressable>
             {ownComment ? (
               <>
-                <Pressable onPress={() => startEditComment(comment)} style={styles.secondaryButton}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => startEditComment(comment)}
+                  style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+                >
                   <Text style={styles.secondaryButtonText}>수정</Text>
                 </Pressable>
-                <Pressable onPress={() => confirmDeleteComment(comment)} style={styles.dangerButton}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => confirmDeleteComment(comment)}
+                  style={({ pressed }) => [styles.dangerButton, pressed && styles.buttonPressed]}
+                >
                   <Text style={styles.dangerButtonText}>삭제</Text>
                 </Pressable>
               </>
@@ -994,9 +1217,14 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     return (
       <View style={styles.paginationRow}>
         <Pressable
+          accessibilityRole="button"
           disabled={value <= 1 || loading || detailLoading}
           onPress={() => onChange(value - 1)}
-          style={[styles.secondaryButton, (value <= 1 || loading || detailLoading) && styles.disabled]}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            (value <= 1 || loading || detailLoading) && styles.disabled,
+            pressed && styles.buttonPressed
+          ]}
         >
           <Text style={styles.secondaryButtonText}>이전</Text>
         </Pressable>
@@ -1004,9 +1232,14 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           {value} / {totalPages}
         </Text>
         <Pressable
+          accessibilityRole="button"
           disabled={value >= totalPages || loading || detailLoading}
           onPress={() => onChange(value + 1)}
-          style={[styles.secondaryButton, (value >= totalPages || loading || detailLoading) && styles.disabled]}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            (value >= totalPages || loading || detailLoading) && styles.disabled,
+            pressed && styles.buttonPressed
+          ]}
         >
           <Text style={styles.secondaryButtonText}>다음</Text>
         </Pressable>
@@ -1018,7 +1251,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F8FA'
+    backgroundColor: colors.background
   },
   contentContainer: {
     padding: 20,
@@ -1028,7 +1261,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 20,
+    ...shadows.card
   },
   headerText: {
     flex: 1,
@@ -1042,12 +1281,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap'
   },
   title: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 28,
     fontWeight: '800'
   },
   subtitle: {
-    color: '#6B7280',
+    color: colors.muted,
     fontSize: 15
   },
   tabRow: {
@@ -1061,38 +1300,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 8
   },
   tabButtonActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB'
+    backgroundColor: colors.blue,
+    borderColor: colors.blue
   },
   tabButtonText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '700'
   },
   tabButtonTextActive: {
-    color: '#FFFFFF'
+    color: colors.surface
   },
   filterPanel: {
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     padding: 14,
-    gap: 10
+    gap: 10,
+    ...shadows.card
   },
   panel: {
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     padding: 14,
-    gap: 10
+    gap: 10,
+    ...shadows.card
   },
   layout: {
     flexDirection: 'row',
@@ -1118,11 +1359,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 220,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.line,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
-    paddingVertical: 10
+    paddingVertical: 10,
+    color: colors.ink
   },
   optionRow: {
     flexDirection: 'row',
@@ -1132,31 +1374,31 @@ const styles = StyleSheet.create({
   chip: {
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
     paddingVertical: 8
   },
   chipActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB'
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint
   },
   chipText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     fontWeight: '700'
   },
   chipTextActive: {
-    color: '#1D4ED8'
+    color: colors.blueDeep
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.line,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14
   },
   textArea: {
@@ -1169,27 +1411,27 @@ const styles = StyleSheet.create({
     minHeight: 76
   },
   sectionTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 17,
     fontWeight: '800'
   },
   card: {
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    padding: 14,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 16,
     gap: 8
   },
   cardActive: {
-    borderColor: '#2563EB',
-    backgroundColor: '#F8FBFF'
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
   },
   detailCard: {
-    borderRadius: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     padding: 16,
     gap: 12
   },
@@ -1197,7 +1439,7 @@ const styles = StyleSheet.create({
     gap: 6
   },
   bookmarkDate: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 12,
     fontWeight: '700'
   },
@@ -1210,42 +1452,76 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    borderRadius: 6,
-    backgroundColor: '#EEF2FF',
-    color: '#4338CA',
+    borderRadius: 8,
+    backgroundColor: colors.blueSoft,
+    color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '800',
     paddingHorizontal: 8,
     paddingVertical: 4
   },
   dateText: {
-    color: '#94A3B8',
+    color: colors.muted,
     fontSize: 12
   },
   cardTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 17,
     fontWeight: '800'
   },
   detailTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 22,
     fontWeight: '800'
   },
   cardContent: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 20
   },
   detailContent: {
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 15,
     lineHeight: 24
   },
   authorText: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 13,
     fontWeight: '600'
+  },
+  cardMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap'
+  },
+  savedBadge: {
+    borderRadius: 8,
+    backgroundColor: colors.cream,
+    color: colors.warning,
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 4
+  },
+  detailBody: {
+    borderRadius: 14,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14
+  },
+  detailActionPanel: {
+    borderRadius: 14,
+    backgroundColor: colors.blueSoft,
+    padding: 12,
+    gap: 8
+  },
+  actionPanelTitle: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
   },
   metricRow: {
     flexDirection: 'row',
@@ -1253,9 +1529,9 @@ const styles = StyleSheet.create({
     gap: 6
   },
   metricText: {
-    borderRadius: 6,
-    backgroundColor: '#F1F5F9',
-    color: '#334155',
+    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    color: colors.ink,
     fontSize: 12,
     fontWeight: '700',
     paddingHorizontal: 8,
@@ -1271,7 +1547,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.line,
     paddingTop: 12
   },
   actionRow: {
@@ -1280,100 +1556,100 @@ const styles = StyleSheet.create({
     gap: 8
   },
   primaryButton: {
-    minHeight: 40,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.blue,
     paddingHorizontal: 14,
     paddingVertical: 9
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 14,
     fontWeight: '800'
   },
   secondaryButton: {
-    minHeight: 40,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 9
   },
   secondaryButtonText: {
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '700'
   },
   smallButton: {
-    minHeight: 34,
+    minHeight: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
     paddingVertical: 6
   },
   smallButtonActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB'
+    backgroundColor: colors.blue,
+    borderColor: colors.blue
   },
   smallButtonText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 12,
     fontWeight: '800'
   },
   smallButtonTextActive: {
-    color: '#FFFFFF'
+    color: colors.surface
   },
   bookmarkButtonActive: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B'
+    backgroundColor: colors.cream,
+    borderColor: colors.creamStrong
   },
   bookmarkButtonTextActive: {
-    color: '#92400E'
+    color: colors.warning
   },
   warningButton: {
-    minHeight: 34,
+    minHeight: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#F59E0B',
-    backgroundColor: '#FFFBEB',
+    borderColor: colors.creamStrong,
+    backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 10,
     paddingVertical: 6
   },
   warningButtonText: {
-    color: '#92400E',
+    color: colors.warning,
     fontSize: 12,
     fontWeight: '800'
   },
   dangerButton: {
-    minHeight: 40,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
     paddingHorizontal: 14,
     paddingVertical: 9
   },
   dangerButtonText: {
-    color: '#B91C1C',
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '800'
   },
   commentSection: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.line,
     paddingTop: 14,
     gap: 10
   },
@@ -1381,15 +1657,15 @@ const styles = StyleSheet.create({
     gap: 8
   },
   commentCard: {
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
     padding: 12,
     gap: 8
   },
   commentText: {
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 14,
     lineHeight: 21
   },
@@ -1404,82 +1680,138 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   pageText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '800'
   },
   loadingBox: {
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
     gap: 10
   },
   emptyBox: {
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
     padding: 18,
-    gap: 6
+    gap: 8,
+    alignItems: 'flex-start'
   },
   emptyDetail: {
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     padding: 24,
-    gap: 8
+    gap: 8,
+    ...shadows.card
   },
   emptyTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 16,
     fontWeight: '800'
   },
   emptyText: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 20
   },
   mutedText: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 20
   },
   counterText: {
     alignSelf: 'flex-end',
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 12,
     fontWeight: '700'
   },
   errorBox: {
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
     padding: 12
   },
   errorText: {
-    color: '#B91C1C',
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '700'
   },
   successBox: {
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
-    backgroundColor: '#F0FDF4',
+    borderColor: colors.mint,
+    backgroundColor: colors.successSoft,
     padding: 12
   },
   successText: {
-    color: '#166534',
+    color: colors.success,
     fontSize: 14,
     fontWeight: '700'
   },
   disabled: {
     opacity: 0.55
+  },
+  buttonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }]
+  },
+  skeletonStack: {
+    gap: 10
+  },
+  skeletonCard: {
+    backgroundColor: colors.surface
+  },
+  modalTargetText: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 20,
+    padding: 12,
+    marginBottom: 10
+  },
+  emptyIcon: {
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    overflow: 'hidden'
+  },
+  emptyActionButton: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  emptyActionText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  emptyCommentBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
+    gap: 6
   }
 });
