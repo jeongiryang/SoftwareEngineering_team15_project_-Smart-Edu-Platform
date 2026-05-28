@@ -103,6 +103,62 @@ export function analyzeWrongAnswer(token, { problem, userAnswer, noteId, allowTr
   });
 }
 
+export function getAccessibilityPreferences(token) {
+  return request('/accessibility/preferences', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function updateAccessibilityPreferences(token, preferences) {
+  return request('/accessibility/preferences', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(preferences)
+  });
+}
+
+export function requestTextToSpeech(token, { text, voiceType }) {
+  return request('/accessibility/tts', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ text, voiceType })
+  });
+}
+
+export function saveSpeechTranscript(token, { transcript }) {
+  return request('/accessibility/stt', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ transcript })
+  });
+}
+
+export function createReviewReminder(token, { title, task, message, scheduledAt }) {
+  return request('/accessibility/review-reminders', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ title, task, message, scheduledAt })
+  });
+}
+
+export function getReviewReminders(token) {
+  return request('/accessibility/review-reminders', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function getAdminUsers(token) {
   return request('/admin/users', {
     headers: {

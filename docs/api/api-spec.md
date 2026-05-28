@@ -2056,7 +2056,240 @@ Response 예시:
 }
 ```
 
-### 9.6 docs 기준 기능 구현 상태 재점검
+### 9.6 음성/접근성 API
+
+음성/접근성 API는 `FR-18`, `FR-20`, `FR-21`, `FR-25`, `FR-26`을 기준으로 구현함. 모든 endpoint는 로그인 사용자의 개인 설정과 음성 요청 이력을 다루므로 인증이 필요함.
+
+공통 인증:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+공통 에러 정책:
+
+| 상태 코드 | code | 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 필수 필드 누락, 타입 오류, 길이 제한 초과, 잘못된 날짜/시간 형식 |
+| `401` | `UNAUTHORIZED` | 인증 토큰 누락 또는 유효하지 않은 토큰 |
+| `500` | `INTERNAL_SERVER_ERROR` | 서버 내부 오류 |
+
+#### 9.6.1 접근성 설정 조회
+
+| Method | Endpoint | 인증 | 설명 |
+|---|---|---|---|
+| `GET` | `/api/accessibility/preferences` | 필요 | 현재 사용자의 접근성 설정 조회 |
+
+Query Parameter: 없음
+
+Request Body: 없음
+
+Response 예시:
+
+```json
+{
+  "preference": {
+    "textScale": 1.2,
+    "highContrast": true,
+    "elementaryFriendlyUi": false,
+    "voiceInputEnabled": true,
+    "voiceOutputEnabled": true,
+    "reviewReminderEnabled": false,
+    "reminderTime": "20:30"
+  }
+}
+```
+
+저장된 설정이 없으면 기본값을 반환함.
+
+#### 9.6.2 접근성 설정 저장
+
+| Method | Endpoint | 인증 | 설명 |
+|---|---|---|---|
+| `PUT` | `/api/accessibility/preferences` | 필요 | 큰 글씨, 고대비, 초등학생 친화 UI, 음성 입출력, 복습 알림 기본 설정 저장 |
+
+Query Parameter: 없음
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `textScale` | number | 아니오 | 글자 크기 배율. `1.0`~`1.6` |
+| `highContrast` | boolean | 아니오 | 고대비 모드 사용 여부 |
+| `elementaryFriendlyUi` | boolean | 아니오 | 초등학생 친화 UI 사용 여부 |
+| `voiceInputEnabled` | boolean | 아니오 | STT 음성 입력 사용 여부 |
+| `voiceOutputEnabled` | boolean | 아니오 | TTS 읽어주기 사용 여부 |
+| `reviewReminderEnabled` | boolean | 아니오 | 복습 알림 사용 여부 |
+| `reminderTime` | string/null | 아니오 | 기본 알림 시간. `HH:mm` 형식 |
+
+Request 예시:
+
+```json
+{
+  "textScale": 1.4,
+  "highContrast": true,
+  "elementaryFriendlyUi": true,
+  "voiceInputEnabled": true,
+  "voiceOutputEnabled": true,
+  "reviewReminderEnabled": true,
+  "reminderTime": "20:30"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "preference": {
+    "id": 1,
+    "userId": 3,
+    "textScale": 1.4,
+    "highContrast": true,
+    "elementaryFriendlyUi": true,
+    "voiceInputEnabled": true,
+    "voiceOutputEnabled": true,
+    "reviewReminderEnabled": true,
+    "reminderTime": "20:30"
+  }
+}
+```
+
+#### 9.6.3 TTS 읽어주기 요청
+
+| Method | Endpoint | 인증 | 설명 |
+|---|---|---|---|
+| `POST` | `/api/accessibility/tts` | 필요 | 텍스트 읽어주기 요청을 검증하고 요청 이력 저장 |
+
+Query Parameter: 없음
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `text` | string | 예 | 읽어줄 텍스트. 최대 1000자 |
+| `voiceType` | string | 아니오 | 음성 선택값. `ADULT_MALE`, `ADULT_FEMALE`, `CHILD_BOY`, `CHILD_GIRL`. 기본값 `ADULT_FEMALE` |
+
+Response 예시:
+
+```json
+{
+  "speech": {
+    "id": 1,
+    "mode": "TTS",
+    "voiceType": "CHILD_GIRL",
+    "text": "오늘 배운 내용을 천천히 읽어 주세요.",
+    "status": "READY",
+    "createdAt": "2026-05-28T03:00:00.000Z"
+  }
+}
+```
+
+현재 백엔드는 TTS 요청 이력, 입력 검증, 음성 선택값 저장을 담당하고, 실제 웹 음성 출력은 프론트의 Web Speech API 지원 여부에 따라 처리함. 외부 고품질 TTS provider는 이번 PR 범위에 포함하지 않으며, 프론트는 브라우저 음성 후보와 pitch/rate 조정으로 성인 남성/성인 여성/또래 남아/또래 여아 음성을 제공함. 브라우저와 운영체제에 한국어 남성 또는 아동 음성이 없는 경우 실제 음색은 선택값과 다를 수 있음.
+
+프론트는 공통 `ReadableText` 컴포넌트를 통해 TTS 설정이 켜진 경우 주요 설명/결과 문단 옆에 `읽어주기` 버튼을 표시함. Web Speech API `onboundary` 이벤트가 제공되는 브라우저에서는 읽는 중인 글자를 파란색으로 하이라이트함.
+
+#### 9.6.4 STT 음성 입력 결과 저장
+
+| Method | Endpoint | 인증 | 설명 |
+|---|---|---|---|
+| `POST` | `/api/accessibility/stt` | 필요 | 음성 입력으로 변환된 transcript 저장 |
+
+Query Parameter: 없음
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `transcript` | string | 예 | 음성 인식 결과 텍스트. 최대 1000자 |
+
+Response 예시:
+
+```json
+{
+  "speech": {
+    "id": 2,
+    "mode": "STT",
+    "transcript": "오늘 수학 단원을 복습했다.",
+    "status": "SAVED",
+    "createdAt": "2026-05-28T03:10:00.000Z"
+  }
+}
+```
+
+현재 백엔드는 변환된 텍스트 저장을 담당하고, 실제 음성 인식은 프론트의 Web Speech API 지원 여부에 따라 처리함.
+
+#### 9.6.5 복습 알림 등록
+
+| Method | Endpoint | 인증 | 설명 |
+|---|---|---|---|
+| `POST` | `/api/accessibility/review-reminders` | 필요 | 복습용 `REVIEW` 알림 등록 |
+
+Query Parameter: 없음
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 아니오 | 복습 알림 제목. 최대 200자 |
+| `task` | string | 아니오 | 복습할 할 일/내용. 최대 500자 |
+| `message` | string | 아니오 | 하위 호환용 복습 알림 메시지. 최대 200자 |
+| `scheduledAt` | string | 예 | 알림 예정 시각. ISO datetime. 프론트 기본값은 현재 한국시간 기준으로 생성하며, 화면에서는 앱 내부 달력 모달과 오전/오후·시·분 알람 선택 패널로 생성 |
+
+Request 예시:
+
+```json
+{
+  "title": "영어 단어 복습",
+  "task": "Day 3 단어 20개 다시 보기",
+  "scheduledAt": "2026-05-29T20:00:00+09:00"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "reminder": {
+    "id": 1,
+    "userId": 3,
+    "type": "REVIEW",
+    "message": "영어 단어 복습 - Day 3 단어 20개 다시 보기",
+    "scheduledAt": "2026-05-29T11:00:00.000Z",
+    "readAt": null,
+    "createdAt": "2026-05-28T03:15:00.000Z"
+  }
+}
+```
+
+#### 9.6.6 복습 알림 목록 조회
+
+| Method | Endpoint | 인증 | 설명 |
+|---|---|---|---|
+| `GET` | `/api/accessibility/review-reminders` | 필요 | 현재 로그인한 사용자의 읽지 않은 복습 알림 목록 조회 |
+
+Query Parameter: 없음
+
+Request Body: 없음
+
+Response 예시:
+
+```json
+{
+  "reminders": [
+    {
+      "id": 1,
+      "userId": 3,
+      "type": "REVIEW",
+      "message": "영어 단어 복습 - Day 3 단어 20개 다시 보기",
+      "scheduledAt": "2026-05-29T11:00:00.000Z",
+      "readAt": null,
+      "createdAt": "2026-05-28T03:15:00.000Z"
+    }
+  ]
+}
+```
+
+### 9.7 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -2076,9 +2309,9 @@ Response 예시:
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
 | 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
 | 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
-| TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
+| TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 부분 구현 | `/api/accessibility/preferences`, `/tts`, `/stt` API 및 프론트 음성/접근성 화면 구현. TTS 4종 선택은 브라우저 Web Speech API 기반 pitch/rate 조정으로 제공 | 고품질 Neural TTS provider 연동, 음성 파일 캐싱, 실제 모바일 권한, 노트 연동 고도화 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
-| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 미구현 | 요구사항 문서에 계획됨 | 알림/보상 정책 및 테스트 설계 |
+| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/accessibility/review-reminders`로 `REVIEW` 알림 등록 및 GET 조회 API 구현, 프론트엔드 로컬 타이머 기반 소리/Alert 수신 연동 완료 | 보상 정책 구현 |
 | 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
 
 ---
@@ -2089,7 +2322,8 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark 포함. 최신 확인 기준 13 suites / 238 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Accessibility 포함. 최신 확인 기준 14 suites / 246 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 음성/접근성 API 단일 테스트 | 1 suite / 8 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 44 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
@@ -2124,3 +2358,4 @@ Response 예시:
 | 2026-05-26 | 커뮤니티 댓글 API(§9.4.6~§9.4.9) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 반응 API(§9.4.10~§9.4.11) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 북마크 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 실시간 복습 알림 수신을 위한 GET 조회 API 추가 및 프론트엔드 로컬 타이머를 활용한 Alert/TTS 실시간 알람 연동 명세 추가 |

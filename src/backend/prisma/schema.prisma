@@ -75,34 +75,36 @@ enum AdminActionType {
 }
 
 model User {
-  id                 Int                 @id @default(autoincrement())
-  email              String              @unique
-  passwordHash       String              @map("password_hash")
-  name               String
-  role               Role                @default(USER)
-  userType           UserType?           @map("user_type")
-  status             AccountStatus       @default(ACTIVE)
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
-  profile            UserProfile?
-  schedules          StudySchedule[]
-  tasks              StudyTask[]
-  notifications      Notification[]
-  notes              StudyNote[]
-  aiQuestions        AIQuestion[]
-  wrongAnswerNotes   WrongAnswerNote[]
-  quizzes            Quiz[]
-  aiRecommendations  AIRecommendation[]
-  focusSessions      FocusSession[]
-  statistics         StudyStatistics[]
-  posts              BoardPost[]
-  comments           Comment[]
-  communityReactions CommunityReaction[]
-  communityBookmarks CommunityBookmark[]
-  createdChallenges  StudyChallenge[]
-  challengeMembers   ChallengeMember[]
-  rankings           Ranking[]
-  adminActions       AdminAction[]
+  id                      Int                         @id @default(autoincrement())
+  email                   String                      @unique
+  passwordHash            String                      @map("password_hash")
+  name                    String
+  role                    Role                        @default(USER)
+  userType                UserType?                   @map("user_type")
+  status                  AccountStatus               @default(ACTIVE)
+  createdAt               DateTime                    @default(now()) @map("created_at")
+  updatedAt               DateTime                    @updatedAt @map("updated_at")
+  profile                 UserProfile?
+  schedules               StudySchedule[]
+  tasks                   StudyTask[]
+  notifications           Notification[]
+  notes                   StudyNote[]
+  aiQuestions             AIQuestion[]
+  wrongAnswerNotes        WrongAnswerNote[]
+  quizzes                 Quiz[]
+  aiRecommendations       AIRecommendation[]
+  focusSessions           FocusSession[]
+  statistics              StudyStatistics[]
+  posts                   BoardPost[]
+  comments                Comment[]
+  communityReactions      CommunityReaction[]
+  communityBookmarks      CommunityBookmark[]
+  accessibilityPreference AccessibilityPreference?
+  voiceRequests           VoiceAccessibilityRequest[]
+  createdChallenges       StudyChallenge[]
+  challengeMembers        ChallengeMember[]
+  rankings                Ranking[]
+  adminActions            AdminAction[]
 
   @@map("users")
 }
@@ -256,6 +258,38 @@ model AIRecommendation {
   user               User     @relation(fields: [userId], references: [id])
 
   @@map("ai_recommendations")
+}
+
+model AccessibilityPreference {
+  id                    Int      @id @default(autoincrement())
+  userId                Int      @unique @map("user_id")
+  textScale             Float    @default(1.0) @map("text_scale")
+  highContrast          Boolean  @default(false) @map("high_contrast")
+  elementaryFriendlyUi  Boolean  @default(false) @map("elementary_friendly_ui")
+  voiceInputEnabled     Boolean  @default(false) @map("voice_input_enabled")
+  voiceOutputEnabled    Boolean  @default(false) @map("voice_output_enabled")
+  reviewReminderEnabled Boolean  @default(false) @map("review_reminder_enabled")
+  reminderTime          String?  @map("reminder_time")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  user                  User     @relation(fields: [userId], references: [id])
+
+  @@map("accessibility_preferences")
+}
+
+model VoiceAccessibilityRequest {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  mode       String
+  voiceType  String?  @map("voice_type")
+  inputText  String?  @map("input_text")
+  transcript String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([mode])
+  @@map("voice_accessibility_requests")
 }
 
 model FocusSession {

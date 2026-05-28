@@ -15,6 +15,7 @@ import {
   moderateAdminPost,
   moderateAdminComment
 } from '../services/api';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 
 export default function AdminScreen({ onNavigate, token, user }) {
   // Access Guard check inside component
@@ -250,7 +251,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
           <Text style={styles.inputLabel}>
             조치 사유 입력 {(!actionTarget || actionTarget.actionType === 'KEEP') ? '(선택):' : '(필수):'}
           </Text>
-          <TextInput
+          <AccessibleTextInput
             placeholder={(!actionTarget || actionTarget.actionType === 'KEEP') ? "기각 사유를 입력할 수 있습니다. (선택)" : "상태 변경 또는 제재 조치 사유를 구체적으로 입력하세요."}
             value={actionReason}
             onChangeText={setActionReason}

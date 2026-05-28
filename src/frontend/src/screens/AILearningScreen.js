@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from 'react-native';
 import {
@@ -14,6 +13,8 @@ import {
   summarizeText,
   analyzeWrongAnswer
 } from '../services/api';
+import AccessibleTextInput from '../components/AccessibleTextInput';
+import ReadableText from '../components/ReadableText';
 
 export default function AILearningScreen({ onNavigate, token, user }) {
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
@@ -285,7 +286,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   {questionInput.length} / {MAX_QUESTION_LENGTH}자
                 </Text>
               </View>
-              <TextInput
+              <AccessibleTextInput
                 placeholder="공부하다가 모르는 개념이나 공식, 질문 사항을 입력하세요."
                 placeholderTextColor="#9CA3AF"
                 value={questionInput}
@@ -329,7 +330,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                     <Text style={styles.qnaTextUser}>{item.question}</Text>
                     <View style={styles.divider} />
                     <Text style={styles.qnaLabelAi}>A. AI 답변</Text>
-                    <Text style={styles.qnaTextAi}>{item.answer}</Text>
+                    <ReadableText style={styles.qnaTextAi}>{item.answer}</ReadableText>
                   </View>
                 ))
               )}
@@ -371,7 +372,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   {recommendationResult.tips.map((tip, idx) => (
                     <View key={idx} style={styles.tipItem}>
                       <Text style={styles.tipBullet}>•</Text>
-                      <Text style={styles.tipText}>{tip}</Text>
+                      <ReadableText style={styles.tipText}>{tip}</ReadableText>
                     </View>
                   ))}
                 </View>
@@ -390,7 +391,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   {summarizeInput.length} / {MAX_SUMMARY_LENGTH}자
                 </Text>
               </View>
-              <TextInput
+              <AccessibleTextInput
                 placeholder="책 본문, 학습지 텍스트 등 요약이 필요한 긴 글을 복사해서 붙여넣으세요."
                 placeholderTextColor="#9CA3AF"
                 value={summarizeInput}
@@ -425,7 +426,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   {summaryResult.isTruncated && <Text style={styles.truncateBadge}>앞부분 요약됨 (3000자 초과)</Text>}
                 </View>
                 <View style={styles.summaryContentBox}>
-                  <Text style={styles.summaryText}>{summaryResult.summary}</Text>
+                  <ReadableText style={styles.summaryText}>{summaryResult.summary}</ReadableText>
                 </View>
               </View>
             )}
@@ -442,7 +443,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   {wrongProblemInput.length} / {MAX_PROBLEM_LENGTH}자
                 </Text>
               </View>
-              <TextInput
+              <AccessibleTextInput
                 placeholder="틀린 문제 문항이나 문제를 그대로 입력해 주세요."
                 placeholderTextColor="#9CA3AF"
                 value={wrongProblemInput}
@@ -460,7 +461,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   {wrongUserAnswerInput.length} / {MAX_ANSWER_LENGTH}자
                 </Text>
               </View>
-              <TextInput
+              <AccessibleTextInput
                 placeholder="문제 풀 때 내가 작성했던 틀린 답변이나 풀이 과정을 적어보세요. (선택)"
                 placeholderTextColor="#9CA3AF"
                 value={wrongUserAnswerInput}
@@ -514,7 +515,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   <View style={styles.wrongDivider} />
 
                   <Text style={styles.wrongExplanationLabel}>📝 AI 피드백 및 해설:</Text>
-                  <Text style={styles.wrongExplanationText}>{wrongAnalysisResult.explanation}</Text>
+                  <ReadableText style={styles.wrongExplanationText}>{wrongAnalysisResult.explanation}</ReadableText>
                 </View>
               </View>
             )}

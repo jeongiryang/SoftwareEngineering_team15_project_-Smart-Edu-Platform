@@ -5,18 +5,21 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import AccessibilityScreen from './src/screens/AccessibilityScreen';
 import { getCurrentUser } from './src/services/api';
+import { AccessibilityProvider } from './src/contexts/AccessibilityContext';
 
 const screens = {
   login: LoginScreen,
   register: RegisterScreen,
   dashboard: DashboardScreen,
   aiLearning: AILearningScreen,
-  admin: AdminScreen
+  admin: AdminScreen,
+  accessibility: AccessibilityScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning'];
+const authScreens = ['dashboard', 'admin', 'aiLearning', 'accessibility'];
 
 function getStorage() {
   try {
@@ -129,13 +132,15 @@ export default function App() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
-        <Screen
-          onAuthenticated={handleAuthenticated}
-          onLogout={handleLogout}
-          onNavigate={setCurrentScreen}
-          token={token}
-          user={user}
-        />
+        <AccessibilityProvider token={token}>
+          <Screen
+            onAuthenticated={handleAuthenticated}
+            onLogout={handleLogout}
+            onNavigate={setCurrentScreen}
+            token={token}
+            user={user}
+          />
+        </AccessibilityProvider>
       </View>
     </SafeAreaView>
   );
