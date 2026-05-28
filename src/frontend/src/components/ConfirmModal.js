@@ -50,14 +50,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(19, 42, 54, 0.34)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24
+    padding: 16
   },
   dialog: {
     width: '100%',
     maxWidth: 410,
     borderRadius: 24,
     backgroundColor: colors.surface,
-    padding: 28,
+    padding: 22,
     alignItems: 'center'
   },
   pencilMark: {
@@ -86,11 +86,13 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     width: '100%'
   },
   cancelButton: {
     flex: 1,
+    minWidth: 120,
     minHeight: 47,
     borderRadius: 13,
     borderWidth: 1,
@@ -105,6 +107,7 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
+    minWidth: 120,
     minHeight: 47,
     borderRadius: 13,
     backgroundColor: colors.blue,

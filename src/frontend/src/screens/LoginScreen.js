@@ -90,15 +90,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 64,
+    gap: 32,
     alignItems: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 18,
     paddingVertical: 55,
     minHeight: 650
   },
   sideCopy: {
     flex: 1,
-    minWidth: 280
+    minWidth: 260
   },
   eyebrow: {
     color: colors.mintDeep,
@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
   sideTitle: {
     color: colors.ink,
     fontWeight: '800',
-    fontSize: 37,
-    lineHeight: 50,
+    fontSize: 34,
+    lineHeight: 46,
     letterSpacing: 0
   },
   sideDescription: {
@@ -144,12 +144,12 @@ const styles = StyleSheet.create({
   formCard: {
     width: '100%',
     maxWidth: 420,
-    minWidth: 280,
+    minWidth: 260,
     borderRadius: 27,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
-    paddingHorizontal: 34,
+    paddingHorizontal: 26,
     paddingVertical: 38
   },
   title: {
