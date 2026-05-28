@@ -152,6 +152,13 @@ const SEED_IDS = {
     routine: 900092,
     exam: 900093,
     beginner: 900094
+  },
+  friendships: {
+    mainPeer: 900101,
+    mainCommunity: 900102,
+    mainRewardPending: 900103,
+    accessMainPending: 900104,
+    peerBeginnerRejected: 900105
   }
 };
 
@@ -253,6 +260,17 @@ async function resetSeedData(prisma, seedUsers) {
   const postIds = Object.values(SEED_IDS.posts);
   const commentIds = Object.values(SEED_IDS.comments);
   const quizQuestionIds = SEED_IDS.quizQuestions;
+  const friendshipIds = Object.values(SEED_IDS.friendships);
+
+  await prisma.friendship.deleteMany({
+    where: {
+      OR: [
+        { id: { in: friendshipIds } },
+        { requesterId: { in: userIds } },
+        { addresseeId: { in: userIds } }
+      ]
+    }
+  });
 
   await prisma.communityReport.deleteMany({
     where: {
@@ -691,6 +709,61 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
   }));
 
   return tasks;
+}
+
+async function seedFriendships(prisma, usersByEmail) {
+  const mainUser = usersByEmail['dev.user@example.com'];
+  const peerUser = usersByEmail['dev.peer@example.com'];
+  const communityUser = usersByEmail['dev.community@example.com'];
+  const rewardUser = usersByEmail['dev.reward@example.com'];
+  const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+
+  await prisma.friendship.createMany({
+    data: [
+      {
+        id: SEED_IDS.friendships.mainPeer,
+        requesterId: mainUser.id,
+        addresseeId: peerUser.id,
+        status: 'ACCEPTED',
+        createdAt: daysFromNow(-18, 9, 0),
+        updatedAt: daysFromNow(-17, 18, 0)
+      },
+      {
+        id: SEED_IDS.friendships.mainCommunity,
+        requesterId: communityUser.id,
+        addresseeId: mainUser.id,
+        status: 'ACCEPTED',
+        createdAt: daysFromNow(-10, 12, 10),
+        updatedAt: daysFromNow(-9, 20, 15)
+      },
+      {
+        id: SEED_IDS.friendships.mainRewardPending,
+        requesterId: mainUser.id,
+        addresseeId: rewardUser.id,
+        status: 'PENDING',
+        createdAt: daysFromNow(-1, 21, 0),
+        updatedAt: daysFromNow(-1, 21, 0)
+      },
+      {
+        id: SEED_IDS.friendships.accessMainPending,
+        requesterId: accessUser.id,
+        addresseeId: mainUser.id,
+        status: 'PENDING',
+        createdAt: daysFromNow(0, 8, 30),
+        updatedAt: daysFromNow(0, 8, 30)
+      },
+      {
+        id: SEED_IDS.friendships.peerBeginnerRejected,
+        requesterId: peerUser.id,
+        addresseeId: beginnerUser.id,
+        status: 'REJECTED',
+        createdAt: daysFromNow(-5, 15, 0),
+        updatedAt: daysFromNow(-4, 19, 0)
+      }
+    ],
+    skipDuplicates: true
+  });
 }
 
 async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
@@ -2210,6 +2283,7 @@ async function seedDevelopmentData(prisma) {
   const usersByEmail = Object.fromEntries(users.map((user) => [user.email, user]));
 
   await resetSeedData(prisma, users);
+  await seedFriendships(prisma, usersByEmail);
   const tasks = await seedSchedulesAndTasks(prisma, usersByEmail);
   await seedFocusAndStatistics(prisma, usersByEmail, tasks);
   await seedCommunity(prisma, usersByEmail);

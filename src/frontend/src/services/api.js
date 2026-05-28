@@ -157,6 +157,59 @@ export function updateCurrentUser(token, payload) {
   });
 }
 
+export function searchUsers(token, keyword) {
+  return request(`/users/search${buildQueryString({ keyword })}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getFriends(token) {
+  return request('/friends', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getFriendRequests(token) {
+  return request('/friends/requests', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function sendFriendRequest(token, userId) {
+  return request('/friends/requests', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ userId })
+  });
+}
+
+export function respondToFriendRequest(token, requestId, action) {
+  return request(`/friends/requests/${requestId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ action })
+  });
+}
+
+export function deleteFriend(token, friendId) {
+  return request(`/friends/${friendId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function changeCurrentUserPassword(token, payload) {
   return request('/users/me/password', {
     method: 'PATCH',
