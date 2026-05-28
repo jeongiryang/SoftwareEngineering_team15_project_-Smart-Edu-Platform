@@ -35,17 +35,33 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
       <View style={styles.grid}>
         {cards.map((label) => {
           const isAIFeature = label === 'AI 학습 질의';
+          const isCommunityFeature = label === '게시판';
 
           return (
             <Pressable
               key={label}
-              onPress={isAIFeature ? () => onNavigate('aiLearning') : undefined}
-              style={[styles.card, isAIFeature && styles.aiCard]}
+              onPress={
+                isAIFeature
+                  ? () => onNavigate('aiLearning')
+                  : isCommunityFeature
+                    ? () => onNavigate('community')
+                    : undefined
+              }
+              style={[styles.card, isAIFeature && styles.aiCard, isCommunityFeature && styles.communityCard]}
             >
-              <Text style={[styles.cardText, isAIFeature && styles.aiCardText]}>{label}</Text>
+              <Text style={[
+                styles.cardText,
+                isAIFeature && styles.aiCardText,
+                isCommunityFeature && styles.communityCardText
+              ]}>{label}</Text>
               {isAIFeature && (
                 <View style={styles.aiBadge}>
                   <Text style={styles.aiBadgeText}>AI 헬퍼</Text>
+                </View>
+              )}
+              {isCommunityFeature && (
+                <View style={styles.communityBadge}>
+                  <Text style={styles.communityBadgeText}>연결됨</Text>
                 </View>
               )}
             </Pressable>
@@ -161,6 +177,13 @@ const styles = StyleSheet.create({
   aiCardText: {
     color: '#4F46E5'
   },
+  communityCard: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC'
+  },
+  communityCardText: {
+    color: '#166534'
+  },
   aiBadge: {
     position: 'absolute',
     top: 8,
@@ -171,6 +194,20 @@ const styles = StyleSheet.create({
     paddingVertical: 2
   },
   aiBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700'
+  },
+  communityBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#16A34A',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
+  communityBadgeText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700'
