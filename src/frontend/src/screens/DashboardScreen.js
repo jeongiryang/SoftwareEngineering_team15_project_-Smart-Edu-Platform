@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import FeatureGuideModal from '../components/FeatureGuideModal';
 import { colors, shadows } from '../styles/theme';
+
+const AI_GUIDE_STORAGE_KEY = 'sagaksagakAiGuideDismissed';
 
 const featureCards = [
   {
     label: 'AI 학습 센터',
-    summary: '질문, 추천, 요약, 오답 분석을 한 화면에서 이어갈 수 있습니다.',
+    summary: '질문, 맞춤 추천, 요약, 오답 분석을 한 화면에서 이어갈 수 있습니다.',
     status: '연결됨',
     screen: 'aiLearning',
-    tone: 'featured'
+    tone: 'featured',
+    requiresAIGuide: true
   },
   {
     label: '학습 일정',
@@ -32,7 +37,7 @@ const featureCards = [
   },
   {
     label: '집중 시간',
-    summary: '집중 세션 기록과 타이머 연동 화면은 후속 단계에서 연결합니다.',
+    summary: '집중 세션 기록과 타이머 화면은 후속 단계에서 연결합니다.',
     status: '후속 연결'
   },
   {
@@ -99,94 +104,146 @@ function getCardStyle(tone) {
 
 export default function DashboardScreen({ onLogout, onNavigate, user }) {
   const hasAdminRole = user?.role === 'ADMIN';
+  const [showAIGuide, setShowAIGuide] = useState(false);
+
+  function isGuideDismissed() {
+    try {
+      return globalThis.localStorage?.getItem(AI_GUIDE_STORAGE_KEY) === 'true';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function openAILearning() {
+    if (isGuideDismissed()) {
+      onNavigate('aiLearning');
+      return;
+    }
+
+    setShowAIGuide(true);
+  }
+
+  function continueToAILearning(doNotShowAgain) {
+    if (doNotShowAgain) {
+      try {
+        globalThis.localStorage?.setItem(AI_GUIDE_STORAGE_KEY, 'true');
+      } catch (error) {
+        // Browsers with disabled storage can still proceed without persisting preference.
+      }
+    }
+
+    setShowAIGuide(false);
+    onNavigate('aiLearning');
+  }
+
+  function handleCardPress(card) {
+    if (!card.screen) {
+      return;
+    }
+
+    if (card.requiresAIGuide) {
+      openAILearning();
+      return;
+    }
+
+    onNavigate(card.screen);
+  }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.hero}>
-        <View style={styles.heroCopy}>
-          <Text style={styles.eyebrow}>SAGAKSAGAK DASHBOARD</Text>
-          <Text style={styles.title}>{user?.name || '사용자'}의{'\n'}학습 흐름을 이어갑니다</Text>
-          <Text style={styles.subtitle}>
-            현재 연결된 AI, 커뮤니티, 일정, 칸반 화면을 한 곳에서 확인하고 이동할 수 있습니다.
-          </Text>
-          <View style={styles.heroButtonRow}>
-            <Pressable onPress={() => onNavigate('aiLearning')} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>AI 학습 센터</Text>
-            </Pressable>
-            <Pressable onPress={() => onNavigate('community')} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>커뮤니티 보기</Text>
-            </Pressable>
-            <Pressable onPress={() => onNavigate('schedule')} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>일정 보기</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={[styles.profileCard, shadows.card]}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name?.slice(0, 1) || '학'}</Text>
-          </View>
-          <Text style={styles.userName}>{user?.name}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
-          </View>
-          <Pressable onPress={onLogout} style={styles.logoutButton}>
-            <Text style={styles.logoutButtonText}>로그아웃</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
-          <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 표시합니다.</Text>
-        </View>
-      </View>
-
-      <View style={styles.grid}>
-        {featureCards.map((card) => {
-          const cardStyle = getCardStyle(card.tone);
-
-          return (
-            <Pressable
-              key={card.label}
-              disabled={!card.screen}
-              onPress={card.screen ? () => onNavigate(card.screen) : undefined}
-              style={[styles.card, cardStyle.container, shadows.card]}
-            >
-              <View style={[styles.statusChip, cardStyle.status]}>
-                <Text style={[styles.statusChipText, cardStyle.statusText]}>{card.status}</Text>
-              </View>
-              <Text style={[styles.cardTitle, cardStyle.title]}>{card.label}</Text>
-              <Text style={[styles.cardSummary, cardStyle.summary]}>{card.summary}</Text>
-              <Text style={[styles.cardLink, cardStyle.link]}>
-                {card.screen ? '화면으로 이동 ->' : '연결 준비 중'}
-              </Text>
-            </Pressable>
-          );
-        })}
-
-        {hasAdminRole ? (
-          <Pressable onPress={() => onNavigate('admin')} style={[styles.card, styles.adminCard, shadows.card]}>
-            <View style={[styles.statusChip, styles.adminStatus]}>
-              <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
+    <>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.eyebrow}>MY LEARNING SPACE</Text>
+            <Text style={styles.title}>{user?.name || '사용자'}님,{'\n'}오늘도 사각사각 기록해요</Text>
+            <Text style={styles.subtitle}>
+              AI 학습, 커뮤니티, 일정, 칸반 화면을 한 곳에서 이어가며 오늘의 학습 흐름을 정리합니다.
+            </Text>
+            <View style={styles.heroButtonRow}>
+              <Pressable accessibilityRole="button" onPress={openAILearning} style={styles.primaryButton}>
+                <Text style={styles.primaryButtonText}>AI 학습 시작하기</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => onNavigate('community')} style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>커뮤니티 보기</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => onNavigate('schedule')} style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>일정 보기</Text>
+              </Pressable>
             </View>
-            <Text style={styles.cardTitle}>관리자 콘솔</Text>
-            <Text style={styles.cardSummary}>사용자 상태와 관리자 데이터 조회 흐름을 확인할 수 있습니다.</Text>
-            <Text style={[styles.cardLink, styles.defaultLink]}>콘솔로 이동 -></Text>
-          </Pressable>
-        ) : null}
-      </View>
+          </View>
 
-      <View style={styles.noticeCard}>
-        <Text style={styles.noticeTitle}>현재 연결 상태</Text>
-        <Text style={styles.noticeText}>
-          일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
-          댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 대상으로 남겨둡니다.
-        </Text>
-      </View>
-    </ScrollView>
+          <View style={[styles.profileCard, shadows.card]}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.name?.slice(0, 1) || '학'}</Text>
+            </View>
+            <Text style={styles.userName}>{user?.name || '학습자'}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+            <View style={styles.memberBadge}>
+              <Text style={styles.memberBadgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
+            </View>
+            <Pressable accessibilityRole="button" onPress={onLogout} style={styles.logoutButton}>
+              <Text style={styles.logoutButtonText}>로그아웃</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
+            <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 표시합니다.</Text>
+          </View>
+        </View>
+
+        <View style={styles.grid}>
+          {featureCards.map((card) => {
+            const cardStyle = getCardStyle(card.tone);
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={card.label}
+                disabled={!card.screen}
+                onPress={() => handleCardPress(card)}
+                style={[styles.card, cardStyle.container, shadows.card]}
+              >
+                <View style={[styles.statusChip, cardStyle.status]}>
+                  <Text style={[styles.statusChipText, cardStyle.statusText]}>{card.status}</Text>
+                </View>
+                <Text style={[styles.cardTitle, cardStyle.title]}>{card.label}</Text>
+                <Text style={[styles.cardSummary, cardStyle.summary]}>{card.summary}</Text>
+                <Text style={[styles.cardLink, cardStyle.link]}>
+                  {card.screen ? '화면으로 이동 ->' : '연결 준비 중'}
+                </Text>
+              </Pressable>
+            );
+          })}
+
+          {hasAdminRole ? (
+            <Pressable accessibilityRole="button" onPress={() => onNavigate('admin')} style={[styles.card, styles.adminCard, shadows.card]}>
+              <View style={[styles.statusChip, styles.adminStatus]}>
+                <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
+              </View>
+              <Text style={styles.cardTitle}>관리자 콘솔</Text>
+              <Text style={styles.cardSummary}>사용자 상태와 관리자 데이터 조회 흐름을 확인할 수 있습니다.</Text>
+              <Text style={[styles.cardLink, styles.defaultLink]}>콘솔로 이동 -></Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.noticeCard}>
+          <Text style={styles.noticeTitle}>현재 연결 상태</Text>
+          <Text style={styles.noticeText}>
+            일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
+            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 대상으로 남겨둡니다.
+          </Text>
+        </View>
+      </ScrollView>
+      <FeatureGuideModal
+        onClose={() => setShowAIGuide(false)}
+        onContinue={continueToAILearning}
+        visible={showAIGuide}
+      />
+    </>
   );
 }
 
@@ -303,14 +360,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 6
   },
-  badge: {
+  memberBadge: {
     marginTop: 16,
     borderRadius: 999,
     backgroundColor: colors.blueSoft,
     paddingHorizontal: 12,
     paddingVertical: 8
   },
-  badgeText: {
+  memberBadgeText: {
     color: colors.blue,
     fontSize: 11,
     fontWeight: '800',
@@ -352,8 +409,9 @@ const styles = StyleSheet.create({
     gap: 14
   },
   card: {
-    width: '31.9%',
-    minWidth: 260,
+    flexGrow: 1,
+    flexBasis: '31%',
+    minWidth: 250,
     minHeight: 180,
     borderRadius: 24,
     padding: 20,

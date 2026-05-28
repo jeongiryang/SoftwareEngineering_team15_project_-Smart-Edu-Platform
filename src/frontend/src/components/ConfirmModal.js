@@ -1,0 +1,105 @@
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, shadows } from '../styles/theme';
+
+export default function ConfirmModal({
+  cancelLabel = '취소',
+  confirmLabel = '확인',
+  description,
+  destructive = false,
+  onCancel,
+  onConfirm,
+  title,
+  visible
+}) {
+  return (
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onCancel}>
+      <View style={styles.overlay}>
+        <View style={[styles.dialog, shadows.card]}>
+          <View style={styles.pencilMark} />
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.description}>{description}</Text>
+          <View style={styles.actions}>
+            <Pressable onPress={onCancel} style={styles.cancelButton}>
+              <Text style={styles.cancelText}>{cancelLabel}</Text>
+            </Pressable>
+            <Pressable onPress={onConfirm} style={[styles.confirmButton, destructive && styles.dangerButton]}>
+              <Text style={styles.confirmText}>{confirmLabel}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(19, 42, 54, 0.34)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24
+  },
+  dialog: {
+    width: '100%',
+    maxWidth: 410,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    padding: 28,
+    alignItems: 'center'
+  },
+  pencilMark: {
+    width: 46,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.mint,
+    marginBottom: 20
+  },
+  title: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: colors.ink,
+    marginBottom: 10
+  },
+  description: {
+    color: colors.muted,
+    lineHeight: 22,
+    textAlign: 'center',
+    fontSize: 14,
+    marginBottom: 25
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%'
+  },
+  cancelButton: {
+    flex: 1,
+    minHeight: 47,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  cancelText: {
+    color: colors.ink,
+    fontWeight: '700'
+  },
+  confirmButton: {
+    flex: 1,
+    minHeight: 47,
+    borderRadius: 13,
+    backgroundColor: colors.blue,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  dangerButton: {
+    backgroundColor: colors.danger
+  },
+  confirmText: {
+    color: colors.surface,
+    fontWeight: '700'
+  }
+});
