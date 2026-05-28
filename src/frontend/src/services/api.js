@@ -49,6 +49,82 @@ function buildQueryString(params = {}) {
   return pairs.length ? `?${pairs.join('&')}` : '';
 }
 
+const FOCUS_SESSION_QUEUE_KEY = 'smartEdu.pendingFocusSessionQueue';
+const FOCUS_SESSION_QUEUE_LIMIT = 20;
+const FOCUS_SESSION_FIELDS = ['taskId', 'startedAt', 'endedAt', 'durationMs', 'memo'];
+
+function getStorage() {
+  if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
+    return null;
+  }
+
+  return globalThis.localStorage;
+}
+
+function readFocusSessionQueue() {
+  const storage = getStorage();
+
+  if (!storage) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(storage.getItem(FOCUS_SESSION_QUEUE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeFocusSessionQueue(queue) {
+  const storage = getStorage();
+
+  if (!storage) {
+    return false;
+  }
+
+  try {
+    storage.setItem(FOCUS_SESSION_QUEUE_KEY, JSON.stringify(queue.slice(0, FOCUS_SESSION_QUEUE_LIMIT)));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function sanitizeFocusSessionPayload(payload = {}) {
+  return FOCUS_SESSION_FIELDS.reduce((nextPayload, field) => {
+    if (Object.prototype.hasOwnProperty.call(payload, field)) {
+      nextPayload[field] = payload[field];
+    }
+
+    return nextPayload;
+  }, {});
+}
+
+function createQueueItem(payload, reason = 'network') {
+  return {
+    localId: `focus-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    payload: sanitizeFocusSessionPayload(payload),
+    reason,
+    queuedAt: new Date().toISOString()
+  };
+}
+
+function shouldQueueFocusSessionError(error) {
+  return !error.status || error.status >= 500;
+}
+
+export function getPendingFocusSessionQueue() {
+  return readFocusSessionQueue();
+}
+
+export function enqueueFocusSession(payload, reason = 'manual') {
+  const queue = readFocusSessionQueue();
+  const nextQueue = [createQueueItem(payload, reason), ...queue].slice(0, FOCUS_SESSION_QUEUE_LIMIT);
+
+  return writeFocusSessionQueue(nextQueue);
+}
+
 export function registerUser({ email, password, name }) {
   return request('/auth/register', {
     method: 'POST',
@@ -170,6 +246,65 @@ export function getFocusSessions(token, params = {}) {
       Authorization: `Bearer ${token}`
     }
   });
+}
+
+export async function recordFocusSession(token, payload, options = {}) {
+  const { queueOnFailure = true } = options;
+  const safePayload = sanitizeFocusSessionPayload(payload);
+
+  try {
+    return await request('/focus-sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(safePayload)
+    });
+  } catch (error) {
+    if (queueOnFailure && shouldQueueFocusSessionError(error)) {
+      const queued = enqueueFocusSession(safePayload, error.status ? `http-${error.status}` : 'network');
+      error.queued = queued;
+      error.message = queued
+        ? '네트워크 문제로 집중 기록을 임시 저장했습니다. 연결이 회복되면 다시 전송해 주세요.'
+        : '집중 기록 저장에 실패했고, 현재 브라우저에서 임시 저장도 사용할 수 없습니다.';
+    }
+
+    throw error;
+  }
+}
+
+export async function retryPendingFocusSessions(token) {
+  const queue = readFocusSessionQueue();
+  const remaining = [];
+  const submitted = [];
+
+  for (const item of queue) {
+    try {
+      const result = await request('/focus-sessions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(item.payload)
+      });
+
+      submitted.push(result.focusSession);
+    } catch (error) {
+      remaining.push({
+        ...item,
+        lastTriedAt: new Date().toISOString(),
+        lastError: error.status ? `http-${error.status}` : 'network'
+      });
+    }
+  }
+
+  writeFocusSessionQueue(remaining);
+
+  return {
+    submitted,
+    failed: remaining.length,
+    remaining
+  };
 }
 
 export function getStatisticsSummary(token, params = {}) {
