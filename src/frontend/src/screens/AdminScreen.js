@@ -17,7 +17,7 @@ import {
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import { PanelSkeleton } from '../components/Skeleton';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 export default function AdminScreen({ onNavigate, token, user }) {
   // Access Guard check inside component
@@ -26,7 +26,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorHeader}>접근 권한이 없습니다.</Text>
         <Text style={styles.errorSub}>관리자 계정으로 로그인해 주세요.</Text>
-        <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>
+        <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>대시보드로 돌아가기</Text>
         </Pressable>
       </View>
@@ -176,7 +176,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
         <Pressable
           accessibilityRole="button"
           onPress={() => loadData(true)}
-          style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+          style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
         >
           <Text style={styles.emptyActionText}>다시 확인하기</Text>
         </Pressable>
@@ -192,7 +192,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
           <Text style={styles.title}>관리자 시스템 콘솔</Text>
           <Text style={styles.subtitle}>사용자 계정 상태 및 커뮤니티 신고 관리</Text>
         </View>
-        <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>
+        <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>대시보드로 가기</Text>
         </Pressable>
       </View>
@@ -201,7 +201,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
       <View style={styles.tabsRow}>
         <Pressable
           onPress={() => { setActiveTab('users'); setActionTarget(null); }}
-          style={[styles.tabButton, activeTab === 'users' && styles.tabButtonActive]}
+          style={(state) => [styles.tabButton, activeTab === 'users' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'users' && styles.tabButtonTextActive]}>
             사용자 관리
@@ -209,7 +209,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
         </Pressable>
         <Pressable
           onPress={() => { setActiveTab('reports'); setActionTarget(null); }}
-          style={[styles.tabButton, activeTab === 'reports' && styles.tabButtonActive]}
+          style={(state) => [styles.tabButton, activeTab === 'reports' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'reports' && styles.tabButtonTextActive]}>
             신고 콘텐츠 관리 ({reports.reportedPosts.length + reports.reportedComments.length})
@@ -217,7 +217,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
         </Pressable>
         <Pressable
           onPress={() => { setActiveTab('logs'); setActionTarget(null); }}
-          style={[styles.tabButton, activeTab === 'logs' && styles.tabButtonActive]}
+          style={(state) => [styles.tabButton, activeTab === 'logs' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'logs' && styles.tabButtonTextActive]}>
             활동 로그
@@ -255,7 +255,11 @@ export default function AdminScreen({ onNavigate, token, user }) {
                   <Pressable
                     key={status}
                     onPress={() => setActionStatus(status)}
-                    style={[styles.radioButton, actionStatus === status && styles.radioButtonActive]}
+                    style={(state) => [
+                      styles.radioButton,
+                      actionStatus === status && styles.radioButtonActive,
+                      ...interactiveStateStyles(state)
+                    ]}
                   >
                     <Text style={[styles.radioText, actionStatus === status && styles.radioTextActive]}>
                       {getStatusLabel(status)}
@@ -282,7 +286,11 @@ export default function AdminScreen({ onNavigate, token, user }) {
             <Pressable
               disabled={submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim())}
               onPress={actionTarget.type === 'user' ? handleUserStatusUpdate : handleModerationUpdate}
-              style={[styles.modalSubmitBtn, (submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim())) && styles.disabledBtn]}
+              style={(state) => [
+                styles.modalSubmitBtn,
+                (submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim())) && styles.disabledBtn,
+                ...interactiveStateStyles(state, { disabled: submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim()) })
+              ]}
             >
               {submitting ? (
                 <ActivityIndicator color={colors.surface} size="small" />
@@ -293,7 +301,11 @@ export default function AdminScreen({ onNavigate, token, user }) {
             <Pressable
               disabled={submitting}
               onPress={() => setActionTarget(null)}
-              style={styles.modalCancelBtn}
+              style={(state) => [
+                styles.modalCancelBtn,
+                submitting && styles.disabledBtn,
+                ...interactiveStateStyles(state, { disabled: submitting })
+              ]}
             >
               <Text style={styles.modalCancelText}>취소</Text>
             </Pressable>
@@ -315,7 +327,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>등록된 사용자 목록 ({users.length})</Text>
-                <Pressable onPress={loadData} style={styles.refreshBtn}>
+                <Pressable onPress={loadData} style={(state) => [styles.refreshBtn, ...interactiveStateStyles(state)]}>
                   <Text style={styles.refreshBtnText}>새로고침</Text>
                 </Pressable>
               </View>
@@ -342,7 +354,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                             setActionStatus(item.status);
                             setActionReason('');
                           }}
-                          style={styles.actionBtn}
+                          style={(state) => [styles.actionBtn, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.actionBtnText}>상태 변경</Text>
                         </Pressable>
@@ -359,7 +371,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>신고 조치 관리</Text>
-                <Pressable onPress={loadData} style={styles.refreshBtn}>
+                <Pressable onPress={loadData} style={(state) => [styles.refreshBtn, ...interactiveStateStyles(state)]}>
                   <Text style={styles.refreshBtnText}>새로고침</Text>
                 </Pressable>
               </View>
@@ -387,7 +399,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                             setActionTarget({ type: 'post', data: item, actionType: 'HIDE' });
                             setActionReason('');
                           }}
-                          style={[styles.moderationBtn, styles.dangerBtn]}
+                          style={(state) => [styles.moderationBtn, styles.dangerBtn, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moderationBtnText}>게시글 삭제(숨김)</Text>
                         </Pressable>
@@ -396,7 +408,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                             setActionTarget({ type: 'post', data: item, actionType: 'KEEP' });
                             setActionReason('');
                           }}
-                          style={[styles.moderationBtn, styles.safeBtn]}
+                          style={(state) => [styles.moderationBtn, styles.safeBtn, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moderationBtnText}>신고 기각(유지)</Text>
                         </Pressable>
@@ -428,7 +440,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                             setActionTarget({ type: 'comment', data: item, actionType: 'DELETE' });
                             setActionReason('');
                           }}
-                          style={[styles.moderationBtn, styles.dangerBtn]}
+                          style={(state) => [styles.moderationBtn, styles.dangerBtn, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moderationBtnText}>댓글 삭제</Text>
                         </Pressable>
@@ -437,7 +449,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                             setActionTarget({ type: 'comment', data: item, actionType: 'KEEP' });
                             setActionReason('');
                           }}
-                          style={[styles.moderationBtn, styles.safeBtn]}
+                          style={(state) => [styles.moderationBtn, styles.safeBtn, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moderationBtnText}>신고 기각(유지)</Text>
                         </Pressable>
@@ -454,7 +466,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>관리자 시스템 감사 로그 ({reports.adminActions.length})</Text>
-                <Pressable onPress={loadData} style={styles.refreshBtn}>
+                <Pressable onPress={loadData} style={(state) => [styles.refreshBtn, ...interactiveStateStyles(state)]}>
                   <Text style={styles.refreshBtnText}>새로고침</Text>
                 </Pressable>
               </View>
@@ -538,7 +550,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: 21,
     paddingHorizontal: 14,
-    paddingVertical: 8
+    paddingVertical: 8,
+    ...interactions.transition
   },
   backButtonText: {
     color: colors.blueDeep,
@@ -559,7 +572,10 @@ const styles = StyleSheet.create({
     minHeight: 47,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 13
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...interactions.transition
   },
   tabButtonActive: {
     backgroundColor: colors.mint,
@@ -639,7 +655,8 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surfaceWarm
+    backgroundColor: colors.surfaceWarm,
+    ...interactions.transition
   },
   radioButtonActive: {
     borderColor: colors.mint,
@@ -671,10 +688,13 @@ const styles = StyleSheet.create({
   modalSubmitBtn: {
     flex: 2,
     backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   modalSubmitText: {
     color: colors.surface,
@@ -684,10 +704,13 @@ const styles = StyleSheet.create({
   modalCancelBtn: {
     flex: 1,
     backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   modalCancelText: {
     color: colors.ink,
@@ -731,9 +754,12 @@ const styles = StyleSheet.create({
   },
   refreshBtn: {
     backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.mint,
     borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 6
+    paddingVertical: 6,
+    ...interactions.transition
   },
   refreshBtnText: {
     fontSize: 12,
@@ -771,16 +797,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blueSoft,
     paddingHorizontal: 14,
     justifyContent: 'center',
-    marginTop: 4
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
+    ...interactions.transition
   },
   emptyActionText: {
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '800'
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
   },
   userCard: {
     backgroundColor: colors.surface,
@@ -862,7 +887,8 @@ const styles = StyleSheet.create({
     borderColor: colors.blue,
     borderRadius: 6,
     paddingHorizontal: 10,
-    paddingVertical: 6
+    paddingVertical: 6,
+    ...interactions.transition
   },
   actionBtnText: {
     fontSize: 12,
@@ -918,7 +944,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: 6
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...interactions.transition
   },
   dangerBtn: {
     backgroundColor: colors.danger

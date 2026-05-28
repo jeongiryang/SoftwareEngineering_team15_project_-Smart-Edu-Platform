@@ -16,7 +16,7 @@ import {
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import ReadableText from '../components/ReadableText';
 import { PanelSkeleton } from '../components/Skeleton';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 export default function AILearningScreen({ onNavigate, token, user }) {
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
@@ -60,7 +60,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorHeader}>접근 권한이 없습니다.</Text>
         <Text style={styles.errorSub}>로그인 후 다시 시도해 주세요.</Text>
-        <Pressable onPress={() => onNavigate('login')} style={styles.backButton}>
+        <Pressable onPress={() => onNavigate('login')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>로그인 하러 가기</Text>
         </Pressable>
       </View>
@@ -222,7 +222,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
           <Text style={styles.title}>AI 학습 지원 센터</Text>
           <Text style={styles.subtitle}>개인화된 AI 도우미와 함께하는 스마트 학습</Text>
         </View>
-        <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>
+        <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>대시보드로 가기</Text>
         </Pressable>
       </View>
@@ -252,7 +252,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       <View style={styles.tabsRow}>
         <Pressable
           onPress={() => { setActiveTab('qna'); resetFeedback(); }}
-          style={[styles.tabButton, activeTab === 'qna' && styles.tabButtonActive]}
+          style={(state) => [styles.tabButton, activeTab === 'qna' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'qna' && styles.tabButtonTextActive]}>
             AI 학습 질의
@@ -260,7 +260,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         </Pressable>
         <Pressable
           onPress={() => { setActiveTab('recommend'); resetFeedback(); }}
-          style={[styles.tabButton, activeTab === 'recommend' && styles.tabButtonActive]}
+          style={(state) => [styles.tabButton, activeTab === 'recommend' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'recommend' && styles.tabButtonTextActive]}>
             맞춤 학습 추천
@@ -268,7 +268,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         </Pressable>
         <Pressable
           onPress={() => { setActiveTab('summarize'); resetFeedback(); }}
-          style={[styles.tabButton, activeTab === 'summarize' && styles.tabButtonActive]}
+          style={(state) => [styles.tabButton, activeTab === 'summarize' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'summarize' && styles.tabButtonTextActive]}>
             긴 글 요약
@@ -276,7 +276,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         </Pressable>
         <Pressable
           onPress={() => { setActiveTab('wrong'); resetFeedback(); }}
-          style={[styles.tabButton, activeTab === 'wrong' && styles.tabButtonActive]}
+          style={(state) => [styles.tabButton, activeTab === 'wrong' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'wrong' && styles.tabButtonTextActive]}>
             오답 원인 분석
@@ -325,9 +325,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <Pressable
                 disabled={loading || !questionInput.trim()}
                 onPress={handleQuestionSubmit}
-                style={[
+                style={(state) => [
                   styles.submitBtn,
-                  (loading || !questionInput.trim()) && styles.disabledBtn
+                  (loading || !questionInput.trim()) && styles.disabledBtn,
+                  ...interactiveStateStyles(state, { disabled: loading || !questionInput.trim() })
                 ]}
               >
                 {loading ? (
@@ -348,7 +349,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => setQuestionInput('오늘 헷갈린 개념: ')}
-                    style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                    style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
                   >
                     <Text style={styles.emptyActionText}>질문 입력 준비</Text>
                   </Pressable>
@@ -382,7 +383,11 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <Pressable
                 disabled={loading}
                 onPress={handleRecommendationSubmit}
-                style={[styles.submitBtn, loading && styles.disabledBtn]}
+                style={(state) => [
+                  styles.submitBtn,
+                  loading && styles.disabledBtn,
+                  ...interactiveStateStyles(state, { disabled: loading })
+                ]}
               >
                 {loading ? (
                   <ActivityIndicator color={colors.surface} size="small" />
@@ -438,9 +443,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <Pressable
                 disabled={loading || !summarizeInput.trim()}
                 onPress={handleSummarySubmit}
-                style={[
+                style={(state) => [
                   styles.submitBtn,
-                  (loading || !summarizeInput.trim()) && styles.disabledBtn
+                  (loading || !summarizeInput.trim()) && styles.disabledBtn,
+                  ...interactiveStateStyles(state, { disabled: loading || !summarizeInput.trim() })
                 ]}
               >
                 {loading ? (
@@ -509,9 +515,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <Pressable
                 disabled={loading || !wrongProblemInput.trim()}
                 onPress={handleWrongAnswerSubmit}
-                style={[
+                style={(state) => [
                   styles.submitBtn,
-                  (loading || !wrongProblemInput.trim()) && styles.disabledBtn
+                  (loading || !wrongProblemInput.trim()) && styles.disabledBtn,
+                  ...interactiveStateStyles(state, { disabled: loading || !wrongProblemInput.trim() })
                 ]}
               >
                 {loading ? (
@@ -606,7 +613,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
-    padding: 16
+    padding: 16,
+    ...interactions.transition
   },
   transparencyLabel: {
     color: colors.blueDeep,
@@ -627,7 +635,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
-    paddingHorizontal: 18
+    paddingHorizontal: 18,
+    ...interactions.transition
   },
   backButtonText: {
     color: colors.blueDeep,
@@ -653,7 +662,10 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent'
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...interactions.transition
   },
   tabButtonActive: {
     backgroundColor: colors.mint
@@ -745,7 +757,10 @@ const styles = StyleSheet.create({
     shadowColor: colors.blue,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3
+    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   submitBtnText: {
     color: colors.surface,
@@ -793,16 +808,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blueSoft,
     paddingHorizontal: 14,
     justifyContent: 'center',
-    marginTop: 4
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
+    ...interactions.transition
   },
   emptyActionText: {
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '800'
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
   },
   qnaCard: {
     backgroundColor: colors.surface,

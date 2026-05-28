@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 export default function FeatureGuideModal({ onClose, onContinue, visible }) {
   const [doNotShowAgain, setDoNotShowAgain] = useState(false);
@@ -33,7 +33,7 @@ export default function FeatureGuideModal({ onClose, onContinue, visible }) {
             accessibilityRole="checkbox"
             accessibilityState={{ checked: doNotShowAgain }}
             onPress={() => setDoNotShowAgain((selected) => !selected)}
-            style={({ pressed }) => [styles.preference, pressed && styles.buttonPressed]}
+            style={(state) => [styles.preference, state.hovered && styles.preferenceHover, ...interactiveStateStyles(state)]}
           >
             <View style={[styles.checkbox, doNotShowAgain && styles.checkboxSelected]}>
               {doNotShowAgain ? <Text style={styles.checkmark}>✓</Text> : null}
@@ -44,14 +44,14 @@ export default function FeatureGuideModal({ onClose, onContinue, visible }) {
             <Pressable
               accessibilityRole="button"
               onPress={handleClose}
-              style={({ pressed }) => [styles.cancelButton, pressed && styles.buttonPressed]}
+              style={(state) => [styles.cancelButton, ...interactiveStateStyles(state)]}
             >
               <Text style={styles.cancelText}>닫기</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={handleContinue}
-              style={({ pressed }) => [styles.confirmButton, pressed && styles.buttonPressed]}
+              style={(state) => [styles.confirmButton, ...interactiveStateStyles(state)]}
             >
               <Text style={styles.confirmText}>AI 학습 시작</Text>
             </Pressable>
@@ -118,7 +118,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 24
+    marginBottom: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    padding: 4,
+    ...interactions.transition
+  },
+  preferenceHover: {
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line
   },
   checkbox: {
     width: 21,
@@ -155,7 +164,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     borderRadius: 13,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   cancelText: {
     color: colors.ink,
@@ -166,15 +176,14 @@ const styles = StyleSheet.create({
     minHeight: 48,
     backgroundColor: colors.blue,
     borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.blue,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   confirmText: {
     color: colors.surface,
     fontWeight: '700'
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
   }
 });

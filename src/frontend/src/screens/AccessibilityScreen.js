@@ -18,7 +18,7 @@ import {
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import ReadableText from '../components/ReadableText';
 import { useAccessibility, voiceOptions } from '../contexts/AccessibilityContext';
-import { colors, radii, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, radii, shadows } from '../styles/theme';
 
 const defaultPreference = {
   textScale: 1,
@@ -426,7 +426,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={styles.title}>접근 권한이 없습니다.</Text>
-        <Pressable onPress={() => onNavigate('login')} style={styles.primaryButton}>
+        <Pressable onPress={() => onNavigate('login')} style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.primaryButtonText}>로그인 하러 가기</Text>
         </Pressable>
       </View>
@@ -493,7 +493,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
             text={isKidMode ? kidTexts.readAloudParagraph : '읽어주기 설정을 켜면 화면의 안내 문단 옆에 읽어주기 버튼이 표시됩니다.'}
           />
         </View>
-        <Pressable onPress={() => onNavigate('dashboard')} style={styles.secondaryButton}>
+        <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.secondaryButtonText}>
             {isKidMode ? kidTexts.dashboardButton : '대시보드'}
           </Text>
@@ -543,7 +543,12 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                   key={scale}
                   disabled={saving}
                   onPress={() => updateLocalPreference({ textScale: scale })}
-                  style={[styles.scaleButton, preference.textScale === scale && styles.activeButton]}
+                  style={(state) => [
+                    styles.scaleButton,
+                    preference.textScale === scale && styles.activeButton,
+                    saving && styles.disabledButton,
+                    ...interactiveStateStyles(state, { disabled: saving })
+                  ]}
                 >
                   <Text style={[styles.scaleButtonText, preference.textScale === scale && styles.activeButtonText]}>
                     {isKidMode
@@ -586,7 +591,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                   setVoiceGuideStep(0);
                   setVoiceGuideVisible(true);
                 }}
-                style={styles.guideButton}
+                style={(state) => [styles.guideButton, ...interactiveStateStyles(state)]}
               >
                 <Text style={styles.guideButtonText}>
                   {isKidMode ? kidTexts.guideButton : '도움말'}
@@ -609,7 +614,11 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                         setVoiceType(option.value);
                         setGlobalVoiceType(option.value);
                       }}
-                      style={styles.voiceSelectArea}
+                      style={(state) => [
+                        styles.voiceSelectArea,
+                        saving && styles.disabledButton,
+                        ...interactiveStateStyles(state, { disabled: saving })
+                      ]}
                     >
                       <Text style={[
                         styles.voiceButtonText,
@@ -636,7 +645,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               style={[styles.textarea, scaledStyles]}
               value={ttsText}
             />
-            <Pressable disabled={saving} onPress={handleSpeak} style={styles.primaryButton}>
+            <Pressable disabled={saving} onPress={handleSpeak} style={(state) => [styles.primaryButton, saving && styles.disabledButton, ...interactiveStateStyles(state, { disabled: saving })]}>
               <Text style={styles.primaryButtonText}>{isKidMode ? '🔊 소리 내어 듣기' : '읽어주기'}</Text>
             </Pressable>
           </View>
@@ -646,7 +655,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               {isKidMode ? kidTexts.section3Title : '음성 입력 메모'}
             </Text>
             <View style={styles.inlineButtons}>
-              <Pressable disabled={saving} onPress={handleSaveTranscript} style={styles.primaryButtonSmall}>
+              <Pressable disabled={saving} onPress={handleSaveTranscript} style={(state) => [styles.primaryButtonSmall, saving && styles.disabledButton, ...interactiveStateStyles(state, { disabled: saving })]}>
                 <Text style={styles.primaryButtonText}>{isKidMode ? kidTexts.buttonSave : '저장'}</Text>
               </Pressable>
             </View>
@@ -706,7 +715,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                   <Text style={styles.dateCardLabel}>{isKidMode ? kidTexts.labelDate : '날짜'}</Text>
                   <Text style={styles.dateValueText}>{reminderDate || '날짜 선택'}</Text>
                 </View>
-                <Pressable onPress={openDatePicker} style={styles.calendarButton}>
+                <Pressable onPress={openDatePicker} style={(state) => [styles.calendarButton, ...interactiveStateStyles(state)]}>
                   <CalendarIcon />
                 </Pressable>
               </View>
@@ -714,7 +723,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
             <Text style={styles.helperText}>
               {isKidMode ? kidTexts.labelScheduled : '알림 예정'}: {reminderDate || '날짜 고르기'} {clampTimePart(reminderHour, 23)}:{clampTimePart(reminderMinute, 59)}
             </Text>
-            <Pressable disabled={saving} onPress={handleReminder} style={styles.primaryButton}>
+            <Pressable disabled={saving} onPress={handleReminder} style={(state) => [styles.primaryButton, saving && styles.disabledButton, ...interactiveStateStyles(state, { disabled: saving })]}>
               <Text style={styles.primaryButtonText}>
                 {isKidMode ? kidTexts.buttonReminderSubmit : '복습 알림 등록'}
               </Text>
@@ -747,7 +756,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 {isKidMode ? kidVoiceGuideSteps[voiceGuideStep].body : voiceGuideSteps[voiceGuideStep].body}
               </Text>
               <View style={styles.modalActionRow}>
-                <Pressable onPress={() => setVoiceGuideVisible(false)} style={styles.modalGhostButton}>
+                <Pressable onPress={() => setVoiceGuideVisible(false)} style={(state) => [styles.modalGhostButton, ...interactiveStateStyles(state)]}>
                   <Text style={styles.modalGhostButtonText}>
                     {isKidMode ? '그만보기' : '건너뛰기'}
                   </Text>
@@ -755,7 +764,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 {voiceGuideStep > 0 && (
                   <Pressable
                     onPress={() => setVoiceGuideStep((step) => Math.max(step - 1, 0))}
-                    style={styles.modalOutlineButton}
+                    style={(state) => [styles.modalOutlineButton, ...interactiveStateStyles(state)]}
                   >
                     <Text style={styles.modalOutlineButtonText}>이전</Text>
                   </Pressable>
@@ -770,7 +779,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
 
                     setVoiceGuideStep((step) => step + 1);
                   }}
-                  style={styles.modalButton}
+                  style={(state) => [styles.modalButton, ...interactiveStateStyles(state)]}
                 >
                   <Text style={styles.modalButtonText}>
                     {isKidMode
@@ -797,13 +806,13 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 <View style={styles.calendarNavRow}>
                   <Pressable
                     onPress={() => setCalendarMonth((month) => shiftMonth(month, -1))}
-                    style={styles.calendarNavButton}
+                    style={(state) => [styles.calendarNavButton, ...interactiveStateStyles(state)]}
                   >
                     <Text style={styles.calendarNavText}>{isKidMode ? '◀ 지난달' : '이전'}</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => setCalendarMonth((month) => shiftMonth(month, 1))}
-                    style={styles.calendarNavButton}
+                    style={(state) => [styles.calendarNavButton, ...interactiveStateStyles(state)]}
                   >
                     <Text style={styles.calendarNavText}>{isKidMode ? '다음달 ▶' : '다음'}</Text>
                   </Pressable>
@@ -826,10 +835,11 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                         setReminderDate(cell.date);
                         setCalendarVisible(false);
                       }}
-                      style={[
+                      style={(state) => [
                         styles.calendarDayButton,
                         isToday && styles.calendarDayButtonToday,
-                        isSelected && styles.calendarDayButtonActive
+                        isSelected && styles.calendarDayButtonActive,
+                        ...interactiveStateStyles(state)
                       ]}
                     >
                       <Text
@@ -847,7 +857,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 })}
               </View>
               <View style={styles.modalActionRow}>
-                <Pressable onPress={() => setCalendarVisible(false)} style={styles.modalGhostButton}>
+                <Pressable onPress={() => setCalendarVisible(false)} style={(state) => [styles.modalGhostButton, ...interactiveStateStyles(state)]}>
                   <Text style={styles.modalGhostButtonText}>{isKidMode ? '창 닫기' : '취소'}</Text>
                 </Pressable>
               </View>
@@ -869,7 +879,7 @@ function ReadableParagraph({ enabled, style, text }) {
 
 function ToggleRow({ active, label, onPress }) {
   return (
-    <Pressable onPress={onPress} style={styles.toggleRow}>
+    <Pressable onPress={onPress} style={(state) => [styles.toggleRow, active && styles.toggleRowActive, ...interactiveStateStyles(state)]}>
       <Text style={styles.toggleLabel}>{label}</Text>
       <View style={[styles.toggle, active && styles.toggleActive]}>
         <View style={[styles.toggleKnob, active && styles.toggleKnobActive]} />
@@ -881,10 +891,10 @@ function ToggleRow({ active, label, onPress }) {
 function PeriodWheel({ onChange, value }) {
   return (
     <View style={styles.periodWheel}>
-      <Pressable onPress={() => onChange('AM')} style={styles.periodOption}>
+      <Pressable onPress={() => onChange('AM')} style={(state) => [styles.periodOption, value === 'AM' && styles.periodOptionActive, ...interactiveStateStyles(state)]}>
         <Text style={[styles.periodText, value === 'AM' && styles.periodTextActive]}>오전</Text>
       </Pressable>
-      <Pressable onPress={() => onChange('PM')} style={styles.periodOption}>
+      <Pressable onPress={() => onChange('PM')} style={(state) => [styles.periodOption, value === 'PM' && styles.periodOptionActive, ...interactiveStateStyles(state)]}>
         <Text style={[styles.periodText, value === 'PM' && styles.periodTextActive]}>오후</Text>
       </Pressable>
     </View>
@@ -925,7 +935,7 @@ function TimeWheelColumn({ label, max, min, onChange, value }) {
   return (
     <View style={styles.timeWheelColumn}>
       <Text style={styles.timeWheelLabel}>{label}</Text>
-      <Pressable onPress={() => handleChange(previousValue)} style={styles.wheelSideButton}>
+      <Pressable onPress={() => handleChange(previousValue)} style={(state) => [styles.wheelSideButton, ...interactiveStateStyles(state)]}>
         <Text style={styles.wheelMutedText}>{previousValue}</Text>
       </Pressable>
       <TextInput
@@ -937,7 +947,7 @@ function TimeWheelColumn({ label, max, min, onChange, value }) {
         style={styles.wheelInput}
         value={inputValue}
       />
-      <Pressable onPress={() => handleChange(nextValue)} style={styles.wheelSideButton}>
+      <Pressable onPress={() => handleChange(nextValue)} style={(state) => [styles.wheelSideButton, ...interactiveStateStyles(state)]}>
         <Text style={styles.wheelMutedText}>{nextValue}</Text>
       </Pressable>
     </View>
@@ -1012,9 +1022,12 @@ const styles = StyleSheet.create({
   },
   guideButton: {
     backgroundColor: colors.blueSoft,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
     borderRadius: radii.control,
     paddingHorizontal: 10,
-    paddingVertical: 6
+    paddingVertical: 6,
+    ...interactions.transition
   },
   guideButtonText: {
     color: colors.blue,
@@ -1070,13 +1083,16 @@ const styles = StyleSheet.create({
     gap: 4,
     minHeight: 88,
     minWidth: 160,
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    ...interactions.transition
   },
   voiceSelectArea: {
     alignItems: 'center',
     gap: 4,
     justifyContent: 'center',
-    width: '100%'
+    width: '100%',
+    borderRadius: radii.control,
+    ...interactions.transition
   },
   voiceButtonText: {
     color: colors.ink,
@@ -1097,7 +1113,8 @@ const styles = StyleSheet.create({
     minHeight: 40,
     minWidth: 64,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   activeButton: {
     backgroundColor: colors.blue,
@@ -1112,9 +1129,18 @@ const styles = StyleSheet.create({
   },
   toggleRow: {
     alignItems: 'center',
+    borderColor: 'transparent',
+    borderRadius: radii.control,
+    borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    minHeight: 44
+    minHeight: 44,
+    paddingHorizontal: 8,
+    ...interactions.transition
+  },
+  toggleRowActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
   },
   toggleLabel: {
     color: colors.ink,
@@ -1182,8 +1208,17 @@ const styles = StyleSheet.create({
   },
   periodOption: {
     alignItems: 'center',
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: 'transparent',
     minHeight: 34,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    ...interactions.transition
+  },
+  periodOptionActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.surface
   },
   periodText: {
     color: colors.line,
@@ -1207,9 +1242,13 @@ const styles = StyleSheet.create({
   },
   wheelSideButton: {
     alignItems: 'center',
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: 'transparent',
     minHeight: 30,
     justifyContent: 'center',
-    width: '100%'
+    width: '100%',
+    ...interactions.transition
   },
   wheelMutedText: {
     color: colors.line,
@@ -1259,10 +1298,13 @@ const styles = StyleSheet.create({
   calendarButton: {
     alignItems: 'center',
     backgroundColor: colors.blueSoft,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
     borderRadius: radii.control,
     height: 36,
     justifyContent: 'center',
-    width: 36
+    width: 36,
+    ...interactions.transition
   },
   calendarIcon: {
     backgroundColor: colors.surface,
@@ -1298,18 +1340,24 @@ const styles = StyleSheet.create({
   primaryButton: {
     alignItems: 'center',
     backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
     borderRadius: radii.control,
     justifyContent: 'center',
     minHeight: 44,
-    paddingHorizontal: 16
+    paddingHorizontal: 16,
+    ...interactions.transition
   },
   primaryButtonSmall: {
     alignItems: 'center',
     backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
     borderRadius: radii.control,
     justifyContent: 'center',
     minHeight: 44,
-    paddingHorizontal: 20
+    paddingHorizontal: 20,
+    ...interactions.transition
   },
   primaryButtonText: {
     color: colors.surface,
@@ -1324,7 +1372,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 44,
-    paddingHorizontal: 14
+    paddingHorizontal: 14,
+    ...interactions.transition
+  },
+  disabledButton: {
+    opacity: 0.55
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -1356,9 +1408,12 @@ const styles = StyleSheet.create({
   },
   inlineReadButton: {
     backgroundColor: colors.blueSoft,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
     borderRadius: radii.control,
     paddingHorizontal: 8,
-    paddingVertical: 5
+    paddingVertical: 5,
+    ...interactions.transition
   },
   inlineReadButtonText: {
     color: colors.blue,
@@ -1407,10 +1462,13 @@ const styles = StyleSheet.create({
   },
   modalGhostButton: {
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
     borderRadius: 8,
     minHeight: 40,
     justifyContent: 'center',
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    ...interactions.transition
   },
   modalGhostButtonText: {
     color: colors.muted,
@@ -1425,7 +1483,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     minHeight: 40,
     justifyContent: 'center',
-    paddingHorizontal: 16
+    paddingHorizontal: 16,
+    ...interactions.transition
   },
   modalOutlineButtonText: {
     color: colors.ink,
@@ -1436,10 +1495,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-end',
     backgroundColor: colors.mintDeep,
+    borderWidth: 1,
+    borderColor: colors.mintDeep,
     borderRadius: radii.control,
     minHeight: 40,
     justifyContent: 'center',
-    paddingHorizontal: 18
+    paddingHorizontal: 18,
+    ...interactions.transition
   },
   modalButtonText: {
     color: colors.surface,
@@ -1472,9 +1534,12 @@ const styles = StyleSheet.create({
   },
   calendarNavButton: {
     backgroundColor: colors.blueSoft,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
     borderRadius: radii.control,
     paddingHorizontal: 10,
-    paddingVertical: 7
+    paddingVertical: 7,
+    ...interactions.transition
   },
   calendarNavText: {
     color: colors.blue,
@@ -1498,10 +1563,13 @@ const styles = StyleSheet.create({
   },
   calendarDayButton: {
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
     borderRadius: 20,
     height: 40,
     justifyContent: 'center',
-    width: `${100 / 7}%`
+    width: `${100 / 7}%`,
+    ...interactions.transition
   },
   calendarDayButtonActive: {
     backgroundColor: colors.blue
