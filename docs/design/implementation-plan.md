@@ -183,7 +183,7 @@ API는 REST 방식으로 작성하며, 인증이 필요한 API는 JWT 인증 미
 | PATCH | `/api/admin/posts/:postId/moderation` | 관리자 게시판 관리 | FR-27 | UC-18 |
 | PATCH | `/api/admin/challenges/:challengeId/moderation` | 관리자 챌린지 관리 | FR-29 | UC-21 |
 
-커뮤니티 사용자용 API namespace는 `/api/community` 기준으로 정리한다. 게시글/댓글 기본 API와 게시글 목록 검색·정렬·페이징은 구현되었고, 좋아요/싫어요 반응과 북마크는 `CommunityReaction`, `CommunityBookmark` schema/migration을 먼저 준비한 뒤 API를 후속 작업으로 분리한다. 신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정한다.
+커뮤니티 사용자용 API namespace는 `/api/community` 기준으로 정리한다. 게시글/댓글 기본 API와 게시글 목록 검색·정렬·페이징은 구현되었고, 좋아요/싫어요 반응과 북마크는 `CommunityReaction`, `CommunityBookmark` schema/migration을 먼저 준비한 뒤 API를 후속 작업으로 분리한다. 신고 기능은 `CommunityReport`, 신고 상태 enum, 신고 대상 enum schema/migration을 선행하고 사용자 신고 API와 관리자 처리 API를 후속 작업으로 분리한다.
 
 ---
 
@@ -232,6 +232,7 @@ API는 REST 방식으로 작성하며, 인증이 필요한 API는 JWT 인증 미
 | `comments` | 게시글 댓글 | `id`, `post_id`, `user_id`, `content`, `reported`, `created_at`, `updated_at` |
 | `community_reactions` | 게시글 좋아요/싫어요 통합 반응 | `id`, `post_id`, `user_id`, `type`, `created_at`, `updated_at` |
 | `community_bookmarks` | 게시글 북마크 | `id`, `post_id`, `user_id`, `created_at` |
+| `community_reports` | 게시글/댓글 신고 이력 | `id`, `reporter_id`, `target_type`, `post_id`, `comment_id`, `reason`, `status`, `resolved_by_id`, `resolved_at`, `resolution_note`, `created_at`, `updated_at` |
 | `study_challenges` | 스터디 챌린지 | `id`, `creator_id`, `title`, `description`, `goal_minutes`, `start_date`, `end_date`, `status`, `created_at` |
 | `challenge_members` | 챌린지 참여자 및 진행도 | `id`, `challenge_id`, `user_id`, `progress_minutes`, `joined_at` |
 | `rankings` | 주간 랭킹 집계 결과 | `id`, `user_id`, `challenge_id`, `period_start`, `period_end`, `rank`, `study_minutes`, `created_at` |
@@ -266,6 +267,10 @@ API는 REST 방식으로 작성하며, 인증이 필요한 API는 JWT 인증 미
 | `users` - `community_reactions` | 1:N | 사용자 한 명은 여러 게시글 반응을 남길 수 있다. |
 | `board_posts` - `community_bookmarks` | 1:N | 게시글 하나는 여러 북마크를 가질 수 있다. 게시글 삭제 시 북마크는 함께 정리한다. |
 | `users` - `community_bookmarks` | 1:N | 사용자 한 명은 여러 게시글을 북마크할 수 있다. |
+| `users` - `community_reports` | 1:N | 사용자 한 명은 여러 게시글/댓글 신고를 남길 수 있다. |
+| `users` - `community_reports` | 1:N | 관리자 사용자는 여러 신고 처리자로 기록될 수 있다. |
+| `board_posts` - `community_reports` | 1:N | 게시글 하나는 여러 신고 이력을 가질 수 있다. 게시글 삭제 시 해당 신고 이력도 함께 정리한다. |
+| `comments` - `community_reports` | 1:N | 댓글 하나는 여러 신고 이력을 가질 수 있다. 댓글 삭제 시 해당 신고 이력도 함께 정리한다. |
 | `users` - `study_challenges` | 1:N | 사용자는 챌린지를 생성할 수 있다. |
 | `users` - `study_challenges` | N:M | 사용자는 여러 챌린지에 참여할 수 있고, 챌린지는 여러 사용자를 가진다. `challenge_members`로 연결한다. |
 | `study_challenges` - `rankings` | 1:N | 챌린지별 랭킹 결과를 저장할 수 있다. |
@@ -292,6 +297,8 @@ erDiagram
     users ||--o{ comments : writes
     users ||--o{ community_reactions : reacts
     users ||--o{ community_bookmarks : bookmarks
+    users ||--o{ community_reports : reports
+    users ||--o{ community_reports : resolves
     users ||--o{ study_challenges : creates
     users ||--o{ challenge_members : joins
     users ||--o{ rankings : ranked
@@ -310,6 +317,8 @@ erDiagram
     board_posts ||--o{ comments : has
     board_posts ||--o{ community_reactions : has
     board_posts ||--o{ community_bookmarks : has
+    board_posts ||--o{ community_reports : reported_by
+    comments ||--o{ community_reports : reported_by
 
     study_challenges ||--o{ challenge_members : has
     study_challenges ||--o{ rankings : aggregates
@@ -367,7 +376,7 @@ Prisma schema는 PostgreSQL 기준으로 작성한다. 테이블명은 snake_cas
 | 3 | 일정/태스크 | Schedule/Task API, `study_schedules`, `study_tasks`, `notifications` | 일정/태스크 CRUD 테스트 통과 |
 | 4 | 노트/AI MVP | Notes/AI API, `study_notes`, `ai_questions`, `quizzes`, `quiz_questions` | 노트 CRUD, AI Mock 응답 저장 테스트 통과 |
 | 5 | 집중/통계 | Statistics/Focus API, `focus_sessions`, `study_statistics` | 클라이언트 측 타이머 종료 후 완료된 집중 기록 저장 및 통계 조회 테스트 통과 |
-| 6 | 커뮤니티 | Community API, `board_posts`, `comments`, `community_reactions`, `community_bookmarks` | 게시글/댓글 기본 API 테스트 통과, 반응/북마크는 schema 선행 후 API 후속 구현 |
+| 6 | 커뮤니티 | Community API, `board_posts`, `comments`, `community_reactions`, `community_bookmarks`, `community_reports` | 게시글/댓글/반응/북마크 API 테스트 통과, 신고는 schema 선행 후 사용자 신고 API와 관리자 처리 API 후속 구현 |
 | 7 | 관리자 | Admin API, `admin_actions` | 게시글 처리, 사용자 제재 테스트 통과 |
 | 8 | 확장 기능 | 챌린지, 랭킹, 오답노트, 추천 | MVP 완료 후 선택 구현 |
 

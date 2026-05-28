@@ -1263,34 +1263,195 @@ Response 예시:
 | `404` | `NOT_FOUND` | `noteId`가 존재하지 않거나 현재 사용자 소유 학습 노트가 아님 |
 | `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
 
-### 9.3 집중 시간/통계 API 예정
+### 9.3 집중 시간/통계 API
 
-상태: 예정
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 기본 namespace | `/api` |
+| 인증 | 필요 |
+| 관련 요구사항 | `FR-15`, `FR-16`, `FR-17`, `UC-11`, `UC-12` |
+| 사용 모델 | `FocusSession`, `StudyTask` |
+| 구현 범위 | 완료된 집중 세션 기록/조회, 기간별 학습 시간 요약, 기간별 히트맵 데이터 조회 |
+| 제외 범위 | 앱 차단/방해금지 권한 제어, 진행 중 타이머 상태 관리, 프론트 타이머/통계 시각화 화면 |
 
-예상 endpoint:
+공통 정책:
 
-| Method | Endpoint | 설명 |
+- 모든 Focus/Statistics API는 인증이 필요함.
+- 현재 사용자는 request body나 query의 `userId`가 아니라 `req.user.id` 기준으로 처리함.
+- `durationMs`는 클라이언트가 측정한 최종 순공 시간이며 millisecond 단위 positive integer만 허용함.
+- 서버는 `startedAt < endedAt`을 검증하지만, 일시정지/재개를 포함한 순공 시간 측정 가능성을 고려해 `durationMs`와 `endedAt - startedAt`의 완전 일치를 강제하지 않음.
+- 날짜/시간 값은 ISO timestamp를 권장함.
+- `startDate`, `endDate` query에 `YYYY-MM-DD` 형식만 전달하면 UTC 기준 해당 날짜 전체를 포함함.
+  - 예: `endDate=2026-05-31`은 `2026-05-31T23:59:59.999Z`까지 포함함.
+- 히트맵의 날짜 key는 서버에서 `startedAt`의 UTC 날짜(`YYYY-MM-DD`) 기준으로 그룹핑함.
+- KST 등 사용자 현지 시간대 기준 시각화는 프론트 또는 후속 통계 고도화에서 별도 보정이 필요함.
+- `taskId`를 전달하면 현재 사용자 소유 `StudyTask`인지 확인하며, 없거나 타 사용자 소유이면 404로 처리함.
+- 응답에는 `passwordHash`, password, token/JWT, email 등 민감정보를 포함하지 않음.
+
+#### 9.3.1 집중 세션 기록
+
+`POST /api/focus-sessions`
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `taskId` | number 또는 null | 아니오 | 연결할 학습 태스크 ID. 현재 사용자 소유 태스크만 허용 |
+| `startedAt` | string | 예 | 집중 시작 시각. ISO timestamp 권장 |
+| `endedAt` | string | 예 | 집중 종료 시각. `startedAt`보다 늦어야 함 |
+| `durationMs` | number | 예 | 클라이언트가 측정한 최종 순공 시간(ms) |
+| `memo` | string 또는 null | 아니오 | 집중 세션 메모 |
+
+Response `201`:
+
+```json
+{
+  "focusSession": {
+    "id": 1,
+    "userId": 1,
+    "taskId": 10,
+    "startedAt": "2026-05-28T01:00:00.000Z",
+    "endedAt": "2026-05-28T02:00:00.000Z",
+    "durationMs": 3600000,
+    "memo": "Deep focus",
+    "createdAt": "2026-05-28T02:00:10.000Z"
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
 |---|---|---|
-| `POST` | `/api/focus-sessions` | 완료된 집중 세션 기록 |
-| `GET` | `/api/statistics/summary` | 학습 시간 및 완료율 요약 조회 |
-| `GET` | `/api/statistics/heatmap` | 학습 히트맵 데이터 조회 |
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 잘못된 날짜, `durationMs`가 positive integer가 아님, 지원하지 않는 body field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+| `404` | `NOT_FOUND` | `taskId`가 존재하지 않거나 현재 사용자 소유가 아님 |
 
-구현 기준:
+#### 9.3.2 집중 세션 목록 조회
 
-- 집중 시간은 `durationMs` 기준으로 저장함.
-- 타이머 카운팅은 클라이언트에서 처리함.
-- 서버는 완료된 집중 세션 기록만 저장함.
+`GET /api/focus-sessions`
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `startDate` | 조건부 | 기간 조회 시작일 또는 시작 시각. `endDate`와 함께 전달 |
+| `endDate` | 조건부 | 기간 조회 종료일 또는 종료 시각. `startDate`와 함께 전달 |
+
+Response `200`:
+
+```json
+{
+  "focusSessions": [
+    {
+      "id": 1,
+      "userId": 1,
+      "taskId": 10,
+      "startedAt": "2026-05-28T01:00:00.000Z",
+      "endedAt": "2026-05-28T02:00:00.000Z",
+      "durationMs": 3600000,
+      "memo": "Deep focus",
+      "createdAt": "2026-05-28T02:00:10.000Z"
+    }
+  ]
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `startDate`/`endDate` 중 하나만 전달, 잘못된 날짜, 시작일이 종료일보다 늦음, 지원하지 않는 query field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+
+#### 9.3.3 학습 통계 요약 조회
+
+`GET /api/statistics/summary`
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `startDate` | 예 | 기간 조회 시작일 또는 시작 시각 |
+| `endDate` | 예 | 기간 조회 종료일 또는 종료 시각 |
+
+Response `200`:
+
+```json
+{
+  "summary": {
+    "totalMinutes": 120,
+    "completionRate": 67,
+    "sessionCount": 2,
+    "taskCount": 3
+  }
+}
+```
+
+계산 기준:
+
+- `totalMinutes`: 기간 내 현재 사용자 `FocusSession.durationMs` 합계를 분 단위로 내림 변환함.
+- `completionRate`: 기간 내 현재 사용자 `StudyTask` 중 `DONE` 상태 비율을 정수 percent로 반올림함.
+- `sessionCount`: 기간 내 현재 사용자 집중 세션 수.
+- `taskCount`: 기간 내 현재 사용자 태스크 수.
+- 데이터가 없으면 `totalMinutes: 0`, `completionRate: 0`, `sessionCount: 0`, `taskCount: 0`을 반환함.
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 날짜 누락, 잘못된 날짜, 시작일이 종료일보다 늦음, 지원하지 않는 query field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+
+#### 9.3.4 학습 히트맵 조회
+
+`GET /api/statistics/heatmap`
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `startDate` | 예 | 기간 조회 시작일 또는 시작 시각 |
+| `endDate` | 예 | 기간 조회 종료일 또는 종료 시각 |
+
+Response `200`:
+
+```json
+{
+  "heatmap": {
+    "2026-05-28": {
+      "durationMs": 5400000,
+      "sessionCount": 2
+    }
+  }
+}
+```
+
+계산 기준:
+
+- 현재 사용자 집중 세션만 집계함.
+- 날짜 key는 `startedAt`의 UTC 날짜(`YYYY-MM-DD`) 기준임.
+- 같은 날짜의 `durationMs`를 합산하고 `sessionCount`를 누적함.
+- 데이터가 없으면 빈 객체 `{}`를 반환함.
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 날짜 누락, 잘못된 날짜, 시작일이 종료일보다 늦음, 지원하지 않는 query field 포함 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
 
 ### 9.4 커뮤니티/게시판 API
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | 1차 게시글 CRUD, 댓글 API, 반응/북마크 API 구현 완료 |
+| 상태 | 1차 게시글 CRUD, 댓글 API, 반응/북마크 API, 사용자 신고 API, 관리자 신고 조회/처리 API 구현 완료 |
 | 기본 namespace | `/api/community` |
 | 인증 | 필요 (`Authorization: Bearer <JWT_TOKEN>`) |
-| 사용 모델 | `BoardPost`, `PostCategory`, `Comment`, `ReactionType`, `CommunityReaction`, `CommunityBookmark` |
-| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
-| 제외 범위 | 답글, 내 북마크 목록, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터, 게시글 목록/상세 응답의 reaction/bookmark count 및 사용자별 상태 보강 |
+| 사용 모델 | `BoardPost`, `PostCategory`, `Comment`, `ReactionType`, `CommunityReaction`, `CommunityBookmark`, `CommunityReport` |
+| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, 내 북마크 목록 조회, 게시글/댓글 사용자 신고 생성, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
+| 제외 범위 | 답글, 프론트 화면, seed 데이터 |
 
 커뮤니티 게시글 API는 `routes → controllers → services → repositories → Prisma` 구조로 구현함. 기존 DB 과제 커뮤니티 레포의 기능 흐름과 정보 구조는 참고하지만, 기존 코드와 static HTML/CSS/Vanilla JS UI는 복사하지 않음.
 
@@ -1315,6 +1476,11 @@ Response 예시:
 - 북마크는 사용자 1명당 게시글 1개에 1개만 가질 수 있음.
 - 같은 게시글을 다시 북마크해도 중복 row를 만들지 않고 현재 북마크를 유지함.
 - 북마크 취소는 현재 사용자 본인의 북마크만 삭제하며, 북마크가 없으면 404로 처리함.
+- 게시글 목록/상세 응답에는 `likeCount`, `dislikeCount`, `bookmarkCount`, `myReaction`, `isBookmarked`를 포함함.
+- `myReaction`과 `isBookmarked`는 현재 인증 사용자 기준으로 계산하며, 다른 사용자의 반응/북마크는 count에만 반영함.
+- 게시글/댓글 신고는 `CommunityReport`에 `PENDING` 상태로 저장하며, 신고자는 `req.user.id` 기준으로 처리함.
+- 같은 사용자가 같은 게시글 또는 댓글을 다시 신고하면 `409 CONFLICT`로 처리함.
+- 신고 생성 시 기존 관리자 호환을 위해 대상 `BoardPost.reported` 또는 `Comment.reported`를 `true`로 갱신함.
 - 응답에는 `passwordHash`, password, token, email 등 불필요한 민감정보를 포함하지 않음.
 - 게시글 삭제 시 현재 schema의 `Comment` relation에 cascade가 없으므로, 작성자 소유 게시글 확인 후 연결 댓글을 먼저 삭제하고 게시글을 삭제함.
 
@@ -1349,7 +1515,12 @@ Response `200`:
         "id": 1,
         "name": "사용자 이름"
       },
-      "commentCount": 0
+      "commentCount": 0,
+      "likeCount": 0,
+      "dislikeCount": 0,
+      "bookmarkCount": 0,
+      "myReaction": null,
+      "isBookmarked": false
     }
   ],
   "pagination": {
@@ -1426,7 +1597,12 @@ Response `200`:
       "id": 1,
       "name": "사용자 이름"
     },
-    "commentCount": 0
+    "commentCount": 0,
+    "likeCount": 0,
+    "dislikeCount": 0,
+    "bookmarkCount": 0,
+    "myReaction": null,
+    "isBookmarked": false
   }
 }
 ```
@@ -1735,15 +1911,156 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음 또는 현재 사용자의 북마크 없음
 
-후속 구현 예정 endpoint:
+#### 9.4.14 내 북마크 목록 조회
 
-| Method | Endpoint 후보 | 설명 |
+`GET /api/community/bookmarks`
+
+Query:
+
+| 이름 | 필수 | 설명 |
 |---|---|---|
-| `GET` | `/api/community/bookmarks` | 내 북마크 목록 조회 |
+| `page` | 선택 | positive integer, 기본값 `1` |
+| `pageSize` | 선택 | positive integer, 기본값 `10`, 최대 `50` |
+| `sort` | 선택 | `latest` 또는 `oldest`. 기본값 `latest`, 북마크 생성일 기준 정렬 |
 
-내 북마크 목록 API와 게시글 목록/상세 응답의 `likeCount`, `dislikeCount`, `bookmarkCount`, `myReaction`, `isBookmarked` 보강은 후속 범위로 둠.
+Response `200`:
 
-신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표시하지 않음.
+```json
+{
+  "bookmarks": [
+    {
+      "bookmarkId": 1,
+      "bookmarkedAt": "2026-05-28T00:00:00.000Z",
+      "post": {
+        "id": 1,
+        "userId": 1,
+        "category": "QUESTION",
+        "title": "학습 질문",
+        "content": "문제 관련 질문입니다.",
+        "createdAt": "2026-05-26T00:00:00.000Z",
+        "updatedAt": "2026-05-26T00:00:00.000Z",
+        "author": {
+          "id": 1,
+          "name": "사용자 이름"
+        },
+        "commentCount": 0,
+        "likeCount": 0,
+        "dislikeCount": 0,
+        "bookmarkCount": 1,
+        "myReaction": null,
+        "isBookmarked": true
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+정책:
+
+- 현재 인증 사용자가 북마크한 게시글만 조회함.
+- `sort=latest`는 북마크 생성일 `createdAt desc`, `sort=oldest`는 `createdAt asc` 기준임.
+- `post.isBookmarked`는 이 목록에서 항상 `true`임.
+- `post.myReaction`은 현재 인증 사용자의 반응 기준이며 `LIKE`, `DISLIKE`, `null` 중 하나임.
+- 다른 사용자의 반응/북마크는 `likeCount`, `dislikeCount`, `bookmarkCount`에만 반영함.
+
+Error:
+
+- `400`: invalid `page`, `pageSize`, `sort`
+- `401`: 인증 token 없음 또는 유효하지 않음
+
+#### 9.4.15 게시글 신고
+
+`POST /api/community/posts/:postId/reports`
+
+Request body:
+
+```json
+{
+  "reason": "신고 사유"
+}
+```
+
+정책:
+
+- `reason`은 필수 문자열이며 trim 후 빈 문자열이면 `400 VALIDATION_ERROR`로 처리함.
+- `reason`은 최대 500자까지 허용함.
+- `userId`, `reporterId`, `postId`, `commentId`, `status`, `resolvedById`, `resolvedAt`, `resolutionNote` 등 지원하지 않는 field는 `400 VALIDATION_ERROR`로 처리함.
+- 신고자는 request body가 아니라 `req.user.id` 기준으로 저장함.
+- `targetType`은 `POST`, `commentId`는 `null`, `status`는 `PENDING`으로 저장함.
+- 같은 사용자가 같은 게시글을 이미 신고한 경우 `409 CONFLICT`로 처리함.
+- 신고 생성 성공 시 대상 `BoardPost.reported`를 `true`로 갱신함.
+
+Response `201`:
+
+```json
+{
+  "report": {
+    "id": 1,
+    "targetType": "POST",
+    "postId": 1,
+    "commentId": null,
+    "reason": "신고 사유",
+    "status": "PENDING",
+    "createdAt": "2026-05-28T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `postId`, `reason` 누락/공백/타입 오류/500자 초과, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 게시글 없음
+- `409`: 현재 사용자가 이미 같은 게시글을 신고함
+
+#### 9.4.16 댓글 신고
+
+`POST /api/community/comments/:commentId/reports`
+
+Request body:
+
+```json
+{
+  "reason": "신고 사유"
+}
+```
+
+정책:
+
+- `reason` validation과 unsupported field 차단 정책은 게시글 신고와 동일함.
+- 신고자는 request body가 아니라 `req.user.id` 기준으로 저장함.
+- `targetType`은 `COMMENT`, `postId`는 `null`, `status`는 `PENDING`으로 저장함.
+- 같은 사용자가 같은 댓글을 이미 신고한 경우 `409 CONFLICT`로 처리함.
+- 신고 생성 성공 시 대상 `Comment.reported`를 `true`로 갱신함.
+
+Response `201`:
+
+```json
+{
+  "report": {
+    "id": 1,
+    "targetType": "COMMENT",
+    "postId": null,
+    "commentId": 1,
+    "reason": "신고 사유",
+    "status": "PENDING",
+    "createdAt": "2026-05-28T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`, `reason` 누락/공백/타입 오류/500자 초과, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음
+- `409`: 현재 사용자가 이미 같은 댓글을 신고함
 
 관리자 신고 처리와 운영 관리는 기존 `/api/admin/...` namespace를 유지함.
 
@@ -1753,12 +2070,12 @@ Error:
 |---|---|
 | 상태 | 구현 완료 |
 | 인증 | 필요 (`ADMIN` 권한) |
-| 프론트 연동 | 관리자 화면 연결 완료 |
+| 프론트 연동 | 기본 관리자 화면 연결 완료, 커뮤니티 신고 처리 화면은 후속 범위 |
 | 설명 | 사용자 제재, 게시글/댓글 관리, 스터디 챌린지 강제 조치 등 시스템 운영 관리 기능 제공 |
 
 주의:
 - 모든 관리자 API는 Bearer 토큰 인증 및 `ADMIN` 권한 검증(`adminMiddleware`)이 적용되어 일반 사용자는 접근이 불가능합니다.
-- 관리자 화면 연결 작업은 기존 관리자 API를 프론트에서 호출하는 범위이며, 새 관리자 endpoint를 추가하지 않음.
+- 커뮤니티 신고 조회/처리 API는 백엔드 기준으로 구현되었으며, 관리자 화면 연동은 후속 범위임.
 - 제재나 숨김 등의 모든 조치 이력은 `AdminAction` 테이블에 기록 및 저장됩니다.
 - 사용자 응답에는 `passwordHash`, password, token 원문이 포함되지 않음.
 - id path parameter는 양의 정수만 허용하며, 숫자가 아니거나 0 이하이면 `400 VALIDATION_ERROR`를 반환함.
@@ -1862,6 +2179,8 @@ Response 예시:
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `GET` | `/api/admin/reports` | 신고된 게시글, 신고된 댓글 목록 및 전체 처리 기록 조회 |
+| `GET` | `/api/admin/community/reports` | `CommunityReport` 기반 커뮤니티 신고 목록 조회 |
+| `PATCH` | `/api/admin/community/reports/:reportId` | 커뮤니티 신고 기각/처리 상태 변경 |
 
 Response 예시:
 
@@ -1921,7 +2240,147 @@ Response 예시:
 
 ---
 
-#### 9.5.4 게시글 관리 조치 (삭제/신고 기각)
+#### 9.5.4 커뮤니티 신고 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/community/reports` | `CommunityReport` 기반 커뮤니티 신고 목록을 조회함 |
+
+Query Params:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `status` | string | 아니오 | `PENDING`, `DISMISSED`, `RESOLVED` 중 하나 |
+| `targetType` | string | 아니오 | `POST`, `COMMENT` 중 하나 |
+| `page` | number | 아니오 | positive integer, 기본값 `1` |
+| `pageSize` | number | 아니오 | positive integer, 기본값 `10`, 최대 `50` |
+
+Response 예시:
+
+```json
+{
+  "reports": [
+    {
+      "id": 301,
+      "reporterId": 1,
+      "targetType": "POST",
+      "postId": 101,
+      "commentId": null,
+      "reason": "스팸 게시글",
+      "status": "PENDING",
+      "resolvedById": null,
+      "resolvedAt": null,
+      "resolutionNote": null,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z",
+      "reporter": {
+        "id": 1,
+        "email": "user@example.com",
+        "name": "사용자",
+        "role": "USER",
+        "status": "ACTIVE"
+      },
+      "resolvedBy": null,
+      "post": {
+        "id": 101,
+        "category": "QUESTION",
+        "title": "신고된 게시글",
+        "reported": true,
+        "author": {
+          "id": 3,
+          "email": "author@example.com",
+          "name": "작성자",
+          "role": "USER",
+          "status": "ACTIVE"
+        }
+      },
+      "comment": null
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `status`, `targetType`, `page`, `pageSize` 또는 지원하지 않는 query field
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+
+정책:
+
+- `ADMIN` 사용자만 조회할 수 있음.
+- 신고자, 처리자, 대상 게시글/댓글의 최소 정보만 반환함.
+- 관리자 API 특성상 사용자 email은 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
+
+---
+
+#### 9.5.5 커뮤니티 신고 처리
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/admin/community/reports/:reportId` | 커뮤니티 신고를 기각 또는 처리 완료로 변경함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `DISMISS` 또는 `RESOLVE` |
+| `resolutionNote` | string | 아니오 | 처리 메모, 500자 이하 |
+
+Request 예시:
+
+```json
+{
+  "action": "RESOLVE",
+  "resolutionNote": "정책 위반으로 처리함"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "report": {
+    "id": 301,
+    "targetType": "POST",
+    "postId": 101,
+    "commentId": null,
+    "reason": "스팸 게시글",
+    "status": "RESOLVED",
+    "resolvedById": 2,
+    "resolvedAt": "2026-05-28T01:00:00.000Z",
+    "resolutionNote": "정책 위반으로 처리함"
+  },
+  "message": "Community report resolved successfully"
+}
+```
+
+Error:
+
+- `400`: invalid `reportId`, invalid `action`, invalid `resolutionNote`, 지원하지 않는 body field
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+- `404`: 신고 내역 없음
+- `409`: 이미 `DISMISSED` 또는 `RESOLVED`로 처리된 신고 재처리
+
+정책:
+
+- `DISMISS`는 `CommunityReport.status`를 `DISMISSED`로 변경함.
+- `RESOLVE`는 `CommunityReport.status`를 `RESOLVED`로 변경함.
+- 처리 시 `resolvedById`, `resolvedAt`, `resolutionNote`를 저장함.
+- 같은 대상에 남은 `PENDING` 신고가 없으면 `BoardPost.reported` 또는 `Comment.reported`를 `false`로 갱신함.
+- 같은 대상에 다른 `PENDING` 신고가 남아 있으면 대상 `reported` flag를 `true`로 유지함.
+- 신고 대상 게시글/댓글 삭제 또는 숨김 처리는 이번 API에서 수행하지 않으며 후속 범위로 분리함.
+
+---
+
+#### 9.5.6 게시글 관리 조치 (삭제/신고 기각)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -1975,7 +2434,7 @@ Response 예시 (KEEP 조치 시):
 
 ---
 
-#### 9.5.5 댓글 관리 상태 변경 (삭제/해제)
+#### 9.5.7 댓글 관리 상태 변경 (삭제/해제)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -2014,7 +2473,7 @@ Response 예시 (DELETE 조치 시):
 
 ---
 
-#### 9.5.6 스터디 챌린지 제재 (강제 종료)
+#### 9.5.8 스터디 챌린지 제재 (강제 종료)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -2056,9 +2515,288 @@ Response 예시:
 }
 ```
 
-### 9.6 음성/접근성 API
+---
 
-음성/접근성 API는 `FR-18`, `FR-20`, `FR-21`, `FR-25`, `FR-26`을 기준으로 구현함. 모든 endpoint는 로그인 사용자의 개인 설정과 음성 요청 이력을 다루므로 인증이 필요함.
+#### 9.5.9 보상 배지 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/rewards/badges` | 관리자 권한으로 등록된 보상 배지 목록을 조회함 |
+
+Response 예시:
+
+```json
+{
+  "badges": [
+    {
+      "id": 1,
+      "code": "TOTAL_STUDY_60",
+      "name": "60분 집중 학습",
+      "description": "누적 60분 이상 공부하면 획득",
+      "iconUrl": "/assets/badges/total-study-60.png",
+      "condition": "TOTAL_STUDY_MINUTES >= 60",
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+Error:
+
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+
+---
+
+#### 9.5.10 보상 배지 생성/수정
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/admin/rewards/badges` | 새 보상 배지를 생성함 |
+| `PATCH` | `/api/admin/rewards/badges/:badgeId` | 기존 보상 배지 정보를 수정함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `code` | string | 생성 시 필수 | 배지 고유 코드, 공백 trim 후 저장 |
+| `name` | string | 생성 시 필수 | 배지 이름 |
+| `description` | string \| null | 선택 | 배지 설명 |
+| `iconUrl` | string \| null | 선택 | 프론트에서 사용할 이미지 경로 또는 URL |
+| `condition` | string \| null | 선택 | 획득 조건 설명 |
+
+Request 예시:
+
+```json
+{
+  "code": "TOTAL_STUDY_60",
+  "name": "60분 집중 학습",
+  "description": "누적 60분 이상 공부하면 획득",
+  "iconUrl": "/assets/badges/total-study-60.png",
+  "condition": "TOTAL_STUDY_MINUTES >= 60"
+}
+```
+
+Response 예시 (`POST`):
+
+```json
+{
+  "badge": {
+    "id": 1,
+    "code": "TOTAL_STUDY_60",
+    "name": "60분 집중 학습",
+    "description": "누적 60분 이상 공부하면 획득",
+    "iconUrl": "/assets/badges/total-study-60.png",
+    "condition": "TOTAL_STUDY_MINUTES >= 60",
+    "createdAt": "2026-05-28T00:00:00.000Z",
+    "updatedAt": "2026-05-28T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: 잘못된 `badgeId`, 필수값 누락, 길이 초과, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+- `404`: 수정 대상 배지가 존재하지 않음
+- `409`: 중복된 `code`
+
+비고:
+
+- `iconUrl`은 이미지 파일 자체를 DB에 저장하는 방식이 아니라, 프론트에서 사용할 경로/URL 문자열만 저장함.
+
+---
+
+#### 9.5.11 보상 퀘스트 목록 조회/생성/수정
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/rewards/quests` | 등록된 보상 퀘스트 목록을 조회함 |
+| `POST` | `/api/admin/rewards/quests` | 새 보상 퀘스트를 생성함 |
+| `PATCH` | `/api/admin/rewards/quests/:questId` | 기존 보상 퀘스트를 수정함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `code` | string | 생성 시 필수 | 퀘스트 고유 코드 |
+| `title` | string | 생성 시 필수 | 퀘스트 제목 |
+| `description` | string \| null | 선택 | 퀘스트 설명 |
+| `type` | string | 생성 시 필수 | `TOTAL_STUDY_MINUTES` / `TASK_COMPLETION` |
+| `targetValue` | integer | 생성 시 필수 | 목표 수치, 0 이상 정수 |
+| `rewardPoints` | integer | 생성 시 필수 | 지급 포인트, 0 이상 정수 |
+| `badgeId` | integer \| null | 선택 | 달성 시 지급할 배지 id |
+| `isActive` | boolean | 선택 | 활성화 여부 |
+
+Request 예시:
+
+```json
+{
+  "code": "TOTAL_STUDY_60",
+  "title": "누적 60분 공부하기",
+  "description": "집중 학습 시간을 누적 60분 이상 기록하세요.",
+  "type": "TOTAL_STUDY_MINUTES",
+  "targetValue": 60,
+  "rewardPoints": 50,
+  "badgeId": 1,
+  "isActive": true
+}
+```
+
+Response 예시 (`GET`):
+
+```json
+{
+  "quests": [
+    {
+      "id": 1,
+      "code": "TOTAL_STUDY_60",
+      "title": "누적 60분 공부하기",
+      "description": "집중 학습 시간을 누적 60분 이상 기록하세요.",
+      "type": "TOTAL_STUDY_MINUTES",
+      "targetValue": 60,
+      "rewardPoints": 50,
+      "badgeId": 1,
+      "isActive": true,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z",
+      "badge": {
+        "id": 1,
+        "code": "TOTAL_STUDY_60",
+        "name": "60분 집중 학습",
+        "iconUrl": "/assets/badges/total-study-60.png"
+      }
+    }
+  ]
+}
+```
+
+Error:
+
+- `400`: 잘못된 `questId`, 필수값 누락, 잘못된 `type`, 음수 값, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `403`: `ADMIN` 권한 없음
+- `404`: 수정 대상 퀘스트 또는 참조한 배지가 존재하지 않음
+- `409`: 중복된 `code`
+
+비고:
+
+- 현재 지원하는 퀘스트 타입은 `TOTAL_STUDY_MINUTES`, `TASK_COMPLETION` 두 가지임.
+- `badgeId`를 `null`로 보내면 배지 없이 포인트만 지급하는 퀘스트로 저장 가능함.
+
+### 9.6 보상 API
+
+| 항목 | 내용 |
+|---|---|
+| 관련 요구사항 | FR-24 퀘스트/뱃지/포인트 |
+| 인증 | 모든 엔드포인트 JWT 필요 |
+| 구현 범위 | 내 보상 현황 조회, 달성 퀘스트 보상 수령 |
+| 주요 모델 | `RewardAccount`, `Badge`, `UserBadge`, `RewardQuest`, `UserQuest`, `PointTransaction` |
+
+#### 9.6.1 내 보상 현황 조회
+
+| 항목 | 내용 |
+|---|---|
+| Method | `GET` |
+| URL | `/api/rewards/me` |
+| 설명 | 현재 사용자의 포인트 지갑, 퀘스트 진행 현황, 획득 뱃지, 최근 포인트 내역을 조회함 |
+
+Response 예시:
+
+```json
+{
+  "rewards": {
+    "account": {
+      "id": 1,
+      "userId": 1,
+      "pointBalance": 120,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z"
+    },
+    "metrics": {
+      "totalStudyMinutes": 60,
+      "completedTaskCount": 1
+    },
+    "quests": [
+      {
+        "id": 1,
+        "code": "TOTAL_STUDY_60",
+        "title": "누적 60분 공부하기",
+        "type": "TOTAL_STUDY_MINUTES",
+        "targetValue": 60,
+        "rewardPoints": 50,
+        "progressValue": 60,
+        "progressRate": 1,
+        "status": "ACHIEVED",
+        "badge": {
+          "id": 1,
+          "code": "TOTAL_STUDY_60",
+          "name": "60분 집중 학습",
+          "iconUrl": "/assets/badges/total-study-60.png"
+        }
+      }
+    ],
+    "badges": [],
+    "recentPointTransactions": []
+  }
+}
+```
+
+#### 9.6.2 달성 퀘스트 보상 수령
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| URL | `/api/rewards/quests/:questId/claim` |
+| 설명 | `ACHIEVED` 상태의 퀘스트 보상을 수령하고 포인트와 뱃지를 반영함 |
+
+Response 예시:
+
+```json
+{
+  "reward": {
+    "account": {
+      "id": 1,
+      "userId": 1,
+      "pointBalance": 170
+    },
+    "quest": {
+      "id": 1,
+      "code": "TOTAL_STUDY_60",
+      "status": "CLAIMED",
+      "rewardPoints": 50
+    },
+    "badge": {
+      "id": 1,
+      "badge": {
+        "code": "TOTAL_STUDY_60",
+        "name": "60분 집중 학습"
+      }
+    },
+    "pointTransaction": {
+      "type": "EARN",
+      "amount": 50,
+      "sourceType": "REWARD_QUEST",
+      "sourceId": 1
+    }
+  }
+}
+```
+
+주요 에러:
+
+| HTTP | code | 상황 |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | `questId`가 양의 정수가 아님 |
+| 401 | `UNAUTHORIZED` | 인증 토큰 없음/잘못됨 |
+| 404 | `NOT_FOUND` | 퀘스트가 존재하지 않음 |
+| 409 | `CONFLICT` | 아직 달성하지 않았거나 이미 수령한 퀘스트 |
+
+### 9.7 음성/접근성 API
+
+음성/접근성 API는 `FR-18`, `FR-20`, `FR-21`, `FR-25`, `FR-26`을 기준으로 구현된 사용자 접근성 설정, 브라우저 음성 기능 요청 이력, 복습 알림 등록 기능을 다룬다. 모든 endpoint는 로그인한 사용자 기준으로 동작하며 다른 사용자의 설정이나 음성 요청 이력에 접근할 수 없다.
 
 공통 인증:
 
@@ -2066,23 +2804,19 @@ Response 예시:
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-공통 에러 정책:
+공통 오류:
 
-| 상태 코드 | code | 조건 |
+| HTTP | code | 상황 |
 |---|---|---|
-| `400` | `VALIDATION_ERROR` | 필수 필드 누락, 타입 오류, 길이 제한 초과, 잘못된 날짜/시간 형식 |
-| `401` | `UNAUTHORIZED` | 인증 토큰 누락 또는 유효하지 않은 토큰 |
-| `500` | `INTERNAL_SERVER_ERROR` | 서버 내부 오류 |
+| 400 | `VALIDATION_ERROR` | 필수 필드 누락, 타입 오류, 길이 제한 초과, 잘못된 날짜/시간 형식 |
+| 401 | `UNAUTHORIZED` | 인증 token 없음 또는 유효하지 않음 |
+| 500 | `INTERNAL_SERVER_ERROR` | 서버 내부 오류 |
 
-#### 9.6.1 접근성 설정 조회
+#### 9.7.1 접근성 설정 조회
 
-| Method | Endpoint | 인증 | 설명 |
-|---|---|---|---|
-| `GET` | `/api/accessibility/preferences` | 필요 | 현재 사용자의 접근성 설정 조회 |
-
-Query Parameter: 없음
-
-Request Body: 없음
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/accessibility/preferences` | 현재 사용자의 큰 글씨, 고대비, 초등학생 친화 UI, TTS/STT, 복습 알림 설정 조회 |
 
 Response 예시:
 
@@ -2100,15 +2834,13 @@ Response 예시:
 }
 ```
 
-저장된 설정이 없으면 기본값을 반환함.
+저장된 설정이 없으면 기본값을 반환한다.
 
-#### 9.6.2 접근성 설정 저장
+#### 9.7.2 접근성 설정 저장
 
-| Method | Endpoint | 인증 | 설명 |
-|---|---|---|---|
-| `PUT` | `/api/accessibility/preferences` | 필요 | 큰 글씨, 고대비, 초등학생 친화 UI, 음성 입출력, 복습 알림 기본 설정 저장 |
-
-Query Parameter: 없음
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PUT` | `/api/accessibility/preferences` | 큰 글씨, 고대비, 초등학생 친화 UI, 음성 입력/출력, 복습 알림 기본 설정 저장 |
 
 Request Body:
 
@@ -2122,52 +2854,18 @@ Request Body:
 | `reviewReminderEnabled` | boolean | 아니오 | 복습 알림 사용 여부 |
 | `reminderTime` | string/null | 아니오 | 기본 알림 시간. `HH:mm` 형식 |
 
-Request 예시:
+#### 9.7.3 TTS 읽어주기 요청 저장
 
-```json
-{
-  "textScale": 1.4,
-  "highContrast": true,
-  "elementaryFriendlyUi": true,
-  "voiceInputEnabled": true,
-  "voiceOutputEnabled": true,
-  "reviewReminderEnabled": true,
-  "reminderTime": "20:30"
-}
-```
-
-Response 예시:
-
-```json
-{
-  "preference": {
-    "id": 1,
-    "userId": 3,
-    "textScale": 1.4,
-    "highContrast": true,
-    "elementaryFriendlyUi": true,
-    "voiceInputEnabled": true,
-    "voiceOutputEnabled": true,
-    "reviewReminderEnabled": true,
-    "reminderTime": "20:30"
-  }
-}
-```
-
-#### 9.6.3 TTS 읽어주기 요청
-
-| Method | Endpoint | 인증 | 설명 |
-|---|---|---|---|
-| `POST` | `/api/accessibility/tts` | 필요 | 텍스트 읽어주기 요청을 검증하고 요청 이력 저장 |
-
-Query Parameter: 없음
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/tts` | 읽어주기 요청 텍스트와 선택한 음성 톤 값을 저장 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
 | `text` | string | 예 | 읽어줄 텍스트. 최대 1000자 |
-| `voiceType` | string | 아니오 | 음성 선택값. `ADULT_MALE`, `ADULT_FEMALE`, `CHILD_BOY`, `CHILD_GIRL`. 기본값 `ADULT_FEMALE` |
+| `voiceType` | string | 아니오 | 음성 톤 선택값. `ADULT_MALE`, `ADULT_FEMALE`, `CHILD_BOY`, `CHILD_GIRL` 중 하나 |
 
 Response 예시:
 
@@ -2176,7 +2874,7 @@ Response 예시:
   "speech": {
     "id": 1,
     "mode": "TTS",
-    "voiceType": "CHILD_GIRL",
+    "voiceType": "ADULT_FEMALE",
     "text": "오늘 배운 내용을 천천히 읽어 주세요.",
     "status": "READY",
     "createdAt": "2026-05-28T03:00:00.000Z"
@@ -2184,17 +2882,13 @@ Response 예시:
 }
 ```
 
-현재 백엔드는 TTS 요청 이력, 입력 검증, 음성 선택값 저장을 담당하고, 실제 웹 음성 출력은 프론트의 Web Speech API 지원 여부에 따라 처리함. 외부 고품질 TTS provider는 이번 PR 범위에 포함하지 않으며, 프론트는 브라우저 음성 후보와 pitch/rate 조정으로 성인 남성/성인 여성/또래 남아/또래 여아 음성을 제공함. 브라우저와 운영체제에 한국어 남성 또는 아동 음성이 없는 경우 실제 음색은 선택값과 다를 수 있음.
+서버는 TTS provider를 호출하지 않고 요청 이력과 선택값을 저장한다. 실제 음성 출력은 프론트엔드에서 브라우저 Web Speech API 지원 여부에 따라 처리한다.
 
-프론트는 공통 `ReadableText` 컴포넌트를 통해 TTS 설정이 켜진 경우 주요 설명/결과 문단 옆에 `읽어주기` 버튼을 표시함. Web Speech API `onboundary` 이벤트가 제공되는 브라우저에서는 읽는 중인 글자를 파란색으로 하이라이트함.
+#### 9.7.4 STT 음성 입력 결과 저장
 
-#### 9.6.4 STT 음성 입력 결과 저장
-
-| Method | Endpoint | 인증 | 설명 |
-|---|---|---|---|
-| `POST` | `/api/accessibility/stt` | 필요 | 음성 입력으로 변환된 transcript 저장 |
-
-Query Parameter: 없음
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/stt` | 브라우저 음성 인식 결과 transcript 저장 |
 
 Request Body:
 
@@ -2202,74 +2896,26 @@ Request Body:
 |---|---|---|---|
 | `transcript` | string | 예 | 음성 인식 결과 텍스트. 최대 1000자 |
 
-Response 예시:
+#### 9.7.5 복습 알림 등록
 
-```json
-{
-  "speech": {
-    "id": 2,
-    "mode": "STT",
-    "transcript": "오늘 수학 단원을 복습했다.",
-    "status": "SAVED",
-    "createdAt": "2026-05-28T03:10:00.000Z"
-  }
-}
-```
-
-현재 백엔드는 변환된 텍스트 저장을 담당하고, 실제 음성 인식은 프론트의 Web Speech API 지원 여부에 따라 처리함.
-
-#### 9.6.5 복습 알림 등록
-
-| Method | Endpoint | 인증 | 설명 |
-|---|---|---|---|
-| `POST` | `/api/accessibility/review-reminders` | 필요 | 복습용 `REVIEW` 알림 등록 |
-
-Query Parameter: 없음
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/review-reminders` | 기존 `Notification` 모델에 `REVIEW` 타입 복습 알림 등록 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
 | `title` | string | 아니오 | 복습 알림 제목. 최대 200자 |
-| `task` | string | 아니오 | 복습할 할 일/내용. 최대 500자 |
+| `task` | string | 아니오 | 복습할 내용. 최대 500자 |
 | `message` | string | 아니오 | 하위 호환용 복습 알림 메시지. 최대 200자 |
-| `scheduledAt` | string | 예 | 알림 예정 시각. ISO datetime. 프론트 기본값은 현재 한국시간 기준으로 생성하며, 화면에서는 앱 내부 달력 모달과 오전/오후·시·분 알람 선택 패널로 생성 |
+| `scheduledAt` | string | 예 | 알림 예정 시각. ISO datetime |
 
-Request 예시:
+#### 9.7.6 복습 알림 목록 조회
 
-```json
-{
-  "title": "영어 단어 복습",
-  "task": "Day 3 단어 20개 다시 보기",
-  "scheduledAt": "2026-05-29T20:00:00+09:00"
-}
-```
-
-Response 예시:
-
-```json
-{
-  "reminder": {
-    "id": 1,
-    "userId": 3,
-    "type": "REVIEW",
-    "message": "영어 단어 복습 - Day 3 단어 20개 다시 보기",
-    "scheduledAt": "2026-05-29T11:00:00.000Z",
-    "readAt": null,
-    "createdAt": "2026-05-28T03:15:00.000Z"
-  }
-}
-```
-
-#### 9.6.6 복습 알림 목록 조회
-
-| Method | Endpoint | 인증 | 설명 |
-|---|---|---|---|
-| `GET` | `/api/accessibility/review-reminders` | 필요 | 현재 로그인한 사용자의 읽지 않은 복습 알림 목록 조회 |
-
-Query Parameter: 없음
-
-Request Body: 없음
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/accessibility/review-reminders` | 현재 로그인한 사용자의 읽지 않은 복습 알림 목록 조회 |
 
 Response 예시:
 
@@ -2289,7 +2935,7 @@ Response 예시:
 }
 ```
 
-### 9.7 docs 기준 기능 구현 상태 재점검
+### 9.8 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -2304,14 +2950,14 @@ Response 예시:
 | AI 학습 질의 | FR-07, UC-09 | 부분 구현 | AI MVP API와 AI 학습 지원 화면 연결 완료 | 실제 질문 품질 검증, 비용/한도 관리 |
 | AI 오답노트/추천/요약 | FR-08, FR-09, FR-19, UC-07, UC-10, UC-18 | 부분 구현 | AI 추천, 요약, 오답 분석 API 구현 | 프롬프트 히스토리 기반 자동화와 학습 데이터 개인화 고도화 |
 | AI 기반 퀴즈 생성 | FR-10, UC-19 | 미구현 | `Quiz`, `QuizQuestion` 모델 초안 존재 | 퀴즈 생성 API와 화면 구현 |
-| 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
-| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API 및 테스트 완료 | 내 북마크 목록/신고 API와 프론트 구현 |
+| 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
+| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API, 관리자 신고 조회/처리 API 및 테스트 완료 | 프론트 구현 |
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
-| 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
-| 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
-| TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 부분 구현 | `/api/accessibility/preferences`, `/tts`, `/stt` API 및 프론트 음성/접근성 화면 구현. TTS 4종 선택은 브라우저 Web Speech API 기반 pitch/rate 조정으로 제공 | 고품질 Neural TTS provider 연동, 음성 파일 캐싱, 실제 모바일 권한, 노트 연동 고도화 |
+| 스톱워치/타이머/집중 시간 | FR-15, UC-12 | 완료 | `POST /api/focus-sessions`, `GET /api/focus-sessions` 구현 및 테스트 반영 | 타이머 화면 연결 |
+| 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-11 | 완료 | `GET /api/statistics/summary`, `GET /api/statistics/heatmap` 구현 및 테스트 반영 | 시각화 화면 연결 |
+| TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
-| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/accessibility/review-reminders`로 `REVIEW` 알림 등록 및 GET 조회 API 구현, 프론트엔드 로컬 타이머 기반 소리/Alert 수신 연동 완료 | 보상 정책 구현 |
+| 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, `/api/admin/rewards/badges`, `/api/admin/rewards/quests`, 보상 schema/migration 및 관리자 CRUD API 추가 | 알림 API와 보상 정책 고도화, 프론트 보상 화면 연결 |
 | 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
 
 ---
@@ -2322,13 +2968,17 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Accessibility 포함. 최신 확인 기준 14 suites / 246 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 음성/접근성 API 단일 테스트 | 1 suite / 8 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 19 suites / 357 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 44 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 24 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 커뮤니티 내 북마크 목록 API 단일 테스트 | 1 suite / 14 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -2358,4 +3008,6 @@ Response 예시:
 | 2026-05-26 | 커뮤니티 댓글 API(§9.4.6~§9.4.9) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 반응 API(§9.4.10~§9.4.11) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 북마크 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
-| 2026-05-28 | 실시간 복습 알림 수신을 위한 GET 조회 API 추가 및 프론트엔드 로컬 타이머를 활용한 Alert/TTS 실시간 알람 연동 명세 추가 |
+| 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.15~§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |

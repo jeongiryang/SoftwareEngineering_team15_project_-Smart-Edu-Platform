@@ -56,6 +56,17 @@ enum ReactionType {
   DISLIKE
 }
 
+enum CommunityReportStatus {
+  PENDING
+  DISMISSED
+  RESOLVED
+}
+
+enum CommunityReportTargetType {
+  POST
+  COMMENT
+}
+
 enum ChallengeStatus {
   IN_PROGRESS
   CLOSED
@@ -72,6 +83,23 @@ enum AdminActionType {
   HIDE_POST
   DELETE_COMMENT
   MODERATE_CHALLENGE
+}
+
+enum RewardQuestType {
+  TOTAL_STUDY_MINUTES
+  TASK_COMPLETION
+}
+
+enum UserQuestStatus {
+  IN_PROGRESS
+  ACHIEVED
+  CLAIMED
+}
+
+enum PointTransactionType {
+  EARN
+  SPEND
+  ADJUST
 }
 
 model User {
@@ -99,12 +127,18 @@ model User {
   comments                Comment[]
   communityReactions      CommunityReaction[]
   communityBookmarks      CommunityBookmark[]
+  communityReports        CommunityReport[]           @relation("CommunityReportReporter")
+  resolvedReports         CommunityReport[]           @relation("CommunityReportResolver")
   accessibilityPreference AccessibilityPreference?
   voiceRequests           VoiceAccessibilityRequest[]
   createdChallenges       StudyChallenge[]
   challengeMembers        ChallengeMember[]
   rankings                Ranking[]
   adminActions            AdminAction[]
+  rewardAccount           RewardAccount?
+  userBadges              UserBadge[]
+  userQuests              UserQuest[]
+  pointTransactions       PointTransaction[]
 
   @@map("users")
 }
@@ -334,6 +368,7 @@ model BoardPost {
   comments  Comment[]
   reactions CommunityReaction[]
   bookmarks CommunityBookmark[]
+  reports   CommunityReport[]
 
   @@map("board_posts")
 }
@@ -348,6 +383,7 @@ model Comment {
   updatedAt DateTime  @updatedAt @map("updated_at")
   post      BoardPost @relation(fields: [postId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
+  reports   CommunityReport[]
 
   @@map("comments")
 }
@@ -381,6 +417,33 @@ model CommunityBookmark {
   @@index([postId])
   @@index([userId])
   @@map("community_bookmarks")
+}
+
+model CommunityReport {
+  id             Int                       @id @default(autoincrement())
+  reporterId     Int                       @map("reporter_id")
+  targetType     CommunityReportTargetType @map("target_type")
+  postId         Int?                      @map("post_id")
+  commentId      Int?                      @map("comment_id")
+  reason         String
+  status         CommunityReportStatus     @default(PENDING)
+  resolvedById   Int?                      @map("resolved_by_id")
+  resolvedAt     DateTime?                 @map("resolved_at")
+  resolutionNote String?                   @map("resolution_note")
+  createdAt      DateTime                  @default(now()) @map("created_at")
+  updatedAt      DateTime                  @updatedAt @map("updated_at")
+  reporter       User                      @relation("CommunityReportReporter", fields: [reporterId], references: [id])
+  post           BoardPost?                @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment        Comment?                  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  resolvedBy     User?                     @relation("CommunityReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([postId])
+  @@index([commentId])
+  @@index([status])
+  @@index([targetType])
+  @@index([resolvedById])
+  @@map("community_reports")
 }
 
 model StudyChallenge {
@@ -439,4 +502,103 @@ model AdminAction {
   admin      User            @relation(fields: [adminId], references: [id])
 
   @@map("admin_actions")
+}
+
+model RewardAccount {
+  id                Int                @id @default(autoincrement())
+  userId            Int                @unique @map("user_id")
+  pointBalance      Int                @default(0) @map("point_balance")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  user              User               @relation(fields: [userId], references: [id])
+  pointTransactions PointTransaction[]
+
+  @@map("reward_accounts")
+}
+
+model Badge {
+  id          Int           @id @default(autoincrement())
+  code        String        @unique
+  name        String
+  description String?
+  iconUrl     String?       @map("icon_url")
+  condition   String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  userBadges  UserBadge[]
+  quests      RewardQuest[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  badgeId    Int      @map("badge_id")
+  achievedAt DateTime @default(now()) @map("achieved_at")
+  user       User     @relation(fields: [userId], references: [id])
+  badge      Badge    @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([badgeId])
+  @@map("user_badges")
+}
+
+model RewardQuest {
+  id           Int             @id @default(autoincrement())
+  code         String          @unique
+  title        String
+  description  String?
+  type         RewardQuestType
+  targetValue  Int             @map("target_value")
+  rewardPoints Int             @default(0) @map("reward_points")
+  badgeId      Int?            @map("badge_id")
+  isActive     Boolean         @default(true) @map("is_active")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  badge        Badge?          @relation(fields: [badgeId], references: [id], onDelete: SetNull)
+  userQuests   UserQuest[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([badgeId])
+  @@map("reward_quests")
+}
+
+model UserQuest {
+  id            Int             @id @default(autoincrement())
+  userId        Int             @map("user_id")
+  questId       Int             @map("quest_id")
+  progressValue Int             @default(0) @map("progress_value")
+  status        UserQuestStatus @default(IN_PROGRESS)
+  achievedAt    DateTime?       @map("achieved_at")
+  claimedAt     DateTime?       @map("claimed_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  user          User            @relation(fields: [userId], references: [id])
+  quest         RewardQuest     @relation(fields: [questId], references: [id])
+
+  @@unique([userId, questId])
+  @@index([questId])
+  @@index([status])
+  @@map("user_quests")
+}
+
+model PointTransaction {
+  id          Int                  @id @default(autoincrement())
+  userId      Int                  @map("user_id")
+  accountId   Int                  @map("account_id")
+  type        PointTransactionType
+  amount      Int
+  reason      String?
+  sourceType  String?              @map("source_type")
+  sourceId    Int?                 @map("source_id")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  user        User                 @relation(fields: [userId], references: [id])
+  account     RewardAccount        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([type])
+  @@map("point_transactions")
 }

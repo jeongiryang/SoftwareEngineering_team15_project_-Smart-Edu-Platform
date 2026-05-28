@@ -3,7 +3,13 @@ const { sendCreated, sendSuccess } = require('../utils/apiResponse');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const listPostsController = asyncHandler(async (req, res) => {
-  const result = await communityService.listPosts(req.query);
+  const result = await communityService.listPosts(req.query, req.user.id);
+
+  sendSuccess(res, 200, result);
+});
+
+const listBookmarksController = asyncHandler(async (req, res) => {
+  const result = await communityService.listBookmarks(req.query, req.user.id);
 
   sendSuccess(res, 200, result);
 });
@@ -26,6 +32,22 @@ const createBookmarkController = asyncHandler(async (req, res) => {
   sendCreated(res, { bookmark });
 });
 
+const createPostReportController = asyncHandler(async (req, res) => {
+  const report = await communityService.createPostReport(req.params.postId, req.user.id, req.body);
+
+  sendCreated(res, { report });
+});
+
+const createCommentReportController = asyncHandler(async (req, res) => {
+  const report = await communityService.createCommentReport(
+    req.params.commentId,
+    req.user.id,
+    req.body
+  );
+
+  sendCreated(res, { report });
+});
+
 const listCommentsController = asyncHandler(async (req, res) => {
   const result = await communityService.listComments(req.params.postId, req.query);
 
@@ -39,7 +61,7 @@ const createCommentController = asyncHandler(async (req, res) => {
 });
 
 const getPostByIdController = asyncHandler(async (req, res) => {
-  const post = await communityService.getPostById(req.params.postId);
+  const post = await communityService.getPostById(req.params.postId, req.user.id);
 
   sendSuccess(res, 200, { post });
 });
@@ -83,13 +105,16 @@ const deleteCommentController = asyncHandler(async (req, res) => {
 module.exports = {
   createBookmark: createBookmarkController,
   createComment: createCommentController,
+  createCommentReport: createCommentReportController,
   createPost: createPostController,
+  createPostReport: createPostReportController,
   createReaction: createReactionController,
   deleteBookmark: deleteBookmarkController,
   deleteComment: deleteCommentController,
   deletePost: deletePostController,
   deleteReaction: deleteReactionController,
   getPostById: getPostByIdController,
+  listBookmarks: listBookmarksController,
   listComments: listCommentsController,
   listPosts: listPostsController,
   updateComment: updateCommentController,

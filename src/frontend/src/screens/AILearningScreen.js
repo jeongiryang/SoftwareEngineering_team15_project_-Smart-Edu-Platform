@@ -15,6 +15,8 @@ import {
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import ReadableText from '../components/ReadableText';
+import { PanelSkeleton } from '../components/Skeleton';
+import { colors, shadows } from '../styles/theme';
 
 export default function AILearningScreen({ onNavigate, token, user }) {
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
@@ -274,6 +276,8 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         </View>
       ) : null}
 
+      {loading ? <PanelSkeleton rows={3} /> : null}
+
       {/* Tab Panels */}
       <View style={styles.panelBody}>
         {/* TAB 1: AI 학습 질의 */}
@@ -529,11 +533,15 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6'
+    backgroundColor: colors.background
   },
   contentContainer: {
-    padding: 20,
-    gap: 16
+    width: '100%',
+    maxWidth: 1080,
+    alignSelf: 'center',
+    padding: 28,
+    paddingBottom: 48,
+    gap: 18
   },
   center: {
     alignItems: 'center',
@@ -544,39 +552,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10
+    paddingVertical: 12,
+    marginBottom: 4
   },
   title: {
-    fontSize: 24,
+    fontSize: 29,
     fontWeight: '800',
-    color: '#1E1B4B'
+    color: colors.ink
   },
   subtitle: {
     fontSize: 14,
-    color: '#4B5563',
+    color: colors.muted,
     marginTop: 4
   },
   backButton: {
     minHeight: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    paddingHorizontal: 14
+    borderColor: colors.line,
+    paddingHorizontal: 18
   },
   backButtonText: {
-    color: '#374151',
+    color: colors.blueDeep,
     fontSize: 14,
     fontWeight: '600'
   },
   tabsRow: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 6,
-    gap: 4,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: 7,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -584,40 +595,40 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    minHeight: 40,
-    borderRadius: 8,
+    minHeight: 47,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent'
   },
   tabButtonActive: {
-    backgroundColor: '#6366F1'
+    backgroundColor: colors.mint
   },
   tabButtonText: {
-    color: '#4B5563',
+    color: colors.muted,
     fontSize: 13,
     fontWeight: '600'
   },
   tabButtonTextActive: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700'
   },
   errorAlert: {
-    backgroundColor: '#FDE8E8',
-    borderRadius: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: '#F8B4B4',
+    borderColor: '#F1CCC9',
     padding: 14
   },
   successAlert: {
-    backgroundColor: '#DEF7EC',
-    borderRadius: 8,
+    backgroundColor: colors.successSoft,
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: '#BCF0DA',
+    borderColor: '#B6DDCE',
     padding: 14
   },
   alertText: {
-    color: '#9B1C1C',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '600'
   },
@@ -628,13 +639,14 @@ const styles = StyleSheet.create({
     gap: 16
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 19,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 18,
+    borderColor: colors.line,
+    padding: 23,
     gap: 12,
-    shadowColor: '#000000',
+    ...shadows.card,
+    shadowColor: colors.blueDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2
@@ -647,47 +659,47 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937'
+    color: colors.ink
   },
   formDesc: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.muted,
     lineHeight: 18
   },
   charCounter: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.muted,
     fontWeight: '600'
   },
   textInput: {
     minHeight: 90,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.line,
     padding: 12,
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 14,
     textAlignVertical: 'top'
   },
   submitBtn: {
     minHeight: 44,
-    backgroundColor: '#4F46E5',
-    borderRadius: 8,
+    backgroundColor: colors.blue,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#4F46E5',
+    shadowColor: colors.blue,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3
   },
   submitBtnText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 14,
     fontWeight: '700'
   },
   disabledBtn: {
-    backgroundColor: '#A5B4FC',
+    backgroundColor: '#A7C2D2',
     shadowOpacity: 0
   },
   resultSection: {
@@ -696,29 +708,29 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.ink,
     marginLeft: 2
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: 17,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.line,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center'
   },
   emptyText: {
-    color: '#9CA3AF',
+    color: colors.muted,
     fontSize: 13,
     fontWeight: '500',
     textAlign: 'center'
   },
   qnaCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.line,
     padding: 16,
     gap: 8,
     shadowColor: '#000000',
@@ -732,30 +744,30 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   qnaLabelUser: {
-    color: '#4B5563',
+    color: colors.muted,
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase'
   },
   qnaLabelAi: {
-    color: '#4F46E5',
+    color: colors.mintDeep,
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase'
   },
   qnaTextUser: {
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.ink,
     fontWeight: '500'
   },
   qnaTextAi: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.ink,
     lineHeight: 20
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.line,
     marginVertical: 4
   },
   truncateBadge: {
@@ -768,10 +780,10 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   recommendCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.line,
     padding: 20,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
@@ -781,21 +793,21 @@ const styles = StyleSheet.create({
   recommendLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.ink,
     marginBottom: 8
   },
   subjectBox: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.mintSoft,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
-    borderRadius: 8,
+    borderColor: '#B6DDD6',
+    borderRadius: 13,
     paddingVertical: 12,
     paddingHorizontal: 16
   },
   subjectText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#4F46E5',
+    color: colors.mintDeep,
     textAlign: 'center'
   },
   tipsBox: {
@@ -807,21 +819,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start'
   },
   tipBullet: {
-    color: '#4F46E5',
+    color: colors.mintDeep,
     fontSize: 14,
     fontWeight: '700'
   },
   tipText: {
     fontSize: 13,
-    color: '#4B5563',
+    color: colors.muted,
     lineHeight: 18,
     flex: 1
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.line,
     padding: 20,
     gap: 12,
     shadowColor: '#000000',
@@ -837,26 +849,26 @@ const styles = StyleSheet.create({
   summaryCardTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937'
+    color: colors.ink
   },
   summaryContentBox: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: 13,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6'
+    borderColor: colors.line
   },
   summaryText: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.ink,
     lineHeight: 22,
     whiteSpace: 'pre-wrap' // For bullet lists formatted by backend summary
   },
   wrongCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.line,
     padding: 20,
     gap: 12,
     shadowColor: '#000000',
@@ -872,16 +884,16 @@ const styles = StyleSheet.create({
   wrongLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937'
+    color: colors.ink
   },
   weakBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.cream,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4
   },
   weakBadgeText: {
-    color: '#EF4444',
+    color: colors.warning,
     fontSize: 11,
     fontWeight: '700'
   },
@@ -890,56 +902,56 @@ const styles = StyleSheet.create({
   },
   wrongQuestionTitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.muted,
     fontWeight: '600'
   },
   wrongQuestionText: {
     fontSize: 14,
-    color: '#1F2937',
-    backgroundColor: '#F9FAFB',
+    color: colors.ink,
+    backgroundColor: colors.surfaceWarm,
     padding: 10,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#F3F4F6'
+    borderColor: colors.line
   },
   wrongUserLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.muted,
     fontWeight: '600',
     marginTop: 4
   },
   wrongUserText: {
     fontSize: 14,
-    color: '#1F2937',
-    backgroundColor: '#F9FAFB',
+    color: colors.ink,
+    backgroundColor: colors.surfaceWarm,
     padding: 10,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#F3F4F6'
+    borderColor: colors.line
   },
   wrongDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.line,
     marginVertical: 6
   },
   wrongExplanationLabel: {
     fontSize: 12,
-    color: '#4F46E5',
+    color: colors.mintDeep,
     fontWeight: '700'
   },
   wrongExplanationText: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.ink,
     lineHeight: 20
   },
   errorHeader: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#EF4444'
+    color: colors.danger
   },
   errorSub: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.muted,
     marginTop: 4,
     marginBottom: 16
   }

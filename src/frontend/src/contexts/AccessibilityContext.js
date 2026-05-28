@@ -4,39 +4,39 @@ import { getAccessibilityPreferences, requestTextToSpeech, getReviewReminders } 
 
 export const voiceOptions = [
   {
-    label: '성인 남성',
+    label: '차분한 낮은 톤',
     value: 'ADULT_MALE',
     pitch: 0.82,
     rate: 0.84,
     genderHint: 'male',
-    tag: '성인 학습자 추천',
-    help: '브라우저에 한국어 남성 목소리가 있으면 우선 사용하고, 없으면 사용 가능한 한국어 목소리를 낮은 톤으로 조정해 들려줍니다.'
+    tag: '낮은 톤 학습 안내',
+    help: '브라우저가 제공하는 한국어 음성을 낮은 톤과 느린 속도로 조정해 차분하게 들려줍니다.'
   },
   {
-    label: '성인 여성',
+    label: '부드러운 기본 톤',
     value: 'ADULT_FEMALE',
     pitch: 1.02,
     rate: 0.88,
     genderHint: 'female',
-    tag: '성인 학습자 추천',
-    help: '기본 추천 음성입니다. 브라우저의 한국어 여성 음성이 있으면 우선 사용합니다.'
+    tag: '기본 학습 안내',
+    help: '기본 추천 음성 톤입니다. 브라우저가 제공하는 한국어 음성을 부드럽고 또렷하게 들려줍니다.'
   },
   {
-    label: '또래 남아',
+    label: '밝은 낮은 톤',
     value: 'CHILD_BOY',
     pitch: 1.18,
     rate: 0.8,
     genderHint: 'male',
-    tag: '초등학생 남자 학습자 추천',
+    tag: '밝은 톤 학습 안내',
     help: '전용 아동 목소리는 아니지만, 브라우저가 제공하는 목소리를 조금 더 밝고 천천히 들리도록 조정합니다.'
   },
   {
-    label: '또래 여아',
+    label: '밝은 높은 톤',
     value: 'CHILD_GIRL',
     pitch: 1.32,
     rate: 0.82,
     genderHint: 'female',
-    tag: '초등학생 여자 학습자 추천',
+    tag: '높은 톤 학습 안내',
     help: '전용 아동 목소리는 아니지만, 브라우저가 제공하는 목소리를 조금 더 밝고 천천히 들리도록 조정합니다.'
   }
 ];

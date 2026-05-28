@@ -39,6 +39,22 @@ const BOOKMARK_SELECT = {
   createdAt: true
 };
 
+const REPORT_SELECT = {
+  id: true,
+  targetType: true,
+  postId: true,
+  commentId: true,
+  reason: true,
+  status: true,
+  createdAt: true
+};
+
+const BOOKMARK_LIST_INCLUDE = {
+  post: {
+    include: POST_INCLUDE
+  }
+};
+
 function buildPostWhere(filters = {}) {
   const where = {};
 
@@ -91,6 +107,118 @@ async function findPosts({ page, pageSize, category, search, sort }) {
   return { posts, total };
 }
 
+async function findPostEngagementSummaries(postIds, userId) {
+  const ids = [...new Set(postIds.map(Number))].filter((id) => Number.isInteger(id) && id > 0);
+
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const [reactionCounts, bookmarkCounts, currentUserReactions, currentUserBookmarks] =
+    await Promise.all([
+      prisma.communityReaction.groupBy({
+        by: ['postId', 'type'],
+        where: {
+          postId: {
+            in: ids
+          }
+        },
+        _count: {
+          id: true
+        }
+      }),
+      prisma.communityBookmark.groupBy({
+        by: ['postId'],
+        where: {
+          postId: {
+            in: ids
+          }
+        },
+        _count: {
+          id: true
+        }
+      }),
+      prisma.communityReaction.findMany({
+        where: {
+          postId: {
+            in: ids
+          },
+          userId
+        },
+        select: {
+          postId: true,
+          type: true
+        }
+      }),
+      prisma.communityBookmark.findMany({
+        where: {
+          postId: {
+            in: ids
+          },
+          userId
+        },
+        select: {
+          postId: true
+        }
+      })
+    ]);
+
+  const summaries = new Map(
+    ids.map((id) => [
+      id,
+      {
+        likeCount: 0,
+        dislikeCount: 0,
+        bookmarkCount: 0,
+        myReaction: null,
+        isBookmarked: false
+      }
+    ])
+  );
+
+  reactionCounts.forEach((row) => {
+    const summary = summaries.get(row.postId);
+
+    if (!summary) {
+      return;
+    }
+
+    if (row.type === 'LIKE') {
+      summary.likeCount = row._count.id;
+    }
+
+    if (row.type === 'DISLIKE') {
+      summary.dislikeCount = row._count.id;
+    }
+  });
+
+  bookmarkCounts.forEach((row) => {
+    const summary = summaries.get(row.postId);
+
+    if (summary) {
+      summary.bookmarkCount = row._count.id;
+    }
+  });
+
+  currentUserReactions.forEach((reaction) => {
+    const summary = summaries.get(reaction.postId);
+
+    if (summary) {
+      summary.myReaction = reaction.type;
+    }
+  });
+
+  currentUserBookmarks.forEach((bookmark) => {
+    const summary = summaries.get(bookmark.postId);
+
+    if (summary) {
+      summary.isBookmarked = true;
+    }
+  });
+
+  return summaries;
+}
+
 function createPost(userId, data) {
   return prisma.boardPost.create({
     data: {
@@ -118,6 +246,13 @@ function findPostByIdAndUserId(postId, userId) {
   });
 }
 
+function findCommentById(commentId) {
+  return prisma.comment.findUnique({
+    where: { id: commentId },
+    include: COMMENT_INCLUDE
+  });
+}
+
 async function findCommentsByPostId({ postId, page, pageSize }) {
   const where = { postId };
   const skip = (page - 1) * pageSize;
@@ -134,6 +269,27 @@ async function findCommentsByPostId({ postId, page, pageSize }) {
   ]);
 
   return { comments, total };
+}
+
+async function findBookmarksByUserId({ userId, page, pageSize, sort = 'latest' }) {
+  const where = { userId };
+  const orderBy = {
+    createdAt: sort === 'oldest' ? 'asc' : 'desc'
+  };
+  const skip = (page - 1) * pageSize;
+
+  const [bookmarks, total] = await Promise.all([
+    prisma.communityBookmark.findMany({
+      where,
+      include: BOOKMARK_LIST_INCLUDE,
+      orderBy,
+      skip,
+      take: pageSize
+    }),
+    prisma.communityBookmark.count({ where })
+  ]);
+
+  return { bookmarks, total };
 }
 
 function createComment(postId, userId, data) {
@@ -181,6 +337,76 @@ function upsertBookmark(postId, userId) {
       userId
     },
     select: BOOKMARK_SELECT
+  });
+}
+
+function findPostReportByReporterAndPostId(reporterId, postId) {
+  return prisma.communityReport.findFirst({
+    where: {
+      reporterId,
+      postId
+    },
+    select: {
+      id: true
+    }
+  });
+}
+
+function findCommentReportByReporterAndCommentId(reporterId, commentId) {
+  return prisma.communityReport.findFirst({
+    where: {
+      reporterId,
+      commentId
+    },
+    select: {
+      id: true
+    }
+  });
+}
+
+function createPostReport(postId, reporterId, data) {
+  return prisma.$transaction(async (tx) => {
+    const report = await tx.communityReport.create({
+      data: {
+        reporterId,
+        targetType: 'POST',
+        postId,
+        commentId: null,
+        status: 'PENDING',
+        reason: data.reason
+      },
+      select: REPORT_SELECT
+    });
+
+    await tx.boardPost.update({
+      where: { id: postId },
+      data: { reported: true }
+    });
+
+    return report;
+  });
+}
+
+function createCommentReport(commentId, reporterId, data) {
+  return prisma.$transaction(async (tx) => {
+    const report = await tx.communityReport.create({
+      data: {
+        reporterId,
+        targetType: 'COMMENT',
+        postId: null,
+        commentId,
+        status: 'PENDING',
+        reason: data.reason
+      },
+      select: REPORT_SELECT
+    });
+
+    await tx.comment.update({
+      where: { id: commentId },
+      data: { reported: true }
+    });
+
+    return report;
   });
 }
 
@@ -292,15 +518,22 @@ async function deleteBookmark(postId, userId) {
 
 module.exports = {
   createComment,
+  createCommentReport,
   createPost,
+  createPostReport,
   deleteBookmark,
   deleteReaction,
   deleteComment,
   deletePost,
+  findCommentById,
   findCommentByIdAndUserId,
+  findCommentReportByReporterAndCommentId,
+  findBookmarksByUserId,
   findCommentsByPostId,
   findPostById,
   findPostByIdAndUserId,
+  findPostEngagementSummaries,
+  findPostReportByReporterAndPostId,
   findPosts,
   upsertBookmark,
   upsertReaction,

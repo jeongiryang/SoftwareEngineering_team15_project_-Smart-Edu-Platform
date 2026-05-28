@@ -1,5 +1,67 @@
 const prisma = require('../utils/prisma');
 
+const ADMIN_USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  status: true
+};
+
+const COMMUNITY_REPORT_INCLUDE = {
+  reporter: {
+    select: ADMIN_USER_SELECT
+  },
+  resolvedBy: {
+    select: ADMIN_USER_SELECT
+  },
+  post: {
+    select: {
+      id: true,
+      category: true,
+      title: true,
+      reported: true,
+      user: {
+        select: ADMIN_USER_SELECT
+      }
+    }
+  },
+  comment: {
+    select: {
+      id: true,
+      postId: true,
+      content: true,
+      reported: true,
+      user: {
+        select: ADMIN_USER_SELECT
+      },
+      post: {
+        select: {
+          id: true,
+          title: true
+        }
+      }
+    }
+  }
+};
+
+const ADMIN_BADGE_SELECT = {
+  id: true,
+  code: true,
+  name: true,
+  description: true,
+  iconUrl: true,
+  condition: true,
+  createdAt: true,
+  updatedAt: true
+};
+
+const ADMIN_REWARD_QUEST_INCLUDE = {
+  badge: {
+    select: ADMIN_BADGE_SELECT
+  }
+};
+
 function findAllUsers() {
   return prisma.user.findMany({
     orderBy: { id: 'asc' }
@@ -83,6 +145,88 @@ function findAdminActions() {
       }
     },
     orderBy: { createdAt: 'desc' }
+  });
+}
+
+async function findCommunityReports({ status, targetType, page, pageSize }) {
+  const where = {};
+  const skip = (page - 1) * pageSize;
+
+  if (status) {
+    where.status = status;
+  }
+
+  if (targetType) {
+    where.targetType = targetType;
+  }
+
+  const [reports, total] = await prisma.$transaction([
+    prisma.communityReport.findMany({
+      where,
+      include: COMMUNITY_REPORT_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize
+    }),
+    prisma.communityReport.count({ where })
+  ]);
+
+  return { reports, total };
+}
+
+function findCommunityReportById(id) {
+  return prisma.communityReport.findUnique({
+    where: { id },
+    include: COMMUNITY_REPORT_INCLUDE
+  });
+}
+
+async function processCommunityReport(report, adminId, { status, resolutionNote }) {
+  return prisma.$transaction(async (tx) => {
+    await tx.communityReport.update({
+      where: { id: report.id },
+      data: {
+        status,
+        resolvedById: adminId,
+        resolvedAt: new Date(),
+        resolutionNote
+      }
+    });
+
+    if (report.targetType === 'POST' && report.postId) {
+      const pendingCount = await tx.communityReport.count({
+        where: {
+          targetType: 'POST',
+          postId: report.postId,
+          status: 'PENDING'
+        }
+      });
+
+      await tx.boardPost.update({
+        where: { id: report.postId },
+        data: { reported: pendingCount > 0 }
+      });
+    }
+
+    if (report.targetType === 'COMMENT' && report.commentId) {
+      const pendingCount = await tx.communityReport.count({
+        where: {
+          targetType: 'COMMENT',
+          commentId: report.commentId,
+          status: 'PENDING'
+        }
+      });
+
+      await tx.comment.update({
+        where: { id: report.commentId },
+        data: { reported: pendingCount > 0 }
+      });
+    }
+
+    return tx.communityReport.findUnique({
+      where: { id: report.id },
+      include: COMMUNITY_REPORT_INCLUDE
+    });
   });
 }
 
@@ -183,6 +327,78 @@ async function closeChallengeAndLog(adminId, challengeId, reason) {
   });
 }
 
+function findRewardBadges() {
+  return prisma.badge.findMany({
+    select: ADMIN_BADGE_SELECT,
+    orderBy: { id: 'asc' }
+  });
+}
+
+function createRewardBadge(data) {
+  return prisma.badge.create({
+    data,
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function updateRewardBadge(id, data) {
+  return prisma.badge.update({
+    where: { id },
+    data,
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function findRewardBadgeById(id) {
+  return prisma.badge.findUnique({
+    where: { id },
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function findRewardBadgeByCode(code) {
+  return prisma.badge.findUnique({
+    where: { code },
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function findRewardQuests() {
+  return prisma.rewardQuest.findMany({
+    include: ADMIN_REWARD_QUEST_INCLUDE,
+    orderBy: { id: 'asc' }
+  });
+}
+
+function createRewardQuest(data) {
+  return prisma.rewardQuest.create({
+    data,
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
+function updateRewardQuest(id, data) {
+  return prisma.rewardQuest.update({
+    where: { id },
+    data,
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
+function findRewardQuestById(id) {
+  return prisma.rewardQuest.findUnique({
+    where: { id },
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
+function findRewardQuestByCode(code) {
+  return prisma.rewardQuest.findUnique({
+    where: { code },
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
 module.exports = {
   findAllUsers,
   findUserById,
@@ -190,6 +406,9 @@ module.exports = {
   findReportedPosts,
   findReportedComments,
   findAdminActions,
+  findCommunityReports,
+  findCommunityReportById,
+  processCommunityReport,
   findPostById,
   deletePostAndLog,
   dismissPostReport,
@@ -197,5 +416,15 @@ module.exports = {
   deleteCommentAndLog,
   dismissCommentReport,
   findChallengeById,
-  closeChallengeAndLog
+  closeChallengeAndLog,
+  createRewardBadge,
+  createRewardQuest,
+  findRewardBadgeByCode,
+  findRewardBadgeById,
+  findRewardBadges,
+  findRewardQuestByCode,
+  findRewardQuestById,
+  findRewardQuests,
+  updateRewardBadge,
+  updateRewardQuest
 };

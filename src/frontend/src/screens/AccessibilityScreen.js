@@ -35,12 +35,12 @@ const voiceGuideSteps = [
     body: '학습자에게 편한 목소리를 고를 수 있습니다. 선택한 목소리는 읽어주기 버튼을 누를 때 사용됩니다.'
   },
   {
-    title: '성인 목소리',
-    body: '성인 남성과 성인 여성은 일반 학습자에게 추천합니다. 브라우저에 해당 한국어 목소리가 있으면 우선 사용합니다.'
+    title: '기본 학습 톤',
+    body: '차분한 낮은 톤과 부드러운 기본 톤은 일반 학습자에게 추천합니다. 브라우저 음성을 톤과 속도로 조정해 들려줍니다.'
   },
   {
-    title: '또래 목소리',
-    body: '또래 남아와 또래 여아는 초등학생 학습자에게 추천합니다. 밝은 톤과 느린 속도로 더 친근하게 들리도록 조정합니다.'
+    title: '밝은 학습 톤',
+    body: '밝은 낮은 톤과 밝은 높은 톤은 초등학생 학습자에게 추천합니다. 더 친근하게 들리도록 톤과 속도를 조정합니다.'
   },
   {
     title: '목소리 차이 안내',
@@ -53,12 +53,12 @@ const kidVoiceGuideSteps = [
     body: '책을 읽어줄 사람의 목소리를 직접 고를 수 있어요. 소리 내어 듣기 버튼을 누르면 이 목소리로 읽어줘요!'
   },
   {
-    title: '👨 어른 목소리',
-    body: '삼촌 목소리와 이모 목소리는 깔끔하고 또박또박하게 책을 읽어줘요.'
+    title: '🎧 차분한 소리',
+    body: '낮은 톤과 기본 톤은 깔끔하고 또박또박하게 책을 읽어줘요.'
   },
   {
-    title: '👦 또래 친구 목소리',
-    body: '남자친구와 여자친구 목소리는 우리 또래 친구처럼 밝고 천천히 읽어줘요.'
+    title: '✨ 밝은 소리',
+    body: '밝은 낮은 톤과 밝은 높은 톤은 더 친근하고 천천히 읽어줘요.'
   },
   {
     title: '💡 알아두기',
@@ -451,13 +451,13 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     labelVoiceOutput: '🔊 귀로 듣기 (글 읽어주기)',
     labelVoiceInput: '🎙️ 마이크로 말하기 (음성 입력)',
     section2Title: '🗣️ 목소리 고르기',
-    section2Helper: '듣고 싶은 사람의 목소리를 골라보세요. 사용하는 폰이나 컴퓨터에 따라 다르게 들릴 수 있어요.',
+    section2Helper: '듣기 편한 목소리 톤을 골라보세요. 사용하는 폰이나 컴퓨터에 따라 다르게 들릴 수 있어요.',
     textTtsPlaceholder: '여기에 글을 쓰면 기계가 소리 내어 읽어줘요. 한번 써보세요!',
     buttonSpeak: '🔊 소리 내어 듣기',
-    voiceAdultMale: '👨 삼촌 목소리',
-    voiceAdultFemale: '👩 이모 목소리',
-    voiceChildBoy: '👦 남자친구 목소리',
-    voiceChildGirl: '👧 여자친구 목소리',
+    voiceAdultMale: '🎧 차분한 낮은 톤',
+    voiceAdultFemale: '🎙️ 부드러운 기본 톤',
+    voiceChildBoy: '✨ 밝은 낮은 톤',
+    voiceChildGirl: '🔆 밝은 높은 톤',
     section3Title: '📝 말로 쓰는 메모장',
     buttonSave: '💾 글 저장하기',
     textSttPlaceholder: '마이크로 말한 글이 여기에 적혀요. 직접 고칠 수도 있어요!',

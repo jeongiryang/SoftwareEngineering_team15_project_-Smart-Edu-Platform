@@ -1,338 +1,1395 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAccessibility } from '../contexts/AccessibilityContext';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import FeatureGuideModal from '../components/FeatureGuideModal';
+import { claimRewardQuest, getMyRewards } from '../services/api';
+import { colors, shadows } from '../styles/theme';
+
+const AI_GUIDE_STORAGE_KEY = 'sagaksagakAiGuideDismissed';
 
 const featureCards = [
-  '학습 일정',
-  '칸반 보드',
-  'AI 학습 질의',
-  '음성/접근성',
-  '집중 시간',
-  '학습 통계',
-  '게시판'
+  {
+    label: 'AI 학습 헬퍼',
+    summary: '질문, 맞춤형 추천, 요약, 오답 분석을 한 화면에서 이어갈 수 있습니다.',
+    status: '연결 완료',
+    screen: 'aiLearning',
+    tone: 'featured',
+    requiresAIGuide: true
+  },
+  {
+    label: '음성/접근성',
+    summary: '큰 글씨, 고대비, 읽어주기, 음성 입력, 복습 알림을 한곳에서 설정할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'accessibility',
+    tone: 'mint'
+  },
+  {
+    label: '학습 일정',
+    summary: '날짜와 시간을 입력해 학습 일정을 만들고 수정하고 삭제할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'schedule',
+    tone: 'mint'
+  },
+  {
+    label: '칸반 보드',
+    summary: '학습 일정과 연결된 태스크를 TODO부터 DONE까지 관리할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'taskBoard',
+    tone: 'warm'
+  },
+  {
+    label: '커뮤니티',
+    summary: '게시글, 댓글, 반응, 북마크, 신고 기능을 바로 사용할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'community',
+    tone: 'green'
+  },
+  {
+    label: '집중 시간',
+    summary: '집중 세션 기록과 타이머 화면은 후속 프론트 연결 범위에서 이어집니다.',
+    status: '후속 연결'
+  },
+  {
+    label: '학습 통계',
+    summary: '주간 학습량과 히트맵 시각화 화면은 후속 프론트 연결 범위에서 이어집니다.',
+    status: '후속 연결'
+  }
 ];
 
-export default function DashboardScreen({ onLogout, onNavigate, user }) {
-  const { preference } = useAccessibility();
-  const isKid = preference.elementaryFriendlyUi;
-  const hasAdminRole = user?.role === 'ADMIN';
+function getCardStyle(tone) {
+  if (tone === 'featured') {
+    return {
+      container: styles.featuredCard,
+      title: styles.featuredTitle,
+      summary: styles.featuredSummary,
+      status: styles.featuredStatus,
+      statusText: styles.featuredStatusText,
+      link: styles.featuredLink
+    };
+  }
 
-  const titleText = isKid ? '🎒 초등학생 공부 센터' : 'Smart Edu Platform';
-  const subtitleText = isKid ? '쉽고 재미있는 공부 방에 오신 걸 환영해요!' : '개인화 학습 관리 대시보드';
-  const logoutText = isKid ? '👋 공부 마칠래요 (로그아웃)' : '로그아웃';
+  if (tone === 'mint') {
+    return {
+      container: styles.mintCard,
+      title: styles.defaultTitle,
+      summary: styles.defaultSummary,
+      status: styles.readyStatus,
+      statusText: styles.readyStatusText,
+      link: styles.defaultLink
+    };
+  }
 
-  const featureLabelMap = {
-    '학습 일정': '📅 공부 달력 (일정)',
-    '칸반 보드': '📋 할 일 놀이터 (칸반)',
-    'AI 학습 질의': '🤖 AI 공부 친구',
-    '음성/접근성': '🎒 도움 센터 (음성)',
-    '집중 시간': '⏳ 집중 타이머',
-    '학습 통계': '📊 공부 결과 (통계)',
-    '게시판': '💬 이야기방 (게시판)'
+  if (tone === 'warm') {
+    return {
+      container: styles.warmCard,
+      title: styles.defaultTitle,
+      summary: styles.defaultSummary,
+      status: styles.readyStatus,
+      statusText: styles.readyStatusText,
+      link: styles.defaultLink
+    };
+  }
+
+  if (tone === 'green') {
+    return {
+      container: styles.greenCard,
+      title: styles.greenTitle,
+      summary: styles.defaultSummary,
+      status: styles.greenStatus,
+      statusText: styles.greenStatusText,
+      link: styles.greenLink
+    };
+  }
+
+  return {
+    container: styles.defaultCard,
+    title: styles.defaultTitle,
+    summary: styles.defaultSummary,
+    status: styles.pendingStatus,
+    statusText: styles.pendingStatusText,
+    link: styles.pendingLink
   };
+}
 
-  const cards = featureCards.map((label) => (isKid ? (featureLabelMap[label] || label) : label));
+function formatNumber(value) {
+  return new Intl.NumberFormat('ko-KR').format(Number(value || 0));
+}
 
-  const scaledText = (baseSize) => ({
-    fontSize: Math.round(baseSize * preference.textScale)
+function getQuestTone(status) {
+  if (status === 'CLAIMED') {
+    return styles.claimedQuest;
+  }
+
+  if (status === 'ACHIEVED') {
+    return styles.achievedQuest;
+  }
+
+  return styles.progressQuest;
+}
+
+function getQuestStatusText(status) {
+  if (status === 'CLAIMED') {
+    return '보상 수령 완료';
+  }
+
+  if (status === 'ACHIEVED') {
+    return '보상 수령 가능';
+  }
+
+  return '진행 중';
+}
+
+function getQuestProgressLabel(quest) {
+  const targetValue = quest?.targetValue || 0;
+  const progressValue = quest?.progressValue || 0;
+
+  if (quest?.type === 'TOTAL_STUDY_MINUTES') {
+    return `${progressValue}분 / ${targetValue}분`;
+  }
+
+  return `${progressValue}개 / ${targetValue}개`;
+}
+
+function getQuestProgressWidth(progressRate) {
+  const ratio = Math.max(0, Math.min(Number(progressRate || 0), 1));
+
+  if (ratio === 0) {
+    return '0%';
+  }
+
+  return `${Math.max(6, Math.round(ratio * 100))}%`;
+}
+
+function buildClaimMessage(result) {
+  const points = result?.reward?.pointTransaction?.amount || result?.reward?.quest?.rewardPoints || 0;
+  const badgeName = result?.reward?.badge?.badge?.name;
+
+  if (badgeName) {
+    return `${points}포인트와 "${badgeName}" 배지를 받았습니다.`;
+  }
+
+  return `${points}포인트를 받았습니다.`;
+}
+
+export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
+  const hasAdminRole = user?.role === 'ADMIN';
+  const [showAIGuide, setShowAIGuide] = useState(false);
+  const [showAllBadges, setShowAllBadges] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const [showClaimedQuests, setShowClaimedQuests] = useState(false);
+  const [failedBadgeIcons, setFailedBadgeIcons] = useState({});
+  const [rewardLoading, setRewardLoading] = useState(true);
+  const [rewardRefreshing, setRewardRefreshing] = useState(false);
+  const [rewardError, setRewardError] = useState('');
+  const [claimingQuestId, setClaimingQuestId] = useState(null);
+  const [claimMessage, setClaimMessage] = useState('');
+  const [rewardData, setRewardData] = useState({
+    account: null,
+    metrics: { totalStudyMinutes: 0, completedTaskCount: 0 },
+    quests: [],
+    badges: [],
+    recentPointTransactions: []
   });
 
-  const themeContainer = preference.highContrast ? [styles.container, styles.highContrastBg] : styles.container;
-  const themeCard = (isAI, isAccess) => [
-    styles.card,
-    isAI && styles.aiCard,
-    isAccess && styles.accessibilityCard,
-    preference.highContrast && styles.highContrastCard
-  ];
-  const themeCardText = (isAI, isAccess) => [
-    styles.cardText,
-    isAI && styles.aiCardText,
-    isAccess && styles.accessibilityCardText,
-    scaledText(16),
-    preference.highContrast && styles.highContrastCardText
-  ];
+  const featuredQuests = useMemo(
+    () => (rewardData.quests || []).slice().sort((left, right) => {
+      const order = { ACHIEVED: 0, IN_PROGRESS: 1, CLAIMED: 2 };
+      return (order[left.status] ?? 99) - (order[right.status] ?? 99);
+    }),
+    [rewardData.quests]
+  );
+  const activeQuests = useMemo(
+    () => featuredQuests.filter((quest) => quest.status !== 'CLAIMED'),
+    [featuredQuests]
+  );
+  const claimedQuests = useMemo(
+    () => featuredQuests.filter((quest) => quest.status === 'CLAIMED'),
+    [featuredQuests]
+  );
+  const visibleBadges = useMemo(
+    () => (showAllBadges ? rewardData.badges || [] : (rewardData.badges || []).slice(0, 4)),
+    [rewardData.badges, showAllBadges]
+  );
+  const visibleTransactions = useMemo(
+    () =>
+      showAllTransactions
+        ? rewardData.recentPointTransactions || []
+        : (rewardData.recentPointTransactions || []).slice(0, 5),
+    [rewardData.recentPointTransactions, showAllTransactions]
+  );
+
+  function isGuideDismissed() {
+    try {
+      return globalThis.localStorage?.getItem(AI_GUIDE_STORAGE_KEY) === 'true';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function openAILearning() {
+    if (isGuideDismissed()) {
+      onNavigate('aiLearning');
+      return;
+    }
+
+    setShowAIGuide(true);
+  }
+
+  function continueToAILearning(doNotShowAgain) {
+    if (doNotShowAgain) {
+      try {
+        globalThis.localStorage?.setItem(AI_GUIDE_STORAGE_KEY, 'true');
+      } catch (error) {
+        // Disabled storage should not block navigation.
+      }
+    }
+
+    setShowAIGuide(false);
+    onNavigate('aiLearning');
+  }
+
+  function handleCardPress(card) {
+    if (!card.screen) {
+      return;
+    }
+
+    if (card.requiresAIGuide) {
+      openAILearning();
+      return;
+    }
+
+    onNavigate(card.screen);
+  }
+
+  async function loadRewards({ silent = false } = {}) {
+    if (!token) {
+      setRewardData({
+        account: null,
+        metrics: { totalStudyMinutes: 0, completedTaskCount: 0 },
+        quests: [],
+        badges: [],
+        recentPointTransactions: []
+      });
+      setRewardError('');
+      setRewardLoading(false);
+      return;
+    }
+
+    if (silent) {
+      setRewardRefreshing(true);
+    } else {
+      setRewardLoading(true);
+    }
+
+    try {
+      const result = await getMyRewards(token);
+      setRewardData(result.rewards || {});
+      setRewardError('');
+    } catch (error) {
+      setRewardError(error.message || '보상 정보를 불러오지 못했습니다.');
+    } finally {
+      setRewardLoading(false);
+      setRewardRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadRewards();
+  }, [token]);
+
+  async function handleClaimQuest(questId) {
+    if (!token || claimingQuestId) {
+      return;
+    }
+
+    setClaimingQuestId(questId);
+    setClaimMessage('');
+
+    try {
+      const result = await claimRewardQuest(token, questId);
+      setClaimMessage(buildClaimMessage(result));
+      await loadRewards({ silent: true });
+    } catch (error) {
+      setRewardError(error.message || '보상을 수령하지 못했습니다.');
+    } finally {
+      setClaimingQuestId(null);
+    }
+  }
+
+  function markBadgeIconFailed(badgeKey) {
+    setFailedBadgeIcons((current) => {
+      if (current[badgeKey]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [badgeKey]: true
+      };
+    });
+  }
 
   return (
-    <View style={themeContainer}>
-      <View style={styles.header}>
-        <Text style={[styles.title, scaledText(28), preference.highContrast && styles.highContrastText]}>
-          {titleText}
-        </Text>
-        <Text style={[styles.subtitle, scaledText(16), preference.highContrast && styles.highContrastSubText]}>
-          {subtitleText}
-        </Text>
-        {user ? (
-          <View style={[styles.userBox, preference.highContrast && styles.highContrastCard]}>
-            <View style={styles.userInfoRow}>
-              <Text style={[styles.userName, scaledText(16), preference.highContrast && styles.highContrastText]}>
-                {user.name}
-              </Text>
-              {hasAdminRole && (
-                <View style={styles.adminBadge}>
-                  <Text style={[styles.adminBadgeText, scaledText(10)]}>
-                    {isKid ? '🛠️ 선생님' : 'ADMIN'}
-                  </Text>
-                </View>
-              )}
+    <>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.eyebrow}>MY LEARNING SPACE</Text>
+            <Text style={styles.title}>{user?.name || '사용자'}님,{'\n'}오늘도 차곡차곡 기록해요</Text>
+            <Text style={styles.subtitle}>
+              AI 학습, 커뮤니티, 일정, 칸반 화면을 한곳에서 오가며 오늘의 학습 흐름을 정리할 수 있습니다.
+            </Text>
+            <View style={styles.heroButtonRow}>
+              <Pressable accessibilityRole="button" onPress={openAILearning} style={styles.primaryButton}>
+                <Text style={styles.primaryButtonText}>AI 학습 시작하기</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('community')}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>커뮤니티 보기</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('schedule')}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>일정 보기</Text>
+              </Pressable>
             </View>
-            <Text style={[styles.userEmail, scaledText(14), preference.highContrast && styles.highContrastSubText]}>
-              {user.email}
-            </Text>
           </View>
-        ) : null}
-      </View>
-      <View style={styles.grid}>
-        {featureCards.map((label, index) => {
-          const displayLabel = cards[index];
-          const isAIFeature = label === 'AI 학습 질의';
-          const isAccessibilityFeature = label === '음성/접근성';
 
-          return (
-            <Pressable
-              key={label}
-              onPress={
-                isAIFeature
-                  ? () => onNavigate('aiLearning')
-                  : isAccessibilityFeature
-                    ? () => onNavigate('accessibility')
-                    : undefined
-              }
-              style={themeCard(isAIFeature, isAccessibilityFeature)}
-            >
-              <Text style={themeCardText(isAIFeature, isAccessibilityFeature)}>
-                {displayLabel}
-              </Text>
-              {isAIFeature && (
-                <View style={styles.aiBadge}>
-                  <Text style={[styles.aiBadgeText, scaledText(10)]}>
-                    {isKid ? '🤖 도와줘요' : 'AI 헬퍼'}
-                  </Text>
-                </View>
-              )}
-              {isAccessibilityFeature && (
-                <View style={styles.readyBadge}>
-                  <Text style={[styles.readyBadgeText, scaledText(10)]}>
-                    {isKid ? '🔊 목소리' : '음성 지원'}
-                  </Text>
-                </View>
-              )}
+          <View style={[styles.profileCard, shadows.card]}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.name?.slice(0, 1) || '학'}</Text>
+            </View>
+            <Text style={styles.userName}>{user?.name || '학습자'}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+            <View style={styles.memberBadge}>
+              <Text style={styles.memberBadgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
+            </View>
+            <Pressable accessibilityRole="button" onPress={onLogout} style={styles.logoutButton}>
+              <Text style={styles.logoutButtonText}>로그아웃</Text>
             </Pressable>
-          );
-        })}
-        {hasAdminRole && (
-          <Pressable
-            onPress={() => onNavigate('admin')}
-            style={[
-              styles.card,
-              styles.adminCard,
-              preference.highContrast && styles.highContrastCard
-            ]}
-          >
-            <Text style={[
-              styles.cardText,
-              styles.adminCardText,
-              scaledText(16),
-              preference.highContrast && styles.highContrastCardText
-            ]}>
-              {isKid ? '🛠️ 선생님 관리 도구' : '관리자 콘솔'}
-            </Text>
-            <Text style={[
-              styles.adminCardSubText,
-              scaledText(11),
-              preference.highContrast && styles.highContrastSubText
-            ]}>
-              {isKid ? '학생 정보와 과제를 살펴봐요' : '사용자 및 콘텐츠 관리'}
-            </Text>
-          </Pressable>
-        )}
-      </View>
-      <Pressable
-        onPress={onLogout}
-        style={[
-          styles.logoutButton,
-          preference.highContrast && styles.highContrastCard
-        ]}
-      >
-        <Text style={[
-          styles.logoutButtonText,
-          scaledText(16),
-          preference.highContrast && styles.highContrastText
-        ]}>
-          {logoutText}
-        </Text>
-      </Pressable>
-    </View>
+          </View>
+        </View>
+
+        <View style={[styles.rewardPanel, shadows.card]}>
+          <View style={styles.rewardHeader}>
+            <View>
+              <Text style={styles.rewardTitle}>보상 현황</Text>
+              <Text style={styles.rewardSubtitle}>포인트, 퀘스트, 배지를 대시보드에서 바로 확인할 수 있어요.</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={rewardLoading || rewardRefreshing}
+              onPress={() => loadRewards({ silent: true })}
+              style={[styles.refreshButton, (rewardLoading || rewardRefreshing) && styles.refreshButtonDisabled]}
+            >
+              <Text style={styles.refreshButtonText}>{rewardRefreshing ? '새로고침 중' : '새로고침'}</Text>
+            </Pressable>
+          </View>
+
+          {rewardLoading ? (
+            <View style={styles.rewardLoading}>
+              <ActivityIndicator color={colors.blue} />
+              <Text style={styles.loadingText}>보상 정보를 불러오는 중입니다.</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.rewardStats}>
+                <View style={[styles.statCard, styles.pointCard]}>
+                  <Text style={styles.statLabel}>보유 포인트</Text>
+                  <Text style={styles.pointValue}>{formatNumber(rewardData.account?.pointBalance)}</Text>
+                  <Text style={styles.statHint}>보상 수령 시 자동으로 적립됩니다.</Text>
+                </View>
+
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>누적 집중 시간</Text>
+                  <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.totalStudyMinutes)}분</Text>
+                </View>
+
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>완료한 태스크</Text>
+                  <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.completedTaskCount)}개</Text>
+                </View>
+              </View>
+
+              {rewardError ? (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorText}>{rewardError}</Text>
+                </View>
+              ) : null}
+
+              {claimMessage ? (
+                <View style={styles.successBanner}>
+                  <Text style={styles.successText}>{claimMessage}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.rewardContentGrid}>
+                <View style={styles.questColumn}>
+                  <View style={styles.subsectionHeader}>
+                    <Text style={styles.subsectionTitle}>진행 중인 퀘스트</Text>
+                    <Text style={styles.subsectionMeta}>{activeQuests.length}개</Text>
+                  </View>
+
+                  {activeQuests.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyTitle}>아직 등록된 퀘스트가 없습니다.</Text>
+                      <Text style={styles.emptyText}>관리자 화면에서 보상 퀘스트를 추가하면 이곳에 표시됩니다.</Text>
+                    </View>
+                  ) : (
+                    activeQuests.map((quest) => (
+                      <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
+                        <View style={styles.questHeader}>
+                          <View style={styles.questCopy}>
+                            <Text style={styles.questTitle}>{quest.title}</Text>
+                            <Text style={styles.questDescription}>
+                              {quest.description || '설명 없이 등록된 퀘스트입니다.'}
+                            </Text>
+                          </View>
+                          <View style={styles.questStatusChip}>
+                            <Text style={styles.questStatusText}>{getQuestStatusText(quest.status)}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.progressTrack}>
+                          <View
+                            style={[
+                              styles.progressBar,
+                              { width: getQuestProgressWidth(quest.progressRate) }
+                            ]}
+                          />
+                        </View>
+
+                        <View style={styles.questFooter}>
+                          <View>
+                            <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
+                            <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                          </View>
+
+                          {quest.status === 'ACHIEVED' ? (
+                            <Pressable
+                              accessibilityRole="button"
+                              disabled={claimingQuestId === quest.id}
+                              onPress={() => handleClaimQuest(quest.id)}
+                              style={[
+                                styles.claimButton,
+                                claimingQuestId === quest.id && styles.claimButtonDisabled
+                              ]}
+                            >
+                              <Text style={styles.claimButtonText}>
+                                {claimingQuestId === quest.id ? '수령 중' : '보상 받기'}
+                              </Text>
+                            </Pressable>
+                          ) : (
+                            <View style={styles.questTag}>
+                              <Text style={styles.questTagText}>
+                                {quest.status === 'CLAIMED' ? '수령 완료' : '진행 중'}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    ))
+                  )}
+
+                  {claimedQuests.length ? (
+                    <View style={styles.collapsibleSection}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setShowClaimedQuests((current) => !current)}
+                        style={styles.collapsibleToggle}
+                      >
+                        <Text style={styles.collapsibleTitle}>수령 완료한 퀘스트</Text>
+                        <Text style={styles.collapsibleMeta}>
+                          {claimedQuests.length}개 {showClaimedQuests ? '접기' : '보기'}
+                        </Text>
+                      </Pressable>
+
+                      {showClaimedQuests
+                        ? claimedQuests.map((quest) => (
+                            <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
+                              <View style={styles.questHeader}>
+                                <View style={styles.questCopy}>
+                                  <Text style={styles.questTitle}>{quest.title}</Text>
+                                  <Text style={styles.questDescription}>
+                                    {quest.description || '설명 없이 등록된 퀘스트입니다.'}
+                                  </Text>
+                                </View>
+                                <View style={styles.questStatusChip}>
+                                  <Text style={styles.questStatusText}>{getQuestStatusText(quest.status)}</Text>
+                                </View>
+                              </View>
+
+                              <View style={styles.progressTrack}>
+                                <View
+                                  style={[
+                                    styles.progressBar,
+                                    { width: getQuestProgressWidth(quest.progressRate) }
+                                  ]}
+                                />
+                              </View>
+
+                              <View style={styles.questFooter}>
+                                <View>
+                                  <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
+                                  <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                                </View>
+
+                                <View style={styles.questTag}>
+                                  <Text style={styles.questTagText}>수령 완료</Text>
+                                </View>
+                              </View>
+                            </View>
+                          ))
+                        : null}
+                    </View>
+                  ) : null}
+                </View>
+
+                <View style={styles.badgeColumn}>
+                  <View style={styles.subsectionHeader}>
+                    <Text style={styles.subsectionTitle}>획득한 배지</Text>
+                    <Text style={styles.subsectionMeta}>{rewardData.badges?.length || 0}개</Text>
+                  </View>
+
+                  {rewardData.badges?.length ? (
+                    <>
+                      {visibleBadges.map((userBadge) => (
+                      (() => {
+                        const badgeKey = userBadge.badge?.id || userBadge.id;
+                        const iconUrl = userBadge.badge?.iconUrl;
+                        const shouldShowImage = Boolean(iconUrl) && !failedBadgeIcons[badgeKey];
+
+                        return (
+                      <View key={userBadge.id} style={styles.badgeCard}>
+                        <View style={styles.badgeIcon}>
+                          {shouldShowImage ? (
+                            <Image
+                              source={{ uri: iconUrl }}
+                              style={styles.badgeImage}
+                              onError={() => markBadgeIconFailed(badgeKey)}
+                            />
+                          ) : (
+                            <Text style={styles.badgeIconText}>🏅</Text>
+                          )}
+                        </View>
+                        <View style={styles.badgeCopy}>
+                          <Text style={styles.badgeTitle}>{userBadge.badge?.name || '배지'}</Text>
+                          <Text style={styles.badgeDescription}>
+                            {userBadge.badge?.description || '설명 없이 등록된 배지입니다.'}
+                          </Text>
+                        </View>
+                      </View>
+                        );
+                      })()
+                      ))}
+                      {rewardData.badges.length > 4 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setShowAllBadges((current) => !current)}
+                          style={styles.moreButton}
+                        >
+                          <Text style={styles.moreButtonText}>
+                            {showAllBadges ? '배지 접기' : `배지 더보기 (${rewardData.badges.length - 4}개 더)`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
+                  ) : (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyTitle}>아직 획득한 배지가 없습니다.</Text>
+                      <Text style={styles.emptyText}>퀘스트를 달성하고 보상을 수령하면 배지가 여기에 표시됩니다.</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.subsectionHeader}>
+                    <Text style={styles.subsectionTitle}>최근 포인트 내역</Text>
+                    <Text style={styles.subsectionMeta}>{rewardData.recentPointTransactions?.length || 0}건</Text>
+                  </View>
+
+                  {rewardData.recentPointTransactions?.length ? (
+                    <>
+                      {visibleTransactions.map((transaction) => (
+                      <View key={transaction.id} style={styles.transactionRow}>
+                        <View>
+                          <Text style={styles.transactionReason}>{transaction.reason || transaction.sourceType}</Text>
+                          <Text style={styles.transactionMeta}>{transaction.sourceType}</Text>
+                        </View>
+                        <Text style={styles.transactionAmount}>+{formatNumber(transaction.amount)}P</Text>
+                      </View>
+                      ))}
+                      {rewardData.recentPointTransactions.length > 5 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setShowAllTransactions((current) => !current)}
+                          style={styles.moreButton}
+                        >
+                          <Text style={styles.moreButtonText}>
+                            {showAllTransactions
+                              ? '포인트 내역 접기'
+                              : `포인트 내역 더보기 (${rewardData.recentPointTransactions.length - 5}건 더)`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
+                  ) : (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyTitle}>아직 포인트 적립 내역이 없습니다.</Text>
+                      <Text style={styles.emptyText}>보상을 수령하면 최근 적립 내역을 이곳에서 볼 수 있습니다.</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
+            <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 보여줍니다.</Text>
+          </View>
+        </View>
+
+        <View style={styles.grid}>
+          {featureCards.map((card) => {
+            const cardStyle = getCardStyle(card.tone);
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={card.label}
+                disabled={!card.screen}
+                onPress={() => handleCardPress(card)}
+                style={[styles.card, cardStyle.container, shadows.card]}
+              >
+                <View style={[styles.statusChip, cardStyle.status]}>
+                  <Text style={[styles.statusChipText, cardStyle.statusText]}>{card.status}</Text>
+                </View>
+                <Text style={[styles.cardTitle, cardStyle.title]}>{card.label}</Text>
+                <Text style={[styles.cardSummary, cardStyle.summary]}>{card.summary}</Text>
+                <Text style={[styles.cardLink, cardStyle.link]}>
+                  {card.screen ? '화면으로 이동 ->' : '연결 준비 중'}
+                </Text>
+              </Pressable>
+            );
+          })}
+
+          {hasAdminRole ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onNavigate('admin')}
+              style={[styles.card, styles.adminCard, shadows.card]}
+            >
+              <View style={[styles.statusChip, styles.adminStatus]}>
+                <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
+              </View>
+              <Text style={styles.cardTitle}>관리자 콘솔</Text>
+              <Text style={styles.cardSummary}>
+                사용자 상태와 관리자 운영 데이터를 확인하고 처리할 수 있습니다.
+              </Text>
+              <Text style={[styles.cardLink, styles.defaultLink]}>콘솔로 이동 -></Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.noticeCard}>
+          <Text style={styles.noticeTitle}>현재 연결 상태</Text>
+          <Text style={styles.noticeText}>
+            일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
+            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 범위로 남아 있습니다.
+          </Text>
+        </View>
+      </ScrollView>
+      <FeatureGuideModal
+        onClose={() => setShowAIGuide(false)}
+        onContinue={continueToAILearning}
+        visible={showAIGuide}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    gap: 20,
-    backgroundColor: '#F7F8FA'
+    backgroundColor: colors.background
   },
-  highContrastBg: {
-    backgroundColor: '#050505'
+  content: {
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 56,
+    gap: 28
   },
-  highContrastCard: {
-    backgroundColor: '#1E293B',
-    borderColor: '#475569',
-    borderWidth: 2
+  hero: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20
   },
-  highContrastCardText: {
-    color: '#FFFFFF'
+  heroCopy: {
+    flex: 1,
+    minWidth: 280,
+    borderRadius: 28,
+    paddingHorizontal: 32,
+    paddingVertical: 30,
+    backgroundColor: colors.mintSoft
   },
-  highContrastText: {
-    color: '#FFFFFF'
-  },
-  highContrastSubText: {
-    color: '#FDE68A'
-  },
-  header: {
-    marginTop: 24,
-    gap: 6
+  eyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.3,
+    marginBottom: 14
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1F2937'
+    color: colors.ink,
+    fontSize: 32,
+    lineHeight: 42,
+    fontWeight: '800'
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280'
+    color: colors.muted,
+    fontSize: 15,
+    lineHeight: 24,
+    marginTop: 14
   },
-  userBox: {
-    marginTop: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    padding: 12
-  },
-  userInfoRow: {
+  heroButtonRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 24
+  },
+  primaryButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 20,
+    justifyContent: 'center'
+  },
+  primaryButtonText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  secondaryButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 20,
+    justifyContent: 'center'
+  },
+  secondaryButtonText: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  profileCard: {
+    width: 280,
+    minHeight: 280,
+    borderRadius: 28,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    gap: 8
+    justifyContent: 'center'
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14
+  },
+  avatarText: {
+    color: colors.blue,
+    fontSize: 28,
+    fontWeight: '800'
   },
   userName: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '700'
-  },
-  adminBadge: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2
-  },
-  adminBadgeText: {
-    color: '#4F46E5',
-    fontSize: 10,
+    color: colors.ink,
+    fontSize: 20,
     fontWeight: '800'
   },
   userEmail: {
-    color: '#6B7280',
+    color: colors.muted,
+    fontSize: 13,
+    marginTop: 6
+  },
+  memberBadge: {
+    marginTop: 16,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  memberBadgeText: {
+    color: colors.blue,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5
+  },
+  logoutButton: {
+    marginTop: 20,
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 18,
+    justifyContent: 'center'
+  },
+  logoutButtonText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  rewardPanel: {
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 24,
+    gap: 20
+  },
+  rewardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  rewardTitle: {
+    color: colors.blueDeep,
+    fontSize: 24,
+    fontWeight: '800'
+  },
+  rewardSubtitle: {
+    marginTop: 6,
+    color: colors.muted,
     fontSize: 14,
-    marginTop: 2
+    lineHeight: 22
+  },
+  refreshButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 16,
+    justifyContent: 'center'
+  },
+  refreshButtonDisabled: {
+    opacity: 0.6
+  },
+  refreshButtonText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  rewardLoading: {
+    minHeight: 120,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceWarm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10
+  },
+  loadingText: {
+    color: colors.muted,
+    fontSize: 13
+  },
+  rewardStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14
+  },
+  statCard: {
+    flexGrow: 1,
+    minWidth: 220,
+    borderRadius: 24,
+    padding: 20
+  },
+  pointCard: {
+    backgroundColor: colors.blue,
+    minHeight: 144
+  },
+  statLabel: {
+    color: '#D8E6F6',
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  pointValue: {
+    color: colors.surface,
+    fontSize: 34,
+    fontWeight: '900',
+    marginTop: 14
+  },
+  statHint: {
+    color: '#D8E6F6',
+    fontSize: 12,
+    lineHeight: 20,
+    marginTop: 8
+  },
+  metricCard: {
+    flexGrow: 1,
+    minWidth: 180,
+    borderRadius: 24,
+    padding: 20,
+    backgroundColor: colors.mintSoft
+  },
+  metricLabel: {
+    color: colors.mintDeep,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  metricValue: {
+    color: colors.ink,
+    fontSize: 26,
+    fontWeight: '900',
+    marginTop: 16
+  },
+  errorBanner: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: colors.dangerSoft
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: 13,
+    lineHeight: 20
+  },
+  successBanner: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: colors.successSoft
+  },
+  successText: {
+    color: colors.success,
+    fontSize: 13,
+    lineHeight: 20
+  },
+  rewardContentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18
+  },
+  questColumn: {
+    flex: 2,
+    minWidth: 320,
+    gap: 12
+  },
+  badgeColumn: {
+    flex: 1,
+    minWidth: 280,
+    gap: 12
+  },
+  subsectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4
+  },
+  subsectionTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '800'
+  },
+  subsectionMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  questCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14
+  },
+  progressQuest: {
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm
+  },
+  achievedQuest: {
+    borderColor: '#B6E3CF',
+    backgroundColor: colors.successSoft
+  },
+  claimedQuest: {
+    borderColor: '#D4E0EE',
+    backgroundColor: colors.blueSoft
+  },
+  questHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  questCopy: {
+    flex: 1,
+    gap: 6
+  },
+  questTitle: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '800'
+  },
+  questDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20
+  },
+  questStatusChip: {
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  questStatusText: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  progressTrack: {
+    width: '100%',
+    height: 10,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: colors.surface
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.mintDeep
+  },
+  questFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12
+  },
+  questProgress: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  questReward: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 4
+  },
+  claimButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 16,
+    justifyContent: 'center'
+  },
+  claimButtonDisabled: {
+    opacity: 0.65
+  },
+  claimButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  questTag: {
+    minHeight: 38,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    backgroundColor: colors.surface
+  },
+  questTagText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  badgeCard: {
+    flexDirection: 'row',
+    gap: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16
+  },
+  badgeIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.cream,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  badgeImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    resizeMode: 'cover'
+  },
+  badgeIconText: {
+    fontSize: 20
+  },
+  badgeCopy: {
+    flex: 1,
+    gap: 4
+  },
+  badgeTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  badgeDescription: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  transactionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  transactionReason: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  transactionMeta: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 11
+  },
+  transactionAmount: {
+    color: colors.success,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  emptyCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 18,
+    gap: 6
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  emptyText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 19
+  },
+  collapsibleSection: {
+    gap: 12
+  },
+  collapsibleToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  collapsibleTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  collapsibleMeta: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  moreButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  moreButtonText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end'
+  },
+  sectionTitle: {
+    fontSize: 24,
+    color: colors.ink,
+    fontWeight: '800'
+  },
+  sectionSub: {
+    marginTop: 8,
+    color: colors.muted,
+    fontSize: 14
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12
+    gap: 14
   },
   card: {
-    width: '47%',
-    minHeight: 88,
-    borderRadius: 8,
-    padding: 16,
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    flexGrow: 1,
+    flexBasis: '31%',
+    minWidth: 250,
+    minHeight: 180,
+    borderRadius: 24,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    position: 'relative'
+    borderColor: colors.line
+  },
+  defaultCard: {
+    backgroundColor: colors.surface
+  },
+  featuredCard: {
+    backgroundColor: colors.blue,
+    borderColor: colors.blue
+  },
+  mintCard: {
+    backgroundColor: colors.mintSoft
+  },
+  warmCard: {
+    backgroundColor: colors.surfaceWarm
+  },
+  greenCard: {
+    backgroundColor: colors.successSoft,
+    borderColor: '#B6E3CF'
   },
   adminCard: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
-    borderWidth: 1.5,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2
+    backgroundColor: colors.blueSoft
   },
-  cardText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151'
+  statusChip: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 16
   },
-  aiCard: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#C7D2FE'
-  },
-  aiCardText: {
-    color: '#4F46E5'
-  },
-  accessibilityCard: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#10B981'
-  },
-  accessibilityCardText: {
-    color: '#047857'
-  },
-  aiBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#6366F1',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2
-  },
-  aiBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700'
-  },
-  readyBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#059669',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2
-  },
-  readyBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700'
-  },
-  adminCardText: {
-    color: '#4F46E5',
-    fontWeight: '700'
-  },
-  adminCardSubText: {
-    color: '#818CF8',
+  statusChipText: {
     fontSize: 11,
-    marginTop: 4
+    fontWeight: '800'
   },
-  logoutButton: {
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
+  featuredStatus: {
+    backgroundColor: 'rgba(255,255,255,0.18)'
+  },
+  featuredStatusText: {
+    color: colors.surface
+  },
+  readyStatus: {
+    backgroundColor: colors.surface
+  },
+  readyStatusText: {
+    color: colors.mintDeep
+  },
+  greenStatus: {
+    backgroundColor: colors.surface
+  },
+  greenStatusText: {
+    color: colors.success
+  },
+  pendingStatus: {
+    backgroundColor: colors.mintSoft
+  },
+  pendingStatusText: {
+    color: colors.mintDeep
+  },
+  adminStatus: {
+    backgroundColor: colors.cream
+  },
+  adminStatusText: {
+    color: colors.blue
+  },
+  cardTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    marginBottom: 10
+  },
+  defaultTitle: {
+    color: colors.ink
+  },
+  featuredTitle: {
+    color: colors.surface
+  },
+  greenTitle: {
+    color: colors.success
+  },
+  cardSummary: {
+    fontSize: 13,
+    lineHeight: 21,
+    flex: 1
+  },
+  defaultSummary: {
+    color: colors.muted
+  },
+  featuredSummary: {
+    color: '#D8E6F6'
+  },
+  cardLink: {
+    marginTop: 16,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  defaultLink: {
+    color: colors.blueDeep
+  },
+  featuredLink: {
+    color: colors.mint
+  },
+  greenLink: {
+    color: colors.success
+  },
+  pendingLink: {
+    color: colors.muted
+  },
+  noticeCard: {
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    gap: 8
   },
-  logoutButtonText: {
-    color: '#1F2937',
-    fontSize: 16,
-    fontWeight: '700'
+  noticeTitle: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  noticeText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 22
   }
 });
-

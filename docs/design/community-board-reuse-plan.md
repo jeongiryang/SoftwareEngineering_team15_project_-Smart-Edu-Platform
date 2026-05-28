@@ -233,7 +233,7 @@ routes
 - seed 데이터
 - API 명세/test-report 구현 결과 갱신
 
-신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표현하지 않음.
+신고 API는 `CommunityReport` schema/migration을 선행한 뒤 사용자 신고 API와 관리자 처리 API를 후속 PR에서 구현함. 후보 경로는 `/api/community/posts/:postId/reports`, `/api/community/comments/:commentId/reports`, `/api/admin/community/reports`이며, 현재 문서에서는 구현 완료로 표현하지 않음.
 
 ### 7.3 DB / Prisma 모델 초안
 
@@ -245,14 +245,14 @@ routes
 | `Comment` 또는 `CommunityComment` | `id`, `postId`, `userId`, `parentId`, `content`, `reported`, `createdAt`, `updatedAt` | 현재 `Comment` 확장 가능. 답글 도입 시 `parentId` 필요 |
 | `CommunityReaction` | `id`, `postId`, `userId`, `type`, `createdAt`, `updatedAt` | 좋아요/싫어요 통합 반응. `postId + userId` unique 필요 |
 | `CommunityBookmark` | `id`, `postId`, `userId`, `createdAt` | 사용자별 저장 게시글 기능. `postId + userId` unique 필요 |
-| `CommunityReport` | `id`, `targetType`, `targetId`, `reporterId`, `reason`, `status`, `createdAt`, `resolvedAt` | 현재 단순 `reported` boolean보다 신고 이력 관리에 유리 |
+| `CommunityReport` | `id`, `reporterId`, `targetType`, `postId`, `commentId`, `reason`, `status`, `resolvedById`, `resolvedAt`, `resolutionNote`, `createdAt`, `updatedAt` | 현재 단순 `reported` boolean보다 신고자, 사유, 처리 상태와 관리자 처리 이력 관리에 유리 |
 | `CommunityCategory` | `id`, `code`, `name`, `orderNo`, `enabled` | enum으로 충분한지 별도 테이블이 필요한지 검토 |
 
 주의:
 
 - 이번 선행 작업은 schema/migration 추가까지만 포함하고, 반응/북마크 API endpoint 구현은 후속 PR에서 진행함.
 - 기존 `comments` table은 현재 `BoardPost`와 연결되어 있으므로 답글 도입 시 이름 충돌과 확장 가능성을 별도 검토해야 함.
-- 신고 이력은 관리자 기능과 연결되므로 `CommunityReport` schema/migration을 별도 PR로 분리하는 것이 안전함.
+- 신고 이력은 관리자 기능과 연결되므로 `CommunityReport` schema/migration을 선행하고, 사용자 신고 API와 관리자 처리 API는 후속 PR로 분리하는 것이 안전함.
 
 ### 7.4 프론트 화면 이식 방향
 
@@ -539,7 +539,7 @@ Smart Edu에 맞게 바꿔야 할 방향:
 | `CommunityComment` 또는 기존 `Comment` 확장 | 게시글 댓글/답글 | `id`, `postId`, `userId`, `parentId`, `content`, `status`, `createdAt`, `updatedAt` | Post 1:N, User 1:N, self relation 선택 | 답글 도입 시 `parentId` 필요 |
 | `CommunityReaction` | 좋아요/싫어요 통합 반응 | `id`, `postId`, `userId`, `type`, `createdAt`, `updatedAt` | BoardPost/User와 N:1 | `ReactionType(LIKE, DISLIKE)`과 `postId + userId` unique 기준 |
 | `CommunityBookmark` | 북마크 | `id`, `postId`, `userId`, `createdAt` | Post/User와 N:1 | 마이페이지 저장글과 연결 가능 |
-| `CommunityReport` | 신고 이력 | `id`, `targetType`, `targetId`, `reporterId`, `reason`, `status`, `createdAt`, `resolvedAt` | User/AdminAction과 연결 가능 | 관리자 신고 처리와 연결 핵심 |
+| `CommunityReport` | 신고 이력 | `id`, `reporterId`, `targetType`, `postId`, `commentId`, `reason`, `status`, `resolvedById`, `resolvedAt`, `resolutionNote`, `createdAt`, `updatedAt` | User/BoardPost/Comment와 연결하고 관리자 처리자는 User로 참조 | 관리자 신고 처리와 연결 핵심 |
 | `CommunityCategory` | 카테고리 | `id`, `code`, `name`, `orderNo`, `enabled` | Post와 N:1 또는 code 참조 | enum으로 충분한지 검토 |
 
 설계 판단 후보:
@@ -567,7 +567,7 @@ Smart Edu에 맞게 바꿔야 할 방향:
 |---|---|---|
 | 게시글 신고 | 사용자가 게시글 신고 API로 사유 제출 | 기존 `/api/admin/reports`가 신고 게시글을 조회하는 흐름과 연결 |
 | 댓글 신고 | 사용자가 댓글 신고 API로 사유 제출 | 기존 신고 댓글 조회/처리 흐름과 연결 |
-| 신고 상태 | 단순 `reported` 또는 `CommunityReport.status`로 관리 | 신고 이력 모델 도입 여부에 따라 변경 |
+| 신고 상태 | 기존 `reported` Boolean은 관리자 목록 호환용으로 유지하고, 상세 이력은 `CommunityReport.status`로 관리 | 신고 이력 모델 도입 후 사용자 신고 API와 관리자 처리 API에서 함께 갱신 |
 | 관리자 신고 목록 | 관리자 화면에서 신고 게시글/댓글 목록 확인 | PR #75 관리자 화면 확장 가능 |
 | 게시글 숨김/삭제 | 관리자 moderation에서 숨김 또는 삭제 처리 | 현재는 `HIDE`가 실제 삭제이므로 정책 재정의 필요 |
 | 댓글 숨김/삭제 | 댓글도 숨김/삭제 정책 선택 | 현재 댓글 moderation은 삭제 또는 신고 기각 |
@@ -576,8 +576,8 @@ Smart Edu에 맞게 바꿔야 할 방향:
 
 구체화가 필요한 정책:
 
-- 신고가 1회라도 들어오면 관리자 목록에 노출할지, 일정 횟수 이상만 노출할지 확인 필요.
-- 신고 기각 시 신고 이력을 남길지, 단순 reported 상태만 해제할지 확인 필요.
+- 1차 정책은 신고가 1회라도 들어오면 `CommunityReport.status = PENDING`으로 저장하고 대상의 `reported` Boolean을 함께 켜 관리자 목록에 노출하는 방향을 우선 검토함.
+- 신고 기각 시 신고 이력은 `DISMISSED`로 남기고, 대상에 남은 pending 신고가 없으면 `reported` 상태를 해제하는 방향을 검토함.
 - 게시글/댓글 숨김 상태를 사용자에게 어떻게 표시할지 확인 필요.
 - 관리자가 조치한 게시글/댓글이 작성자 마이페이지에 어떻게 보일지 확인 필요.
 

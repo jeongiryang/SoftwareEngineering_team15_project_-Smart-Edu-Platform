@@ -1,5 +1,5 @@
 const communityRepository = require('../repositories/community.repository');
-const { notFoundError, validationError } = require('../utils/errors');
+const { conflictError, notFoundError, validationError } = require('../utils/errors');
 const { normalizeString, parsePositiveInteger, requireFields } = require('../utils/validators');
 
 const POST_CATEGORIES = ['QUESTION', 'FREE', 'STUDY_PROOF'];
@@ -9,10 +9,12 @@ const COMMENT_FIELDS = ['content'];
 const REACTION_FIELDS = ['type'];
 const REACTION_TYPES = ['LIKE', 'DISLIKE'];
 const BOOKMARK_FIELDS = [];
+const REPORT_FIELDS = ['reason'];
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
 const MAX_SEARCH_LENGTH = 100;
+const MAX_REPORT_REASON_LENGTH = 500;
 
 function assertPlainObject(payload, message) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -126,6 +128,30 @@ function sanitizePost(post) {
   };
 }
 
+function buildDefaultEngagementSummary() {
+  return {
+    likeCount: 0,
+    dislikeCount: 0,
+    bookmarkCount: 0,
+    myReaction: null,
+    isBookmarked: false
+  };
+}
+
+function sanitizePostWithEngagement(post, engagementSummary) {
+  const sanitizedPost = sanitizePost(post);
+
+  if (!sanitizedPost) {
+    return null;
+  }
+
+  return {
+    ...sanitizedPost,
+    ...buildDefaultEngagementSummary(),
+    ...(engagementSummary || {})
+  };
+}
+
 function sanitizeComment(comment) {
   if (!comment) {
     return null;
@@ -172,6 +198,38 @@ function sanitizeBookmark(bookmark) {
     postId: bookmark.postId,
     userId: bookmark.userId,
     createdAt: bookmark.createdAt
+  };
+}
+
+function sanitizeReport(report) {
+  if (!report) {
+    return null;
+  }
+
+  return {
+    id: report.id,
+    targetType: report.targetType,
+    postId: report.postId,
+    commentId: report.commentId,
+    reason: report.reason,
+    status: report.status,
+    createdAt: report.createdAt
+  };
+}
+
+function sanitizeBookmarkListItem(bookmark, engagementSummary) {
+  if (!bookmark) {
+    return null;
+  }
+
+  return {
+    bookmarkId: bookmark.id,
+    bookmarkedAt: bookmark.createdAt,
+    post: sanitizePostWithEngagement(bookmark.post, {
+      ...buildDefaultEngagementSummary(),
+      ...(engagementSummary || {}),
+      isBookmarked: true
+    })
   };
 }
 
@@ -246,6 +304,37 @@ function buildBookmarkData(payload = {}) {
   return {};
 }
 
+function buildReportData(payload = {}) {
+  assertPlainObject(payload, 'Community report payload must be an object');
+  assertSupportedFields(payload, REPORT_FIELDS, 'Community report payload contains unsupported fields');
+
+  if (!Object.prototype.hasOwnProperty.call(payload, 'reason')) {
+    throw validationError('reason is required', { field: 'reason' });
+  }
+
+  if (typeof payload.reason !== 'string') {
+    throw validationError('reason must be a string', { field: 'reason' });
+  }
+
+  const reason = normalizeString(payload.reason);
+
+  if (reason === '') {
+    throw validationError('reason must not be blank', { field: 'reason' });
+  }
+
+  if (reason.length > MAX_REPORT_REASON_LENGTH) {
+    throw validationError(
+      `reason must be less than or equal to ${MAX_REPORT_REASON_LENGTH} characters`,
+      {
+        field: 'reason',
+        max: MAX_REPORT_REASON_LENGTH
+      }
+    );
+  }
+
+  return { reason };
+}
+
 function buildListOptions(query = {}) {
   const page = parseOptionalPositiveInteger(query.page, 'page', DEFAULT_PAGE);
   const pageSize = parseOptionalPositiveInteger(query.pageSize, 'pageSize', DEFAULT_PAGE_SIZE);
@@ -287,13 +376,62 @@ function buildCommentListOptions(query = {}) {
   };
 }
 
-async function listPosts(query) {
+function buildBookmarkListOptions(query = {}) {
+  const page = parseOptionalPositiveInteger(query.page, 'page', DEFAULT_PAGE);
+  const pageSize = parseOptionalPositiveInteger(query.pageSize, 'pageSize', DEFAULT_PAGE_SIZE);
+
+  if (pageSize > MAX_PAGE_SIZE) {
+    throw validationError(`pageSize must be less than or equal to ${MAX_PAGE_SIZE}`, {
+      field: 'pageSize',
+      max: MAX_PAGE_SIZE
+    });
+  }
+
+  const sort = normalizeSort(query.sort);
+
+  return {
+    page,
+    pageSize,
+    sort
+  };
+}
+
+async function listPosts(query, userId) {
   const options = buildListOptions(query);
   const { posts, total } = await communityRepository.findPosts(options);
+  const summaries = await communityRepository.findPostEngagementSummaries(
+    posts.map((post) => post.id),
+    userId
+  );
   const totalPages = Math.ceil(total / options.pageSize);
 
   return {
-    posts: posts.map(sanitizePost),
+    posts: posts.map((post) => sanitizePostWithEngagement(post, summaries.get(post.id))),
+    pagination: {
+      page: options.page,
+      pageSize: options.pageSize,
+      total,
+      totalPages
+    }
+  };
+}
+
+async function listBookmarks(query, userId) {
+  const options = buildBookmarkListOptions(query);
+  const { bookmarks, total } = await communityRepository.findBookmarksByUserId({
+    userId,
+    ...options
+  });
+  const summaries = await communityRepository.findPostEngagementSummaries(
+    bookmarks.map((bookmark) => bookmark.postId),
+    userId
+  );
+  const totalPages = Math.ceil(total / options.pageSize);
+
+  return {
+    bookmarks: bookmarks.map((bookmark) =>
+      sanitizeBookmarkListItem(bookmark, summaries.get(bookmark.postId))
+    ),
     pagination: {
       page: options.page,
       pageSize: options.pageSize,
@@ -310,7 +448,7 @@ async function createPost(userId, payload) {
   return sanitizePost(post);
 }
 
-async function getPostById(postId) {
+async function getPostById(postId, userId) {
   const id = parsePositiveInteger(postId, 'postId');
   const post = await communityRepository.findPostById(id);
 
@@ -318,7 +456,9 @@ async function getPostById(postId) {
     throw notFoundError('Community post not found');
   }
 
-  return sanitizePost(post);
+  const summaries = await communityRepository.findPostEngagementSummaries([id], userId);
+
+  return sanitizePostWithEngagement(post, summaries.get(id));
 }
 
 async function listComments(postId, query) {
@@ -387,6 +527,65 @@ async function createBookmark(postId, userId, payload) {
   const bookmark = await communityRepository.upsertBookmark(id, userId);
 
   return sanitizeBookmark(bookmark);
+}
+
+async function createPostReport(postId, userId, payload) {
+  const id = parsePositiveInteger(postId, 'postId');
+  const post = await communityRepository.findPostById(id);
+
+  if (!post) {
+    throw notFoundError('Community post not found');
+  }
+
+  const data = buildReportData(payload);
+  const existingReport = await communityRepository.findPostReportByReporterAndPostId(userId, id);
+
+  if (existingReport) {
+    throw conflictError('Community post report already exists');
+  }
+
+  try {
+    const report = await communityRepository.createPostReport(id, userId, data);
+
+    return sanitizeReport(report);
+  } catch (error) {
+    if (error?.code === 'P2002') {
+      throw conflictError('Community post report already exists');
+    }
+
+    throw error;
+  }
+}
+
+async function createCommentReport(commentId, userId, payload) {
+  const id = parsePositiveInteger(commentId, 'commentId');
+  const comment = await communityRepository.findCommentById(id);
+
+  if (!comment) {
+    throw notFoundError('Community comment not found');
+  }
+
+  const data = buildReportData(payload);
+  const existingReport = await communityRepository.findCommentReportByReporterAndCommentId(
+    userId,
+    id
+  );
+
+  if (existingReport) {
+    throw conflictError('Community comment report already exists');
+  }
+
+  try {
+    const report = await communityRepository.createCommentReport(id, userId, data);
+
+    return sanitizeReport(report);
+  } catch (error) {
+    if (error?.code === 'P2002') {
+      throw conflictError('Community comment report already exists');
+    }
+
+    throw error;
+  }
 }
 
 async function updatePost(postId, userId, payload) {
@@ -496,30 +695,39 @@ async function deleteBookmark(postId, userId) {
 module.exports = {
   BOOKMARK_FIELDS,
   COMMENT_FIELDS,
+  MAX_REPORT_REASON_LENGTH,
   POST_CATEGORIES,
   REACTION_TYPES,
   POST_SORTS,
   buildBookmarkData,
+  buildBookmarkListOptions,
   buildCommentData,
   buildCommentListOptions,
   buildListOptions,
   buildPostData,
   buildReactionData,
+  buildReportData,
   createBookmark,
   createComment,
+  createCommentReport,
   createPost,
+  createPostReport,
   createReaction,
   deleteBookmark,
   deleteComment,
   deletePost,
   deleteReaction,
   getPostById,
+  listBookmarks,
   listComments,
   listPosts,
   sanitizeBookmark,
+  sanitizeBookmarkListItem,
   sanitizeComment,
   sanitizePost,
+  sanitizePostWithEngagement,
   sanitizeReaction,
+  sanitizeReport,
   updateComment,
   updatePost
 };
