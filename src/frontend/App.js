@@ -10,10 +10,12 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import AccessibilityScreen from './src/screens/AccessibilityScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import { getCurrentUser } from './src/services/api';
+import { AccessibilityProvider } from './src/contexts/AccessibilityContext';
 
 const screens = {
   home: LandingScreen,
@@ -24,11 +26,12 @@ const screens = {
   community: CommunityScreen,
   schedule: ScheduleScreen,
   taskBoard: TaskBoardScreen,
+  accessibility: AccessibilityScreen,
   admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard'];
+const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility'];
 
 const screenPaths = {
   home: '/',
@@ -39,6 +42,7 @@ const screenPaths = {
   community: '/community',
   schedule: '/schedule',
   taskBoard: '/task-board',
+  accessibility: '/accessibility',
   admin: '/admin'
 };
 
@@ -240,13 +244,15 @@ export default function App() {
         user={user}
       />
       <View style={styles.container}>
-        <Screen
-          onAuthenticated={handleAuthenticated}
-          onLogout={() => setShowLogoutModal(true)}
-          onNavigate={navigateTo}
-          token={token}
-          user={user}
-        />
+        <AccessibilityProvider token={token}>
+          <Screen
+            onAuthenticated={handleAuthenticated}
+            onLogout={() => setShowLogoutModal(true)}
+            onNavigate={navigateTo}
+            token={token}
+            user={user}
+          />
+        </AccessibilityProvider>
       </View>
       <ConfirmModal
         confirmLabel="로그아웃"

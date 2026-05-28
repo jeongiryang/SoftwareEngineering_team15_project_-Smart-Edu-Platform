@@ -16,6 +16,13 @@ const featureCards = [
     requiresAIGuide: true
   },
   {
+    label: '음성/접근성',
+    summary: '큰 글씨, 고대비, 읽어주기, 음성 입력, 복습 알림을 한곳에서 설정할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'accessibility',
+    tone: 'mint'
+  },
+  {
     label: '학습 일정',
     summary: '날짜와 시간을 입력해 학습 일정을 만들고 수정하고 삭제할 수 있습니다.',
     status: '연결 완료',

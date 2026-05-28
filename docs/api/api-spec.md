@@ -2794,7 +2794,148 @@ Response 예시:
 | 404 | `NOT_FOUND` | 퀘스트가 존재하지 않음 |
 | 409 | `CONFLICT` | 아직 달성하지 않았거나 이미 수령한 퀘스트 |
 
-### 9.7 docs 기준 기능 구현 상태 재점검
+### 9.7 음성/접근성 API
+
+음성/접근성 API는 `FR-18`, `FR-20`, `FR-21`, `FR-25`, `FR-26`을 기준으로 구현된 사용자 접근성 설정, 브라우저 음성 기능 요청 이력, 복습 알림 등록 기능을 다룬다. 모든 endpoint는 로그인한 사용자 기준으로 동작하며 다른 사용자의 설정이나 음성 요청 이력에 접근할 수 없다.
+
+공통 인증:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+공통 오류:
+
+| HTTP | code | 상황 |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | 필수 필드 누락, 타입 오류, 길이 제한 초과, 잘못된 날짜/시간 형식 |
+| 401 | `UNAUTHORIZED` | 인증 token 없음 또는 유효하지 않음 |
+| 500 | `INTERNAL_SERVER_ERROR` | 서버 내부 오류 |
+
+#### 9.7.1 접근성 설정 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/accessibility/preferences` | 현재 사용자의 큰 글씨, 고대비, 초등학생 친화 UI, TTS/STT, 복습 알림 설정 조회 |
+
+Response 예시:
+
+```json
+{
+  "preference": {
+    "textScale": 1.2,
+    "highContrast": true,
+    "elementaryFriendlyUi": false,
+    "voiceInputEnabled": true,
+    "voiceOutputEnabled": true,
+    "reviewReminderEnabled": false,
+    "reminderTime": "20:30"
+  }
+}
+```
+
+저장된 설정이 없으면 기본값을 반환한다.
+
+#### 9.7.2 접근성 설정 저장
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PUT` | `/api/accessibility/preferences` | 큰 글씨, 고대비, 초등학생 친화 UI, 음성 입력/출력, 복습 알림 기본 설정 저장 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `textScale` | number | 아니오 | 글자 크기 배율. `1.0`~`1.6` |
+| `highContrast` | boolean | 아니오 | 고대비 모드 사용 여부 |
+| `elementaryFriendlyUi` | boolean | 아니오 | 초등학생 친화 UI 사용 여부 |
+| `voiceInputEnabled` | boolean | 아니오 | STT 음성 입력 사용 여부 |
+| `voiceOutputEnabled` | boolean | 아니오 | TTS 읽어주기 사용 여부 |
+| `reviewReminderEnabled` | boolean | 아니오 | 복습 알림 사용 여부 |
+| `reminderTime` | string/null | 아니오 | 기본 알림 시간. `HH:mm` 형식 |
+
+#### 9.7.3 TTS 읽어주기 요청 저장
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/tts` | 읽어주기 요청 텍스트와 선택한 음성 톤 값을 저장 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `text` | string | 예 | 읽어줄 텍스트. 최대 1000자 |
+| `voiceType` | string | 아니오 | 음성 톤 선택값. `ADULT_MALE`, `ADULT_FEMALE`, `CHILD_BOY`, `CHILD_GIRL` 중 하나 |
+
+Response 예시:
+
+```json
+{
+  "speech": {
+    "id": 1,
+    "mode": "TTS",
+    "voiceType": "ADULT_FEMALE",
+    "text": "오늘 배운 내용을 천천히 읽어 주세요.",
+    "status": "READY",
+    "createdAt": "2026-05-28T03:00:00.000Z"
+  }
+}
+```
+
+서버는 TTS provider를 호출하지 않고 요청 이력과 선택값을 저장한다. 실제 음성 출력은 프론트엔드에서 브라우저 Web Speech API 지원 여부에 따라 처리한다.
+
+#### 9.7.4 STT 음성 입력 결과 저장
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/stt` | 브라우저 음성 인식 결과 transcript 저장 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `transcript` | string | 예 | 음성 인식 결과 텍스트. 최대 1000자 |
+
+#### 9.7.5 복습 알림 등록
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/review-reminders` | 기존 `Notification` 모델에 `REVIEW` 타입 복습 알림 등록 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 아니오 | 복습 알림 제목. 최대 200자 |
+| `task` | string | 아니오 | 복습할 내용. 최대 500자 |
+| `message` | string | 아니오 | 하위 호환용 복습 알림 메시지. 최대 200자 |
+| `scheduledAt` | string | 예 | 알림 예정 시각. ISO datetime |
+
+#### 9.7.6 복습 알림 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/accessibility/review-reminders` | 현재 로그인한 사용자의 읽지 않은 복습 알림 목록 조회 |
+
+Response 예시:
+
+```json
+{
+  "reminders": [
+    {
+      "id": 1,
+      "userId": 3,
+      "type": "REVIEW",
+      "message": "영어 단어 복습 - Day 3 단어 20개 다시 보기",
+      "scheduledAt": "2026-05-29T11:00:00.000Z",
+      "readAt": null,
+      "createdAt": "2026-05-28T03:15:00.000Z"
+    }
+  ]
+}
+```
+
+### 9.8 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 

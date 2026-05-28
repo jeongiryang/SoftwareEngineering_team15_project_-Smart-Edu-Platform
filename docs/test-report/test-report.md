@@ -286,7 +286,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(20 suites / 363 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(21 suites / 373 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
@@ -305,6 +305,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Focus/Statistics focused test | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 통과 | 집중 시간/통계 API 단일 테스트 기준 1 suite / 18 tests passed |
 | Reward API test | `GET /api/rewards/me`, `POST /api/rewards/quests/:questId/claim` | 통과 | `src/backend/tests/reward.test.js`의 repository mock 기반 API 테스트. 미인증 401, 보상 현황 조회, 달성 퀘스트 보상 수령, invalid questId 400, 미달성 퀘스트 수령 409, 민감정보 미노출 검증 포함 |
 | Reward focused test | `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js` | 통과 | 보상 API 단일 테스트 기준 1 suite / 6 tests passed |
+| Accessibility API test | `GET/PUT /api/accessibility/preferences`, `POST /api/accessibility/tts`, `POST /api/accessibility/stt`, `GET/POST /api/accessibility/review-reminders` | 통과 | `src/backend/tests/accessibility.test.js`의 repository mock 기반 API 테스트. 미인증 401, 접근성 기본 설정 조회, 설정 저장, textScale validation, TTS voiceType validation, STT transcript 저장, 복습 알림 생성/목록 조회 검증 포함 |
+| Accessibility focused test | `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 통과 | 음성/접근성 API 단일 테스트 기준 1 suite / 10 tests passed |
 | Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category/search/sort validation, 반응/북마크 count/status 응답, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
 | Community Post focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 통과 | 커뮤니티 게시글 API 단일 테스트 파일과 repository query option 및 삭제 안전성 테스트 기준 1 suite / 48 tests passed |
 | Community Comment API test | `GET/POST/PATCH/DELETE /api/community/posts/:postId/comments`, `PATCH/DELETE /api/community/comments/:commentId` | 통과 | `src/backend/tests/community-comment.test.js`의 repository mock 기반 API 테스트. 미인증 401, pagination validation, invalid postId/commentId 400, 존재하지 않는 게시글/댓글 404, 타인 댓글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
@@ -333,6 +335,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(21 suites / 373 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 10 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -350,6 +353,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/note.test.js`
 - `src/backend/tests/focus-statistics.test.js`
 - `src/backend/tests/reward.test.js`
+- `src/backend/tests/accessibility.test.js`
 - `src/backend/tests/community-post.test.js`
 - `src/backend/tests/community-comment.test.js`
 - `src/backend/tests/community-reaction.test.js`
