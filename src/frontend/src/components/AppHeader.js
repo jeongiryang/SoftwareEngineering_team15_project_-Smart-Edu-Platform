@@ -1,4 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useThemeMode } from '../contexts/ThemeContext';
 import { colors, interactions, interactiveStateStyles } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
@@ -6,6 +7,12 @@ const icon = require('../assets/sagaksagak-app-icon.png');
 export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) {
   const authenticated = Boolean(user);
   const hasAdminRole = user?.role === 'ADMIN';
+  const { effectiveMode, mode, toggleThemeMode } = useThemeMode();
+  const targetThemeLabel = mode === 'dark' ? '라이트 모드' : '다크 모드';
+  const currentThemeLabel = effectiveMode === 'highContrast'
+    ? '고대비'
+    : mode === 'dark' ? '다크' : '라이트';
+  const displayName = user?.nickname || user?.name || user?.displayName || '사용자';
 
   function NavItem({ label, screen }) {
     const active = activeScreen === screen;
@@ -65,9 +72,25 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
         </View>
 
         <View style={styles.actions}>
+          <Pressable
+            accessibilityLabel={targetThemeLabel}
+            accessibilityRole="button"
+            onPress={toggleThemeMode}
+            style={(state) => [
+              styles.themeToggle,
+              mode === 'dark' && styles.themeToggleDark,
+              effectiveMode === 'highContrast' && styles.themeToggleHighContrast,
+              ...interactiveStateStyles(state)
+            ]}
+            title={targetThemeLabel}
+          >
+            <ThemeIcon mode={mode} />
+            <Text style={styles.themeToggleText}>{currentThemeLabel}</Text>
+          </Pressable>
+
           {authenticated ? (
             <>
-              <Text style={styles.userLabel}>{user.name}님</Text>
+              <Text style={styles.userLabel}>{displayName}님</Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={onLogout}
@@ -87,6 +110,25 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
           )}
         </View>
       </View>
+    </View>
+  );
+}
+
+function ThemeIcon({ mode }) {
+  if (mode === 'dark') {
+    return (
+      <View style={styles.moonIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={styles.moonBody} />
+        <View style={styles.moonCutout} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.sunIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={styles.sunCore} />
+      <View style={[styles.sunRay, styles.sunRayVertical]} />
+      <View style={[styles.sunRay, styles.sunRayHorizontal]} />
     </View>
   );
 }
@@ -185,6 +227,81 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'center',
     minWidth: 0
+  },
+  themeToggle: {
+    minHeight: 38,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    ...interactions.transition
+  },
+  themeToggleDark: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  themeToggleHighContrast: {
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  themeToggleText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  sunIcon: {
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative'
+  },
+  sunCore: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.blueDeep
+  },
+  sunRay: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: colors.blueDeep
+  },
+  sunRayVertical: {
+    width: 2,
+    height: 18
+  },
+  sunRayHorizontal: {
+    width: 18,
+    height: 2
+  },
+  moonIcon: {
+    width: 18,
+    height: 18,
+    position: 'relative'
+  },
+  moonBody: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.blueDeep,
+    backgroundColor: colors.blueDeep
+  },
+  moonCutout: {
+    position: 'absolute',
+    right: -1,
+    top: 1,
+    width: 13,
+    height: 13,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft
   },
   userLabel: {
     color: colors.ink,
