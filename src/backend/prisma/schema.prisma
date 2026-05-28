@@ -102,6 +102,12 @@ enum PointTransactionType {
   ADJUST
 }
 
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id                      Int                         @id @default(autoincrement())
   email                   String                      @unique
@@ -139,8 +145,26 @@ model User {
   userBadges              UserBadge[]
   userQuests              UserQuest[]
   pointTransactions       PointTransaction[]
+  sentFriendships         Friendship[]                @relation("FriendshipRequester")
+  receivedFriendships     Friendship[]                @relation("FriendshipAddressee")
 
   @@map("users")
+}
+
+model Friendship {
+  id          Int              @id @default(autoincrement())
+  requesterId Int              @map("requester_id")
+  addresseeId Int              @map("addressee_id")
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId, status])
+  @@index([addresseeId, status])
+  @@map("friendships")
 }
 
 model UserProfile {

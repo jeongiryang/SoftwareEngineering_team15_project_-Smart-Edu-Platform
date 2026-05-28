@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   changeCurrentUserPassword,
   getCommunityBookmarks,
+  getFriendRequests,
+  getFriends,
   getMyRewards,
   getSchedules,
   getStatisticsSummary,
@@ -23,6 +26,8 @@ const EMPTY_PROFILE_DATA = {
     recentPointTransactions: []
   },
   bookmarks: [],
+  friends: [],
+  friendRequests: { received: [], sent: [] },
   todaySummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 },
   weekSummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 }
 };
@@ -90,6 +95,60 @@ function maskEmail(email = '') {
 
   const visible = localPart.slice(0, Math.min(3, localPart.length));
   return `${visible}${localPart.length > 3 ? '***' : ''}@${domain}`;
+}
+
+function getProfileNameFeedback(name, currentName) {
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    return { tone: 'warning', message: '닉네임을 입력해 주세요.' };
+  }
+
+  if (trimmedName.length < 2) {
+    return { tone: 'warning', message: '두 글자 이상 입력하면 더 알아보기 쉬워요.' };
+  }
+
+  if (trimmedName.length > 30) {
+    return { tone: 'error', message: '30자 이하로 입력해 주세요.' };
+  }
+
+  if (trimmedName === String(currentName || '').trim()) {
+    return { tone: 'info', message: '현재 사용 중인 닉네임이에요.' };
+  }
+
+  return { tone: 'success', message: '형식상 사용할 수 있는 닉네임이에요. 멋지네요!' };
+}
+
+function getCurrentPasswordFeedback(currentPassword) {
+  if (!currentPassword) {
+    return { tone: 'info', message: '현재 비밀번호를 입력해야 변경할 수 있어요.' };
+  }
+
+  return { tone: 'success', message: '현재 비밀번호를 입력했어요.' };
+}
+
+function getNewPasswordFeedback(newPassword) {
+  if (!newPassword) {
+    return { tone: 'info', message: '새 비밀번호는 8자 이상으로 입력해 주세요.' };
+  }
+
+  if (newPassword.length < 8) {
+    return { tone: 'warning', message: '8자 이상으로 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '새 비밀번호 길이가 좋아요.' };
+}
+
+function getConfirmPasswordFeedback(newPassword, confirmPassword) {
+  if (!confirmPassword) {
+    return { tone: 'info', message: '새 비밀번호를 한 번 더 입력해 주세요.' };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { tone: 'error', message: '두 비밀번호가 아직 일치하지 않아요.' };
+  }
+
+  return { tone: 'success', message: '두 비밀번호가 일치해요.' };
 }
 
 function getInitial(name = '') {
@@ -209,11 +268,13 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     const weekRange = getDateRange(7);
 
     try {
-      const [scheduleResult, taskResult, rewardResult, bookmarkResult, todayResult, weekResult] = await Promise.all([
+      const [scheduleResult, taskResult, rewardResult, bookmarkResult, friendsResult, requestsResult, todayResult, weekResult] = await Promise.all([
         getSchedules(token),
         getTasks(token),
         getMyRewards(token),
         getCommunityBookmarks(token, { page: 1, pageSize: 3 }),
+        getFriends(token),
+        getFriendRequests(token),
         getStatisticsSummary(token, todayRange),
         getStatisticsSummary(token, weekRange)
       ]);
@@ -226,6 +287,11 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
           ...(rewardResult?.rewards || {})
         },
         bookmarks: Array.isArray(bookmarkResult?.bookmarks) ? bookmarkResult.bookmarks : [],
+        friends: Array.isArray(friendsResult?.friends) ? friendsResult.friends : [],
+        friendRequests: {
+          ...EMPTY_PROFILE_DATA.friendRequests,
+          ...(requestsResult?.requests || {})
+        },
         todaySummary: todayResult?.summary || EMPTY_PROFILE_DATA.todaySummary,
         weekSummary: weekResult?.summary || EMPTY_PROFILE_DATA.weekSummary
       });
@@ -410,6 +476,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
             <MetricCard label="최근 7일 집중" value={formatMinutes(profileData.weekSummary.totalMinutes)} helper={`완료율 ${profileData.weekSummary.completionRate || 0}%`} tone="blue" />
             <MetricCard label="완료 태스크" value={`${formatNumber(derived.doneTasks.length)}개`} helper={`진행 중 ${derived.inProgressTasks.length}개`} />
             <MetricCard label="보유 포인트" value={`${formatNumber(rewardPoints)}P`} helper={`배지 ${derived.badges.length}개`} tone="mint" />
+            <MetricCard label="학습 친구" value={`${formatNumber(profileData.friends.length)}명`} helper={`받은 요청 ${profileData.friendRequests.received.length}건`} tone="blue" />
           </View>
 
           <View style={styles.bentoGrid}>
@@ -589,6 +656,11 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   <Text style={styles.quickTitle}>통계 확인</Text>
                   <Text style={styles.quickText}>주간 집중 흐름 보기</Text>
                 </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => onNavigate('friends')} style={(state) => [styles.quickButton, ...interactiveStateStyles(state, { kind: 'card' })]}>
+                  <Text style={styles.quickIcon}>친</Text>
+                  <Text style={styles.quickTitle}>친구 관리</Text>
+                  <Text style={styles.quickText}>요청과 친구 목록 확인</Text>
+                </Pressable>
                 <Pressable accessibilityRole="button" onPress={() => onNavigate('community')} style={(state) => [styles.quickButton, ...interactiveStateStyles(state, { kind: 'card' })]}>
                   <Text style={styles.quickIcon}>💬</Text>
                   <Text style={styles.quickTitle}>커뮤니티</Text>
@@ -637,6 +709,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                     <Text style={styles.formButtonText}>{savingName ? '저장 중' : '저장'}</Text>
                   </Pressable>
                 </View>
+                <FieldFeedback {...getProfileNameFeedback(nameForm, user?.name)} />
               </View>
 
               <View style={styles.passwordBox}>
@@ -649,6 +722,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   style={styles.textInput}
                   value={passwordForm.currentPassword}
                 />
+                <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
                 <TextInput
                   onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
                   placeholder="새 비밀번호"
@@ -657,6 +731,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   style={styles.textInput}
                   value={passwordForm.newPassword}
                 />
+                <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
                 <TextInput
                   onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
                   placeholder="새 비밀번호 확인"
@@ -665,6 +740,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   style={styles.textInput}
                   value={passwordForm.confirmPassword}
                 />
+                <FieldFeedback {...getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword)} />
                 <Pressable
                   accessibilityRole="button"
                   disabled={changingPassword}

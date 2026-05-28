@@ -540,6 +540,242 @@ Response 예시:
 - `role`, `status`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
 
+### 6.5 친구 추가 및 친구 목록 API
+
+친구 기능은 인증된 사용자끼리 친구 요청을 보내고, 수락/거절하고, 친구 목록을 조회하는 1차 MVP 범위로 구현함. DM, 실시간 채팅, 차단, 그룹 기능은 후속 범위임.
+
+공통 보안 기준:
+
+- 모든 친구 API는 인증이 필요함.
+- 현재 사용자는 request body의 `userId`가 아니라 `req.user.id` 기준으로 처리함.
+- 자기 자신에게 친구 요청을 보낼 수 없음.
+- A→B와 B→A 중복 pending/accepted 관계를 service 계층에서 차단함.
+- 친구 요청 수락/거절은 요청 수신자만 가능함.
+- 응답에는 `passwordHash`, plain password, token/JWT 원문을 포함하지 않음.
+- 사용자 검색 결과의 이메일은 원문 전체를 노출하지 않고 최소 식별 힌트만 제공함.
+
+#### 6.5.1 친구 추가 대상 검색
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/users/search?keyword=...` |
+| 인증 | 필요 |
+| 설명 | 이름 또는 이메일 일부로 친구 추가 대상을 검색함 |
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `keyword` | 예 | 2~40자 검색어 |
+
+Response `200`:
+
+```json
+{
+  "users": [
+    {
+      "id": 2,
+      "name": "학습 친구",
+      "role": "USER",
+      "status": "ACTIVE",
+      "emailMasked": "lea***",
+      "profileImageUrl": null,
+      "learningGoal": "매일 30분 복습",
+      "preferredSubject": "영어",
+      "relationshipStatus": "NONE",
+      "friendshipId": null
+    }
+  ]
+}
+```
+
+`relationshipStatus` 값:
+
+| 값 | 의미 |
+|---|---|
+| `NONE` | 친구 관계 없음 |
+| `FRIENDS` | 이미 친구 |
+| `REQUEST_SENT` | 내가 보낸 요청 대기 중 |
+| `REQUEST_RECEIVED` | 상대가 보낸 요청 대기 중 |
+| `REQUEST_REJECTED` | 이전 요청이 거절됨. 다시 요청 가능 |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 검색어 누락, 2자 미만, 40자 초과 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+
+#### 6.5.2 친구 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/friends` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자의 accepted 친구 목록을 조회함 |
+
+Response `200`:
+
+```json
+{
+  "friends": [
+    {
+      "id": 1,
+      "status": "ACCEPTED",
+      "direction": "SENT",
+      "createdAt": "2026-05-29T00:00:00.000Z",
+      "updatedAt": "2026-05-29T01:00:00.000Z",
+      "user": {
+        "id": 2,
+        "name": "학습 친구",
+        "role": "USER",
+        "status": "ACTIVE",
+        "emailMasked": "lea***",
+        "profileImageUrl": null,
+        "learningGoal": "매일 30분 복습",
+        "preferredSubject": "영어"
+      }
+    }
+  ]
+}
+```
+
+#### 6.5.3 친구 요청 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/friends/requests` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자의 받은/보낸 pending 친구 요청을 조회함 |
+
+Response `200`:
+
+```json
+{
+  "requests": {
+    "received": [],
+    "sent": [
+      {
+        "id": 3,
+        "status": "PENDING",
+        "direction": "SENT",
+        "user": {
+          "id": 4,
+          "name": "보상 데모 사용자",
+          "role": "USER",
+          "status": "ACTIVE",
+          "emailMasked": "rew***"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### 6.5.4 친구 요청 보내기
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/friends/requests` |
+| 인증 | 필요 |
+| 설명 | 다른 사용자에게 친구 요청을 보냄 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `userId` | number | 예 | 친구 요청 대상 사용자 ID |
+
+Response `201`:
+
+```json
+{
+  "request": {
+    "id": 10,
+    "status": "PENDING",
+    "direction": "SENT",
+    "user": {
+      "id": 2,
+      "name": "학습 친구"
+    }
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `userId` 누락/형식 오류, 자기 자신에게 요청 |
+| `404` | `NOT_FOUND` | 대상 사용자 없음 또는 비활성 사용자 |
+| `409` | `CONFLICT` | 이미 친구, 이미 pending 요청 존재, 반대 방향 pending 요청 존재 |
+
+#### 6.5.5 친구 요청 수락/거절
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/friends/requests/:requestId` |
+| 인증 | 필요 |
+| 설명 | 받은 친구 요청을 수락하거나 거절함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `ACCEPT` 또는 `REJECT` |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | action 누락/허용값 아님 |
+| `403` | `FORBIDDEN` | 요청 수신자가 아닌 사용자가 처리 시도 |
+| `404` | `NOT_FOUND` | 요청 없음 |
+| `409` | `CONFLICT` | 이미 처리된 요청 |
+
+#### 6.5.6 친구 삭제
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/friends/:friendId` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자와 `friendId` 사이의 accepted 친구 관계만 삭제함 |
+
+Response `200`:
+
+```json
+{
+  "message": "Friend removed successfully",
+  "friendship": {
+    "id": 1,
+    "status": "ACCEPTED",
+    "user": {
+      "id": 2,
+      "name": "학습 친구"
+    }
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `friendId` 형식 오류 |
+| `404` | `NOT_FOUND` | accepted 친구 관계 없음 |
+
 ---
 
 ## 7. Schedule/Task API
@@ -3079,7 +3315,7 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 19 suites / 357 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 22 suites / 402 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
@@ -3090,6 +3326,7 @@ Response 예시:
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -3122,3 +3359,4 @@ Response 예시:
 | 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.15~§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-29 | 친구 추가 및 친구 목록 API(§6.5) 구현 완료 내역과 테스트 결과 반영 |

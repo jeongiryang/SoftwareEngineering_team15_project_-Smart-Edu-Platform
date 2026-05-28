@@ -17,6 +17,7 @@ import {
   getSchedules,
   updateSchedule
 } from '../services/api';
+import FieldFeedback from '../components/FieldFeedback';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
@@ -136,6 +137,39 @@ function validateScheduleForm(form) {
   }
 
   return '';
+}
+
+function getScheduleTitleFeedback(title) {
+  const trimmedTitle = title.trim();
+
+  if (!trimmedTitle) {
+    return { tone: 'info', message: '일정 제목을 입력하면 바로 저장할 수 있어요.' };
+  }
+
+  if (trimmedTitle.length < 2) {
+    return { tone: 'warning', message: '조금 더 구체적으로 적어 주세요.' };
+  }
+
+  return { tone: 'success', message: '일정 제목이 준비됐어요.' };
+}
+
+function getScheduleTimeFeedback(form) {
+  const startAt = combineDateTime(form.startDate, form.startTime);
+  const endAt = form.endDate.trim() ? combineDateTime(form.endDate, form.endTime) : null;
+
+  if (!startAt || !isValidDateTime(startAt)) {
+    return { tone: 'error', message: '시작 날짜와 시간을 확인해 주세요.' };
+  }
+
+  if (endAt && !isValidDateTime(endAt)) {
+    return { tone: 'error', message: '종료 날짜와 시간을 확인해 주세요.' };
+  }
+
+  if (endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+    return { tone: 'warning', message: '종료 시간은 시작 시간보다 뒤여야 해요.' };
+  }
+
+  return { tone: 'success', message: '선택한 시간으로 일정이 정리돼요.' };
 }
 
 function formatDateForDisplay(value) {
@@ -412,6 +446,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
               style={styles.input}
               value={form.title}
             />
+            <FieldFeedback {...getScheduleTitleFeedback(form.title)} />
           </View>
 
           <View style={styles.fieldGroup}>
@@ -503,6 +538,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
             <Text style={styles.selectionText}>시작: {form.startDate} {form.startTime}</Text>
             <Text style={styles.selectionText}>종료: {form.endDate} {form.endTime}</Text>
           </View>
+          <FieldFeedback {...getScheduleTimeFeedback(form)} />
 
           {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
           {successMsg ? <Text style={styles.successText}>{successMsg}</Text> : null}
