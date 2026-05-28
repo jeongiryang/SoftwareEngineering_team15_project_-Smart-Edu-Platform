@@ -166,6 +166,9 @@ function buildClaimMessage(result) {
 export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const hasAdminRole = user?.role === 'ADMIN';
   const [showAIGuide, setShowAIGuide] = useState(false);
+  const [showAllBadges, setShowAllBadges] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const [showClaimedQuests, setShowClaimedQuests] = useState(false);
   const [rewardLoading, setRewardLoading] = useState(true);
   const [rewardRefreshing, setRewardRefreshing] = useState(false);
   const [rewardError, setRewardError] = useState('');
@@ -185,6 +188,25 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
       return (order[left.status] ?? 99) - (order[right.status] ?? 99);
     }),
     [rewardData.quests]
+  );
+  const activeQuests = useMemo(
+    () => featuredQuests.filter((quest) => quest.status !== 'CLAIMED'),
+    [featuredQuests]
+  );
+  const claimedQuests = useMemo(
+    () => featuredQuests.filter((quest) => quest.status === 'CLAIMED'),
+    [featuredQuests]
+  );
+  const visibleBadges = useMemo(
+    () => (showAllBadges ? rewardData.badges || [] : (rewardData.badges || []).slice(0, 4)),
+    [rewardData.badges, showAllBadges]
+  );
+  const visibleTransactions = useMemo(
+    () =>
+      showAllTransactions
+        ? rewardData.recentPointTransactions || []
+        : (rewardData.recentPointTransactions || []).slice(0, 5),
+    [rewardData.recentPointTransactions, showAllTransactions]
   );
 
   function isGuideDismissed() {
@@ -388,16 +410,16 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 <View style={styles.questColumn}>
                   <View style={styles.subsectionHeader}>
                     <Text style={styles.subsectionTitle}>진행 중인 퀘스트</Text>
-                    <Text style={styles.subsectionMeta}>{featuredQuests.length}개</Text>
+                    <Text style={styles.subsectionMeta}>{activeQuests.length}개</Text>
                   </View>
 
-                  {featuredQuests.length === 0 ? (
+                  {activeQuests.length === 0 ? (
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 등록된 퀘스트가 없습니다.</Text>
                       <Text style={styles.emptyText}>관리자 화면에서 보상 퀘스트를 추가하면 이곳에 표시됩니다.</Text>
                     </View>
                   ) : (
-                    featuredQuests.map((quest) => (
+                    activeQuests.map((quest) => (
                       <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
                         <View style={styles.questHeader}>
                           <View style={styles.questCopy}>
@@ -451,6 +473,59 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       </View>
                     ))
                   )}
+
+                  {claimedQuests.length ? (
+                    <View style={styles.collapsibleSection}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setShowClaimedQuests((current) => !current)}
+                        style={styles.collapsibleToggle}
+                      >
+                        <Text style={styles.collapsibleTitle}>수령 완료한 퀘스트</Text>
+                        <Text style={styles.collapsibleMeta}>
+                          {claimedQuests.length}개 {showClaimedQuests ? '접기' : '보기'}
+                        </Text>
+                      </Pressable>
+
+                      {showClaimedQuests
+                        ? claimedQuests.map((quest) => (
+                            <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
+                              <View style={styles.questHeader}>
+                                <View style={styles.questCopy}>
+                                  <Text style={styles.questTitle}>{quest.title}</Text>
+                                  <Text style={styles.questDescription}>
+                                    {quest.description || '설명 없이 등록된 퀘스트입니다.'}
+                                  </Text>
+                                </View>
+                                <View style={styles.questStatusChip}>
+                                  <Text style={styles.questStatusText}>{getQuestStatusText(quest.status)}</Text>
+                                </View>
+                              </View>
+
+                              <View style={styles.progressTrack}>
+                                <View
+                                  style={[
+                                    styles.progressBar,
+                                    { width: getQuestProgressWidth(quest.progressRate) }
+                                  ]}
+                                />
+                              </View>
+
+                              <View style={styles.questFooter}>
+                                <View>
+                                  <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
+                                  <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                                </View>
+
+                                <View style={styles.questTag}>
+                                  <Text style={styles.questTagText}>수령 완료</Text>
+                                </View>
+                              </View>
+                            </View>
+                          ))
+                        : null}
+                    </View>
+                  ) : null}
                 </View>
 
                 <View style={styles.badgeColumn}>
@@ -460,7 +535,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                   </View>
 
                   {rewardData.badges?.length ? (
-                    rewardData.badges.map((userBadge) => (
+                    <>
+                      {visibleBadges.map((userBadge) => (
                       <View key={userBadge.id} style={styles.badgeCard}>
                         <View style={styles.badgeIcon}>
                           <Text style={styles.badgeIconText}>🏅</Text>
@@ -473,7 +549,19 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                           <Text style={styles.badgeMeta}>{userBadge.badge?.iconUrl || '이미지 경로 미등록'}</Text>
                         </View>
                       </View>
-                    ))
+                      ))}
+                      {rewardData.badges.length > 4 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setShowAllBadges((current) => !current)}
+                          style={styles.moreButton}
+                        >
+                          <Text style={styles.moreButtonText}>
+                            {showAllBadges ? '배지 접기' : `배지 더보기 (${rewardData.badges.length - 4}개 더)`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
                   ) : (
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 획득한 배지가 없습니다.</Text>
@@ -487,7 +575,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                   </View>
 
                   {rewardData.recentPointTransactions?.length ? (
-                    rewardData.recentPointTransactions.map((transaction) => (
+                    <>
+                      {visibleTransactions.map((transaction) => (
                       <View key={transaction.id} style={styles.transactionRow}>
                         <View>
                           <Text style={styles.transactionReason}>{transaction.reason || transaction.sourceType}</Text>
@@ -495,7 +584,21 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         </View>
                         <Text style={styles.transactionAmount}>+{formatNumber(transaction.amount)}P</Text>
                       </View>
-                    ))
+                      ))}
+                      {rewardData.recentPointTransactions.length > 5 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setShowAllTransactions((current) => !current)}
+                          style={styles.moreButton}
+                        >
+                          <Text style={styles.moreButtonText}>
+                            {showAllTransactions
+                              ? '포인트 내역 접기'
+                              : `포인트 내역 더보기 (${rewardData.recentPointTransactions.length - 5}건 더)`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
                   ) : (
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 포인트 적립 내역이 없습니다.</Text>
@@ -1060,6 +1163,45 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 19
+  },
+  collapsibleSection: {
+    gap: 12
+  },
+  collapsibleToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  collapsibleTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  collapsibleMeta: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  moreButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  moreButtonText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
   },
   sectionHeader: {
     flexDirection: 'row',
