@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
 import { claimRewardQuest, getMyRewards } from '../services/api';
 import { colors, shadows } from '../styles/theme';
@@ -169,6 +169,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const [showAllBadges, setShowAllBadges] = useState(false);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [showClaimedQuests, setShowClaimedQuests] = useState(false);
+  const [failedBadgeIcons, setFailedBadgeIcons] = useState({});
   const [rewardLoading, setRewardLoading] = useState(true);
   const [rewardRefreshing, setRewardRefreshing] = useState(false);
   const [rewardError, setRewardError] = useState('');
@@ -305,6 +306,19 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     } finally {
       setClaimingQuestId(null);
     }
+  }
+
+  function markBadgeIconFailed(badgeKey) {
+    setFailedBadgeIcons((current) => {
+      if (current[badgeKey]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [badgeKey]: true
+      };
+    });
   }
 
   return (
@@ -537,18 +551,36 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                   {rewardData.badges?.length ? (
                     <>
                       {visibleBadges.map((userBadge) => (
+                      (() => {
+                        const badgeKey = userBadge.badge?.id || userBadge.id;
+                        const iconUrl = userBadge.badge?.iconUrl;
+                        const shouldShowImage = Boolean(iconUrl) && !failedBadgeIcons[badgeKey];
+
+                        return (
                       <View key={userBadge.id} style={styles.badgeCard}>
                         <View style={styles.badgeIcon}>
-                          <Text style={styles.badgeIconText}>🏅</Text>
+                          {shouldShowImage ? (
+                            <Image
+                              source={{ uri: iconUrl }}
+                              style={styles.badgeImage}
+                              onError={() => markBadgeIconFailed(badgeKey)}
+                            />
+                          ) : (
+                            <Text style={styles.badgeIconText}>🏅</Text>
+                          )}
                         </View>
                         <View style={styles.badgeCopy}>
                           <Text style={styles.badgeTitle}>{userBadge.badge?.name || '배지'}</Text>
                           <Text style={styles.badgeDescription}>
                             {userBadge.badge?.description || '설명 없이 등록된 배지입니다.'}
                           </Text>
-                          <Text style={styles.badgeMeta}>{userBadge.badge?.iconUrl || '이미지 경로 미등록'}</Text>
+                          <Text style={styles.badgeMeta}>
+                            {shouldShowImage ? '배지 이미지 연결됨' : '기본 배지 아이콘 표시 중'}
+                          </Text>
                         </View>
                       </View>
+                        );
+                      })()
                       ))}
                       {rewardData.badges.length > 4 ? (
                         <Pressable
@@ -1096,6 +1128,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  badgeImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    resizeMode: 'cover'
   },
   badgeIconText: {
     fontSize: 20
