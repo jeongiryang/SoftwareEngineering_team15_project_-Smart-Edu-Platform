@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,13 +19,27 @@ import ReadableText from '../components/ReadableText';
 import { PanelSkeleton } from '../components/Skeleton';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+
+function formatFileSize(bytes = 0) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))}KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 export default function AILearningScreen({ onNavigate, token, user }) {
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
+  const previewUrlRef = useRef(null);
 
   // Loading, Success & Error States
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [imageAttachment, setImageAttachment] = useState(null);
 
   // Tab 1: AI 학습 질의 (Q&A) States
   const [questionInput, setQuestionInput] = useState('');
@@ -46,6 +61,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const resetFeedback = () => {
     setErrorMsg('');
     setSuccessMsg('');
+    setImageUploadError('');
   };
 
   // Enforce Max Lengths Constants
@@ -53,6 +69,100 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const MAX_SUMMARY_LENGTH = 3000;
   const MAX_PROBLEM_LENGTH = 1000;
   const MAX_ANSWER_LENGTH = 1000;
+
+  useEffect(() => () => {
+    if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
+      globalThis.URL.revokeObjectURL(previewUrlRef.current);
+    }
+  }, []);
+
+  function clearImageAttachment({ showMessage = true } = {}) {
+    if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
+      globalThis.URL.revokeObjectURL(previewUrlRef.current);
+    }
+
+    previewUrlRef.current = null;
+    setImageAttachment(null);
+    setImageUploadError('');
+
+    if (showMessage) {
+      setSuccessMsg('첨부 이미지를 제거했습니다.');
+    }
+  }
+
+  function attachImageFile(file) {
+    if (!file) {
+      return;
+    }
+
+    resetFeedback();
+    setImageUploadError('');
+
+    if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+      setImageUploadError('PNG, JPG, WEBP, GIF 형식의 이미지 파일만 첨부할 수 있습니다.');
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setImageUploadError(`이미지는 최대 ${formatFileSize(MAX_IMAGE_SIZE_BYTES)} 이하로 첨부해 주세요.`);
+      return;
+    }
+
+    if (!globalThis.URL?.createObjectURL) {
+      setImageUploadError('현재 브라우저에서는 이미지 미리보기를 만들 수 없습니다.');
+      return;
+    }
+
+    if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
+      globalThis.URL.revokeObjectURL(previewUrlRef.current);
+    }
+
+    const previewUrl = globalThis.URL.createObjectURL(file);
+    previewUrlRef.current = previewUrl;
+
+    setImageAttachment({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      previewUrl
+    });
+    setSuccessMsg('이미지를 첨부했습니다. 현재 이미지는 서버로 업로드되지 않는 1차 검토용 미리보기입니다.');
+  }
+
+  function openImagePicker() {
+    if (!globalThis.document?.createElement) {
+      setImageUploadError('현재 환경에서는 브라우저 이미지 첨부 기능을 사용할 수 없습니다.');
+      return;
+    }
+
+    const input = globalThis.document.createElement('input');
+    input.type = 'file';
+    input.accept = SUPPORTED_IMAGE_TYPES.join(',');
+    input.onchange = (event) => {
+      const file = event.target?.files?.[0];
+      attachImageFile(file);
+    };
+    input.click();
+  }
+
+  function showMockImageInsight() {
+    if (!imageAttachment) {
+      setImageUploadError('먼저 이미지를 첨부해 주세요.');
+      return;
+    }
+
+    resetFeedback();
+    setRecentQnaList((prev) => [
+      {
+        question: `[이미지 첨부 데모] ${imageAttachment.name}`,
+        answer:
+          '현재 1차 구현은 실제 외부 AI Vision 분석을 수행하지 않습니다. 첨부한 이미지는 브라우저 미리보기로만 표시되며 서버에 업로드되지 않습니다. 실제 OCR/PDF 자동 노트·퀴즈 생성은 후속 Issue에서 파일 처리 정책과 비용을 확인한 뒤 검토합니다.',
+        isTruncated: false
+      },
+      ...prev
+    ]);
+    setSuccessMsg('이미지 첨부 데모 응답을 추가했습니다. 실제 분석 결과가 아닌 안내용 mock 응답입니다.');
+  }
 
   // Navigation guard fallback inside the view
   if (!user) {
@@ -246,6 +356,12 @@ export default function AILearningScreen({ onNavigate, token, user }) {
             비밀번호, 토큰, 개인 연락처 같은 민감한 정보는 질문에 포함하지 않는 것이 원칙입니다.
           </Text>
         </View>
+        <View style={styles.transparencyCard}>
+          <Text style={styles.transparencyLabel}>이미지 첨부 안내</Text>
+          <Text style={styles.transparencyText}>
+            현재 이미지 첨부는 데모/검토용 미리보기이며, 외부 AI Vision 분석이나 서버 업로드는 수행하지 않습니다.
+          </Text>
+        </View>
       </View>
 
       {/* Navigation Tabs */}
@@ -322,6 +438,65 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 maxLength={MAX_QUESTION_LENGTH}
                 editable={!loading}
               />
+
+              <View style={styles.imagePanel}>
+                <View style={styles.imagePanelHeader}>
+                  <View style={styles.imagePanelCopy}>
+                    <Text style={styles.imagePanelTitle}>이미지 첨부 1차 검토</Text>
+                    <Text style={styles.imagePanelText}>
+                      PNG, JPG, WEBP, GIF 파일을 최대 {formatFileSize(MAX_IMAGE_SIZE_BYTES)}까지 미리보기로 첨부할 수 있습니다.
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={openImagePicker}
+                    style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
+                  >
+                    <Text style={styles.imageAttachButtonText}>이미지 선택</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.privacyNotice}>
+                  민감정보가 포함된 사진은 첨부하지 마세요. 현재 이미지는 서버에 저장되지 않고 실제 AI Vision 분석도 수행하지 않습니다.
+                </Text>
+
+                {imageUploadError ? (
+                  <View style={styles.imageErrorBox}>
+                    <Text style={styles.imageErrorText}>{imageUploadError}</Text>
+                  </View>
+                ) : null}
+
+                {imageAttachment ? (
+                  <View style={styles.imagePreviewCard}>
+                    <Image source={{ uri: imageAttachment.previewUrl }} style={styles.imagePreview} />
+                    <View style={styles.imageMeta}>
+                      <Text style={styles.imageName}>{imageAttachment.name}</Text>
+                      <Text style={styles.imageInfo}>
+                        {imageAttachment.type} · {formatFileSize(imageAttachment.size)}
+                      </Text>
+                      <Text style={styles.imageMockText}>
+                        이 첨부는 mock/demo 흐름 확인용입니다. 질문 제출 시 이미지 파일은 AI API로 전송되지 않습니다.
+                      </Text>
+                      <View style={styles.imageActionRow}>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={showMockImageInsight}
+                          style={(state) => [styles.imageMockButton, ...interactiveStateStyles(state)]}
+                        >
+                          <Text style={styles.imageMockButtonText}>데모 분석 안내 보기</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={clearImageAttachment}
+                          style={(state) => [styles.imageRemoveButton, ...interactiveStateStyles(state)]}
+                        >
+                          <Text style={styles.imageRemoveButtonText}>첨부 제거</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                ) : null}
+              </View>
               <Pressable
                 disabled={loading || !questionInput.trim()}
                 onPress={handleQuestionSubmit}
@@ -817,6 +992,143 @@ const styles = StyleSheet.create({
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '800'
+  },
+  imagePanel: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16,
+    gap: 12
+  },
+  imagePanelHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  imagePanelCopy: {
+    flex: 1,
+    minWidth: 220,
+    gap: 5
+  },
+  imagePanelTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  imagePanelText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  imageAttachButton: {
+    minHeight: 40,
+    borderRadius: 999,
+    backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    paddingHorizontal: 15,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  imageAttachButtonText: {
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  privacyNotice: {
+    color: colors.warning,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
+  },
+  imageErrorBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    padding: 12
+  },
+  imageErrorText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  imagePreviewCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 14
+  },
+  imagePreview: {
+    width: 148,
+    height: 108,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.blueSoft,
+    resizeMode: 'cover'
+  },
+  imageMeta: {
+    flex: 1,
+    minWidth: 220,
+    gap: 7
+  },
+  imageName: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  imageInfo: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  imageMockText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  imageActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  imageMockButton: {
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    paddingHorizontal: 13,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  imageMockButtonText: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  imageRemoveButton: {
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    paddingHorizontal: 13,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  imageRemoveButtonText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '900'
   },
   qnaCard: {
     backgroundColor: colors.surface,
