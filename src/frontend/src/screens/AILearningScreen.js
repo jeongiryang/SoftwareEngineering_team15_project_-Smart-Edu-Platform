@@ -15,6 +15,7 @@ import {
   analyzeWrongAnswer
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
+import FieldFeedback from '../components/FieldFeedback';
 import ReadableText from '../components/ReadableText';
 import { PanelSkeleton } from '../components/Skeleton';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
@@ -98,6 +99,34 @@ function formatFileSize(bytes = 0) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function getImageAttachmentFeedback({ attachment, error }) {
+  if (error) {
+    return { tone: 'error', message: error };
+  }
+
+  if (attachment) {
+    return { tone: 'success', message: '이미지 파일을 첨부했어요. 현재는 서버에 업로드하지 않는 미리보기예요.' };
+  }
+
+  return { tone: 'info', message: `PNG, JPG, WEBP, GIF 이미지를 ${formatFileSize(MAX_IMAGE_SIZE_BYTES)} 이하로 첨부할 수 있어요.` };
+}
+
+function getReviewAttachmentFeedback({ attachment, error }) {
+  if (error) {
+    return { tone: 'error', message: error };
+  }
+
+  if (attachment?.isPdf) {
+    return { tone: 'warning', message: 'PDF는 현재 검토용 mock 결과로만 미리보기돼요.' };
+  }
+
+  if (attachment) {
+    return { tone: 'success', message: '검토용 이미지 파일을 첨부했어요. 실제 OCR은 아직 실행하지 않아요.' };
+  }
+
+  return { tone: 'info', message: `이미지 또는 PDF를 ${formatFileSize(MAX_REVIEW_FILE_SIZE_BYTES)} 이하로 선택할 수 있어요.` };
 }
 
 function isImageFile(file) {
@@ -888,11 +917,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   민감정보가 포함된 사진은 첨부하지 마세요. 현재 이미지는 서버에 저장되지 않고 실제 AI Vision 분석도 수행하지 않습니다.
                 </Text>
 
-                {imageUploadError ? (
-                  <View style={styles.imageErrorBox}>
-                    <Text style={styles.imageErrorText}>{imageUploadError}</Text>
-                  </View>
-                ) : null}
+                <FieldFeedback {...getImageAttachmentFeedback({ attachment: imageAttachment, error: imageUploadError })} />
 
                 {imageAttachment ? (
                   <View style={styles.imagePreviewCard}>
@@ -948,11 +973,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   민감정보가 포함된 학습 자료는 첨부하지 마세요. 이번 1차 UI는 Issue #160 검토용이며, 실제 StudyNote/Quiz 저장은 후속 구현 범위입니다.
                 </Text>
 
-                {reviewUploadError ? (
-                  <View style={styles.imageErrorBox}>
-                    <Text style={styles.imageErrorText}>{reviewUploadError}</Text>
-                  </View>
-                ) : null}
+                <FieldFeedback {...getReviewAttachmentFeedback({ attachment: reviewAttachment, error: reviewUploadError })} />
 
                 {reviewAttachment ? (
                   <View style={styles.reviewFileCard}>

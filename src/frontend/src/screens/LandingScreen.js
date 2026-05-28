@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
+const GITHUB_REPOSITORY_URL = 'https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform';
 
 const availableFeatures = [
   {
@@ -29,6 +30,17 @@ const flowSteps = [
 ];
 
 const writingWord = '사각사각';
+
+function openGitHubRepository() {
+  const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+
+  if (browserWindow?.open) {
+    browserWindow.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  Linking.openURL(GITHUB_REPOSITORY_URL);
+}
 
 export default function LandingScreen({ onNavigate }) {
   const [writtenWord, setWrittenWord] = useState('');
@@ -148,6 +160,24 @@ export default function LandingScreen({ onNavigate }) {
             </View>
           ))}
         </View>
+      </View>
+
+      <View style={styles.footer}>
+        <View style={styles.footerCopy}>
+          <Text style={styles.footerCopyright}>© 2026 CWNU Software Engineering Team 15 · 사각사각</Text>
+          <Text style={styles.footerDescription}>Personalized Smart Edu Platform</Text>
+        </View>
+        <Pressable
+          accessibilityLabel="GitHub Repository"
+          accessibilityRole="link"
+          onPress={openGitHubRepository}
+          style={(state) => [styles.githubButton, ...interactiveStateStyles(state)]}
+          title="GitHub"
+        >
+          <Text accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.githubIconText}>
+            GH
+          </Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -418,5 +448,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     flex: 1
+  },
+  footer: {
+    width: '100%',
+    maxWidth: 1180,
+    marginTop: 28,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    borderTopWidth: 1,
+    borderColor: colors.line,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14
+  },
+  footerCopy: {
+    flex: 1,
+    minWidth: 240,
+    gap: 5
+  },
+  footerCopyright: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  footerDescription: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  githubButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  githubIconText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0
   }
 });
