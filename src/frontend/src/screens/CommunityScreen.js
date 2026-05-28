@@ -1254,7 +1254,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background
   },
   contentContainer: {
-    padding: 20,
+    padding: 16,
     gap: 16
   },
   header: {
@@ -1266,7 +1266,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
-    padding: 20,
+    padding: 18,
     ...shadows.card
   },
   headerText: {
@@ -1282,7 +1282,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.ink,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800'
   },
   subtitle: {
@@ -1343,12 +1343,12 @@ const styles = StyleSheet.create({
   },
   listPane: {
     flex: 1,
-    minWidth: 300,
+    minWidth: 280,
     gap: 10
   },
   detailPane: {
     flex: 1.2,
-    minWidth: 320
+    minWidth: 280
   },
   searchRow: {
     flexDirection: 'row',

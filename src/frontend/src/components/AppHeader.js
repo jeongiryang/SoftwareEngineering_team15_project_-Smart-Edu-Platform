@@ -80,19 +80,20 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1180,
     minHeight: 76,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 14
+    gap: 10
   },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    minWidth: 176
+    gap: 10,
+    minWidth: 150,
+    flexShrink: 1
   },
   logo: {
     height: 47,
@@ -116,13 +117,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     flex: 1,
+    flexShrink: 1,
     justifyContent: 'center',
-    minWidth: 260
+    minWidth: 0
   },
   navItem: {
-    minHeight: 38,
+    minHeight: 40,
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 11,
     borderRadius: 22
   },
   navItemActive: {
@@ -140,8 +142,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 10,
-    justifyContent: 'flex-end'
+    gap: 8,
+    justifyContent: 'center',
+    minWidth: 0
   },
   userLabel: {
     color: colors.ink,
@@ -149,8 +152,8 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   primaryButton: {
-    minHeight: 45,
-    paddingHorizontal: 20,
+    minHeight: 42,
+    paddingHorizontal: 16,
     borderRadius: 23,
     backgroundColor: colors.blue,
     alignItems: 'center',
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     minHeight: 42,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 21,
     borderWidth: 1,
     borderColor: colors.line,
