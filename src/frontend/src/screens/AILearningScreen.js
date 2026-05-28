@@ -21,6 +21,8 @@ import { colors, interactions, interactiveStateStyles, shadows } from '../styles
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const MAX_REVIEW_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_REVIEW_FILE_TYPES = [...SUPPORTED_IMAGE_TYPES, 'application/pdf'];
 const AI_MOCK_MODE_STORAGE_KEY = 'smartEdu.aiMockMode';
 const AI_CHAT_ROOMS_STORAGE_KEY = 'smartEdu.aiChatRooms';
 
@@ -96,6 +98,47 @@ function formatFileSize(bytes = 0) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function isImageFile(file) {
+  return SUPPORTED_IMAGE_TYPES.includes(file?.type);
+}
+
+function isPdfFile(file) {
+  return file?.type === 'application/pdf' || String(file?.name || '').toLowerCase().endsWith('.pdf');
+}
+
+function isSupportedReviewFile(file) {
+  return isImageFile(file) || isPdfFile(file);
+}
+
+function createMockReviewResult(file) {
+  const sourceLabel = isPdfFile(file) ? 'PDF 자료' : '이미지 자료';
+  const fileName = file?.name || '학습 자료';
+
+  return {
+    sourceLabel,
+    noteTitle: `${sourceLabel} 데모 노트`,
+    summary: [
+      `${fileName}에서 실제 OCR을 수행하지 않고, 학습 자료 정리 흐름만 확인하는 예시입니다.`,
+      '핵심 개념을 2~3개 문장으로 압축하고, 복습할 질문을 함께 제안하는 방향을 검토합니다.',
+      '실제 노트/퀴즈 저장은 파일 처리 정책과 비용 검토 후 후속 범위에서 결정합니다.'
+    ],
+    quizzes: [
+      {
+        question: '이 자료에서 먼저 확인해야 할 핵심 개념은 무엇인가요?',
+        answer: '자료 제목, 단원명, 반복 등장하는 키워드를 먼저 찾습니다.'
+      },
+      {
+        question: '자동 퀴즈 생성 전 사용자가 확인해야 할 점은 무엇인가요?',
+        answer: '개인정보가 포함되지 않았는지 확인하고, 데모 결과가 실제 분석이 아님을 구분합니다.'
+      },
+      {
+        question: '후속 구현에서 필요한 기술 검토 항목은 무엇인가요?',
+        answer: 'OCR/PDF 파싱 방식, 파일 저장 정책, AI 비용, 생성된 StudyNote/Quiz 저장 범위입니다.'
+      }
+    ]
+  };
 }
 
 function createMockQuestionAnswer(question) {
@@ -180,7 +223,11 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [imageUploadError, setImageUploadError] = useState('');
   const [imageAttachment, setImageAttachment] = useState(null);
+  const [reviewUploadError, setReviewUploadError] = useState('');
+  const [reviewAttachment, setReviewAttachment] = useState(null);
+  const [reviewMockResult, setReviewMockResult] = useState(null);
   const [isMockMode, setIsMockMode] = useState(readStoredMockMode);
+  const reviewPreviewUrlRef = useRef(null);
 
   // Tab 1: AI 학습 질의 (Q&A) States
   const [questionInput, setQuestionInput] = useState('');
@@ -205,6 +252,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     setErrorMsg('');
     setSuccessMsg('');
     setImageUploadError('');
+    setReviewUploadError('');
   };
 
   // Enforce Max Lengths Constants
@@ -224,6 +272,9 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   useEffect(() => () => {
     if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
       globalThis.URL.revokeObjectURL(previewUrlRef.current);
+    }
+    if (reviewPreviewUrlRef.current && globalThis.URL?.revokeObjectURL) {
+      globalThis.URL.revokeObjectURL(reviewPreviewUrlRef.current);
     }
   }, []);
 
@@ -294,6 +345,91 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       attachImageFile(file);
     };
     input.click();
+  }
+
+  function clearReviewAttachment({ showMessage = true } = {}) {
+    if (reviewPreviewUrlRef.current && globalThis.URL?.revokeObjectURL) {
+      globalThis.URL.revokeObjectURL(reviewPreviewUrlRef.current);
+    }
+
+    reviewPreviewUrlRef.current = null;
+    setReviewAttachment(null);
+    setReviewMockResult(null);
+    setReviewUploadError('');
+
+    if (showMessage) {
+      setSuccessMsg('OCR/PDF 검토용 첨부 파일을 제거했습니다.');
+    }
+  }
+
+  function attachReviewFile(file) {
+    if (!file) {
+      return;
+    }
+
+    resetFeedback();
+    setReviewMockResult(null);
+
+    if (!isSupportedReviewFile(file)) {
+      setReviewUploadError('이미지 또는 PDF 파일만 1차 검토용으로 선택할 수 있습니다.');
+      return;
+    }
+
+    if (file.size > MAX_REVIEW_FILE_SIZE_BYTES) {
+      setReviewUploadError(`검토용 파일은 최대 ${formatFileSize(MAX_REVIEW_FILE_SIZE_BYTES)} 이하로 선택해 주세요.`);
+      return;
+    }
+
+    let previewUrl = null;
+    if (isImageFile(file)) {
+      if (!globalThis.URL?.createObjectURL) {
+        setReviewUploadError('현재 브라우저에서는 이미지 미리보기를 만들 수 없습니다.');
+        return;
+      }
+
+      previewUrl = globalThis.URL.createObjectURL(file);
+    }
+
+    if (reviewPreviewUrlRef.current && globalThis.URL?.revokeObjectURL) {
+      globalThis.URL.revokeObjectURL(reviewPreviewUrlRef.current);
+    }
+
+    reviewPreviewUrlRef.current = previewUrl;
+    setReviewAttachment({
+      name: file.name,
+      size: file.size,
+      type: file.type || (isPdfFile(file) ? 'application/pdf' : 'unknown'),
+      previewUrl,
+      isPdf: isPdfFile(file)
+    });
+    setSuccessMsg('OCR/PDF 검토용 파일을 선택했습니다. 현재는 서버 업로드 없이 mock 결과만 확인합니다.');
+  }
+
+  function openReviewFilePicker() {
+    if (!globalThis.document?.createElement) {
+      setReviewUploadError('현재 환경에서는 브라우저 파일 선택 기능을 사용할 수 없습니다.');
+      return;
+    }
+
+    const input = globalThis.document.createElement('input');
+    input.type = 'file';
+    input.accept = SUPPORTED_REVIEW_FILE_TYPES.join(',');
+    input.onchange = (event) => {
+      const file = event.target?.files?.[0];
+      attachReviewFile(file);
+    };
+    input.click();
+  }
+
+  function showMockReviewResult() {
+    if (!reviewAttachment) {
+      setReviewUploadError('먼저 이미지 또는 PDF 파일을 선택해 주세요.');
+      return;
+    }
+
+    resetFeedback();
+    setReviewMockResult(createMockReviewResult(reviewAttachment));
+    setSuccessMsg('OCR/PDF 데모 결과를 생성했습니다. 실제 분석이나 저장은 수행하지 않았습니다.');
   }
 
   function addQnaEntry(entry) {
@@ -785,6 +921,96 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                           <Text style={styles.imageRemoveButtonText}>첨부 제거</Text>
                         </Pressable>
                       </View>
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.reviewPanel}>
+                <View style={styles.imagePanelHeader}>
+                  <View style={styles.imagePanelCopy}>
+                    <Text style={styles.imagePanelTitle}>OCR/PDF 노트·퀴즈 생성 검토</Text>
+                    <Text style={styles.imagePanelText}>
+                      이미지 또는 PDF를 선택해 자동 노트와 퀴즈 생성 흐름을 mock/demo로 확인합니다. 실제 OCR, PDF 파싱, 외부 AI 호출, 서버 업로드는 아직 수행하지 않습니다.
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="OCR PDF 검토 파일 선택"
+                    onPress={openReviewFilePicker}
+                    style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
+                  >
+                    <Text style={styles.imageAttachButtonText}>파일 선택</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.privacyNotice}>
+                  민감정보가 포함된 학습 자료는 첨부하지 마세요. 이번 1차 UI는 Issue #160 검토용이며, 실제 StudyNote/Quiz 저장은 후속 구현 범위입니다.
+                </Text>
+
+                {reviewUploadError ? (
+                  <View style={styles.imageErrorBox}>
+                    <Text style={styles.imageErrorText}>{reviewUploadError}</Text>
+                  </View>
+                ) : null}
+
+                {reviewAttachment ? (
+                  <View style={styles.reviewFileCard}>
+                    {reviewAttachment.previewUrl ? (
+                      <Image source={{ uri: reviewAttachment.previewUrl }} style={styles.imagePreview} />
+                    ) : (
+                      <View style={styles.reviewFileIcon}>
+                        <Text style={styles.reviewFileIconText}>PDF</Text>
+                      </View>
+                    )}
+                    <View style={styles.imageMeta}>
+                      <Text style={styles.imageName}>{reviewAttachment.name}</Text>
+                      <Text style={styles.imageInfo}>
+                        {reviewAttachment.type} · {formatFileSize(reviewAttachment.size)}
+                      </Text>
+                      <Text style={styles.imageMockText}>
+                        파일은 브라우저에서만 선택되며 서버에 업로드되지 않습니다. 아래 버튼은 실제 OCR 결과가 아닌 데모 예시를 보여줍니다.
+                      </Text>
+                      <View style={styles.imageActionRow}>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={showMockReviewResult}
+                          style={(state) => [styles.imageMockButton, ...interactiveStateStyles(state)]}
+                        >
+                          <Text style={styles.imageMockButtonText}>데모 노트·퀴즈 보기</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={clearReviewAttachment}
+                          style={(state) => [styles.imageRemoveButton, ...interactiveStateStyles(state)]}
+                        >
+                          <Text style={styles.imageRemoveButtonText}>첨부 제거</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                ) : null}
+
+                {reviewMockResult ? (
+                  <View style={styles.reviewResultCard}>
+                    <View style={styles.resultHeaderRow}>
+                      <Text style={styles.summaryCardTitle}>{reviewMockResult.noteTitle}</Text>
+                      <Text style={styles.mockBadge}>Mock 결과</Text>
+                    </View>
+                    <View style={styles.reviewResultSection}>
+                      <Text style={styles.reviewResultSubtitle}>예시 노트 요약</Text>
+                      {reviewMockResult.summary.map((line, index) => (
+                        <Text key={index} style={styles.reviewBullet}>• {line}</Text>
+                      ))}
+                    </View>
+                    <View style={styles.reviewResultSection}>
+                      <Text style={styles.reviewResultSubtitle}>예시 퀴즈</Text>
+                      {reviewMockResult.quizzes.map((quiz, index) => (
+                        <View key={index} style={styles.quizCard}>
+                          <Text style={styles.quizQuestion}>Q{index + 1}. {quiz.question}</Text>
+                          <Text style={styles.quizAnswer}>A. {quiz.answer}</Text>
+                        </View>
+                      ))}
                     </View>
                   </View>
                 ) : null}
@@ -1506,6 +1732,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 14
   },
+  reviewPanel: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    padding: 16,
+    gap: 12
+  },
+  reviewFileCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 14
+  },
+  reviewFileIcon: {
+    width: 148,
+    height: 108,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.surfaceWarm,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  reviewFileIconText: {
+    color: colors.mintDeep,
+    fontSize: 22,
+    fontWeight: '900'
+  },
   imagePreview: {
     width: 148,
     height: 108,
@@ -1569,6 +1828,48 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 12,
     fontWeight: '900'
+  },
+  reviewResultCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 16,
+    gap: 14
+  },
+  reviewResultSection: {
+    gap: 8
+  },
+  reviewResultSubtitle: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  reviewBullet: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
+  },
+  quizCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 12,
+    gap: 5
+  },
+  quizQuestion: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 18
+  },
+  quizAnswer: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
   },
   qnaCard: {
     backgroundColor: colors.surface,
