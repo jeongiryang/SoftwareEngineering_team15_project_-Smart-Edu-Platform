@@ -1,5 +1,5 @@
 const communityRepository = require('../repositories/community.repository');
-const { notFoundError, validationError } = require('../utils/errors');
+const { conflictError, notFoundError, validationError } = require('../utils/errors');
 const { normalizeString, parsePositiveInteger, requireFields } = require('../utils/validators');
 
 const POST_CATEGORIES = ['QUESTION', 'FREE', 'STUDY_PROOF'];
@@ -9,10 +9,12 @@ const COMMENT_FIELDS = ['content'];
 const REACTION_FIELDS = ['type'];
 const REACTION_TYPES = ['LIKE', 'DISLIKE'];
 const BOOKMARK_FIELDS = [];
+const REPORT_FIELDS = ['reason'];
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
 const MAX_SEARCH_LENGTH = 100;
+const MAX_REPORT_REASON_LENGTH = 500;
 
 function assertPlainObject(payload, message) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -199,6 +201,22 @@ function sanitizeBookmark(bookmark) {
   };
 }
 
+function sanitizeReport(report) {
+  if (!report) {
+    return null;
+  }
+
+  return {
+    id: report.id,
+    targetType: report.targetType,
+    postId: report.postId,
+    commentId: report.commentId,
+    reason: report.reason,
+    status: report.status,
+    createdAt: report.createdAt
+  };
+}
+
 function sanitizeBookmarkListItem(bookmark, engagementSummary) {
   if (!bookmark) {
     return null;
@@ -284,6 +302,37 @@ function buildBookmarkData(payload = {}) {
   assertSupportedFields(payload, BOOKMARK_FIELDS, 'Community bookmark payload contains unsupported fields');
 
   return {};
+}
+
+function buildReportData(payload = {}) {
+  assertPlainObject(payload, 'Community report payload must be an object');
+  assertSupportedFields(payload, REPORT_FIELDS, 'Community report payload contains unsupported fields');
+
+  if (!Object.prototype.hasOwnProperty.call(payload, 'reason')) {
+    throw validationError('reason is required', { field: 'reason' });
+  }
+
+  if (typeof payload.reason !== 'string') {
+    throw validationError('reason must be a string', { field: 'reason' });
+  }
+
+  const reason = normalizeString(payload.reason);
+
+  if (reason === '') {
+    throw validationError('reason must not be blank', { field: 'reason' });
+  }
+
+  if (reason.length > MAX_REPORT_REASON_LENGTH) {
+    throw validationError(
+      `reason must be less than or equal to ${MAX_REPORT_REASON_LENGTH} characters`,
+      {
+        field: 'reason',
+        max: MAX_REPORT_REASON_LENGTH
+      }
+    );
+  }
+
+  return { reason };
 }
 
 function buildListOptions(query = {}) {
@@ -480,6 +529,65 @@ async function createBookmark(postId, userId, payload) {
   return sanitizeBookmark(bookmark);
 }
 
+async function createPostReport(postId, userId, payload) {
+  const id = parsePositiveInteger(postId, 'postId');
+  const post = await communityRepository.findPostById(id);
+
+  if (!post) {
+    throw notFoundError('Community post not found');
+  }
+
+  const data = buildReportData(payload);
+  const existingReport = await communityRepository.findPostReportByReporterAndPostId(userId, id);
+
+  if (existingReport) {
+    throw conflictError('Community post report already exists');
+  }
+
+  try {
+    const report = await communityRepository.createPostReport(id, userId, data);
+
+    return sanitizeReport(report);
+  } catch (error) {
+    if (error?.code === 'P2002') {
+      throw conflictError('Community post report already exists');
+    }
+
+    throw error;
+  }
+}
+
+async function createCommentReport(commentId, userId, payload) {
+  const id = parsePositiveInteger(commentId, 'commentId');
+  const comment = await communityRepository.findCommentById(id);
+
+  if (!comment) {
+    throw notFoundError('Community comment not found');
+  }
+
+  const data = buildReportData(payload);
+  const existingReport = await communityRepository.findCommentReportByReporterAndCommentId(
+    userId,
+    id
+  );
+
+  if (existingReport) {
+    throw conflictError('Community comment report already exists');
+  }
+
+  try {
+    const report = await communityRepository.createCommentReport(id, userId, data);
+
+    return sanitizeReport(report);
+  } catch (error) {
+    if (error?.code === 'P2002') {
+      throw conflictError('Community comment report already exists');
+    }
+
+    throw error;
+  }
+}
+
 async function updatePost(postId, userId, payload) {
   const id = parsePositiveInteger(postId, 'postId');
   const post = await communityRepository.findPostByIdAndUserId(id, userId);
@@ -587,6 +695,7 @@ async function deleteBookmark(postId, userId) {
 module.exports = {
   BOOKMARK_FIELDS,
   COMMENT_FIELDS,
+  MAX_REPORT_REASON_LENGTH,
   POST_CATEGORIES,
   REACTION_TYPES,
   POST_SORTS,
@@ -597,9 +706,12 @@ module.exports = {
   buildListOptions,
   buildPostData,
   buildReactionData,
+  buildReportData,
   createBookmark,
   createComment,
+  createCommentReport,
   createPost,
+  createPostReport,
   createReaction,
   deleteBookmark,
   deleteComment,
@@ -615,6 +727,7 @@ module.exports = {
   sanitizePost,
   sanitizePostWithEngagement,
   sanitizeReaction,
+  sanitizeReport,
   updateComment,
   updatePost
 };

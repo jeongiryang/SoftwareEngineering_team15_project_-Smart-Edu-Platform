@@ -1285,12 +1285,12 @@ Response 예시:
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | 1차 게시글 CRUD, 댓글 API, 반응/북마크 API 구현 완료 |
+| 상태 | 1차 게시글 CRUD, 댓글 API, 반응/북마크 API, 사용자 신고 API 구현 완료 |
 | 기본 namespace | `/api/community` |
 | 인증 | 필요 (`Authorization: Bearer <JWT_TOKEN>`) |
-| 사용 모델 | `BoardPost`, `PostCategory`, `Comment`, `ReactionType`, `CommunityReaction`, `CommunityBookmark` |
-| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, 내 북마크 목록 조회, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
-| 제외 범위 | 답글, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
+| 사용 모델 | `BoardPost`, `PostCategory`, `Comment`, `ReactionType`, `CommunityReaction`, `CommunityBookmark`, `CommunityReport` |
+| 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, 내 북마크 목록 조회, 게시글/댓글 사용자 신고 생성, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
+| 제외 범위 | 답글, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
 
 커뮤니티 게시글 API는 `routes → controllers → services → repositories → Prisma` 구조로 구현함. 기존 DB 과제 커뮤니티 레포의 기능 흐름과 정보 구조는 참고하지만, 기존 코드와 static HTML/CSS/Vanilla JS UI는 복사하지 않음.
 
@@ -1317,6 +1317,9 @@ Response 예시:
 - 북마크 취소는 현재 사용자 본인의 북마크만 삭제하며, 북마크가 없으면 404로 처리함.
 - 게시글 목록/상세 응답에는 `likeCount`, `dislikeCount`, `bookmarkCount`, `myReaction`, `isBookmarked`를 포함함.
 - `myReaction`과 `isBookmarked`는 현재 인증 사용자 기준으로 계산하며, 다른 사용자의 반응/북마크는 count에만 반영함.
+- 게시글/댓글 신고는 `CommunityReport`에 `PENDING` 상태로 저장하며, 신고자는 `req.user.id` 기준으로 처리함.
+- 같은 사용자가 같은 게시글 또는 댓글을 다시 신고하면 `409 CONFLICT`로 처리함.
+- 신고 생성 시 기존 관리자 호환을 위해 대상 `BoardPost.reported` 또는 `Comment.reported`를 `true`로 갱신함.
 - 응답에는 `passwordHash`, password, token, email 등 불필요한 민감정보를 포함하지 않음.
 - 게시글 삭제 시 현재 schema의 `Comment` relation에 cascade가 없으므로, 작성자 소유 게시글 확인 후 연결 댓글을 먼저 삭제하고 게시글을 삭제함.
 
@@ -1810,7 +1813,93 @@ Error:
 - `400`: invalid `page`, `pageSize`, `sort`
 - `401`: 인증 token 없음 또는 유효하지 않음
 
-신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표시하지 않음.
+#### 9.4.15 게시글 신고
+
+`POST /api/community/posts/:postId/reports`
+
+Request body:
+
+```json
+{
+  "reason": "신고 사유"
+}
+```
+
+정책:
+
+- `reason`은 필수 문자열이며 trim 후 빈 문자열이면 `400 VALIDATION_ERROR`로 처리함.
+- `reason`은 최대 500자까지 허용함.
+- `userId`, `reporterId`, `postId`, `commentId`, `status`, `resolvedById`, `resolvedAt`, `resolutionNote` 등 지원하지 않는 field는 `400 VALIDATION_ERROR`로 처리함.
+- 신고자는 request body가 아니라 `req.user.id` 기준으로 저장함.
+- `targetType`은 `POST`, `commentId`는 `null`, `status`는 `PENDING`으로 저장함.
+- 같은 사용자가 같은 게시글을 이미 신고한 경우 `409 CONFLICT`로 처리함.
+- 신고 생성 성공 시 대상 `BoardPost.reported`를 `true`로 갱신함.
+
+Response `201`:
+
+```json
+{
+  "report": {
+    "id": 1,
+    "targetType": "POST",
+    "postId": 1,
+    "commentId": null,
+    "reason": "신고 사유",
+    "status": "PENDING",
+    "createdAt": "2026-05-28T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `postId`, `reason` 누락/공백/타입 오류/500자 초과, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 게시글 없음
+- `409`: 현재 사용자가 이미 같은 게시글을 신고함
+
+#### 9.4.16 댓글 신고
+
+`POST /api/community/comments/:commentId/reports`
+
+Request body:
+
+```json
+{
+  "reason": "신고 사유"
+}
+```
+
+정책:
+
+- `reason` validation과 unsupported field 차단 정책은 게시글 신고와 동일함.
+- 신고자는 request body가 아니라 `req.user.id` 기준으로 저장함.
+- `targetType`은 `COMMENT`, `postId`는 `null`, `status`는 `PENDING`으로 저장함.
+- 같은 사용자가 같은 댓글을 이미 신고한 경우 `409 CONFLICT`로 처리함.
+- 신고 생성 성공 시 대상 `Comment.reported`를 `true`로 갱신함.
+
+Response `201`:
+
+```json
+{
+  "report": {
+    "id": 1,
+    "targetType": "COMMENT",
+    "postId": null,
+    "commentId": 1,
+    "reason": "신고 사유",
+    "status": "PENDING",
+    "createdAt": "2026-05-28T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`, `reason` 누락/공백/타입 오류/500자 초과, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음
+- `409`: 현재 사용자가 이미 같은 댓글을 신고함
 
 관리자 신고 처리와 운영 관리는 기존 `/api/admin/...` namespace를 유지함.
 
@@ -2139,7 +2228,7 @@ Response 예시:
 | AI 오답노트/추천/요약 | FR-08, FR-09, FR-19, UC-07, UC-10, UC-18 | 부분 구현 | AI 추천, 요약, 오답 분석 API 구현 | 프롬프트 히스토리 기반 자동화와 학습 데이터 개인화 고도화 |
 | AI 기반 퀴즈 생성 | FR-10, UC-19 | 미구현 | `Quiz`, `QuizQuestion` 모델 초안 존재 | 퀴즈 생성 API와 화면 구현 |
 | 랭킹/챌린지 | FR-11, FR-12, FR-29, UC-11, UC-12, UC-21 | 부분 구현 | schema 모델과 관리자 챌린지 처리 API 존재 | 사용자 챌린지/랭킹 API와 화면 구현 |
-| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API 및 테스트 완료 | 신고 API와 프론트 구현 |
+| 커뮤니티 게시판 | FR-13, FR-27, UC-13, UC-20 | 부분 구현 | `/api/community/posts` 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API 및 테스트 완료 | 관리자 신고 처리 API와 프론트 구현 |
 | 앱 차단/방해금지 | FR-14, UC-14 | 미구현 | 요구사항/설계 문서에 계획됨 | 플랫폼 권한 검토 및 구현 가능 범위 확정 |
 | 스톱워치/타이머/집중 시간 | FR-15, UC-15 | 미구현 | `FocusSession` 모델 초안 존재 | 집중 세션 API, 타이머 화면, 테스트 구현 |
 | 학습 통계/데이터 시각화/히트맵 | FR-16, FR-17, UC-16, UC-17 | 미구현 | `StudyStatistics` 모델 초안 존재 | 통계 집계 API와 시각화 화면 구현 |
@@ -2156,13 +2245,14 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List 포함. 최신 확인 기준 14 suites / 256 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 15 suites / 292 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 24 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 커뮤니티 내 북마크 목록 API 단일 테스트 | 1 suite / 14 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -2193,3 +2283,4 @@ Response 예시:
 | 2026-05-27 | 커뮤니티 반응 API(§9.4.10~§9.4.11) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 북마크 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.15~§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
