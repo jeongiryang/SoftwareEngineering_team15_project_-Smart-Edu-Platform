@@ -366,7 +366,118 @@ Response 예시:
 | `401` | `UNAUTHORIZED` | 인증 실패 |
 | `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
 
-### 6.2 내 프로필 수정
+### 6.2 내 계정 기본 정보 수정
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/users/me` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 표시명/닉네임을 수정함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+수정 허용 필드:
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `name` | string | 사용자 표시명 또는 닉네임 |
+
+Request 예시:
+
+```json
+{
+  "name": "사각 학습자"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "사각 학습자",
+    "role": "USER",
+    "status": "ACTIVE"
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 빈 이름, 허용되지 않은 필드, 잘못된 필드 타입 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안 주의사항:
+
+- `role`, `status`, `email`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
+- 응답에 `passwordHash`를 포함하지 않음.
+
+### 6.3 내 비밀번호 변경
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/users/me/password` |
+| 인증 | 필요 |
+| 설명 | 현재 비밀번호 확인 후 새 비밀번호로 변경함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `currentPassword` | string | 예 | 현재 비밀번호 |
+| `newPassword` | string | 예 | 새 비밀번호. 최소 8자 |
+
+Request 예시:
+
+```json
+{
+  "currentPassword": "current-password",
+  "newPassword": "new-password-1234"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "message": "Password changed successfully"
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 새 비밀번호 길이 부족, 허용되지 않은 필드 |
+| `401` | `UNAUTHORIZED` | 인증 실패 또는 현재 비밀번호 불일치 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안 주의사항:
+
+- 현재 사용자 본인(`req.user.id`) 기준으로만 변경함.
+- 응답에 기존/신규 비밀번호, `passwordHash`, token 원문을 포함하지 않음.
+- 비밀번호는 bcrypt hash로 저장함.
+
+### 6.4 내 프로필 수정
 
 | 항목 | 내용 |
 |---|---|

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
+  changeCurrentUserPassword,
   getCommunityBookmarks,
   getMyRewards,
   getSchedules,
   getStatisticsSummary,
-  getTasks
+  getTasks,
+  updateCurrentUser
 } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -165,7 +167,7 @@ function SectionCard({ children, headerAction, subtitle, title }) {
   );
 }
 
-export default function ProfileDashboardScreen({ onNavigate, token, user }) {
+export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token, user }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -173,6 +175,20 @@ export default function ProfileDashboardScreen({ onNavigate, token, user }) {
 
   const userName = user?.name || '학습자';
   const isAdmin = user?.role === 'ADMIN';
+  const [nameForm, setNameForm] = useState(user?.name || '');
+  const [savingName, setSavingName] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [accountMessage, setAccountMessage] = useState('');
+  const [accountError, setAccountError] = useState('');
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  useEffect(() => {
+    setNameForm(user?.name || '');
+  }, [user?.name]);
 
   async function loadProfileData({ silent = false } = {}) {
     if (!token) {
@@ -224,6 +240,77 @@ export default function ProfileDashboardScreen({ onNavigate, token, user }) {
   useEffect(() => {
     loadProfileData();
   }, [token]);
+
+  async function handleNameSubmit() {
+    if (!token || savingName) {
+      return;
+    }
+
+    const nextName = nameForm.trim();
+    setAccountMessage('');
+    setAccountError('');
+
+    if (!nextName) {
+      setAccountError('닉네임을 입력해 주세요.');
+      return;
+    }
+
+    if (nextName === user?.name) {
+      setAccountMessage('이미 현재 닉네임으로 설정되어 있습니다.');
+      return;
+    }
+
+    setSavingName(true);
+
+    try {
+      const result = await updateCurrentUser(token, { name: nextName });
+      onUserUpdate?.(result.user);
+      setNameForm(result.user?.name || nextName);
+      setAccountMessage('닉네임을 변경했습니다.');
+    } catch (submitError) {
+      setAccountError(submitError.message || '닉네임을 변경하지 못했습니다.');
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  async function handlePasswordSubmit() {
+    if (!token || changingPassword) {
+      return;
+    }
+
+    setAccountMessage('');
+    setAccountError('');
+
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setAccountError('현재 비밀번호와 새 비밀번호를 모두 입력해 주세요.');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setAccountError('새 비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      await changeCurrentUserPassword(token, {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setAccountMessage('비밀번호를 변경했습니다. 다음 로그인부터 새 비밀번호를 사용하세요.');
+    } catch (submitError) {
+      setAccountError(submitError.message || '비밀번호를 변경하지 못했습니다.');
+    } finally {
+      setChangingPassword(false);
+    }
+  }
 
   const derived = useMemo(() => {
     const tasks = profileData.tasks || [];
@@ -512,6 +599,85 @@ export default function ProfileDashboardScreen({ onNavigate, token, user }) {
                   <Text style={styles.quickTitle}>AI 질문</Text>
                   <Text style={styles.quickText}>막힌 개념을 짧게 물어보기</Text>
                 </Pressable>
+              </View>
+            </SectionCard>
+
+            <SectionCard title="계정 설정" subtitle="닉네임과 비밀번호를 본인 계정 기준으로 관리합니다.">
+              {accountMessage ? (
+                <View style={styles.accountSuccess}>
+                  <Text style={styles.accountSuccessText}>{accountMessage}</Text>
+                </View>
+              ) : null}
+              {accountError ? (
+                <View style={styles.accountError}>
+                  <Text style={styles.accountErrorText}>{accountError}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>닉네임</Text>
+                <View style={styles.inlineForm}>
+                  <TextInput
+                    onChangeText={setNameForm}
+                    placeholder="닉네임을 입력하세요"
+                    placeholderTextColor={colors.muted}
+                    style={styles.textInput}
+                    value={nameForm}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={savingName}
+                    onPress={handleNameSubmit}
+                    style={(state) => [
+                      styles.formButton,
+                      savingName && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: savingName })
+                    ]}
+                  >
+                    <Text style={styles.formButtonText}>{savingName ? '저장 중' : '저장'}</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.passwordBox}>
+                <Text style={styles.formLabel}>비밀번호 변경</Text>
+                <TextInput
+                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
+                  placeholder="현재 비밀번호"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry
+                  style={styles.textInput}
+                  value={passwordForm.currentPassword}
+                />
+                <TextInput
+                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
+                  placeholder="새 비밀번호"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry
+                  style={styles.textInput}
+                  value={passwordForm.newPassword}
+                />
+                <TextInput
+                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
+                  placeholder="새 비밀번호 확인"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry
+                  style={styles.textInput}
+                  value={passwordForm.confirmPassword}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={changingPassword}
+                  onPress={handlePasswordSubmit}
+                  style={(state) => [
+                    styles.passwordButton,
+                    changingPassword && styles.disabledButton,
+                    ...interactiveStateStyles(state, { disabled: changingPassword })
+                  ]}
+                >
+                  <Text style={styles.passwordButtonText}>{changingPassword ? '변경 중' : '비밀번호 변경'}</Text>
+                </Pressable>
+                <Text style={styles.formHelper}>비밀번호는 8자 이상이어야 하며, 응답에 비밀번호 원문이나 hash를 표시하지 않습니다.</Text>
               </View>
             </SectionCard>
           </View>
@@ -938,5 +1104,96 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18
+  },
+  formGroup: {
+    gap: 9
+  },
+  formLabel: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  inlineForm: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  textInput: {
+    flex: 1,
+    minWidth: 210,
+    minHeight: 48,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    color: colors.ink,
+    fontSize: 14,
+    paddingHorizontal: 14
+  },
+  formButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  formButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  passwordBox: {
+    gap: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16
+  },
+  passwordButton: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  passwordButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  formHelper: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  accountSuccess: {
+    borderRadius: 15,
+    backgroundColor: colors.successSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  accountSuccessText: {
+    color: colors.success,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  accountError: {
+    borderRadius: 15,
+    backgroundColor: colors.dangerSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  accountErrorText: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '800'
   }
 });

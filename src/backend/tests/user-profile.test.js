@@ -41,6 +41,28 @@ jest.mock('../src/repositories/user.repository', () => ({
       profile: mockProfiles.get(user.id) || null
     };
   }),
+  updateUser: jest.fn(async (userId, data) => {
+    const user = mockUsers.find((item) => item.id === Number(userId));
+
+    if (!user) {
+      return null;
+    }
+
+    Object.assign(user, data);
+
+    return user;
+  }),
+  updateUserPassword: jest.fn(async (userId, passwordHash) => {
+    const user = mockUsers.find((item) => item.id === Number(userId));
+
+    if (!user) {
+      return null;
+    }
+
+    user.passwordHash = passwordHash;
+
+    return user;
+  }),
   upsertUserProfile: jest.fn(async (userId, data) => {
     const user = mockUsers.find((item) => item.id === Number(userId));
 
@@ -145,6 +167,155 @@ describe('GET /api/users/me', () => {
       .set(createAuthHeader(token));
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('PATCH /api/users/me', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app)
+      .patch('/api/users/me')
+      .send({
+        name: '새 이름'
+      });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('updates the current user name and returns safe user data', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        name: '  사각 학습자  '
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toEqual(
+      expect.objectContaining({
+        name: '사각 학습자'
+      })
+    );
+    expectSafeUser(response.body.user);
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+  });
+
+  it('rejects unsupported account fields', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        role: 'ADMIN'
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects blank user names', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        name: '   '
+      });
+
+    expect(response.status).toBe(400);
+  });
+});
+
+describe('PATCH /api/users/me/password', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app)
+      .patch('/api/users/me/password')
+      .send({
+        currentPassword: 'password1234',
+        newPassword: 'new-password-1234'
+      });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('changes the current user password without returning sensitive data', async () => {
+    const { payload, token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/users/me/password')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        newPassword: 'new-password-1234'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe('Password changed successfully');
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+
+    const oldLoginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: payload.email,
+        password: payload.password
+      });
+
+    expect(oldLoginResponse.status).toBe(401);
+
+    const newLoginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: payload.email,
+        password: 'new-password-1234'
+      });
+
+    expect(newLoginResponse.status).toBe(200);
+    expectSafeUser(newLoginResponse.body.user);
+  });
+
+  it('rejects incorrect current passwords', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/users/me/password')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: 'wrong-password',
+        newPassword: 'new-password-1234'
+      });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects weak new passwords', async () => {
+    const { payload, token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/users/me/password')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        newPassword: 'short'
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects unsupported password fields', async () => {
+    const { payload, token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/users/me/password')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        newPassword: 'new-password-1234',
+        token: 'plain-token'
+      });
+
+    expect(response.status).toBe(400);
   });
 });
 

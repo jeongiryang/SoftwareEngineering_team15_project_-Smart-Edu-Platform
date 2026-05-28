@@ -1,9 +1,18 @@
-const { findUserWithProfileById, upsertUserProfile } = require('../repositories/user.repository');
-const { notFoundError, validationError } = require('../utils/errors');
-const { normalizeString } = require('../utils/validators');
+const {
+  findUserById,
+  findUserWithProfileById,
+  updateUser,
+  updateUserPassword,
+  upsertUserProfile
+} = require('../repositories/user.repository');
+const { comparePassword, hashPassword } = require('../utils/password');
+const { notFoundError, unauthorizedError, validationError } = require('../utils/errors');
+const { normalizeString, requireFields, validatePassword } = require('../utils/validators');
 const { sanitizeUser } = require('./auth.service');
 
 const EDITABLE_PROFILE_FIELDS = ['learningGoal', 'preferredSubject', 'profileImageUrl'];
+const EDITABLE_ACCOUNT_FIELDS = ['name'];
+const PASSWORD_FIELDS = ['currentPassword', 'newPassword'];
 
 function sanitizeProfile(profile) {
   if (!profile) {
@@ -72,6 +81,58 @@ function buildProfileUpdateData(payload = {}) {
   return data;
 }
 
+function assertSupportedFields(payload = {}, allowedFields, message) {
+  const fields = Object.keys(payload);
+  const unsupportedFields = fields.filter((field) => !allowedFields.includes(field));
+
+  if (unsupportedFields.length > 0) {
+    throw validationError(message, { fields: unsupportedFields });
+  }
+}
+
+function buildAccountUpdateData(payload = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw validationError('Account update payload must be an object');
+  }
+
+  assertSupportedFields(payload, EDITABLE_ACCOUNT_FIELDS, 'Account update contains unsupported fields');
+  requireFields(payload, ['name'], 'Name is required');
+
+  if (typeof payload.name !== 'string') {
+    throw validationError('Name must be a string', { field: 'name' });
+  }
+
+  const name = normalizeString(payload.name);
+
+  if (!name) {
+    throw validationError('Name is required', { field: 'name' });
+  }
+
+  if (name.length > 40) {
+    throw validationError('Name must be 40 characters or fewer', {
+      field: 'name',
+      maxLength: 40
+    });
+  }
+
+  return { name };
+}
+
+function validatePasswordPayload(payload = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw validationError('Password change payload must be an object');
+  }
+
+  assertSupportedFields(payload, PASSWORD_FIELDS, 'Password change payload contains unsupported fields');
+  requireFields(payload, PASSWORD_FIELDS, 'Current password and new password are required');
+
+  if (typeof payload.currentPassword !== 'string') {
+    throw validationError('Current password must be a string', { field: 'currentPassword' });
+  }
+
+  validatePassword(payload.newPassword);
+}
+
 async function getMyUser(userId) {
   const user = await findUserWithProfileById(userId);
 
@@ -80,6 +141,40 @@ async function getMyUser(userId) {
   }
 
   return sanitizeUserWithProfile(user);
+}
+
+async function updateMyAccount(userId, payload) {
+  const existingUser = await findUserById(userId);
+
+  if (!existingUser) {
+    throw notFoundError('User not found');
+  }
+
+  const data = buildAccountUpdateData(payload);
+  const user = await updateUser(userId, data);
+
+  return sanitizeUser(user);
+}
+
+async function changeMyPassword(userId, payload) {
+  validatePasswordPayload(payload);
+
+  const user = await findUserById(userId);
+
+  if (!user) {
+    throw notFoundError('User not found');
+  }
+
+  const passwordMatches = await comparePassword(payload.currentPassword, user.passwordHash);
+
+  if (!passwordMatches) {
+    throw unauthorizedError('Current password is incorrect');
+  }
+
+  const passwordHash = await hashPassword(payload.newPassword);
+  const updatedUser = await updateUserPassword(userId, passwordHash);
+
+  return sanitizeUser(updatedUser);
 }
 
 async function updateMyProfile(userId, payload) {
@@ -96,10 +191,15 @@ async function updateMyProfile(userId, payload) {
 }
 
 module.exports = {
+  EDITABLE_ACCOUNT_FIELDS,
   EDITABLE_PROFILE_FIELDS,
+  PASSWORD_FIELDS,
   buildProfileUpdateData,
+  buildAccountUpdateData,
+  changeMyPassword,
   getMyUser,
   sanitizeProfile,
   sanitizeUserWithProfile,
+  updateMyAccount,
   updateMyProfile
 };
