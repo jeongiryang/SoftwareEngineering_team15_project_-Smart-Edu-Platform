@@ -45,11 +45,11 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.title}>회원가입</Text>
         <Text style={styles.subtitle}>사각사각에서 나만의 학습 공간을 만드세요.</Text>
         <Text style={styles.label}>이름</Text>
-        <TextInput onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor="#A1AAA8" style={styles.input} value={name} />
+        <TextInput onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
         <Text style={styles.label}>이메일</Text>
-        <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor="#A1AAA8" style={styles.input} value={email} />
+        <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor={colors.muted} style={styles.input} value={email} />
         <Text style={styles.label}>비밀번호</Text>
-        <TextInput onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor="#A1AAA8" secureTextEntry style={styles.input} value={password} />
+        <TextInput onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         <Pressable accessibilityRole="button" disabled={loading} onPress={handleRegister} style={[styles.primaryButton, loading && styles.disabledButton]}>
           {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>가입하고 시작하기</Text>}

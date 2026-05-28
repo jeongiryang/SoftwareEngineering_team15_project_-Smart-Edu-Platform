@@ -45,13 +45,13 @@ const featureCards = [
   },
   {
     label: '집중 시간',
-    summary: '집중 세션 기록과 타이머 화면은 후속 프론트 연결 범위에서 이어집니다.',
-    status: '후속 연결'
+    summary: '집중 세션 기록과 타이머 화면은 준비 중입니다. 연결되면 대시보드에서 바로 이동할 수 있습니다.',
+    status: '준비 중'
   },
   {
     label: '학습 통계',
-    summary: '주간 학습량과 히트맵 시각화 화면은 후속 프론트 연결 범위에서 이어집니다.',
-    status: '후속 연결'
+    summary: '주간 학습량과 히트맵 시각화 화면은 준비 중입니다. 통계 API와 연결해 확장할 예정입니다.',
+    status: '준비 중'
   }
 ];
 
@@ -650,7 +650,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
-            <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 보여줍니다.</Text>
+            <Text style={styles.sectionSub}>지금 사용할 수 있는 화면과 준비 중인 화면을 한눈에 보여줍니다.</Text>
           </View>
         </View>
 
@@ -672,7 +672,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 <Text style={[styles.cardTitle, cardStyle.title]}>{card.label}</Text>
                 <Text style={[styles.cardSummary, cardStyle.summary]}>{card.summary}</Text>
                 <Text style={[styles.cardLink, cardStyle.link]}>
-                  {card.screen ? '화면으로 이동 ->' : '연결 준비 중'}
+                  {card.screen ? '화면으로 이동 ->' : '화면 준비 중'}
                 </Text>
               </Pressable>
             );
@@ -700,7 +700,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
           <Text style={styles.noticeTitle}>현재 연결 상태</Text>
           <Text style={styles.noticeText}>
             일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
-            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 범위로 남아 있습니다.
+            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 준비 중이며, 연결되면 이 대시보드에서 바로 이동할 수 있습니다.
           </Text>
         </View>
       </ScrollView>
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
     minHeight: 144
   },
   statLabel: {
-    color: '#D8E6F6',
+    color: colors.blueSoft,
     fontSize: 13,
     fontWeight: '700'
   },
@@ -935,7 +935,7 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   statHint: {
-    color: '#D8E6F6',
+    color: colors.blueSoft,
     fontSize: 12,
     lineHeight: 20,
     marginTop: 8
@@ -1022,11 +1022,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm
   },
   achievedQuest: {
-    borderColor: '#B6E3CF',
+    borderColor: colors.mint,
     backgroundColor: colors.successSoft
   },
   claimedQuest: {
-    borderColor: '#D4E0EE',
+    borderColor: colors.blueSoft,
     backgroundColor: colors.blueSoft
   },
   questHeader: {
@@ -1286,7 +1286,7 @@ const styles = StyleSheet.create({
   },
   greenCard: {
     backgroundColor: colors.successSoft,
-    borderColor: '#B6E3CF'
+    borderColor: colors.mint
   },
   adminCard: {
     backgroundColor: colors.blueSoft
@@ -1355,7 +1355,7 @@ const styles = StyleSheet.create({
     color: colors.muted
   },
   featuredSummary: {
-    color: '#D8E6F6'
+    color: colors.blueSoft
   },
   cardLink: {
     marginTop: 16,

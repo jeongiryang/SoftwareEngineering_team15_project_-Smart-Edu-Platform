@@ -51,7 +51,7 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
           keyboardType="email-address"
           onChangeText={setEmail}
           placeholder="example@email.com"
-          placeholderTextColor="#A1AAA8"
+          placeholderTextColor={colors.muted}
           style={styles.input}
           value={email}
         />
@@ -59,7 +59,7 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
         <TextInput
           onChangeText={setPassword}
           placeholder="비밀번호를 입력하세요"
-          placeholderTextColor="#A1AAA8"
+          placeholderTextColor={colors.muted}
           secureTextEntry
           style={styles.input}
           value={password}

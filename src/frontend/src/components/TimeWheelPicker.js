@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   timeText: {
-    color: '#D7DCE0',
+    color: colors.line,
     fontSize: 32,
     fontWeight: '300'
   },

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAccessibility } from '../contexts/AccessibilityContext';
+import { colors, radii } from '../styles/theme';
 
 function getRecognition() {
   if (typeof globalThis === 'undefined') {
@@ -135,43 +136,46 @@ const styles = StyleSheet.create({
     flex: 1
   },
   voiceButton: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
+    backgroundColor: colors.blueSoft,
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
     paddingHorizontal: 12,
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center'
   },
   voiceButtonActive: {
-    backgroundColor: '#2563EB'
+    backgroundColor: colors.blue,
+    borderColor: colors.blue
   },
   voiceButtonText: {
-    color: '#2563EB',
+    color: colors.blue,
     fontSize: 13,
     fontWeight: '800'
   },
   voiceButtonTextActive: {
-    color: '#FFFFFF'
+    color: colors.surface
   },
   previewBox: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderRadius: 6,
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint,
+    borderRadius: radii.control,
     borderWidth: 1,
     padding: 8
   },
   previewText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 13,
     fontWeight: '700'
   },
   previewActiveText: {
-    backgroundColor: '#DBEAFE',
-    color: '#2563EB',
+    backgroundColor: colors.blueSoft,
+    color: colors.blue,
     fontWeight: '900'
   },
   errorText: {
-    color: '#B91C1C',
+    color: colors.danger,
     fontSize: 12,
     fontWeight: '700'
   }

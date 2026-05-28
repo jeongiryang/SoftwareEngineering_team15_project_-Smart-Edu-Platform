@@ -279,16 +279,16 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1ECE3'
+    borderBottomColor: colors.line
   },
   dayCellMuted: {
     opacity: 0.35
   },
   dayInRange: {
-    backgroundColor: '#F3F4F7'
+    backgroundColor: colors.mintSoft
   },
   dayEdge: {
-    backgroundColor: '#E2EBF8'
+    backgroundColor: colors.blueSoft
   },
   todayCell: {
     borderLeftWidth: 3,

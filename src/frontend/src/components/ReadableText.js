@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAccessibility } from '../contexts/AccessibilityContext';
+import { colors, radii } from '../styles/theme';
 
 function createReadingId(text) {
   return `readable-${text.slice(0, 20)}-${text.length}`;
@@ -85,24 +86,24 @@ const styles = StyleSheet.create({
     flexShrink: 1
   },
   readingChar: {
-    color: '#2563EB',
+    color: colors.blue,
     fontWeight: '900'
   },
   button: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 6,
+    backgroundColor: colors.blueSoft,
+    borderRadius: radii.control,
     paddingHorizontal: 8,
     paddingVertical: 5
   },
   buttonActive: {
-    backgroundColor: '#2563EB'
+    backgroundColor: colors.blue
   },
   buttonText: {
-    color: '#2563EB',
+    color: colors.blue,
     fontSize: 12,
     fontWeight: '800'
   },
   buttonTextActive: {
-    color: '#FFFFFF'
+    color: colors.surface
   }
 });

@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1
   },
   summaryEyebrowLight: {
-    color: '#D6E3F3'
+    color: colors.blueSoft
   },
   summaryValue: {
     marginTop: 14,
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   },
   summaryLabelLight: {
     marginTop: 6,
-    color: '#D6E3F3',
+    color: colors.blueSoft,
     fontSize: 13
   },
   panel: {
@@ -832,13 +832,13 @@ const styles = StyleSheet.create({
     gap: 14
   },
   todoColumn: {
-    backgroundColor: '#FFEACC'
+    backgroundColor: colors.cream
   },
   progressColumn: {
-    backgroundColor: '#E4F0FF'
+    backgroundColor: colors.blueSoft
   },
   doneColumn: {
-    backgroundColor: '#E4F7F1'
+    backgroundColor: colors.mintSoft
   },
   columnHeader: {
     flexDirection: 'row',
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: colors.dangerSoft,
-    borderColor: '#F1C7C4'
+    borderColor: colors.danger
   },
   deleteButtonText: {
     color: colors.danger,
