@@ -3,7 +3,9 @@ import { colors, shadows } from '../styles/theme';
 
 export default function ConfirmModal({
   cancelLabel = '취소',
+  children,
   confirmLabel = '확인',
+  confirmDisabled = false,
   description,
   destructive = false,
   onCancel,
@@ -17,12 +19,22 @@ export default function ConfirmModal({
         <View style={[styles.dialog, shadows.card]}>
           <View style={styles.pencilMark} />
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+          {description ? <Text style={styles.description}>{description}</Text> : null}
+          {children ? <View style={styles.body}>{children}</View> : null}
           <View style={styles.actions}>
-            <Pressable onPress={onCancel} style={styles.cancelButton}>
+            <Pressable accessibilityRole="button" onPress={onCancel} style={styles.cancelButton}>
               <Text style={styles.cancelText}>{cancelLabel}</Text>
             </Pressable>
-            <Pressable onPress={onConfirm} style={[styles.confirmButton, destructive && styles.dangerButton]}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={confirmDisabled}
+              onPress={onConfirm}
+              style={[
+                styles.confirmButton,
+                destructive && styles.dangerButton,
+                confirmDisabled && styles.disabledButton
+              ]}
+            >
               <Text style={styles.confirmText}>{confirmLabel}</Text>
             </Pressable>
           </View>
@@ -68,6 +80,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 25
   },
+  body: {
+    width: '100%',
+    marginBottom: 24
+  },
   actions: {
     flexDirection: 'row',
     gap: 10,
@@ -97,6 +113,9 @@ const styles = StyleSheet.create({
   },
   dangerButton: {
     backgroundColor: colors.danger
+  },
+  disabledButton: {
+    opacity: 0.55
   },
   confirmText: {
     color: colors.surface,
