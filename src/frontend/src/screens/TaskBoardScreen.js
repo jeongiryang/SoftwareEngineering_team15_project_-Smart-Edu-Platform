@@ -19,7 +19,7 @@ import {
   updateTask,
   updateTaskStatus
 } from '../services/api';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
 const STATUS_OPTIONS = ['TODO', 'IN_PROGRESS', 'DONE'];
@@ -349,7 +349,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
             TODO, IN PROGRESS, DONE 컬럼에서 태스크를 확인하고 필요한 상태 변경을 바로 적용할 수 있습니다.
           </Text>
         </View>
-        <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>
+        <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>대시보드로 돌아가기</Text>
         </Pressable>
       </View>
@@ -376,7 +376,11 @@ export default function TaskBoardScreen({ onNavigate, token }) {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scheduleSelector}>
             <Pressable
               onPress={() => handleChange('scheduleId', null)}
-              style={[styles.scheduleChip, form.scheduleId === null && styles.scheduleChipActive]}
+              style={(state) => [
+                styles.scheduleChip,
+                form.scheduleId === null && styles.scheduleChipActive,
+                ...interactiveStateStyles(state)
+              ]}
             >
               <Text style={[styles.scheduleChipText, form.scheduleId === null && styles.scheduleChipTextActive]}>
                 미연결
@@ -386,7 +390,11 @@ export default function TaskBoardScreen({ onNavigate, token }) {
               <Pressable
                 key={schedule.id}
                 onPress={() => handleChange('scheduleId', schedule.id)}
-                style={[styles.scheduleChip, form.scheduleId === schedule.id && styles.scheduleChipActive]}
+                style={(state) => [
+                  styles.scheduleChip,
+                  form.scheduleId === schedule.id && styles.scheduleChipActive,
+                  ...interactiveStateStyles(state)
+                ]}
               >
                 <Text style={[styles.scheduleChipText, form.scheduleId === schedule.id && styles.scheduleChipTextActive]}>
                   {schedule.title}
@@ -422,7 +430,11 @@ export default function TaskBoardScreen({ onNavigate, token }) {
               <Pressable
                 key={option}
                 onPress={() => handleChange('priority', option)}
-                style={[styles.pillButton, form.priority === option && styles.pillButtonActive]}
+                style={(state) => [
+                  styles.pillButton,
+                  form.priority === option && styles.pillButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
               >
                 <Text style={[styles.pillButtonText, form.priority === option && styles.pillButtonTextActive]}>
                   {option}
@@ -455,12 +467,20 @@ export default function TaskBoardScreen({ onNavigate, token }) {
         {successMsg ? <Text style={styles.successText}>{successMsg}</Text> : null}
 
         <View style={styles.actionRow}>
-          <Pressable disabled={submitting} onPress={handleSubmit} style={styles.primaryButton}>
+          <Pressable
+            disabled={submitting}
+            onPress={handleSubmit}
+            style={(state) => [styles.primaryButton, submitting && styles.disabledButton, ...interactiveStateStyles(state, { disabled: submitting })]}
+          >
             <Text style={styles.primaryButtonText}>
               {submitting ? '저장 중...' : editingTaskId ? '태스크 수정' : '태스크 생성'}
             </Text>
           </Pressable>
-          <Pressable disabled={submitting} onPress={resetForm} style={styles.secondaryButton}>
+          <Pressable
+            disabled={submitting}
+            onPress={resetForm}
+            style={(state) => [styles.secondaryButton, submitting && styles.disabledButton, ...interactiveStateStyles(state, { disabled: submitting })]}
+          >
             <Text style={styles.secondaryButtonText}>입력 초기화</Text>
           </Pressable>
         </View>
@@ -499,7 +519,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
                   <Pressable
                     accessibilityRole="button"
                     onPress={resetForm}
-                    style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                    style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
                   >
                     <Text style={styles.emptyActionText}>입력 폼 확인하기</Text>
                   </Pressable>
@@ -513,13 +533,18 @@ export default function TaskBoardScreen({ onNavigate, token }) {
                         <Text style={styles.itemMeta}>{getScheduleTitle(task.scheduleId, schedules)} · {task.priority}</Text>
                       </View>
                       <View style={styles.inlineActions}>
-                        <Pressable onPress={() => handleEdit(task)} style={styles.inlineButton}>
+                        <Pressable onPress={() => handleEdit(task)} style={(state) => [styles.inlineButton, ...interactiveStateStyles(state)]}>
                           <Text style={styles.inlineButtonText}>수정</Text>
                         </Pressable>
                         <Pressable
                           disabled={submitting}
                           onPress={() => handleDelete(task.id)}
-                          style={[styles.inlineButton, styles.deleteButton]}
+                          style={(state) => [
+                            styles.inlineButton,
+                            styles.deleteButton,
+                            submitting && styles.disabledButton,
+                            ...interactiveStateStyles(state, { disabled: submitting })
+                          ]}
                         >
                           <Text style={styles.deleteButtonText}>삭제</Text>
                         </Pressable>
@@ -537,7 +562,12 @@ export default function TaskBoardScreen({ onNavigate, token }) {
                           key={option}
                           disabled={submitting || task.status === option}
                           onPress={() => handleStatusChange(task.id, option)}
-                          style={[styles.statusButton, task.status === option && styles.statusButtonActive]}
+                          style={(state) => [
+                            styles.statusButton,
+                            task.status === option && styles.statusButtonActive,
+                            (submitting || task.status === option) && styles.disabledButton,
+                            ...interactiveStateStyles(state, { disabled: submitting || task.status === option })
+                          ]}
                         >
                           <Text style={[styles.statusButtonText, task.status === option && styles.statusButtonTextActive]}>
                             {option}
@@ -608,7 +638,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   backButtonText: {
     color: colors.blueDeep,
@@ -624,7 +655,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 220,
     borderRadius: 22,
-    padding: 20
+    padding: 20,
+    ...interactions.transition
   },
   summaryBlue: {
     backgroundColor: colors.blue
@@ -720,7 +752,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    gap: 3
+    gap: 3,
+    ...interactions.transition
   },
   scheduleChipActive: {
     borderColor: colors.blue,
@@ -756,7 +789,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   pillButtonActive: {
     borderColor: colors.blue,
@@ -797,7 +831,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blue,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   primaryButtonText: {
     color: colors.surface,
@@ -811,7 +848,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  disabledButton: {
+    opacity: 0.55
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -911,22 +952,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blueSoft,
     paddingHorizontal: 13,
     justifyContent: 'center',
-    marginTop: 4
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
+    ...interactions.transition
   },
   emptyActionText: {
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '800'
   },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
-  },
   itemCard: {
     borderRadius: 22,
     backgroundColor: colors.surface,
     padding: 14,
-    gap: 10
+    gap: 10,
+    ...interactions.transition
   },
   itemHeader: {
     flexDirection: 'row',
@@ -957,7 +998,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   inlineButtonText: {
     color: colors.blueDeep,
@@ -993,7 +1035,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   statusButtonActive: {
     borderColor: colors.mintDeep,

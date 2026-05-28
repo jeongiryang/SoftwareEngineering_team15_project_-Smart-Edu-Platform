@@ -1,5 +1,5 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 export default function ConfirmModal({
   cancelLabel = '취소',
@@ -26,7 +26,7 @@ export default function ConfirmModal({
               accessibilityRole="button"
               accessibilityLabel={`${cancelLabel} 버튼`}
               onPress={onCancel}
-              style={({ pressed }) => [styles.cancelButton, pressed && styles.buttonPressed]}
+              style={(state) => [styles.cancelButton, ...interactiveStateStyles(state)]}
             >
               <Text style={styles.cancelText}>{cancelLabel}</Text>
             </Pressable>
@@ -35,11 +35,11 @@ export default function ConfirmModal({
               accessibilityLabel={`${confirmLabel} 버튼`}
               disabled={confirmDisabled}
               onPress={onConfirm}
-              style={({ pressed }) => [
+              style={(state) => [
                 styles.confirmButton,
-                pressed && styles.buttonPressed,
                 destructive && styles.dangerButton,
-                confirmDisabled && styles.disabledButton
+                confirmDisabled && styles.disabledButton,
+                ...interactiveStateStyles(state, { disabled: confirmDisabled })
               ]}
             >
               <Text style={styles.confirmText}>{confirmLabel}</Text>
@@ -106,7 +106,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    ...interactions.transition
   },
   cancelText: {
     color: colors.ink,
@@ -117,9 +118,12 @@ const styles = StyleSheet.create({
     minWidth: 120,
     minHeight: 47,
     borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.blue,
     backgroundColor: colors.blue,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    ...interactions.transition
   },
   dangerButton: {
     backgroundColor: colors.danger
@@ -130,9 +134,5 @@ const styles = StyleSheet.create({
   confirmText: {
     color: colors.surface,
     fontWeight: '700'
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
   }
 });

@@ -38,6 +38,83 @@ export const radii = {
   panel: 24
 };
 
+export const interactions = {
+  transition: {
+    transitionProperty: 'background-color, border-color, box-shadow, opacity, transform',
+    transitionDuration: '140ms',
+    transitionTimingFunction: 'ease-out'
+  },
+  buttonHover: {
+    borderColor: colors.mintDeep,
+    shadowColor: colors.blueDeep,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 2,
+    transform: [{ translateY: -1 }]
+  },
+  buttonPressed: {
+    opacity: 0.9,
+    shadowOpacity: 0.05,
+    transform: [{ translateY: 1 }, { scale: 0.98 }]
+  },
+  buttonFocus: {
+    borderColor: colors.blue,
+    shadowColor: colors.mintDeep,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 9,
+    elevation: 2
+  },
+  cardHover: {
+    borderColor: colors.mint,
+    shadowColor: colors.blueDeep,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.11,
+    shadowRadius: 24,
+    elevation: 4,
+    transform: [{ translateY: -2 }]
+  },
+  cardPressed: {
+    opacity: 0.94,
+    transform: [{ translateY: 1 }, { scale: 0.995 }]
+  },
+  cardFocus: {
+    borderColor: colors.blue,
+    shadowColor: colors.mintDeep,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 3
+  },
+  activeBorder: {
+    borderColor: colors.mintDeep
+  }
+};
+
+export function interactiveStateStyles(state = {}, options = {}) {
+  const { disabled = false, kind = 'button' } = options;
+  const styles = [interactions.transition];
+
+  if (disabled) {
+    return styles;
+  }
+
+  if (state.hovered) {
+    styles.push(kind === 'card' ? interactions.cardHover : interactions.buttonHover);
+  }
+
+  if (state.focused) {
+    styles.push(kind === 'card' ? interactions.cardFocus : interactions.buttonFocus);
+  }
+
+  if (state.pressed) {
+    styles.push(kind === 'card' ? interactions.cardPressed : interactions.buttonPressed);
+  }
+
+  return styles;
+}
+
 export const designGuidelines = {
   selectedPatterns: [
     'bentoGrid',

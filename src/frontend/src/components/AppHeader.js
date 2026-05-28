@@ -1,5 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 
@@ -14,7 +14,13 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
       <Pressable
         accessibilityRole="button"
         onPress={() => onNavigate(screen)}
-        style={({ pressed }) => [styles.navItem, active && styles.navItemActive, pressed && styles.buttonPressed]}
+        style={(state) => [
+          styles.navItem,
+          active && styles.navItemActive,
+          state.hovered && !active && styles.navItemHover,
+          ...interactiveStateStyles(state),
+          active && state.focused && styles.navItemActiveFocus
+        ]}
       >
         <Text style={[styles.navText, active && styles.navTextActive]}>{label}</Text>
       </Pressable>
@@ -27,7 +33,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
         <Pressable
           accessibilityRole="button"
           onPress={() => onNavigate(authenticated ? 'dashboard' : 'home')}
-          style={({ pressed }) => [styles.brand, pressed && styles.buttonPressed]}
+          style={(state) => [styles.brand, state.hovered && styles.brandHover, ...interactiveStateStyles(state)]}
         >
           <Image source={icon} style={styles.logo} />
           <View>
@@ -62,7 +68,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
               <Pressable
                 accessibilityRole="button"
                 onPress={onLogout}
-                style={({ pressed }) => [styles.outlineButton, pressed && styles.buttonPressed]}
+                style={(state) => [styles.outlineButton, ...interactiveStateStyles(state)]}
               >
                 <Text style={styles.outlineText}>로그아웃</Text>
               </Pressable>
@@ -71,7 +77,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
             <Pressable
               accessibilityRole="button"
               onPress={() => onNavigate('register')}
-              style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+              style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}
             >
               <Text style={styles.primaryText}>무료로 시작하기</Text>
             </Pressable>
@@ -106,7 +112,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     minWidth: 150,
-    flexShrink: 1
+    flexShrink: 1,
+    borderRadius: 18,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...interactions.transition
+  },
+  brandHover: {
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line
   },
   logo: {
     height: 47,
@@ -138,10 +153,19 @@ const styles = StyleSheet.create({
     minHeight: 40,
     justifyContent: 'center',
     paddingHorizontal: 11,
-    borderRadius: 22
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'transparent'
   },
   navItemActive: {
-    backgroundColor: colors.mintSoft
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint
+  },
+  navItemHover: {
+    backgroundColor: colors.surfaceWarm
+  },
+  navItemActiveFocus: {
+    borderColor: colors.blue
   },
   navText: {
     color: colors.muted,
@@ -168,9 +192,12 @@ const styles = StyleSheet.create({
     minHeight: 42,
     paddingHorizontal: 16,
     borderRadius: 23,
+    borderWidth: 1,
+    borderColor: colors.blue,
     backgroundColor: colors.blue,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   primaryText: {
     color: colors.surface,
@@ -185,15 +212,12 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   outlineText: {
     color: colors.blueDeep,
     fontSize: 13,
     fontWeight: '700'
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
   }
 });

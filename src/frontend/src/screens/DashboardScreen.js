@@ -3,7 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import FeatureGuideModal from '../components/FeatureGuideModal';
 import { PanelSkeleton } from '../components/Skeleton';
 import { claimRewardQuest, getMyRewards } from '../services/api';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const AI_GUIDE_STORAGE_KEY = 'sagaksagakAiGuideDismissed';
 
@@ -364,20 +364,20 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               AI 학습, 커뮤니티, 일정, 칸반 화면을 한곳에서 오가며 오늘의 학습 흐름을 정리할 수 있습니다.
             </Text>
             <View style={styles.heroButtonRow}>
-              <Pressable accessibilityRole="button" onPress={openAILearning} style={styles.primaryButton}>
+              <Pressable accessibilityRole="button" onPress={openAILearning} style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}>
                 <Text style={styles.primaryButtonText}>AI 학습 시작하기</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => onNavigate('community')}
-                style={styles.secondaryButton}
+                style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
               >
                 <Text style={styles.secondaryButtonText}>커뮤니티 보기</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => onNavigate('schedule')}
-                style={styles.secondaryButton}
+                style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
               >
                 <Text style={styles.secondaryButtonText}>일정 보기</Text>
               </Pressable>
@@ -393,7 +393,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <View style={styles.memberBadge}>
               <Text style={styles.memberBadgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
             </View>
-            <Pressable accessibilityRole="button" onPress={onLogout} style={styles.logoutButton}>
+            <Pressable accessibilityRole="button" onPress={onLogout} style={(state) => [styles.logoutButton, ...interactiveStateStyles(state)]}>
               <Text style={styles.logoutButtonText}>로그아웃</Text>
             </Pressable>
           </View>
@@ -409,7 +409,11 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               accessibilityRole="button"
               disabled={rewardLoading || rewardRefreshing}
               onPress={() => loadRewards({ silent: true })}
-              style={[styles.refreshButton, (rewardLoading || rewardRefreshing) && styles.refreshButtonDisabled]}
+              style={(state) => [
+                styles.refreshButton,
+                (rewardLoading || rewardRefreshing) && styles.refreshButtonDisabled,
+                ...interactiveStateStyles(state, { disabled: rewardLoading || rewardRefreshing })
+              ]}
             >
               <Text style={styles.refreshButtonText}>{rewardRefreshing ? '새로고침 중' : '새로고침'}</Text>
             </Pressable>
@@ -471,7 +475,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       <Pressable
                         accessibilityRole="button"
                         onPress={() => onNavigate('schedule')}
-                        style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                        style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
                       >
                         <Text style={styles.emptyActionText}>오늘 일정부터 채우기</Text>
                       </Pressable>
@@ -511,10 +515,10 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                               accessibilityRole="button"
                               disabled={claimingQuestId === quest.id}
                               onPress={() => handleClaimQuest(quest.id)}
-                              style={({ pressed }) => [
+                              style={(state) => [
                                 styles.claimButton,
-                                pressed && styles.buttonPressed,
-                                claimingQuestId === quest.id && styles.claimButtonDisabled
+                                claimingQuestId === quest.id && styles.claimButtonDisabled,
+                                ...interactiveStateStyles(state, { disabled: claimingQuestId === quest.id })
                               ]}
                             >
                               <Text style={styles.claimButtonText}>
@@ -538,7 +542,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       <Pressable
                         accessibilityRole="button"
                         onPress={() => setShowClaimedQuests((current) => !current)}
-                        style={styles.collapsibleToggle}
+                        style={(state) => [styles.collapsibleToggle, ...interactiveStateStyles(state)]}
                       >
                         <Text style={styles.collapsibleTitle}>수령 완료한 퀘스트</Text>
                         <Text style={styles.collapsibleMeta}>
@@ -628,7 +632,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         <Pressable
                           accessibilityRole="button"
                           onPress={() => setShowAllBadges((current) => !current)}
-                          style={styles.moreButton}
+                          style={(state) => [styles.moreButton, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllBadges ? '배지 접기' : `배지 더보기 (${rewardData.badges.length - 4}개 더)`}
@@ -643,7 +647,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       <Pressable
                         accessibilityRole="button"
                         onPress={() => onNavigate('taskBoard')}
-                        style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                        style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
                       >
                         <Text style={styles.emptyActionText}>태스크 완료하러 가기</Text>
                       </Pressable>
@@ -670,7 +674,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         <Pressable
                           accessibilityRole="button"
                           onPress={() => setShowAllTransactions((current) => !current)}
-                          style={styles.moreButton}
+                          style={(state) => [styles.moreButton, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllTransactions
@@ -687,7 +691,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       <Pressable
                         accessibilityRole="button"
                         onPress={() => loadRewards({ silent: true })}
-                        style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                        style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
                       >
                         <Text style={styles.emptyActionText}>보상 다시 확인하기</Text>
                       </Pressable>
@@ -716,7 +720,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 key={card.label}
                 disabled={!card.screen}
                 onPress={() => handleCardPress(card)}
-                style={[styles.card, cardStyle.container, shadows.card]}
+                style={(state) => [
+                  styles.card,
+                  cardStyle.container,
+                  shadows.card,
+                  ...(card.screen ? interactiveStateStyles(state, { kind: 'card' }) : []),
+                  !card.screen && styles.cardDisabled
+                ]}
               >
                 <View style={[styles.statusChip, cardStyle.status]}>
                   <Text style={[styles.statusChipText, cardStyle.statusText]}>{card.status}</Text>
@@ -734,7 +744,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <Pressable
               accessibilityRole="button"
               onPress={() => onNavigate('admin')}
-              style={[styles.card, styles.adminCard, shadows.card]}
+              style={(state) => [styles.card, styles.adminCard, shadows.card, ...interactiveStateStyles(state, { kind: 'card' })]}
             >
               <View style={[styles.statusChip, styles.adminStatus]}>
                 <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
@@ -822,7 +832,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blue,
     paddingHorizontal: 20,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   primaryButtonText: {
     color: colors.surface,
@@ -836,7 +849,8 @@ const styles = StyleSheet.create({
     borderColor: colors.blue,
     backgroundColor: colors.surface,
     paddingHorizontal: 20,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   secondaryButtonText: {
     color: colors.blueDeep,
@@ -899,7 +913,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   logoutButtonText: {
     color: colors.ink,
@@ -938,7 +953,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 16,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   refreshButtonDisabled: {
     opacity: 0.6
@@ -1166,7 +1182,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blue,
     paddingHorizontal: 16,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   claimButtonDisabled: {
     opacity: 0.65
@@ -1271,16 +1290,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blueSoft,
     paddingHorizontal: 14,
     justifyContent: 'center',
-    marginTop: 8
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
+    ...interactions.transition
   },
   emptyActionText: {
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '800'
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
   },
   emptyTitle: {
     color: colors.ink,
@@ -1304,7 +1322,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
-    paddingVertical: 14
+    paddingVertical: 14,
+    ...interactions.transition
   },
   collapsibleTitle: {
     color: colors.ink,
@@ -1324,7 +1343,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 16,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    ...interactions.transition
   },
   moreButtonText: {
     color: colors.blueDeep,
@@ -1359,7 +1379,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.line
+    borderColor: colors.line,
+    ...interactions.transition
+  },
+  cardDisabled: {
+    opacity: 0.78
   },
   defaultCard: {
     backgroundColor: colors.surface

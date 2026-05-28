@@ -17,7 +17,7 @@ import {
   getSchedules,
   updateSchedule
 } from '../services/api';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
 const QUICK_TIME_OPTIONS = ['09:00', '13:00', '18:00', '21:00'];
@@ -391,7 +391,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
             월간 달력과 시간 선택 도구로 시작·종료 일시를 정하고, 과목과 우선순위를 함께 기록할 수 있습니다.
           </Text>
         </View>
-        <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>
+        <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>대시보드로 돌아가기</Text>
         </Pressable>
       </View>
@@ -456,10 +456,10 @@ export default function ScheduleScreen({ onNavigate, token }) {
           </View>
 
           <View style={styles.helperRow}>
-            <Pressable onPress={syncEndWithStart} style={styles.shortcutButton}>
+            <Pressable onPress={syncEndWithStart} style={(state) => [styles.shortcutButton, ...interactiveStateStyles(state)]}>
               <Text style={styles.shortcutButtonText}>종료를 시작과 동일하게</Text>
             </Pressable>
-            <Pressable onPress={setEndAfterOneHour} style={styles.shortcutButton}>
+            <Pressable onPress={setEndAfterOneHour} style={(state) => [styles.shortcutButton, ...interactiveStateStyles(state)]}>
               <Text style={styles.shortcutButtonText}>시작 + 1시간</Text>
             </Pressable>
           </View>
@@ -471,7 +471,11 @@ export default function ScheduleScreen({ onNavigate, token }) {
                 <Pressable
                   key={option}
                   onPress={() => handleChange('priority', option)}
-                  style={[styles.pillButton, form.priority === option && styles.pillButtonActive]}
+                  style={(state) => [
+                    styles.pillButton,
+                    form.priority === option && styles.pillButtonActive,
+                    ...interactiveStateStyles(state)
+                  ]}
                 >
                   <Text style={[styles.pillButtonText, form.priority === option && styles.pillButtonTextActive]}>
                     {option}
@@ -504,12 +508,20 @@ export default function ScheduleScreen({ onNavigate, token }) {
           {successMsg ? <Text style={styles.successText}>{successMsg}</Text> : null}
 
           <View style={styles.actionRow}>
-            <Pressable disabled={submitting} onPress={handleSubmit} style={styles.primaryButton}>
+            <Pressable
+              disabled={submitting}
+              onPress={handleSubmit}
+              style={(state) => [styles.primaryButton, submitting && styles.disabledButton, ...interactiveStateStyles(state, { disabled: submitting })]}
+            >
               <Text style={styles.primaryButtonText}>
                 {submitting ? '저장 중...' : editingScheduleId ? '일정 수정' : '일정 생성'}
               </Text>
             </Pressable>
-            <Pressable disabled={submitting} onPress={resetForm} style={styles.secondaryButton}>
+            <Pressable
+              disabled={submitting}
+              onPress={resetForm}
+              style={(state) => [styles.secondaryButton, submitting && styles.disabledButton, ...interactiveStateStyles(state, { disabled: submitting })]}
+            >
               <Text style={styles.secondaryButtonText}>입력 초기화</Text>
             </Pressable>
           </View>
@@ -531,7 +543,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
               <Pressable
                 accessibilityRole="button"
                 onPress={resetForm}
-                style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+                style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
               >
                 <Text style={styles.emptyActionText}>첫 일정 입력 준비</Text>
               </Pressable>
@@ -552,13 +564,18 @@ export default function ScheduleScreen({ onNavigate, token }) {
                       </Text>
                     </View>
                     <View style={styles.inlineActions}>
-                      <Pressable onPress={() => handleEdit(schedule)} style={styles.inlineButton}>
+                      <Pressable onPress={() => handleEdit(schedule)} style={(state) => [styles.inlineButton, ...interactiveStateStyles(state)]}>
                         <Text style={styles.inlineButtonText}>수정</Text>
                       </Pressable>
                       <Pressable
                         disabled={submitting}
                         onPress={() => handleDelete(schedule.id)}
-                        style={[styles.inlineButton, styles.deleteButton]}
+                        style={(state) => [
+                          styles.inlineButton,
+                          styles.deleteButton,
+                          submitting && styles.disabledButton,
+                          ...interactiveStateStyles(state, { disabled: submitting })
+                        ]}
                       >
                         <Text style={styles.deleteButtonText}>삭제</Text>
                       </Pressable>
@@ -629,7 +646,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   backButtonText: {
     color: colors.blueDeep,
@@ -645,7 +663,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 220,
     borderRadius: 22,
-    padding: 20
+    padding: 20,
+    ...interactions.transition
   },
   summaryMint: {
     backgroundColor: colors.mintSoft
@@ -759,7 +778,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 14,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   shortcutButtonText: {
     color: colors.blueDeep,
@@ -778,7 +798,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   pillButtonActive: {
     borderColor: colors.blue,
@@ -819,7 +840,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blue,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   primaryButtonText: {
     color: colors.surface,
@@ -833,7 +857,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  disabledButton: {
+    opacity: 0.55
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -871,16 +899,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blueSoft,
     paddingHorizontal: 14,
     justifyContent: 'center',
-    marginTop: 8
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
+    ...interactions.transition
   },
   emptyActionText: {
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '800'
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
   },
   emptyTitle: {
     color: colors.ink,
@@ -899,7 +926,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
-    padding: 16
+    padding: 16,
+    ...interactions.transition
   },
   itemDateBadge: {
     width: 72,
@@ -963,7 +991,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   inlineButtonText: {
     color: colors.blueDeep,

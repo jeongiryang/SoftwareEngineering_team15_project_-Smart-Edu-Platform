@@ -27,7 +27,7 @@ import {
 } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { PanelSkeleton, SkeletonBlock } from '../components/Skeleton';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const CATEGORIES = [
   { value: 'QUESTION', label: '질문' },
@@ -562,14 +562,14 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           <Pressable
             accessibilityRole="button"
             onPress={() => onNavigate('dashboard')}
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+            style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.secondaryButtonText}>대시보드</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={openCreateForm}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+            style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.primaryButtonText}>글쓰기</Text>
           </Pressable>
@@ -581,10 +581,10 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'posts' }}
           onPress={() => switchTab('posts')}
-          style={({ pressed }) => [
+          style={(state) => [
             styles.tabButton,
             activeTab === 'posts' && styles.tabButtonActive,
-            pressed && styles.buttonPressed
+            ...interactiveStateStyles(state)
           ]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'posts' && styles.tabButtonTextActive]}>
@@ -595,10 +595,10 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'bookmarks' }}
           onPress={() => switchTab('bookmarks')}
-          style={({ pressed }) => [
+          style={(state) => [
             styles.tabButton,
             activeTab === 'bookmarks' && styles.tabButtonActive,
-            pressed && styles.buttonPressed
+            ...interactiveStateStyles(state)
           ]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'bookmarks' && styles.tabButtonTextActive]}>
@@ -754,7 +754,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           <Pressable
             accessibilityRole="button"
             onPress={handleSearchSubmit}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+            style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.primaryButtonText}>검색</Text>
           </Pressable>
@@ -768,7 +768,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
                 setPage(1);
                 setSelectedPost(null);
               }}
-              style={[styles.chip, category === item.value && styles.chipActive]}
+              style={(state) => [styles.chip, category === item.value && styles.chipActive, ...interactiveStateStyles(state)]}
             >
               <Text style={[styles.chipText, category === item.value && styles.chipTextActive]}>
                 {item.label}
@@ -784,7 +784,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
                 setSort(item.value);
                 setPage(1);
               }}
-              style={[styles.chip, sort === item.value && styles.chipActive]}
+              style={(state) => [styles.chip, sort === item.value && styles.chipActive, ...interactiveStateStyles(state)]}
             >
               <Text style={[styles.chipText, sort === item.value && styles.chipTextActive]}>
                 {item.label}
@@ -808,7 +808,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
                 setBookmarkSort(item.value);
                 setBookmarkPage(1);
               }}
-              style={[styles.chip, bookmarkSort === item.value && styles.chipActive]}
+              style={(state) => [styles.chip, bookmarkSort === item.value && styles.chipActive, ...interactiveStateStyles(state)]}
             >
               <Text style={[styles.chipText, bookmarkSort === item.value && styles.chipTextActive]}>
                 {item.label}
@@ -883,7 +883,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           <Pressable
             accessibilityRole="button"
             onPress={openCreateForm}
-            style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+            style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.emptyActionText}>첫 글 작성하기</Text>
           </Pressable>
@@ -904,7 +904,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           <Pressable
             accessibilityRole="button"
             onPress={() => switchTab('posts')}
-            style={({ pressed }) => [styles.emptyActionButton, pressed && styles.buttonPressed]}
+            style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.emptyActionText}>커뮤니티 둘러보기</Text>
           </Pressable>
@@ -939,7 +939,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             accessibilityRole="button"
             accessibilityLabel={`${post.title} 상세 보기`}
             onPress={() => openDetail(post)}
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+            style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.secondaryButtonText}>상세</Text>
           </Pressable>
@@ -1303,7 +1303,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
-    paddingVertical: 8
+    paddingVertical: 8,
+    ...interactions.transition
   },
   tabButtonActive: {
     backgroundColor: colors.blue,
@@ -1377,7 +1378,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 10,
-    paddingVertical: 8
+    paddingVertical: 8,
+    ...interactions.transition
   },
   chipActive: {
     backgroundColor: colors.mintSoft,
@@ -1421,7 +1423,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 16,
-    gap: 8
+    gap: 8,
+    ...interactions.transition
   },
   cardActive: {
     borderColor: colors.mint,
@@ -1561,8 +1564,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
     paddingHorizontal: 14,
-    paddingVertical: 9
+    paddingVertical: 9,
+    ...interactions.transition
   },
   primaryButtonText: {
     color: colors.surface,
@@ -1578,7 +1584,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
-    paddingVertical: 9
+    paddingVertical: 9,
+    ...interactions.transition
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -1594,7 +1601,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 10,
-    paddingVertical: 6
+    paddingVertical: 6,
+    ...interactions.transition
   },
   smallButtonActive: {
     backgroundColor: colors.blue,
@@ -1624,7 +1632,8 @@ const styles = StyleSheet.create({
     borderColor: colors.creamStrong,
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 10,
-    paddingVertical: 6
+    paddingVertical: 6,
+    ...interactions.transition
   },
   warningButtonText: {
     color: colors.warning,
@@ -1640,7 +1649,8 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
     paddingHorizontal: 14,
-    paddingVertical: 9
+    paddingVertical: 9,
+    ...interactions.transition
   },
   dangerButtonText: {
     color: colors.danger,
@@ -1760,10 +1770,7 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.55
   },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }]
-  },
+  buttonPressed: interactions.buttonPressed,
   skeletonStack: {
     gap: 10
   },
@@ -1798,8 +1805,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 10,
     backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
     paddingHorizontal: 12,
-    paddingVertical: 8
+    paddingVertical: 8,
+    ...interactions.transition
   },
   emptyActionText: {
     color: colors.surface,
