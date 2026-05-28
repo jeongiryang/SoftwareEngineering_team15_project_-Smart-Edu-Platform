@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1680,
     alignSelf: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
     paddingTop: 28,
     paddingBottom: 56,
     gap: 20
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   heroCopy: {
     flex: 1,
-    minWidth: 280
+    minWidth: 260
   },
   eyebrow: {
     color: colors.mintDeep,
@@ -822,7 +822,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10
   },
   columnPanel: {
-    width: 340,
+    width: 306,
+    maxWidth: '100%',
     minHeight: 520,
     borderRadius: 28,
     borderWidth: 1,

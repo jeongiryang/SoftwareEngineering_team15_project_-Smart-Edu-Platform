@@ -286,9 +286,11 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(18 suites / 345 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(19 suites / 351 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
+| Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
+| Error Middleware focused test | `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js` | 통과 | Prisma 런타임 오류 사용자 친화적 처리 단일 테스트 기준 1 suite / 6 tests passed |
 | User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
 | AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers` | 통과 | `src/backend/tests/ai.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429 검증 포함 |
@@ -327,6 +329,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | PR #81 자동 검증 | 학습 노트 CRUD API PR 검증 | 통과 | `git diff --check origin/main...origin/feature/study-note-api`, `npm run validate:prisma`, `npm test`(9 suites / 116 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js`(1 suite / 13 tests passed), `npm run check` 통과 |
 | Focus/Statistics API 검증 | 집중 시간/통계 API 구현 검증 | 통과 | `npm test`(17 suites / 339 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js`(1 suite / 18 tests passed) 통과 |
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
+| Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -335,6 +338,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/health.test.js`
 - `src/backend/tests/auth.test.js`
 - `src/backend/tests/api-foundation.test.js`
+- `src/backend/tests/error-middleware.test.js`
 - `src/backend/tests/user-profile.test.js`
 - `src/backend/tests/schedule-task.test.js`
 - `src/backend/tests/ai.test.js`
@@ -354,6 +358,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 인증 API 테스트는 기본 `npm test`가 로컬 DB 권한 상태에 의존하지 않도록 repository mock 기반으로 HTTP 요청/응답, bcrypt 해싱, JWT 발급/검증, `passwordHash` 미노출을 확인함. 실제 DB 연결 가능 여부는 `npm run test:db`로 별도 확인함.
 
 공통 API 기반 테스트는 이후 기능 구현에서 재사용할 response helper, AppError, validation helper, async handler, 테스트 helper의 동작을 확인함.
+
+Error middleware 테스트는 Prisma 런타임 오류가 사용자 응답에 raw SQL/Prisma/table/로컬 경로 정보를 노출하지 않고 사용자 친화적 500 메시지로 변환되는지 확인함. table missing에 해당하는 Prisma known request error와 initialization error를 masking하고, 기존 validation/notFound/conflict AppError 응답은 기존 status/code/details를 유지하는지 검증함.
 
 사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 프로필 필드 검증, `passwordHash` 미노출을 확인함. 프론트엔드 화면 연동은 후속 작업으로 둠.
 

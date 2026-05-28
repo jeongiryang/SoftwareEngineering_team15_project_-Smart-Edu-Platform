@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1240,
     alignSelf: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
     paddingTop: 28,
     paddingBottom: 56,
     gap: 20
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   },
   heroCopy: {
     flex: 1,
-    minWidth: 280
+    minWidth: 260
   },
   eyebrow: {
     color: colors.mintDeep,
@@ -692,12 +692,12 @@ const styles = StyleSheet.create({
   },
   formPanel: {
     flex: 1.15,
-    minWidth: 340,
+    minWidth: 280,
     gap: 16
   },
   listPanel: {
     flex: 0.85,
-    minWidth: 300,
+    minWidth: 280,
     gap: 14
   },
   panelEyebrow: {

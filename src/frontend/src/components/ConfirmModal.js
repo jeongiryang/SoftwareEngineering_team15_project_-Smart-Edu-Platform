@@ -3,7 +3,9 @@ import { colors, shadows } from '../styles/theme';
 
 export default function ConfirmModal({
   cancelLabel = '취소',
+  children,
   confirmLabel = '확인',
+  confirmDisabled = false,
   description,
   destructive = false,
   onCancel,
@@ -17,12 +19,22 @@ export default function ConfirmModal({
         <View style={[styles.dialog, shadows.card]}>
           <View style={styles.pencilMark} />
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+          {description ? <Text style={styles.description}>{description}</Text> : null}
+          {children ? <View style={styles.body}>{children}</View> : null}
           <View style={styles.actions}>
-            <Pressable onPress={onCancel} style={styles.cancelButton}>
+            <Pressable accessibilityRole="button" onPress={onCancel} style={styles.cancelButton}>
               <Text style={styles.cancelText}>{cancelLabel}</Text>
             </Pressable>
-            <Pressable onPress={onConfirm} style={[styles.confirmButton, destructive && styles.dangerButton]}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={confirmDisabled}
+              onPress={onConfirm}
+              style={[
+                styles.confirmButton,
+                destructive && styles.dangerButton,
+                confirmDisabled && styles.disabledButton
+              ]}
+            >
               <Text style={styles.confirmText}>{confirmLabel}</Text>
             </Pressable>
           </View>
@@ -38,14 +50,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(19, 42, 54, 0.34)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24
+    padding: 16
   },
   dialog: {
     width: '100%',
     maxWidth: 410,
     borderRadius: 24,
     backgroundColor: colors.surface,
-    padding: 28,
+    padding: 22,
     alignItems: 'center'
   },
   pencilMark: {
@@ -68,13 +80,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 25
   },
+  body: {
+    width: '100%',
+    marginBottom: 24
+  },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     width: '100%'
   },
   cancelButton: {
     flex: 1,
+    minWidth: 120,
     minHeight: 47,
     borderRadius: 13,
     borderWidth: 1,
@@ -89,6 +107,7 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
+    minWidth: 120,
     minHeight: 47,
     borderRadius: 13,
     backgroundColor: colors.blue,
@@ -97,6 +116,9 @@ const styles = StyleSheet.create({
   },
   dangerButton: {
     backgroundColor: colors.danger
+  },
+  disabledButton: {
+    opacity: 0.55
   },
   confirmText: {
     color: colors.surface,

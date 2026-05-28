@@ -112,19 +112,19 @@ const styles = StyleSheet.create({
   hero: {
     width: '100%',
     maxWidth: 1180,
-    paddingHorizontal: 26,
-    paddingTop: 62,
-    paddingBottom: 70,
+    paddingHorizontal: 18,
+    paddingTop: 48,
+    paddingBottom: 56,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 52
+    gap: 28
   },
   heroCopy: {
     flex: 1,
     maxWidth: 610,
-    minWidth: 280
+    minWidth: 260
   },
   pill: {
     alignSelf: 'flex-start',
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
   title: {
     color: colors.ink,
     fontWeight: '800',
-    fontSize: 52,
-    lineHeight: 65,
+    fontSize: 46,
+    lineHeight: 58,
     letterSpacing: 0
   },
   description: {
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     minHeight: 54,
     borderRadius: 28,
     backgroundColor: colors.blue,
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
-    paddingHorizontal: 30,
+    paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -189,8 +189,8 @@ const styles = StyleSheet.create({
   },
   visualCard: {
     width: '100%',
-    maxWidth: 405,
-    height: 465,
+    maxWidth: 385,
+    minHeight: 390,
     backgroundColor: colors.cream,
     borderRadius: 38,
     justifyContent: 'center',
@@ -198,9 +198,9 @@ const styles = StyleSheet.create({
     padding: 24
   },
   heroIcon: {
-    height: 282,
+    height: 238,
     width: '70%',
-    maxWidth: 282,
+    maxWidth: 238,
     borderRadius: 61
   },
   miniPanel: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   sectionHeading: {
     width: '100%',
     maxWidth: 1180,
-    paddingHorizontal: 26,
+    paddingHorizontal: 18,
     marginBottom: 28
   },
   sectionEyebrow: {
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   featureGrid: {
     width: '100%',
     maxWidth: 1180,
-    paddingHorizontal: 26,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     flex: 1,
-    minWidth: 250,
+    minWidth: 230,
     minHeight: 182,
     padding: 25,
     borderRadius: 22,
@@ -299,14 +299,14 @@ const styles = StyleSheet.create({
   flow: {
     width: '100%',
     maxWidth: 1180,
-    paddingHorizontal: 36,
+    paddingHorizontal: 22,
     paddingVertical: 48,
     borderRadius: 30,
     backgroundColor: colors.mintSoft,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 48
+    gap: 24
   },
   flowCopy: {
     flex: 1,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   steps: {
     flex: 1,
-    minWidth: 260,
+    minWidth: 230,
     gap: 12,
     justifyContent: 'center'
   },
