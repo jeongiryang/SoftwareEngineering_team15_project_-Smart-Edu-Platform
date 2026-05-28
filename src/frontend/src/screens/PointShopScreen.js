@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SHOP_ASSET_URI_MAP } from '../assets/shop/shopAssetMap';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   equipShopItem,
@@ -88,11 +89,20 @@ function getEquipMessage(item) {
   return `"${item.name}" 칭호를 적용했어요.`;
 }
 
+function resolveAssetUri(assetUrl) {
+  if (!assetUrl) {
+    return '';
+  }
+
+  return SHOP_ASSET_URI_MAP[assetUrl] || assetUrl;
+}
+
 function ProfilePreview({ user, shop, failedImages, onImageError }) {
   const profile = shop.profile || {};
   const avatarTone = getPreviewTone(shop.equippedItems?.profileImage?.code || 'PROFILE');
   const backgroundTone = getPreviewTone(shop.equippedItems?.profileBackground?.code || 'BACKGROUND');
   const avatarUri = profile.profileImageUrl;
+  const resolvedAvatarUri = resolveAssetUri(avatarUri);
   const avatarFailed = avatarUri ? failedImages[`profile-${avatarUri}`] : false;
   const titleText = profile.titleText || '아직 적용된 칭호가 없어요';
 
@@ -112,7 +122,7 @@ function ProfilePreview({ user, shop, failedImages, onImageError }) {
         <View style={[styles.previewAvatar, { backgroundColor: avatarTone.surface }]}>
           {avatarUri && !avatarFailed ? (
             <Image
-              source={{ uri: avatarUri }}
+              source={{ uri: resolvedAvatarUri }}
               style={styles.previewAvatarImage}
               onError={() => onImageError(`profile-${avatarUri}`)}
             />
@@ -146,6 +156,7 @@ function ShopItemCard({
   const tone = getPreviewTone(item.code);
   const previewKey = `item-${item.id}`;
   const imageFailed = item.assetUrl ? failedImages[previewKey] : false;
+  const resolvedAssetUri = resolveAssetUri(item.assetUrl);
   const purchasing = busyItemId === `purchase-${item.id}`;
   const equipping = busyItemId === `equip-${item.id}`;
   const busy = purchasing || equipping;
@@ -166,7 +177,7 @@ function ShopItemCard({
           </View>
         ) : item.assetUrl && !imageFailed ? (
           <Image
-            source={{ uri: item.assetUrl }}
+            source={{ uri: resolvedAssetUri }}
             style={item.type === 'PROFILE_IMAGE' ? styles.itemAvatarImage : styles.itemBackgroundImage}
             resizeMode={item.type === 'PROFILE_IMAGE' ? 'cover' : 'cover'}
             onError={() => onImageError(previewKey)}

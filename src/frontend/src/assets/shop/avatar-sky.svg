@@ -1,0 +1,21 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyBg" x1="32" y1="24" x2="196" y2="212" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF6FF"/>
+      <stop offset="1" stop-color="#BCDFFF"/>
+    </linearGradient>
+    <linearGradient id="skyAccent" x1="88" y1="40" x2="162" y2="198" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4B89D8"/>
+      <stop offset="1" stop-color="#255B9A"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" rx="120" fill="url(#skyBg)"/>
+  <circle cx="120" cy="90" r="42" fill="#F9FEFF"/>
+  <path d="M120 138C83.5492 138 54 167.549 54 204V216H186V204C186 167.549 156.451 138 120 138Z" fill="#F9FEFF"/>
+  <path d="M153.08 69.22L176.32 92.46L117.95 150.83L90.57 157.67L97.41 130.29L153.08 69.22Z" fill="url(#skyAccent)"/>
+  <path d="M153.08 69.22L164.23 58.07C167.29 55.01 172.26 55.01 175.32 58.07L187.47 70.22C190.53 73.28 190.53 78.25 187.47 81.31L176.32 92.46L153.08 69.22Z" fill="#2F6FB7"/>
+  <path d="M90.57 157.67L84 184L110.33 177.43L90.57 157.67Z" fill="#F3D4A0"/>
+  <path d="M120 42C123.314 42 126 39.3137 126 36C126 32.6863 123.314 30 120 30C116.686 30 114 32.6863 114 36C114 39.3137 116.686 42 120 42Z" fill="#FFFFFF" fill-opacity="0.85"/>
+  <path d="M72 72C75.3137 72 78 69.3137 78 66C78 62.6863 75.3137 60 72 60C68.6863 60 66 62.6863 66 66C66 69.3137 68.6863 72 72 72Z" fill="#FFFFFF" fill-opacity="0.7"/>
+  <path d="M182 132C185.314 132 188 129.314 188 126C188 122.686 185.314 120 182 120C178.686 120 176 122.686 176 126C176 129.314 178.686 132 182 132Z" fill="#FFFFFF" fill-opacity="0.7"/>
+</svg>

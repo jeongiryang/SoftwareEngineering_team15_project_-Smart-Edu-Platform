@@ -1,0 +1,22 @@
+<svg width="800" height="460" viewBox="0 0 800 460" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dawnBg" x1="74" y1="42" x2="702" y2="372" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF4E5"/>
+      <stop offset="0.45" stop-color="#FADCC6"/>
+      <stop offset="1" stop-color="#DCCFEF"/>
+    </linearGradient>
+    <linearGradient id="dawnHill" x1="400" y1="220" x2="400" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C8E1D8"/>
+      <stop offset="1" stop-color="#9DBFB5"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="460" rx="36" fill="url(#dawnBg)"/>
+  <circle cx="606" cy="110" r="58" fill="#FFF9F0"/>
+  <path d="M0 346C119.427 288.28 205.709 268 314 280C409.827 290.615 469.769 354.822 571 362C668.933 368.945 735.807 330.177 800 290V460H0V346Z" fill="url(#dawnHill)"/>
+  <path d="M0 382C112.883 344.072 181.292 338.094 276 350C364.624 361.142 456.446 421.666 548 420C657.93 417.999 717.277 372.242 800 340V460H0V382Z" fill="#6FA6A4" fill-opacity="0.25"/>
+  <rect x="84" y="112" width="174" height="174" rx="32" fill="#FFFFFF" fill-opacity="0.5"/>
+  <path d="M133 233L177 157L221 233H133Z" fill="#37649A" fill-opacity="0.85"/>
+  <path d="M183 195L229 131L275 195H183Z" fill="#73C9BD" fill-opacity="0.85"/>
+  <path d="M546 312L582 250L618 312H546Z" fill="#FFFFFF" fill-opacity="0.5"/>
+  <path d="M596 276L633 220L670 276H596Z" fill="#FFFFFF" fill-opacity="0.4"/>
+</svg>
