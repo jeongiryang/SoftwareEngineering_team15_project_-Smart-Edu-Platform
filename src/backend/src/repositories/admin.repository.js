@@ -45,6 +45,23 @@ const COMMUNITY_REPORT_INCLUDE = {
   }
 };
 
+const ADMIN_BADGE_SELECT = {
+  id: true,
+  code: true,
+  name: true,
+  description: true,
+  iconUrl: true,
+  condition: true,
+  createdAt: true,
+  updatedAt: true
+};
+
+const ADMIN_REWARD_QUEST_INCLUDE = {
+  badge: {
+    select: ADMIN_BADGE_SELECT
+  }
+};
+
 function findAllUsers() {
   return prisma.user.findMany({
     orderBy: { id: 'asc' }
@@ -310,6 +327,78 @@ async function closeChallengeAndLog(adminId, challengeId, reason) {
   });
 }
 
+function findRewardBadges() {
+  return prisma.badge.findMany({
+    select: ADMIN_BADGE_SELECT,
+    orderBy: { id: 'asc' }
+  });
+}
+
+function createRewardBadge(data) {
+  return prisma.badge.create({
+    data,
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function updateRewardBadge(id, data) {
+  return prisma.badge.update({
+    where: { id },
+    data,
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function findRewardBadgeById(id) {
+  return prisma.badge.findUnique({
+    where: { id },
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function findRewardBadgeByCode(code) {
+  return prisma.badge.findUnique({
+    where: { code },
+    select: ADMIN_BADGE_SELECT
+  });
+}
+
+function findRewardQuests() {
+  return prisma.rewardQuest.findMany({
+    include: ADMIN_REWARD_QUEST_INCLUDE,
+    orderBy: { id: 'asc' }
+  });
+}
+
+function createRewardQuest(data) {
+  return prisma.rewardQuest.create({
+    data,
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
+function updateRewardQuest(id, data) {
+  return prisma.rewardQuest.update({
+    where: { id },
+    data,
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
+function findRewardQuestById(id) {
+  return prisma.rewardQuest.findUnique({
+    where: { id },
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
+function findRewardQuestByCode(code) {
+  return prisma.rewardQuest.findUnique({
+    where: { code },
+    include: ADMIN_REWARD_QUEST_INCLUDE
+  });
+}
+
 module.exports = {
   findAllUsers,
   findUserById,
@@ -327,5 +416,15 @@ module.exports = {
   deleteCommentAndLog,
   dismissCommentReport,
   findChallengeById,
-  closeChallengeAndLog
+  closeChallengeAndLog,
+  createRewardBadge,
+  createRewardQuest,
+  findRewardBadgeByCode,
+  findRewardBadgeById,
+  findRewardBadges,
+  findRewardQuestByCode,
+  findRewardQuestById,
+  findRewardQuests,
+  updateRewardBadge,
+  updateRewardQuest
 };
