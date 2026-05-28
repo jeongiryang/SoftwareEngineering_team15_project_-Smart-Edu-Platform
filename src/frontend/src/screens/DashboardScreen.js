@@ -1,48 +1,49 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
+import { claimRewardQuest, getMyRewards } from '../services/api';
 import { colors, shadows } from '../styles/theme';
 
 const AI_GUIDE_STORAGE_KEY = 'sagaksagakAiGuideDismissed';
 
 const featureCards = [
   {
-    label: 'AI 학습 센터',
-    summary: '질문, 맞춤 추천, 요약, 오답 분석을 한 화면에서 이어갈 수 있습니다.',
-    status: '연결됨',
+    label: 'AI 학습 헬퍼',
+    summary: '질문, 맞춤형 추천, 요약, 오답 분석을 한 화면에서 이어갈 수 있습니다.',
+    status: '연결 완료',
     screen: 'aiLearning',
     tone: 'featured',
     requiresAIGuide: true
   },
   {
     label: '학습 일정',
-    summary: '날짜와 시간을 입력해 학습 일정을 생성, 수정, 삭제할 수 있습니다.',
-    status: '연결됨',
+    summary: '날짜와 시간을 입력해 학습 일정을 만들고 수정하고 삭제할 수 있습니다.',
+    status: '연결 완료',
     screen: 'schedule',
     tone: 'mint'
   },
   {
     label: '칸반 보드',
-    summary: '일정과 연결된 태스크를 TODO부터 DONE까지 관리합니다.',
-    status: '연결됨',
+    summary: '학습 일정과 연결된 태스크를 TODO부터 DONE까지 관리할 수 있습니다.',
+    status: '연결 완료',
     screen: 'taskBoard',
     tone: 'warm'
   },
   {
     label: '커뮤니티',
-    summary: '게시글, 댓글, 반응, 북마크, 신고 기능을 사용할 수 있습니다.',
-    status: '연결됨',
+    summary: '게시글, 댓글, 반응, 북마크, 신고 기능을 바로 사용할 수 있습니다.',
+    status: '연결 완료',
     screen: 'community',
     tone: 'green'
   },
   {
     label: '집중 시간',
-    summary: '집중 세션 기록과 타이머 화면은 후속 단계에서 연결합니다.',
+    summary: '집중 세션 기록과 타이머 화면은 후속 프론트 연결 범위에서 이어집니다.',
     status: '후속 연결'
   },
   {
     label: '학습 통계',
-    summary: '주간 학습량과 히트맵 시각화 화면은 후속 단계에서 연결합니다.',
+    summary: '주간 학습량과 히트맵 시각화 화면은 후속 프론트 연결 범위에서 이어집니다.',
     status: '후속 연결'
   }
 ];
@@ -102,9 +103,112 @@ function getCardStyle(tone) {
   };
 }
 
-export default function DashboardScreen({ onLogout, onNavigate, user }) {
+function formatNumber(value) {
+  return new Intl.NumberFormat('ko-KR').format(Number(value || 0));
+}
+
+function getQuestTone(status) {
+  if (status === 'CLAIMED') {
+    return styles.claimedQuest;
+  }
+
+  if (status === 'ACHIEVED') {
+    return styles.achievedQuest;
+  }
+
+  return styles.progressQuest;
+}
+
+function getQuestStatusText(status) {
+  if (status === 'CLAIMED') {
+    return '보상 수령 완료';
+  }
+
+  if (status === 'ACHIEVED') {
+    return '보상 수령 가능';
+  }
+
+  return '진행 중';
+}
+
+function getQuestProgressLabel(quest) {
+  const targetValue = quest?.targetValue || 0;
+  const progressValue = quest?.progressValue || 0;
+
+  if (quest?.type === 'TOTAL_STUDY_MINUTES') {
+    return `${progressValue}분 / ${targetValue}분`;
+  }
+
+  return `${progressValue}개 / ${targetValue}개`;
+}
+
+function getQuestProgressWidth(progressRate) {
+  const ratio = Math.max(0, Math.min(Number(progressRate || 0), 1));
+
+  if (ratio === 0) {
+    return '0%';
+  }
+
+  return `${Math.max(6, Math.round(ratio * 100))}%`;
+}
+
+function buildClaimMessage(result) {
+  const points = result?.reward?.pointTransaction?.amount || result?.reward?.quest?.rewardPoints || 0;
+  const badgeName = result?.reward?.badge?.badge?.name;
+
+  if (badgeName) {
+    return `${points}포인트와 "${badgeName}" 배지를 받았습니다.`;
+  }
+
+  return `${points}포인트를 받았습니다.`;
+}
+
+export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const hasAdminRole = user?.role === 'ADMIN';
   const [showAIGuide, setShowAIGuide] = useState(false);
+  const [showAllBadges, setShowAllBadges] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const [showClaimedQuests, setShowClaimedQuests] = useState(false);
+  const [failedBadgeIcons, setFailedBadgeIcons] = useState({});
+  const [rewardLoading, setRewardLoading] = useState(true);
+  const [rewardRefreshing, setRewardRefreshing] = useState(false);
+  const [rewardError, setRewardError] = useState('');
+  const [claimingQuestId, setClaimingQuestId] = useState(null);
+  const [claimMessage, setClaimMessage] = useState('');
+  const [rewardData, setRewardData] = useState({
+    account: null,
+    metrics: { totalStudyMinutes: 0, completedTaskCount: 0 },
+    quests: [],
+    badges: [],
+    recentPointTransactions: []
+  });
+
+  const featuredQuests = useMemo(
+    () => (rewardData.quests || []).slice().sort((left, right) => {
+      const order = { ACHIEVED: 0, IN_PROGRESS: 1, CLAIMED: 2 };
+      return (order[left.status] ?? 99) - (order[right.status] ?? 99);
+    }),
+    [rewardData.quests]
+  );
+  const activeQuests = useMemo(
+    () => featuredQuests.filter((quest) => quest.status !== 'CLAIMED'),
+    [featuredQuests]
+  );
+  const claimedQuests = useMemo(
+    () => featuredQuests.filter((quest) => quest.status === 'CLAIMED'),
+    [featuredQuests]
+  );
+  const visibleBadges = useMemo(
+    () => (showAllBadges ? rewardData.badges || [] : (rewardData.badges || []).slice(0, 4)),
+    [rewardData.badges, showAllBadges]
+  );
+  const visibleTransactions = useMemo(
+    () =>
+      showAllTransactions
+        ? rewardData.recentPointTransactions || []
+        : (rewardData.recentPointTransactions || []).slice(0, 5),
+    [rewardData.recentPointTransactions, showAllTransactions]
+  );
 
   function isGuideDismissed() {
     try {
@@ -128,7 +232,7 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
       try {
         globalThis.localStorage?.setItem(AI_GUIDE_STORAGE_KEY, 'true');
       } catch (error) {
-        // Browsers with disabled storage can still proceed without persisting preference.
+        // Disabled storage should not block navigation.
       }
     }
 
@@ -149,24 +253,100 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
     onNavigate(card.screen);
   }
 
+  async function loadRewards({ silent = false } = {}) {
+    if (!token) {
+      setRewardData({
+        account: null,
+        metrics: { totalStudyMinutes: 0, completedTaskCount: 0 },
+        quests: [],
+        badges: [],
+        recentPointTransactions: []
+      });
+      setRewardError('');
+      setRewardLoading(false);
+      return;
+    }
+
+    if (silent) {
+      setRewardRefreshing(true);
+    } else {
+      setRewardLoading(true);
+    }
+
+    try {
+      const result = await getMyRewards(token);
+      setRewardData(result.rewards || {});
+      setRewardError('');
+    } catch (error) {
+      setRewardError(error.message || '보상 정보를 불러오지 못했습니다.');
+    } finally {
+      setRewardLoading(false);
+      setRewardRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadRewards();
+  }, [token]);
+
+  async function handleClaimQuest(questId) {
+    if (!token || claimingQuestId) {
+      return;
+    }
+
+    setClaimingQuestId(questId);
+    setClaimMessage('');
+
+    try {
+      const result = await claimRewardQuest(token, questId);
+      setClaimMessage(buildClaimMessage(result));
+      await loadRewards({ silent: true });
+    } catch (error) {
+      setRewardError(error.message || '보상을 수령하지 못했습니다.');
+    } finally {
+      setClaimingQuestId(null);
+    }
+  }
+
+  function markBadgeIconFailed(badgeKey) {
+    setFailedBadgeIcons((current) => {
+      if (current[badgeKey]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [badgeKey]: true
+      };
+    });
+  }
+
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <View style={styles.heroCopy}>
             <Text style={styles.eyebrow}>MY LEARNING SPACE</Text>
-            <Text style={styles.title}>{user?.name || '사용자'}님,{'\n'}오늘도 사각사각 기록해요</Text>
+            <Text style={styles.title}>{user?.name || '사용자'}님,{'\n'}오늘도 차곡차곡 기록해요</Text>
             <Text style={styles.subtitle}>
-              AI 학습, 커뮤니티, 일정, 칸반 화면을 한 곳에서 이어가며 오늘의 학습 흐름을 정리합니다.
+              AI 학습, 커뮤니티, 일정, 칸반 화면을 한곳에서 오가며 오늘의 학습 흐름을 정리할 수 있습니다.
             </Text>
             <View style={styles.heroButtonRow}>
               <Pressable accessibilityRole="button" onPress={openAILearning} style={styles.primaryButton}>
                 <Text style={styles.primaryButtonText}>AI 학습 시작하기</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => onNavigate('community')} style={styles.secondaryButton}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('community')}
+                style={styles.secondaryButton}
+              >
                 <Text style={styles.secondaryButtonText}>커뮤니티 보기</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => onNavigate('schedule')} style={styles.secondaryButton}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('schedule')}
+                style={styles.secondaryButton}
+              >
                 <Text style={styles.secondaryButtonText}>일정 보기</Text>
               </Pressable>
             </View>
@@ -187,10 +367,283 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
           </View>
         </View>
 
+        <View style={[styles.rewardPanel, shadows.card]}>
+          <View style={styles.rewardHeader}>
+            <View>
+              <Text style={styles.rewardTitle}>보상 현황</Text>
+              <Text style={styles.rewardSubtitle}>포인트, 퀘스트, 배지를 대시보드에서 바로 확인할 수 있어요.</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={rewardLoading || rewardRefreshing}
+              onPress={() => loadRewards({ silent: true })}
+              style={[styles.refreshButton, (rewardLoading || rewardRefreshing) && styles.refreshButtonDisabled]}
+            >
+              <Text style={styles.refreshButtonText}>{rewardRefreshing ? '새로고침 중' : '새로고침'}</Text>
+            </Pressable>
+          </View>
+
+          {rewardLoading ? (
+            <View style={styles.rewardLoading}>
+              <ActivityIndicator color={colors.blue} />
+              <Text style={styles.loadingText}>보상 정보를 불러오는 중입니다.</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.rewardStats}>
+                <View style={[styles.statCard, styles.pointCard]}>
+                  <Text style={styles.statLabel}>보유 포인트</Text>
+                  <Text style={styles.pointValue}>{formatNumber(rewardData.account?.pointBalance)}</Text>
+                  <Text style={styles.statHint}>보상 수령 시 자동으로 적립됩니다.</Text>
+                </View>
+
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>누적 집중 시간</Text>
+                  <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.totalStudyMinutes)}분</Text>
+                </View>
+
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>완료한 태스크</Text>
+                  <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.completedTaskCount)}개</Text>
+                </View>
+              </View>
+
+              {rewardError ? (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorText}>{rewardError}</Text>
+                </View>
+              ) : null}
+
+              {claimMessage ? (
+                <View style={styles.successBanner}>
+                  <Text style={styles.successText}>{claimMessage}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.rewardContentGrid}>
+                <View style={styles.questColumn}>
+                  <View style={styles.subsectionHeader}>
+                    <Text style={styles.subsectionTitle}>진행 중인 퀘스트</Text>
+                    <Text style={styles.subsectionMeta}>{activeQuests.length}개</Text>
+                  </View>
+
+                  {activeQuests.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyTitle}>아직 등록된 퀘스트가 없습니다.</Text>
+                      <Text style={styles.emptyText}>관리자 화면에서 보상 퀘스트를 추가하면 이곳에 표시됩니다.</Text>
+                    </View>
+                  ) : (
+                    activeQuests.map((quest) => (
+                      <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
+                        <View style={styles.questHeader}>
+                          <View style={styles.questCopy}>
+                            <Text style={styles.questTitle}>{quest.title}</Text>
+                            <Text style={styles.questDescription}>
+                              {quest.description || '설명 없이 등록된 퀘스트입니다.'}
+                            </Text>
+                          </View>
+                          <View style={styles.questStatusChip}>
+                            <Text style={styles.questStatusText}>{getQuestStatusText(quest.status)}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.progressTrack}>
+                          <View
+                            style={[
+                              styles.progressBar,
+                              { width: getQuestProgressWidth(quest.progressRate) }
+                            ]}
+                          />
+                        </View>
+
+                        <View style={styles.questFooter}>
+                          <View>
+                            <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
+                            <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                          </View>
+
+                          {quest.status === 'ACHIEVED' ? (
+                            <Pressable
+                              accessibilityRole="button"
+                              disabled={claimingQuestId === quest.id}
+                              onPress={() => handleClaimQuest(quest.id)}
+                              style={[
+                                styles.claimButton,
+                                claimingQuestId === quest.id && styles.claimButtonDisabled
+                              ]}
+                            >
+                              <Text style={styles.claimButtonText}>
+                                {claimingQuestId === quest.id ? '수령 중' : '보상 받기'}
+                              </Text>
+                            </Pressable>
+                          ) : (
+                            <View style={styles.questTag}>
+                              <Text style={styles.questTagText}>
+                                {quest.status === 'CLAIMED' ? '수령 완료' : '진행 중'}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    ))
+                  )}
+
+                  {claimedQuests.length ? (
+                    <View style={styles.collapsibleSection}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setShowClaimedQuests((current) => !current)}
+                        style={styles.collapsibleToggle}
+                      >
+                        <Text style={styles.collapsibleTitle}>수령 완료한 퀘스트</Text>
+                        <Text style={styles.collapsibleMeta}>
+                          {claimedQuests.length}개 {showClaimedQuests ? '접기' : '보기'}
+                        </Text>
+                      </Pressable>
+
+                      {showClaimedQuests
+                        ? claimedQuests.map((quest) => (
+                            <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
+                              <View style={styles.questHeader}>
+                                <View style={styles.questCopy}>
+                                  <Text style={styles.questTitle}>{quest.title}</Text>
+                                  <Text style={styles.questDescription}>
+                                    {quest.description || '설명 없이 등록된 퀘스트입니다.'}
+                                  </Text>
+                                </View>
+                                <View style={styles.questStatusChip}>
+                                  <Text style={styles.questStatusText}>{getQuestStatusText(quest.status)}</Text>
+                                </View>
+                              </View>
+
+                              <View style={styles.progressTrack}>
+                                <View
+                                  style={[
+                                    styles.progressBar,
+                                    { width: getQuestProgressWidth(quest.progressRate) }
+                                  ]}
+                                />
+                              </View>
+
+                              <View style={styles.questFooter}>
+                                <View>
+                                  <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
+                                  <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                                </View>
+
+                                <View style={styles.questTag}>
+                                  <Text style={styles.questTagText}>수령 완료</Text>
+                                </View>
+                              </View>
+                            </View>
+                          ))
+                        : null}
+                    </View>
+                  ) : null}
+                </View>
+
+                <View style={styles.badgeColumn}>
+                  <View style={styles.subsectionHeader}>
+                    <Text style={styles.subsectionTitle}>획득한 배지</Text>
+                    <Text style={styles.subsectionMeta}>{rewardData.badges?.length || 0}개</Text>
+                  </View>
+
+                  {rewardData.badges?.length ? (
+                    <>
+                      {visibleBadges.map((userBadge) => (
+                      (() => {
+                        const badgeKey = userBadge.badge?.id || userBadge.id;
+                        const iconUrl = userBadge.badge?.iconUrl;
+                        const shouldShowImage = Boolean(iconUrl) && !failedBadgeIcons[badgeKey];
+
+                        return (
+                      <View key={userBadge.id} style={styles.badgeCard}>
+                        <View style={styles.badgeIcon}>
+                          {shouldShowImage ? (
+                            <Image
+                              source={{ uri: iconUrl }}
+                              style={styles.badgeImage}
+                              onError={() => markBadgeIconFailed(badgeKey)}
+                            />
+                          ) : (
+                            <Text style={styles.badgeIconText}>🏅</Text>
+                          )}
+                        </View>
+                        <View style={styles.badgeCopy}>
+                          <Text style={styles.badgeTitle}>{userBadge.badge?.name || '배지'}</Text>
+                          <Text style={styles.badgeDescription}>
+                            {userBadge.badge?.description || '설명 없이 등록된 배지입니다.'}
+                          </Text>
+                        </View>
+                      </View>
+                        );
+                      })()
+                      ))}
+                      {rewardData.badges.length > 4 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setShowAllBadges((current) => !current)}
+                          style={styles.moreButton}
+                        >
+                          <Text style={styles.moreButtonText}>
+                            {showAllBadges ? '배지 접기' : `배지 더보기 (${rewardData.badges.length - 4}개 더)`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
+                  ) : (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyTitle}>아직 획득한 배지가 없습니다.</Text>
+                      <Text style={styles.emptyText}>퀘스트를 달성하고 보상을 수령하면 배지가 여기에 표시됩니다.</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.subsectionHeader}>
+                    <Text style={styles.subsectionTitle}>최근 포인트 내역</Text>
+                    <Text style={styles.subsectionMeta}>{rewardData.recentPointTransactions?.length || 0}건</Text>
+                  </View>
+
+                  {rewardData.recentPointTransactions?.length ? (
+                    <>
+                      {visibleTransactions.map((transaction) => (
+                      <View key={transaction.id} style={styles.transactionRow}>
+                        <View>
+                          <Text style={styles.transactionReason}>{transaction.reason || transaction.sourceType}</Text>
+                          <Text style={styles.transactionMeta}>{transaction.sourceType}</Text>
+                        </View>
+                        <Text style={styles.transactionAmount}>+{formatNumber(transaction.amount)}P</Text>
+                      </View>
+                      ))}
+                      {rewardData.recentPointTransactions.length > 5 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setShowAllTransactions((current) => !current)}
+                          style={styles.moreButton}
+                        >
+                          <Text style={styles.moreButtonText}>
+                            {showAllTransactions
+                              ? '포인트 내역 접기'
+                              : `포인트 내역 더보기 (${rewardData.recentPointTransactions.length - 5}건 더)`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
+                  ) : (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyTitle}>아직 포인트 적립 내역이 없습니다.</Text>
+                      <Text style={styles.emptyText}>보상을 수령하면 최근 적립 내역을 이곳에서 볼 수 있습니다.</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+        </View>
+
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
-            <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 표시합니다.</Text>
+            <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 보여줍니다.</Text>
           </View>
         </View>
 
@@ -219,12 +672,18 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
           })}
 
           {hasAdminRole ? (
-            <Pressable accessibilityRole="button" onPress={() => onNavigate('admin')} style={[styles.card, styles.adminCard, shadows.card]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onNavigate('admin')}
+              style={[styles.card, styles.adminCard, shadows.card]}
+            >
               <View style={[styles.statusChip, styles.adminStatus]}>
                 <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
               </View>
               <Text style={styles.cardTitle}>관리자 콘솔</Text>
-              <Text style={styles.cardSummary}>사용자 상태와 관리자 데이터 조회 흐름을 확인할 수 있습니다.</Text>
+              <Text style={styles.cardSummary}>
+                사용자 상태와 관리자 운영 데이터를 확인하고 처리할 수 있습니다.
+              </Text>
               <Text style={[styles.cardLink, styles.defaultLink]}>콘솔로 이동 -></Text>
             </Pressable>
           ) : null}
@@ -234,7 +693,7 @@ export default function DashboardScreen({ onLogout, onNavigate, user }) {
           <Text style={styles.noticeTitle}>현재 연결 상태</Text>
           <Text style={styles.noticeText}>
             일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
-            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 대상으로 남겨둡니다.
+            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 범위로 남아 있습니다.
           </Text>
         </View>
       </ScrollView>
@@ -386,6 +845,393 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: colors.ink,
     fontSize: 13,
+    fontWeight: '800'
+  },
+  rewardPanel: {
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 24,
+    gap: 20
+  },
+  rewardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  rewardTitle: {
+    color: colors.blueDeep,
+    fontSize: 24,
+    fontWeight: '800'
+  },
+  rewardSubtitle: {
+    marginTop: 6,
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22
+  },
+  refreshButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 16,
+    justifyContent: 'center'
+  },
+  refreshButtonDisabled: {
+    opacity: 0.6
+  },
+  refreshButtonText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  rewardLoading: {
+    minHeight: 120,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceWarm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10
+  },
+  loadingText: {
+    color: colors.muted,
+    fontSize: 13
+  },
+  rewardStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14
+  },
+  statCard: {
+    flexGrow: 1,
+    minWidth: 220,
+    borderRadius: 24,
+    padding: 20
+  },
+  pointCard: {
+    backgroundColor: colors.blue,
+    minHeight: 144
+  },
+  statLabel: {
+    color: '#D8E6F6',
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  pointValue: {
+    color: colors.surface,
+    fontSize: 34,
+    fontWeight: '900',
+    marginTop: 14
+  },
+  statHint: {
+    color: '#D8E6F6',
+    fontSize: 12,
+    lineHeight: 20,
+    marginTop: 8
+  },
+  metricCard: {
+    flexGrow: 1,
+    minWidth: 180,
+    borderRadius: 24,
+    padding: 20,
+    backgroundColor: colors.mintSoft
+  },
+  metricLabel: {
+    color: colors.mintDeep,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  metricValue: {
+    color: colors.ink,
+    fontSize: 26,
+    fontWeight: '900',
+    marginTop: 16
+  },
+  errorBanner: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: colors.dangerSoft
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: 13,
+    lineHeight: 20
+  },
+  successBanner: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: colors.successSoft
+  },
+  successText: {
+    color: colors.success,
+    fontSize: 13,
+    lineHeight: 20
+  },
+  rewardContentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18
+  },
+  questColumn: {
+    flex: 2,
+    minWidth: 320,
+    gap: 12
+  },
+  badgeColumn: {
+    flex: 1,
+    minWidth: 280,
+    gap: 12
+  },
+  subsectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4
+  },
+  subsectionTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '800'
+  },
+  subsectionMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  questCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14
+  },
+  progressQuest: {
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm
+  },
+  achievedQuest: {
+    borderColor: '#B6E3CF',
+    backgroundColor: colors.successSoft
+  },
+  claimedQuest: {
+    borderColor: '#D4E0EE',
+    backgroundColor: colors.blueSoft
+  },
+  questHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  questCopy: {
+    flex: 1,
+    gap: 6
+  },
+  questTitle: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '800'
+  },
+  questDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20
+  },
+  questStatusChip: {
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  questStatusText: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  progressTrack: {
+    width: '100%',
+    height: 10,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: colors.surface
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.mintDeep
+  },
+  questFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12
+  },
+  questProgress: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  questReward: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 4
+  },
+  claimButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 16,
+    justifyContent: 'center'
+  },
+  claimButtonDisabled: {
+    opacity: 0.65
+  },
+  claimButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  questTag: {
+    minHeight: 38,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    backgroundColor: colors.surface
+  },
+  questTagText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  badgeCard: {
+    flexDirection: 'row',
+    gap: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16
+  },
+  badgeIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.cream,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  badgeImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    resizeMode: 'cover'
+  },
+  badgeIconText: {
+    fontSize: 20
+  },
+  badgeCopy: {
+    flex: 1,
+    gap: 4
+  },
+  badgeTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  badgeDescription: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  transactionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  transactionReason: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  transactionMeta: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 11
+  },
+  transactionAmount: {
+    color: colors.success,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  emptyCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 18,
+    gap: 6
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  emptyText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 19
+  },
+  collapsibleSection: {
+    gap: 12
+  },
+  collapsibleToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  collapsibleTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  collapsibleMeta: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  moreButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  moreButtonText: {
+    color: colors.blueDeep,
+    fontSize: 12,
     fontWeight: '800'
   },
   sectionHeader: {
