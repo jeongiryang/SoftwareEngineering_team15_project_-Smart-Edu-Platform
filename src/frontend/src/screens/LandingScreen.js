@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 
@@ -27,7 +28,38 @@ const flowSteps = [
   '기록과 피드백을 모아 오늘의 학습 방향을 다듬습니다.'
 ];
 
+const writingWord = '사각사각';
+
 export default function LandingScreen({ onNavigate }) {
+  const [writtenWord, setWrittenWord] = useState('');
+
+  useEffect(() => {
+    const timers = [];
+
+    function schedule(callback, delay) {
+      const timer = setTimeout(callback, delay);
+      timers.push(timer);
+    }
+
+    function runCycle() {
+      setWrittenWord('');
+
+      Array.from(writingWord).forEach((_, index) => {
+        schedule(() => {
+          setWrittenWord(writingWord.slice(0, index + 1));
+        }, 170 * (index + 1));
+      });
+
+      schedule(runCycle, 4000);
+    }
+
+    runCycle();
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, []);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
@@ -35,16 +67,33 @@ export default function LandingScreen({ onNavigate }) {
           <View style={styles.pill}>
             <Text style={styles.pillText}>개인화 학습 관리 플랫폼</Text>
           </View>
-          <Text style={styles.title}>공부의 흔적을{'\n'}사각사각 쌓아가세요</Text>
+          <Text accessibilityLabel="공부의 흔적을 사각사각 쌓아가세요" style={styles.title}>
+            공부의 흔적을{'\n'}
+            <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.writingWord}>
+              {writtenWord || ' '}
+            </Text>
+            <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.cursor}>
+              {writtenWord.length < writingWord.length ? '|' : ''}
+            </Text>
+            {' '}쌓아가세요
+          </Text>
           <Text style={styles.description}>
             질문하고, 요약하고, 틀린 이유를 되짚는 흐름을 한곳에서 관리하는
             학습 파트너입니다. AI 학습, 일정, 칸반, 커뮤니티로 오늘의 공부를 시작하세요.
           </Text>
           <View style={styles.heroActions}>
-            <Pressable accessibilityRole="button" onPress={() => onNavigate('register')} style={styles.primaryButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onNavigate('register')}
+              style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}
+            >
               <Text style={styles.primaryText}>무료로 시작하기</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => onNavigate('login')} style={styles.secondaryButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onNavigate('login')}
+              style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
+            >
               <Text style={styles.secondaryText}>로그인</Text>
             </Pressable>
           </View>
@@ -68,11 +117,15 @@ export default function LandingScreen({ onNavigate }) {
       </View>
       <View style={styles.featureGrid}>
         {availableFeatures.map((feature) => (
-          <View key={feature.title} style={[styles.featureCard, shadows.card]}>
+          <Pressable
+            accessibilityLabel={`${feature.label}: ${feature.title}`}
+            key={feature.title}
+            style={(state) => [styles.featureCard, shadows.card, ...interactiveStateStyles(state, { kind: 'card' })]}
+          >
             <Text style={styles.featureLabel}>{feature.label}</Text>
             <Text style={styles.featureTitle}>{feature.title}</Text>
             <Text style={styles.featureDescription}>{feature.description}</Text>
-          </View>
+          </Pressable>
         ))}
       </View>
 
@@ -146,6 +199,13 @@ const styles = StyleSheet.create({
     lineHeight: 58,
     letterSpacing: 0
   },
+  writingWord: {
+    color: colors.mintDeep
+  },
+  cursor: {
+    color: colors.creamStrong,
+    fontWeight: '700'
+  },
   description: {
     color: colors.muted,
     fontSize: 17,
@@ -163,6 +223,8 @@ const styles = StyleSheet.create({
     minHeight: 54,
     borderRadius: 28,
     backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
     paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center'
