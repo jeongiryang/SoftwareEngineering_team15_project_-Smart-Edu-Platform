@@ -26,6 +26,7 @@
    - [2.2 실행 환경](#22-실행-환경)
    - [2.3 데이터베이스 환경](#23-데이터베이스-환경)
    - [2.4 테스트 도구](#24-테스트-도구)
+   - [2.5 CI 자동 검증 환경](#25-ci-자동-검증-환경)
 3. [테스트 전략](#3-테스트-전략)
    - [3.1 유닛 테스트 전략](#31-유닛-테스트-전략)
    - [3.2 통합 테스트 전략](#32-통합-테스트-전략)
@@ -173,6 +174,23 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 | Expo CLI | 프론트엔드 설정 및 Web export 검증 | 사용 중 |
 | PostgreSQL adapter | Prisma Client DB smoke test | 별도 검증 명령으로 사용 |
 | Coverage 도구 | 테스트 커버리지 측정 | 측정 예정 |
+
+### 2.5 CI 자동 검증 환경
+
+GitHub Actions 기반 PR 자동 검증 workflow를 도입함. 도입 작업은 [PR #128 - PR 자동 검증 GitHub Actions 추가](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/128)에서 진행함.
+
+CI workflow는 `.github/workflows/ci.yml`에 정의하며, PR 생성/업데이트 시 `pull_request` 이벤트로 자동 실행되도록 구성함. 또한 `main` push 또는 merge 시 `push` 이벤트로 실행하고, 필요 시 Actions 탭에서 사람이 직접 실행할 수 있도록 `workflow_dispatch`를 포함함.
+
+자동 검증 명령은 다음 순서로 수행함.
+
+- `npm run validate:prisma`
+- `npm --prefix src/backend run prisma:generate`
+- `npm test`
+- `npm run check`
+
+CI에서는 실제 DB에 영향을 주는 명령을 실행하지 않음. `npx prisma migrate dev`, `prisma migrate deploy`, `npm run test:db`, seed 실행은 자동화 대상에서 제외하며, migration 파일이 포함된 PR의 실제 로컬 개발 DB 적용은 팀원이 별도로 수행함. Prisma 설정 검증에 필요한 DB URL과 인증 테스트에 필요한 JWT secret은 실제 운영 값이 아닌 CI 전용 placeholder 값으로만 설정함.
+
+PR별 자동 검증 결과는 GitHub PR의 `Checks` 탭과 저장소 `Actions` 탭에서 확인함. 이 기록은 2단계 테스트 보고서에서 자동 검증 체계 도입 근거로 활용함.
 
 ---
 
