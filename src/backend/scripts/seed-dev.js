@@ -71,6 +71,18 @@ const DEV_SEED_USERS = [
     }
   },
   {
+    email: 'dev.beginner@example.com',
+    name: '개발용 초보 루틴 사용자',
+    role: 'USER',
+    userType: 'ELEMENTARY',
+    status: 'ACTIVE',
+    profile: {
+      learningGoal: '작은 목표를 매일 하나씩 완료하며 학습 루틴 만들기',
+      preferredSubject: '수학',
+      profileImageUrl: null
+    }
+  },
+  {
     email: 'dev.admin@example.com',
     name: '개발용 관리자',
     role: 'ADMIN',
@@ -118,16 +130,18 @@ const SEED_IDS = {
     async: 900042,
     database: 900043,
     english: 900044,
-    math: 900045
+    math: 900045,
+    beginnerMath: 900046
   },
   aiQuestions: {
     architecture: 900051,
     async: 900052,
     studyPlan: 900053,
     quizHelp: 900054,
-    voiceReview: 900055
+    voiceReview: 900055,
+    beginnerMath: 900056
   },
-  wrongAnswers: [900061, 900062, 900063],
+  wrongAnswers: [900061, 900062, 900063, 900064],
   quizzes: {
     architecture: 900071,
     algorithm: 900072
@@ -136,7 +150,8 @@ const SEED_IDS = {
   recommendations: {
     review: 900091,
     routine: 900092,
-    exam: 900093
+    exam: 900093,
+    beginner: 900094
   }
 };
 
@@ -427,6 +442,7 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
   const communityUser = usersByEmail['dev.community@example.com'];
   const rewardUser = usersByEmail['dev.reward@example.com'];
   const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
 
   const softwareReviewStart = daysFromNow(0, 19, 0);
   const algorithmStart = daysFromNow(1, 16, 30);
@@ -434,6 +450,7 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
   const examPlanStart = daysFromNow(5, 9, 30);
   const pastReviewStart = daysFromNow(-2, 18, 0);
   const accessReviewStart = daysFromNow(0, 10, 0);
+  const beginnerRoutineStart = daysFromNow(1, 17, 0);
 
   const softwareReview = await prisma.studySchedule.create({
     data: {
@@ -516,6 +533,18 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
       endAt: minutesAfter(accessReviewStart, 30),
       priority: 'MEDIUM',
       memo: '큰 글씨와 음성 출력 설정을 켠 상태로 짧은 복습 진행'
+    }
+  });
+
+  const beginnerRoutine = await prisma.studySchedule.create({
+    data: {
+      userId: beginnerUser.id,
+      title: '수학 개념 25분 루틴 만들기',
+      subject: '수학',
+      startAt: beginnerRoutineStart,
+      endAt: minutesAfter(beginnerRoutineStart, 25),
+      priority: 'LOW',
+      memo: '처음 사용하는 사용자가 프로필과 통계 화면에서 작은 기록을 확인할 수 있게 하는 데모 일정'
     }
   });
 
@@ -628,6 +657,38 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
       memo: '알림 문구가 너무 길지 않은지 확인'
     }
   }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: beginnerUser.id,
+      scheduleId: beginnerRoutine.id,
+      title: '분수 덧셈 예제 2개 풀기',
+      status: 'TODO',
+      dueDate: daysFromNow(1, 18, 0),
+      priority: 'LOW',
+      memo: '초보 루틴 사용자용 첫 태스크'
+    }
+  }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: beginnerUser.id,
+      scheduleId: beginnerRoutine.id,
+      title: '오늘 배운 개념 한 줄 기록',
+      status: 'IN_PROGRESS',
+      dueDate: daysFromNow(1, 19, 0),
+      priority: 'LOW',
+      memo: '프로필 최근 활동과 칸반 데모 확인용'
+    }
+  }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: beginnerUser.id,
+      title: '어제 복습한 문제 체크',
+      status: 'DONE',
+      dueDate: daysFromNow(-1, 17, 0),
+      priority: 'LOW',
+      memo: '완료 태스크가 0개로 보이지 않도록 하는 초보 사용자 데모 데이터'
+    }
+  }));
 
   return tasks;
 }
@@ -635,22 +696,40 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
 async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
   const mainUser = usersByEmail['dev.user@example.com'];
   const peerUser = usersByEmail['dev.peer@example.com'];
+  const communityUser = usersByEmail['dev.community@example.com'];
   const rewardUser = usersByEmail['dev.reward@example.com'];
   const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
   const mainTask = tasks[0];
-  const focusDurations = [45, 25, 80, 35, 95, 20, 60, 110, 30, 75];
-  const focusHours = [9, 21, 18, 7, 20, 12, 19, 10, 22, 16];
+  const mainFocusMinutes = [
+    35, 0, 55, 80, 0, 110, 45,
+    25, 65, 0, 90, 35, 120, 40,
+    0, 70, 95, 30, 0, 105, 55,
+    45, 25, 80, 35, 95, 20, 60
+  ];
+  const mainFocusHours = [
+    9, 0, 20, 18, 0, 10, 21,
+    7, 19, 0, 22, 12, 9, 16,
+    0, 20, 18, 7, 0, 21, 10,
+    9, 21, 18, 7, 20, 12, 19
+  ];
 
-  for (let index = 0; index < focusDurations.length; index += 1) {
-    const startedAt = daysFromNow(index - 9, focusHours[index], index % 2 === 0 ? 0 : 30);
+  for (let index = 0; index < mainFocusMinutes.length; index += 1) {
+    const duration = mainFocusMinutes[index];
+
+    if (duration <= 0) {
+      continue;
+    }
+
+    const startedAt = daysFromNow(index - 27, mainFocusHours[index], index % 2 === 0 ? 0 : 30);
     await prisma.focusSession.create({
       data: {
         userId: mainUser.id,
         taskId: index % 2 === 0 ? mainTask.id : null,
         startedAt,
-        endedAt: minutesAfter(startedAt, focusDurations[index]),
-        durationMs: focusDurations[index] * 60 * 1000,
-        memo: `${focusDurations[index]}분 집중 학습`
+        endedAt: minutesAfter(startedAt, duration),
+        durationMs: duration * 60 * 1000,
+        memo: `${duration}분 집중 학습`
       }
     });
   }
@@ -715,18 +794,89 @@ async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
     }
   });
 
+  const communityFocusBlocks = [
+    { days: -6, hour: 8, minutes: 35, taskIndex: 7, memo: '자료 공유 전 아침 영어 예문 정리' },
+    { days: -3, hour: 22, minutes: 55, taskIndex: 7, memo: '커뮤니티 댓글 답변을 위한 문법 복습' },
+    { days: -1, hour: 18, minutes: 40, taskIndex: 7, memo: '시험 대비 자료 카드 정리' }
+  ];
+
+  for (const block of communityFocusBlocks) {
+    const startedAt = daysFromNow(block.days, block.hour, 10);
+    await prisma.focusSession.create({
+      data: {
+        userId: communityUser.id,
+        taskId: tasks[block.taskIndex]?.id || null,
+        startedAt,
+        endedAt: minutesAfter(startedAt, block.minutes),
+        durationMs: block.minutes * 60 * 1000,
+        memo: block.memo
+      }
+    });
+  }
+
+  const beginnerFocusBlocks = [
+    { days: -4, hour: 17, minutes: 12, taskIndex: 11, memo: '처음 시작한 짧은 복습' },
+    { days: -2, hour: 17, minutes: 18, taskIndex: 11, memo: '분수 덧셈 예제 풀이' },
+    { days: 0, hour: 17, minutes: 25, taskIndex: 10, memo: '25분 루틴 첫 성공' }
+  ];
+
+  for (const block of beginnerFocusBlocks) {
+    const startedAt = daysFromNow(block.days, block.hour, 0);
+    await prisma.focusSession.create({
+      data: {
+        userId: beginnerUser.id,
+        taskId: tasks[block.taskIndex]?.id || null,
+        startedAt,
+        endedAt: minutesAfter(startedAt, block.minutes),
+        durationMs: block.minutes * 60 * 1000,
+        memo: block.memo
+      }
+    });
+  }
+
   await prisma.studyStatistics.create({
     data: {
       userId: mainUser.id,
-      periodStart: daysFromNow(-9, 0, 0),
+      periodStart: daysFromNow(-27, 0, 0),
       periodEnd: daysFromNow(0, 23, 59),
-      totalMinutes: focusDurations.reduce((sum, minutes) => sum + minutes, 0) + 108,
+      totalMinutes: mainFocusMinutes.reduce((sum, minutes) => sum + minutes, 0) + 108,
       completionRate: 0.72,
       statisticsJson: {
-        dailyMinutes: focusDurations,
+        dailyMinutes: mainFocusMinutes,
         todayMinutes: 108,
-        longestSessionMinutes: 110,
-        summary: '평일 저녁 집중 시간이 강하고 오늘은 짧은 복습과 긴 계획 세션을 모두 수행함'
+        longestSessionMinutes: 120,
+        pattern: '꾸준형',
+        summary: '4주 동안 쉬는 날과 긴 집중일이 섞여 있고, 평일 저녁 집중 시간이 강함'
+      }
+    }
+  });
+
+  await prisma.studyStatistics.create({
+    data: {
+      userId: peerUser.id,
+      periodStart: daysFromNow(-27, 0, 0),
+      periodEnd: daysFromNow(0, 23, 59),
+      totalMinutes: 45,
+      completionRate: 0.4,
+      statisticsJson: {
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 45, 0, 0],
+        pattern: '회고 중심',
+        summary: '스터디 회고와 커뮤니티 확인 중심의 가벼운 활동 데이터'
+      }
+    }
+  });
+
+  await prisma.studyStatistics.create({
+    data: {
+      userId: communityUser.id,
+      periodStart: daysFromNow(-27, 0, 0),
+      periodEnd: daysFromNow(0, 23, 59),
+      totalMinutes: 130,
+      completionRate: 0.55,
+      statisticsJson: {
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 0, 0, 55, 0, 40, 0],
+        pattern: '커뮤니티 참여형',
+        summary: '학습 자료 공유 전후로 짧은 집중 기록이 분산되어 있음'
       }
     }
   });
@@ -739,7 +889,8 @@ async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
       totalMinutes: 130,
       completionRate: 0.5,
       statisticsJson: {
-        dailyMinutes: [0, 0, 0, 0, 0, 130, 0],
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 130, 0],
+        pattern: '퀘스트 달성형',
         summary: '보상 데모 사용자는 퀘스트 수령 흐름을 확인하기 위한 집중 시간이 있음'
       }
     }
@@ -753,8 +904,25 @@ async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
       totalMinutes: 28,
       completionRate: 0.25,
       statisticsJson: {
-        dailyMinutes: [0, 0, 0, 0, 0, 0, 28],
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 28],
+        pattern: '접근성 복습형',
         summary: '접근성 설정 사용자는 오늘 짧은 음성 복습 세션을 진행함'
+      }
+    }
+  });
+
+  await prisma.studyStatistics.create({
+    data: {
+      userId: beginnerUser.id,
+      periodStart: daysFromNow(-27, 0, 0),
+      periodEnd: daysFromNow(0, 23, 59),
+      totalMinutes: 55,
+      completionRate: 0.33,
+      statisticsJson: {
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 18, 0, 25],
+        todayMinutes: 25,
+        pattern: '초보 루틴형',
+        summary: '아직 기록은 적지만 25분 루틴을 시작한 신규 사용자 흐름'
       }
     }
   });
@@ -766,6 +934,7 @@ async function seedCommunity(prisma, usersByEmail) {
   const communityUser = usersByEmail['dev.community@example.com'];
   const rewardUser = usersByEmail['dev.reward@example.com'];
   const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
   const adminUser = usersByEmail['dev.admin@example.com'];
 
   const questionPost = await prisma.boardPost.create({
@@ -955,6 +1124,13 @@ async function seedCommunity(prisma, usersByEmail) {
   });
   await prisma.communityReaction.create({
     data: {
+      postId: encouragementPost.id,
+      userId: beginnerUser.id,
+      type: 'LIKE'
+    }
+  });
+  await prisma.communityReaction.create({
+    data: {
       postId: reportedPost.id,
       userId: communityUser.id,
       type: 'DISLIKE'
@@ -989,6 +1165,12 @@ async function seedCommunity(prisma, usersByEmail) {
     data: {
       postId: encouragementPost.id,
       userId: rewardUser.id
+    }
+  });
+  await prisma.communityBookmark.create({
+    data: {
+      postId: questionPost.id,
+      userId: beginnerUser.id
     }
   });
 
@@ -1078,6 +1260,7 @@ async function seedChallenge(prisma, usersByEmail) {
   const communityUser = usersByEmail['dev.community@example.com'];
   const rewardUser = usersByEmail['dev.reward@example.com'];
   const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
 
   const challenge = await prisma.studyChallenge.create({
     data: {
@@ -1097,6 +1280,7 @@ async function seedChallenge(prisma, usersByEmail) {
       { challengeId: challenge.id, userId: mainUser.id, progressMinutes: 345 },
       { challengeId: challenge.id, userId: peerUser.id, progressMinutes: 220 },
       { challengeId: challenge.id, userId: rewardUser.id, progressMinutes: 130 },
+      { challengeId: challenge.id, userId: beginnerUser.id, progressMinutes: 55 },
       { challengeId: challenge.id, userId: accessUser.id, progressMinutes: 28 }
     ]
   });
@@ -1149,6 +1333,14 @@ async function seedChallenge(prisma, usersByEmail) {
         studyMinutes: 130
       },
       {
+        userId: beginnerUser.id,
+        challengeId: challenge.id,
+        periodStart: daysFromNow(-6, 0, 0),
+        periodEnd: daysFromNow(0, 23, 59),
+        rank: 4,
+        studyMinutes: 55
+      },
+      {
         userId: communityUser.id,
         challengeId: weekendChallenge.id,
         periodStart: daysFromNow(-2, 0, 0),
@@ -1164,6 +1356,7 @@ async function seedLearningAndAi(prisma, usersByEmail) {
   const mainUser = usersByEmail['dev.user@example.com'];
   const communityUser = usersByEmail['dev.community@example.com'];
   const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
 
   const architectureNote = await prisma.studyNote.create({
     data: {
@@ -1220,6 +1413,17 @@ async function seedLearningAndAi(prisma, usersByEmail) {
     }
   });
 
+  const beginnerMathNote = await prisma.studyNote.create({
+    data: {
+      id: SEED_IDS.notes.beginnerMath,
+      userId: beginnerUser.id,
+      title: '분수 덧셈 첫 루틴 노트',
+      content: '분모를 같게 만든 뒤 분자끼리 더한다. 오늘은 예제 두 개만 천천히 풀어본다.',
+      subject: '수학',
+      tags: ['math', 'beginner', 'routine']
+    }
+  });
+
   await prisma.aIQuestion.create({
     data: {
       id: SEED_IDS.aiQuestions.architecture,
@@ -1271,6 +1475,16 @@ async function seedLearningAndAi(prisma, usersByEmail) {
       subject: '수학'
     }
   });
+  await prisma.aIQuestion.create({
+    data: {
+      id: SEED_IDS.aiQuestions.beginnerMath,
+      userId: beginnerUser.id,
+      noteId: beginnerMathNote.id,
+      question: '분수 덧셈을 처음 복습하는 학생에게 오늘 할 일을 짧게 알려줘.',
+      answer: '오늘은 예제 2개를 천천히 풀고, 틀린 부분 한 줄만 기록하면 충분합니다. 25분만 집중해 보세요.',
+      subject: '수학'
+    }
+  });
 
   await prisma.wrongAnswerNote.create({
     data: {
@@ -1303,6 +1517,17 @@ async function seedLearningAndAi(prisma, usersByEmail) {
       userAnswer: '2/5',
       explanation: '분모를 6으로 맞추면 3/6 + 2/6 = 5/6이다.',
       weakType: '분수 통분'
+    }
+  });
+  await prisma.wrongAnswerNote.create({
+    data: {
+      id: SEED_IDS.wrongAnswers[3],
+      userId: beginnerUser.id,
+      noteId: beginnerMathNote.id,
+      problem: '2/3 + 1/6의 계산 결과는?',
+      userAnswer: '3/9',
+      explanation: '2/3은 4/6으로 바꿀 수 있으므로 4/6 + 1/6 = 5/6이다.',
+      weakType: '분모 맞추기'
     }
   });
 
@@ -1423,6 +1648,21 @@ async function seedLearningAndAi(prisma, usersByEmail) {
       }
     }
   });
+  await prisma.aIRecommendation.create({
+    data: {
+      id: SEED_IDS.recommendations.beginner,
+      userId: beginnerUser.id,
+      basisJson: {
+        recentMinutes: [12, 18, 25],
+        weakTypes: ['분모 맞추기'],
+        profileType: '초보 루틴형'
+      },
+      recommendationJson: {
+        title: '25분 루틴 유지',
+        actions: ['분수 예제 2개만 풀기', '틀린 이유 한 줄 적기', '내일 같은 시간에 다시 시작하기']
+      }
+    }
+  });
 }
 
 async function seedRewards(prisma, usersByEmail) {
@@ -1431,6 +1671,7 @@ async function seedRewards(prisma, usersByEmail) {
   const communityUser = usersByEmail['dev.community@example.com'];
   const rewardUser = usersByEmail['dev.reward@example.com'];
   const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
 
   const firstFocusBadge = await prisma.badge.create({
     data: {
@@ -1585,6 +1826,11 @@ async function seedRewards(prisma, usersByEmail) {
     update: { pointBalance: 25 },
     create: { userId: accessUser.id, pointBalance: 25 }
   });
+  const beginnerAccount = await prisma.rewardAccount.upsert({
+    where: { userId: beginnerUser.id },
+    update: { pointBalance: 10 },
+    create: { userId: beginnerUser.id, pointBalance: 10 }
+  });
 
   await prisma.userBadge.create({
     data: {
@@ -1672,6 +1918,18 @@ async function seedRewards(prisma, usersByEmail) {
         progressValue: 3,
         status: 'ACHIEVED',
         achievedAt: daysFromNow(0, 11, 0)
+      },
+      {
+        userId: beginnerUser.id,
+        questId: focusQuest.id,
+        progressValue: 55,
+        status: 'IN_PROGRESS'
+      },
+      {
+        userId: beginnerUser.id,
+        questId: taskQuest.id,
+        progressValue: 1,
+        status: 'IN_PROGRESS'
       }
     ]
   });
@@ -1757,6 +2015,16 @@ async function seedRewards(prisma, usersByEmail) {
         sourceType: 'SEED',
         sourceId: null,
         createdAt: daysFromNow(0, 11, 0)
+      },
+      {
+        userId: beginnerUser.id,
+        accountId: beginnerAccount.id,
+        type: 'ADJUST',
+        amount: 10,
+        reason: '첫 프로필 대시보드 확인용 시작 포인트',
+        sourceType: 'SEED',
+        sourceId: null,
+        createdAt: daysFromNow(0, 17, 30)
       }
     ]
   });
@@ -1768,6 +2036,7 @@ async function seedAccessibility(prisma, usersByEmail) {
   const communityUser = usersByEmail['dev.community@example.com'];
   const rewardUser = usersByEmail['dev.reward@example.com'];
   const accessUser = usersByEmail['dev.access@example.com'];
+  const beginnerUser = usersByEmail['dev.beginner@example.com'];
 
   await prisma.accessibilityPreference.create({
     data: {
@@ -1830,6 +2099,18 @@ async function seedAccessibility(prisma, usersByEmail) {
       reminderTime: '10:30'
     }
   });
+  await prisma.accessibilityPreference.create({
+    data: {
+      userId: beginnerUser.id,
+      textScale: 1.15,
+      highContrast: false,
+      elementaryFriendlyUi: true,
+      voiceInputEnabled: false,
+      voiceOutputEnabled: false,
+      reviewReminderEnabled: true,
+      reminderTime: '17:30'
+    }
+  });
 
   await prisma.voiceAccessibilityRequest.createMany({
     data: [
@@ -1865,6 +2146,12 @@ async function seedAccessibility(prisma, usersByEmail) {
         userId: accessUser.id,
         mode: 'STT',
         transcript: '복습 알림을 오늘 저녁 여덟 시 반으로 설정해줘'
+      },
+      {
+        userId: beginnerUser.id,
+        mode: 'TTS',
+        voiceType: 'CALM',
+        inputText: '오늘은 25분 루틴을 한 번만 시도해 보세요.'
       }
     ]
   });
@@ -1901,6 +2188,12 @@ async function seedAccessibility(prisma, usersByEmail) {
         message: '복습 알림 - 분수 계산 예제를 천천히 다시 들어보세요.',
         scheduledAt: daysFromNow(-1, 10, 30),
         readAt: daysFromNow(0, 9, 0)
+      },
+      {
+        userId: beginnerUser.id,
+        type: 'REVIEW',
+        message: '복습 알림 - 오늘의 작은 목표를 하나만 완료해 보세요.',
+        scheduledAt: daysFromNow(0, 17, 30)
       }
     ]
   });
