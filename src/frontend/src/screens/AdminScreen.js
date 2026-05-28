@@ -269,7 +269,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
               style={[styles.modalSubmitBtn, (submitting || (actionTarget && actionTarget.actionType !== 'KEEP' && !actionReason.trim())) && styles.disabledBtn]}
             >
               {submitting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={colors.surface} size="small" />
               ) : (
                 <Text style={styles.modalSubmitText}>적용하기</Text>
               )}
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: {
     backgroundColor: colors.mint,
-    shadowColor: '#0F172A',
+    shadowColor: colors.blueDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
@@ -565,14 +565,14 @@ const styles = StyleSheet.create({
   errorAlert: {
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: '#F1CCC9',
+    borderColor: colors.danger,
     borderRadius: 13,
     padding: 12
   },
   successAlert: {
     backgroundColor: colors.successSoft,
     borderWidth: 1,
-    borderColor: '#B6DDCE',
+    borderColor: colors.mint,
     borderRadius: 13,
     padding: 12
   },
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   statusActive: {
     backgroundColor: colors.successSoft,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: colors.mint,
   },
   statusActiveText: {
     color: colors.success
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
   statusSuspended: {
     backgroundColor: colors.cream,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: colors.creamStrong,
   },
   statusSuspendedText: {
     color: colors.warning
@@ -789,7 +789,7 @@ const styles = StyleSheet.create({
   statusDeactivated: {
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: colors.danger,
   },
   statusDeactivatedText: {
     color: colors.danger
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
   },
   reportTargetId: {
     fontSize: 11,
-    color: '#94A3B8'
+    color: colors.muted
   },
   reportTitle: {
     fontSize: 15,
@@ -911,7 +911,7 @@ const styles = StyleSheet.create({
   },
   logDate: {
     fontSize: 11,
-    color: '#94A3B8'
+    color: colors.muted
   },
   logDetails: {
     gap: 4

@@ -18,6 +18,7 @@ import {
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import ReadableText from '../components/ReadableText';
 import { useAccessibility, voiceOptions } from '../contexts/AccessibilityContext';
+import { colors, radii, shadows } from '../styles/theme';
 
 const defaultPreference = {
   textScale: 1,
@@ -501,7 +502,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
 
       {loading ? (
         <View style={styles.panel}>
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color={colors.blue} />
           <Text style={styles.statusText}>
             {isKidMode ? kidTexts.loadingText : '설정을 불러오는 중입니다.'}
           </Text>
@@ -612,7 +613,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               multiline
               onChangeText={setTtsText}
               placeholder={isKidMode ? kidTexts.textTtsPlaceholder : '예: 오늘 배운 내용을 천천히 읽어 주세요.'}
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.muted}
               style={[styles.textarea, scaledStyles]}
               value={ttsText}
             />
@@ -634,7 +635,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               multiline
               onChangeText={setTranscript}
               placeholder={isKidMode ? kidTexts.textSttPlaceholder : '예: 음성 인식 결과를 수정할 수 있습니다.'}
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.muted}
               style={[styles.textarea, scaledStyles]}
               value={transcript}
             />
@@ -647,7 +648,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
             <AccessibleTextInput
               onChangeText={setReminderTitle}
               placeholder={isKidMode ? kidTexts.textReminderTitlePlaceholder : '예: 오늘 복습'}
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.muted}
               style={styles.input}
               value={reminderTitle}
             />
@@ -655,7 +656,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               multiline
               onChangeText={setReminderTask}
               placeholder={isKidMode ? kidTexts.textReminderTaskPlaceholder : '예: 오늘 배운 내용을 10분만 복습해 보세요.'}
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.muted}
               style={[styles.textarea, styles.reminderTaskInput]}
               value={reminderTask}
             />
@@ -940,7 +941,7 @@ function CalendarIcon() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F8FA'
+    backgroundColor: colors.background
   },
   contentContainer: {
     padding: 24,
@@ -956,29 +957,30 @@ const styles = StyleSheet.create({
     gap: 12
   },
   title: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 24,
     fontWeight: '800'
   },
   subtitle: {
-    color: '#4B5563',
+    color: colors.muted,
     fontSize: 14,
     marginTop: 4
   },
   panel: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.panel,
     borderWidth: 1,
     gap: 12,
-    padding: 16
+    padding: 18,
+    ...shadows.card
   },
   friendlyPanel: {
-    backgroundColor: '#F0FDFA',
-    borderColor: '#14B8A6'
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint
   },
   sectionTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 17,
     fontWeight: '800'
   },
@@ -990,18 +992,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   guideButton: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 6,
+    backgroundColor: colors.blueSoft,
+    borderRadius: radii.control,
     paddingHorizontal: 10,
     paddingVertical: 6
   },
   guideButtonText: {
-    color: '#2563EB',
+    color: colors.blue,
     fontSize: 12,
     fontWeight: '800'
   },
   helperText: {
-    color: '#6B7280',
+    color: colors.muted,
     fontSize: 12
   },
   scaleRow: {
@@ -1016,8 +1018,9 @@ const styles = StyleSheet.create({
   },
   voiceButton: {
     alignItems: 'center',
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.card,
     borderWidth: 1,
     justifyContent: 'center',
     gap: 4,
@@ -1032,19 +1035,20 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   voiceButtonText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '800'
   },
   voiceTagText: {
-    color: '#047857',
+    color: colors.success,
     fontSize: 11,
     fontWeight: '800',
     textAlign: 'center'
   },
   scaleButton: {
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.control,
     borderWidth: 1,
     minHeight: 40,
     minWidth: 64,
@@ -1052,15 +1056,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   activeButton: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB'
+    backgroundColor: colors.blue,
+    borderColor: colors.blue
   },
   scaleButtonText: {
-    color: '#334155',
+    color: colors.ink,
     fontWeight: '700'
   },
   activeButtonText: {
-    color: '#FFFFFF'
+    color: colors.surface
   },
   toggleRow: {
     alignItems: 'center',
@@ -1069,22 +1073,22 @@ const styles = StyleSheet.create({
     minHeight: 44
   },
   toggleLabel: {
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 15,
     fontWeight: '700'
   },
   toggle: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: colors.line,
     borderRadius: 14,
     height: 28,
     padding: 3,
     width: 52
   },
   toggleActive: {
-    backgroundColor: '#2563EB'
+    backgroundColor: colors.mintDeep
   },
   toggleKnob: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 11,
     height: 22,
     width: 22
@@ -1093,18 +1097,18 @@ const styles = StyleSheet.create({
     marginLeft: 24
   },
   textarea: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.control,
     borderWidth: 1,
     minHeight: 96,
     padding: 12,
     textAlignVertical: 'top'
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.control,
     borderWidth: 1,
     minHeight: 44,
     padding: 12
@@ -1113,9 +1117,9 @@ const styles = StyleSheet.create({
     minHeight: 88
   },
   alarmPickerPanel: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.card,
     borderWidth: 1,
     gap: 14,
     padding: 16
@@ -1138,12 +1142,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   periodText: {
-    color: '#CBD5E1',
+    color: colors.line,
     fontSize: 18,
     fontWeight: '900'
   },
   periodTextActive: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 22
   },
   timeWheelColumn: {
@@ -1153,7 +1157,7 @@ const styles = StyleSheet.create({
     minWidth: 96
   },
   timeWheelLabel: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 12,
     fontWeight: '900'
   },
@@ -1164,12 +1168,12 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   wheelMutedText: {
-    color: '#CBD5E1',
+    color: colors.line,
     fontSize: 28,
     fontWeight: '900'
   },
   wheelInput: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 44,
     fontWeight: '900',
     minHeight: 58,
@@ -1179,16 +1183,16 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   alarmColon: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 36,
     fontWeight: '900',
     marginTop: 20
   },
   alarmDateCard: {
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.card,
     borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1197,28 +1201,28 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   dateCardLabel: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 12,
     fontWeight: '900',
     marginBottom: 4
   },
   dateValueText: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 20,
     fontWeight: '900',
     minWidth: 160
   },
   calendarButton: {
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    borderRadius: 6,
+    backgroundColor: colors.blueSoft,
+    borderRadius: radii.control,
     height: 36,
     justifyContent: 'center',
     width: 36
   },
   calendarIcon: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#2563EB',
+    backgroundColor: colors.surface,
+    borderColor: colors.blue,
     borderRadius: 4,
     borderWidth: 2,
     height: 20,
@@ -1226,7 +1230,7 @@ const styles = StyleSheet.create({
     width: 20
   },
   calendarIconHeader: {
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.blue,
     height: 5,
     width: '100%'
   },
@@ -1237,7 +1241,7 @@ const styles = StyleSheet.create({
     padding: 3
   },
   calendarIconDot: {
-    backgroundColor: '#93C5FD',
+    backgroundColor: colors.mint,
     borderRadius: 1,
     height: 4,
     width: 4
@@ -1249,51 +1253,51 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#2563EB',
-    borderRadius: 8,
+    backgroundColor: colors.blue,
+    borderRadius: radii.control,
     justifyContent: 'center',
     minHeight: 44,
     paddingHorizontal: 16
   },
   primaryButtonSmall: {
     alignItems: 'center',
-    backgroundColor: '#2563EB',
-    borderRadius: 8,
+    backgroundColor: colors.blue,
+    borderRadius: radii.control,
     justifyContent: 'center',
     minHeight: 44,
     paddingHorizontal: 20
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 15,
     fontWeight: '800'
   },
   secondaryButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.control,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 44,
     paddingHorizontal: 14
   },
   secondaryButtonText: {
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '700'
   },
   statusText: {
-    color: '#4B5563',
+    color: colors.muted,
     textAlign: 'center'
   },
   successText: {
-    color: '#047857',
+    color: colors.success,
     fontSize: 14,
     fontWeight: '700'
   },
   errorText: {
-    color: '#B91C1C',
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '700'
   },
@@ -1307,13 +1311,13 @@ const styles = StyleSheet.create({
     flexShrink: 1
   },
   inlineReadButton: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 6,
+    backgroundColor: colors.blueSoft,
+    borderRadius: radii.control,
     paddingHorizontal: 8,
     paddingVertical: 5
   },
   inlineReadButtonText: {
-    color: '#2563EB',
+    color: colors.blue,
     fontSize: 12,
     fontWeight: '800'
   },
@@ -1325,27 +1329,28 @@ const styles = StyleSheet.create({
     padding: 24
   },
   modalPanel: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#064E3B',
-    borderRadius: 8,
-    borderWidth: 2,
+    backgroundColor: colors.surface,
+    borderColor: colors.mint,
+    borderRadius: radii.panel,
+    borderWidth: 1,
     gap: 12,
     maxWidth: 520,
     padding: 20,
-    width: '100%'
+    width: '100%',
+    ...shadows.card
   },
   modalTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 22,
     fontWeight: '900'
   },
   modalStep: {
-    color: '#2563EB',
+    color: colors.blue,
     fontSize: 12,
     fontWeight: '900'
   },
   modalBody: {
-    color: '#374151',
+    color: colors.ink,
     fontSize: 15,
     lineHeight: 22
   },
@@ -1364,43 +1369,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12
   },
   modalGhostButtonText: {
-    color: '#6B7280',
+    color: colors.muted,
     fontSize: 14,
     fontWeight: '800'
   },
   modalOutlineButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.control,
     borderWidth: 1,
     minHeight: 40,
     justifyContent: 'center',
     paddingHorizontal: 16
   },
   modalOutlineButtonText: {
-    color: '#1F2937',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '800'
   },
   modalButton: {
     alignItems: 'center',
     alignSelf: 'flex-end',
-    backgroundColor: '#064E3B',
-    borderRadius: 8,
+    backgroundColor: colors.mintDeep,
+    borderRadius: radii.control,
     minHeight: 40,
     justifyContent: 'center',
     paddingHorizontal: 18
   },
   modalButtonText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 14,
     fontWeight: '800'
   },
   calendarPanel: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.panel,
     borderWidth: 1,
     gap: 14,
     maxWidth: 420,
@@ -1413,7 +1418,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   calendarTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 18,
     fontWeight: '900'
   },
@@ -1422,13 +1427,13 @@ const styles = StyleSheet.create({
     gap: 8
   },
   calendarNavButton: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 6,
+    backgroundColor: colors.blueSoft,
+    borderRadius: radii.control,
     paddingHorizontal: 10,
     paddingVertical: 7
   },
   calendarNavText: {
-    color: '#334155',
+    color: colors.blue,
     fontSize: 12,
     fontWeight: '800'
   },
@@ -1436,7 +1441,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row'
   },
   weekdayText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     fontWeight: '900',
     textAlign: 'center',
@@ -1455,25 +1460,25 @@ const styles = StyleSheet.create({
     width: `${100 / 7}%`
   },
   calendarDayButtonActive: {
-    backgroundColor: '#2563EB'
+    backgroundColor: colors.blue
   },
   calendarDayButtonToday: {
-    borderColor: '#10B981',
+    borderColor: colors.mintDeep,
     borderWidth: 1.5
   },
   calendarDayText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 15,
     fontWeight: '800'
   },
   calendarDayTextMuted: {
-    color: '#CBD5E1'
+    color: colors.line
   },
   calendarDayTextActive: {
-    color: '#FFFFFF'
+    color: colors.surface
   },
   calendarDayTextToday: {
-    color: '#059669',
+    color: colors.mintDeep,
     fontWeight: '900'
   },
   highContrast: {

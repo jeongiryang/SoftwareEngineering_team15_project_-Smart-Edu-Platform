@@ -30,3 +30,35 @@ export const shadows = {
     elevation: 3
   }
 };
+
+export const radii = {
+  chip: 999,
+  control: 12,
+  card: 20,
+  panel: 24
+};
+
+export const designGuidelines = {
+  selectedPatterns: [
+    'bentoGrid',
+    'skeletonUi',
+    'customModal',
+    'emptyStateAction',
+    'microInteraction',
+    'calmInterface',
+    'accessibilityFirst',
+    'smartOnboarding',
+    'dataStorytelling',
+    'aiTransparency',
+    'privacyControl',
+    'multimodalInput'
+  ],
+  deferredPatterns: [
+    'neoBrutalism',
+    'heavyLiquidGlass',
+    'kineticTypography',
+    'spatialUi',
+    'passkeyLogin',
+    'collaborationPresence'
+  ]
+};

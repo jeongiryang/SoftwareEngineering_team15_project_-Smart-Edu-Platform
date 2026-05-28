@@ -292,7 +292,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               </View>
               <AccessibleTextInput
                 placeholder="공부하다가 모르는 개념이나 공식, 질문 사항을 입력하세요."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.muted}
                 value={questionInput}
                 onChangeText={setQuestionInput}
                 style={styles.textInput}
@@ -310,7 +310,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 ]}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={colors.surface} size="small" />
                 ) : (
                   <Text style={styles.submitBtnText}>질문 제출하기</Text>
                 )}
@@ -356,7 +356,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 style={[styles.submitBtn, loading && styles.disabledBtn]}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={colors.surface} size="small" />
                 ) : (
                   <Text style={styles.submitBtnText}>분석 및 맞춤 추천 요청</Text>
                 )}
@@ -397,7 +397,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               </View>
               <AccessibleTextInput
                 placeholder="책 본문, 학습지 텍스트 등 요약이 필요한 긴 글을 복사해서 붙여넣으세요."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.muted}
                 value={summarizeInput}
                 onChangeText={setSummarizeInput}
                 style={[styles.textInput, { minHeight: 150 }]}
@@ -415,7 +415,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 ]}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={colors.surface} size="small" />
                 ) : (
                   <Text style={styles.submitBtnText}>3줄 요약 요청하기</Text>
                 )}
@@ -449,7 +449,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               </View>
               <AccessibleTextInput
                 placeholder="틀린 문제 문항이나 문제를 그대로 입력해 주세요."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.muted}
                 value={wrongProblemInput}
                 onChangeText={setWrongProblemInput}
                 style={styles.textInput}
@@ -467,7 +467,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               </View>
               <AccessibleTextInput
                 placeholder="문제 풀 때 내가 작성했던 틀린 답변이나 풀이 과정을 적어보세요. (선택)"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.muted}
                 value={wrongUserAnswerInput}
                 onChangeText={setWrongUserAnswerInput}
                 style={styles.textInput}
@@ -486,7 +486,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 ]}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={colors.surface} size="small" />
                 ) : (
                   <Text style={styles.submitBtnText}>오답 원인 분석하기</Text>
                 )}
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderColor: colors.line,
-    shadowColor: '#000000',
+    shadowColor: colors.blueDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2
@@ -617,14 +617,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: '#F1CCC9',
+    borderColor: colors.danger,
     padding: 14
   },
   successAlert: {
     backgroundColor: colors.successSoft,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: '#B6DDCE',
+    borderColor: colors.mint,
     padding: 14
   },
   alertText: {
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   disabledBtn: {
-    backgroundColor: '#A7C2D2',
+    backgroundColor: colors.muted,
     shadowOpacity: 0
   },
   resultSection: {
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 16,
     gap: 8,
-    shadowColor: '#000000',
+    shadowColor: colors.blueDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2
@@ -772,8 +772,8 @@ const styles = StyleSheet.create({
   },
   truncateBadge: {
     fontSize: 10,
-    color: '#D97706',
-    backgroundColor: '#FEF3C7',
+    color: colors.warning,
+    backgroundColor: colors.warningSoft,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     padding: 20,
-    shadowColor: '#000000',
+    shadowColor: colors.blueDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
   subjectBox: {
     backgroundColor: colors.mintSoft,
     borderWidth: 1,
-    borderColor: '#B6DDD6',
+    borderColor: colors.mint,
     borderRadius: 13,
     paddingVertical: 12,
     paddingHorizontal: 16
@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 20,
     gap: 12,
-    shadowColor: '#000000',
+    shadowColor: colors.blueDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 20,
     gap: 12,
-    shadowColor: '#000000',
+    shadowColor: colors.blueDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2
