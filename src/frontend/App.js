@@ -6,7 +6,10 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
+import ScheduleScreen from './src/screens/ScheduleScreen';
+import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import { getCurrentUser } from './src/services/api';
+import { colors } from './src/styles/theme';
 
 const screens = {
   login: LoginScreen,
@@ -14,11 +17,13 @@ const screens = {
   dashboard: DashboardScreen,
   aiLearning: AILearningScreen,
   community: CommunityScreen,
+  schedule: ScheduleScreen,
+  taskBoard: TaskBoardScreen,
   admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning', 'community'];
+const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard'];
 
 function getStorage() {
   try {
@@ -46,7 +51,6 @@ export default function App() {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
 
-  // Guard authenticated screens and keep the admin route role-gated.
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LoginScreen;
 
@@ -146,7 +150,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F8FA'
+    backgroundColor: colors.background
   },
   container: {
     flex: 1
@@ -156,8 +160,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   loadingText: {
-    color: '#374151',
+    color: colors.ink,
     fontSize: 16,
-    fontWeight: '600'
+    fontWeight: '700'
   }
 });
