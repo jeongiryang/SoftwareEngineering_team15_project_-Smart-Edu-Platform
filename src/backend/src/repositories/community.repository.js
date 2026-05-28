@@ -39,6 +39,16 @@ const BOOKMARK_SELECT = {
   createdAt: true
 };
 
+const REPORT_SELECT = {
+  id: true,
+  targetType: true,
+  postId: true,
+  commentId: true,
+  reason: true,
+  status: true,
+  createdAt: true
+};
+
 const BOOKMARK_LIST_INCLUDE = {
   post: {
     include: POST_INCLUDE
@@ -236,6 +246,13 @@ function findPostByIdAndUserId(postId, userId) {
   });
 }
 
+function findCommentById(commentId) {
+  return prisma.comment.findUnique({
+    where: { id: commentId },
+    include: COMMENT_INCLUDE
+  });
+}
+
 async function findCommentsByPostId({ postId, page, pageSize }) {
   const where = { postId };
   const skip = (page - 1) * pageSize;
@@ -320,6 +337,76 @@ function upsertBookmark(postId, userId) {
       userId
     },
     select: BOOKMARK_SELECT
+  });
+}
+
+function findPostReportByReporterAndPostId(reporterId, postId) {
+  return prisma.communityReport.findFirst({
+    where: {
+      reporterId,
+      postId
+    },
+    select: {
+      id: true
+    }
+  });
+}
+
+function findCommentReportByReporterAndCommentId(reporterId, commentId) {
+  return prisma.communityReport.findFirst({
+    where: {
+      reporterId,
+      commentId
+    },
+    select: {
+      id: true
+    }
+  });
+}
+
+function createPostReport(postId, reporterId, data) {
+  return prisma.$transaction(async (tx) => {
+    const report = await tx.communityReport.create({
+      data: {
+        reporterId,
+        targetType: 'POST',
+        postId,
+        commentId: null,
+        status: 'PENDING',
+        reason: data.reason
+      },
+      select: REPORT_SELECT
+    });
+
+    await tx.boardPost.update({
+      where: { id: postId },
+      data: { reported: true }
+    });
+
+    return report;
+  });
+}
+
+function createCommentReport(commentId, reporterId, data) {
+  return prisma.$transaction(async (tx) => {
+    const report = await tx.communityReport.create({
+      data: {
+        reporterId,
+        targetType: 'COMMENT',
+        postId: null,
+        commentId,
+        status: 'PENDING',
+        reason: data.reason
+      },
+      select: REPORT_SELECT
+    });
+
+    await tx.comment.update({
+      where: { id: commentId },
+      data: { reported: true }
+    });
+
+    return report;
   });
 }
 
@@ -431,17 +518,22 @@ async function deleteBookmark(postId, userId) {
 
 module.exports = {
   createComment,
+  createCommentReport,
   createPost,
+  createPostReport,
   deleteBookmark,
   deleteReaction,
   deleteComment,
   deletePost,
+  findCommentById,
   findCommentByIdAndUserId,
+  findCommentReportByReporterAndCommentId,
   findBookmarksByUserId,
   findCommentsByPostId,
   findPostById,
   findPostByIdAndUserId,
   findPostEngagementSummaries,
+  findPostReportByReporterAndPostId,
   findPosts,
   upsertBookmark,
   upsertReaction,

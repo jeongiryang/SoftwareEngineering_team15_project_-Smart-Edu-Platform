@@ -32,6 +32,22 @@ const createBookmarkController = asyncHandler(async (req, res) => {
   sendCreated(res, { bookmark });
 });
 
+const createPostReportController = asyncHandler(async (req, res) => {
+  const report = await communityService.createPostReport(req.params.postId, req.user.id, req.body);
+
+  sendCreated(res, { report });
+});
+
+const createCommentReportController = asyncHandler(async (req, res) => {
+  const report = await communityService.createCommentReport(
+    req.params.commentId,
+    req.user.id,
+    req.body
+  );
+
+  sendCreated(res, { report });
+});
+
 const listCommentsController = asyncHandler(async (req, res) => {
   const result = await communityService.listComments(req.params.postId, req.query);
 
@@ -89,7 +105,9 @@ const deleteCommentController = asyncHandler(async (req, res) => {
 module.exports = {
   createBookmark: createBookmarkController,
   createComment: createCommentController,
+  createCommentReport: createCommentReportController,
   createPost: createPostController,
+  createPostReport: createPostReportController,
   createReaction: createReactionController,
   deleteBookmark: deleteBookmarkController,
   deleteComment: deleteCommentController,
