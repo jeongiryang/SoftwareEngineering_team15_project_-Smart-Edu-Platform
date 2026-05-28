@@ -2794,7 +2794,251 @@ Response 예시:
 | 404 | `NOT_FOUND` | 퀘스트가 존재하지 않음 |
 | 409 | `CONFLICT` | 아직 달성하지 않았거나 이미 수령한 퀘스트 |
 
-### 9.7 docs 기준 기능 구현 상태 재점검
+### 9.7 포인트 상점 API
+
+포인트 상점은 보상 시스템에서 획득한 포인트를 사용해 프로필 꾸미기용 아이템을 구매/적용하는 기능임.
+현재 MVP 범위에서는 아래 3가지 아이템 타입을 지원함.
+
+- `PROFILE_IMAGE`
+- `PROFILE_BACKGROUND`
+- `TITLE`
+
+개발용 기본 상점 아이템은 `npm run seed:dev` 실행 시 함께 생성됨.
+
+#### 9.7.1 상점 아이템 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/shop/items` | 로그인한 사용자 기준 상점 아이템 목록 조회 |
+
+Response 예시:
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "code": "PROFILE_AVATAR_SKY",
+      "name": "하늘 연필 아바타",
+      "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
+      "type": "PROFILE_IMAGE",
+      "price": 15,
+      "assetUrl": "/assets/shop/avatar-sky.png",
+      "isActive": true,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z",
+      "owned": false,
+      "equipped": false
+    }
+  ]
+}
+```
+
+Error:
+
+- `401`: 인증 token 없음 또는 유효하지 않음
+
+---
+
+#### 9.7.2 내 상점 상태 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/shop/me` | 로그인한 사용자 기준 포인트 잔액, 구매 내역, 현재 적용 상태 조회 |
+
+Response 예시:
+
+```json
+{
+  "shop": {
+    "account": {
+      "id": 1,
+      "userId": 3,
+      "pointBalance": 35,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z"
+    },
+    "profile": {
+      "id": 3,
+      "userId": 3,
+      "learningGoal": "토익 850점",
+      "preferredSubject": "영어",
+      "profileImageUrl": "/assets/shop/avatar-sky.png",
+      "profileBackgroundUrl": "/assets/shop/background-dawn.png",
+      "titleText": "아침형 학습러",
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z"
+    },
+    "equippedItems": {
+      "profileImage": {
+        "id": 1,
+        "code": "PROFILE_AVATAR_SKY",
+        "name": "하늘 연필 아바타",
+        "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
+        "type": "PROFILE_IMAGE",
+        "price": 15,
+        "assetUrl": "/assets/shop/avatar-sky.png",
+        "isActive": true,
+        "createdAt": "2026-05-28T00:00:00.000Z",
+        "updatedAt": "2026-05-28T00:00:00.000Z",
+        "owned": true,
+        "equipped": true
+      },
+      "profileBackground": null,
+      "title": null
+    },
+    "purchases": [
+      {
+        "id": 1,
+        "userId": 3,
+        "purchasedAt": "2026-05-28T01:00:00.000Z",
+        "item": {
+          "id": 1,
+          "code": "PROFILE_AVATAR_SKY",
+          "name": "하늘 연필 아바타",
+          "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
+          "type": "PROFILE_IMAGE",
+          "price": 15,
+          "assetUrl": "/assets/shop/avatar-sky.png",
+          "isActive": true,
+          "createdAt": "2026-05-28T00:00:00.000Z",
+          "updatedAt": "2026-05-28T00:00:00.000Z",
+          "owned": true,
+          "equipped": true
+        }
+      }
+    ]
+  }
+}
+```
+
+Error:
+
+- `401`: 인증 token 없음 또는 유효하지 않음
+
+---
+
+#### 9.7.3 상점 아이템 구매
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/items/:itemId/purchase` | 포인트를 차감하고 상점 아이템 구매 |
+
+Response 예시:
+
+```json
+{
+  "purchase": {
+    "account": {
+      "id": 1,
+      "userId": 3,
+      "pointBalance": 20,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T01:00:00.000Z"
+    },
+    "purchase": {
+      "id": 1,
+      "userId": 3,
+      "purchasedAt": "2026-05-28T01:00:00.000Z",
+      "item": {
+        "id": 1,
+        "code": "PROFILE_AVATAR_SKY",
+        "name": "하늘 연필 아바타",
+        "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
+        "type": "PROFILE_IMAGE",
+        "price": 15,
+        "assetUrl": "/assets/shop/avatar-sky.png",
+        "isActive": true,
+        "createdAt": "2026-05-28T00:00:00.000Z",
+        "updatedAt": "2026-05-28T00:00:00.000Z",
+        "owned": true,
+        "equipped": false
+      }
+    },
+    "pointTransaction": {
+      "id": 10,
+      "type": "SPEND",
+      "amount": 15,
+      "reason": "하늘 연필 아바타",
+      "sourceType": "SHOP_ITEM",
+      "sourceId": 1,
+      "createdAt": "2026-05-28T01:00:00.000Z"
+    }
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `itemId`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 아이템 없음 또는 비활성 아이템
+- `409`: 이미 구매한 아이템, 또는 포인트 부족
+
+동작:
+
+- 동일 아이템은 사용자당 한 번만 구매 가능함.
+- 구매 시 `RewardAccount.pointBalance`를 차감함.
+- 차감 내역은 `PointTransaction.type = SPEND`, `sourceType = SHOP_ITEM`으로 기록함.
+
+---
+
+#### 9.7.4 구매 아이템 적용
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/items/:itemId/equip` | 구매한 아이템을 현재 프로필 꾸미기 상태에 적용 |
+
+Response 예시:
+
+```json
+{
+  "equip": {
+    "profile": {
+      "id": 3,
+      "userId": 3,
+      "learningGoal": "토익 850점",
+      "preferredSubject": "영어",
+      "profileImageUrl": "/assets/shop/avatar-sky.png",
+      "profileBackgroundUrl": null,
+      "titleText": null,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T02:00:00.000Z"
+    },
+    "equippedItem": {
+      "id": 1,
+      "code": "PROFILE_AVATAR_SKY",
+      "name": "하늘 연필 아바타",
+      "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
+      "type": "PROFILE_IMAGE",
+      "price": 15,
+      "assetUrl": "/assets/shop/avatar-sky.png",
+      "isActive": true,
+      "createdAt": "2026-05-28T00:00:00.000Z",
+      "updatedAt": "2026-05-28T00:00:00.000Z",
+      "owned": true,
+      "equipped": true
+    }
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `itemId`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 아이템 없음 또는 비활성 아이템
+- `409`: 아직 구매하지 않은 아이템
+
+적용 규칙:
+
+- `PROFILE_IMAGE`는 `UserProfile.profileImageUrl`에 `assetUrl`을 반영함.
+- `PROFILE_BACKGROUND`는 `UserProfile.profileBackgroundUrl`에 `assetUrl`을 반영함.
+- `TITLE`은 `UserProfile.titleText`에 아이템 `name`을 반영함.
+
+---
+
+### 9.8 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
