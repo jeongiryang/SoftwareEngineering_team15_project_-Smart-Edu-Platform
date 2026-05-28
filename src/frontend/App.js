@@ -10,6 +10,9 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import CommunityScreen from './src/screens/CommunityScreen';
+import ScheduleScreen from './src/screens/ScheduleScreen';
+import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import { getCurrentUser } from './src/services/api';
 
 const screens = {
@@ -18,11 +21,14 @@ const screens = {
   register: RegisterScreen,
   dashboard: DashboardScreen,
   aiLearning: AILearningScreen,
+  community: CommunityScreen,
+  schedule: ScheduleScreen,
+  taskBoard: TaskBoardScreen,
   admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'admin', 'aiLearning'];
+const authScreens = ['dashboard', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard'];
 
 function getStorage() {
   try {

@@ -65,12 +65,12 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
           value={password}
         />
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-        <Pressable disabled={loading} onPress={handleLogin} style={[styles.primaryButton, loading && styles.disabledButton]}>
+        <Pressable accessibilityRole="button" disabled={loading} onPress={handleLogin} style={[styles.primaryButton, loading && styles.disabledButton]}>
           {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>로그인</Text>}
         </Pressable>
         <View style={styles.signupRow}>
           <Text style={styles.signupHint}>아직 계정이 없으신가요?</Text>
-          <Pressable disabled={loading} onPress={() => onNavigate('register')}>
+          <Pressable accessibilityRole="button" disabled={loading} onPress={() => onNavigate('register')}>
             <Text style={styles.signupLink}>회원가입</Text>
           </Pressable>
         </View>
@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 64,
     alignItems: 'center',
     paddingHorizontal: 28,
@@ -96,7 +97,8 @@ const styles = StyleSheet.create({
     minHeight: 650
   },
   sideCopy: {
-    flex: 1
+    flex: 1,
+    minWidth: 280
   },
   eyebrow: {
     color: colors.mintDeep,
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 37,
     lineHeight: 50,
-    letterSpacing: -1.3
+    letterSpacing: 0
   },
   sideDescription: {
     color: colors.muted,
@@ -140,7 +142,9 @@ const styles = StyleSheet.create({
     flex: 1
   },
   formCard: {
-    width: 420,
+    width: '100%',
+    maxWidth: 420,
+    minWidth: 280,
     borderRadius: 27,
     borderWidth: 1,
     borderColor: colors.line,

@@ -11,7 +11,11 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
     const active = activeScreen === screen;
 
     return (
-      <Pressable onPress={() => onNavigate(screen)} style={[styles.navItem, active && styles.navItemActive]}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onNavigate(screen)}
+        style={[styles.navItem, active && styles.navItemActive]}
+      >
         <Text style={[styles.navText, active && styles.navTextActive]}>{label}</Text>
       </Pressable>
     );
@@ -31,8 +35,11 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
         <View style={styles.nav}>
           {authenticated ? (
             <>
-              <NavItem label="홈" screen="dashboard" />
+              <NavItem label="대시보드" screen="dashboard" />
               <NavItem label="AI 학습" screen="aiLearning" />
+              <NavItem label="커뮤니티" screen="community" />
+              <NavItem label="일정" screen="schedule" />
+              <NavItem label="칸반" screen="taskBoard" />
               {hasAdminRole ? <NavItem label="관리자" screen="admin" /> : null}
             </>
           ) : (
@@ -47,12 +54,12 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
           {authenticated ? (
             <>
               <Text style={styles.userLabel}>{user.name}님</Text>
-              <Pressable onPress={onLogout} style={styles.outlineButton}>
+              <Pressable accessibilityRole="button" onPress={onLogout} style={styles.outlineButton}>
                 <Text style={styles.outlineText}>로그아웃</Text>
               </Pressable>
             </>
           ) : (
-            <Pressable onPress={() => onNavigate('register')} style={styles.primaryButton}>
+            <Pressable accessibilityRole="button" onPress={() => onNavigate('register')} style={styles.primaryButton}>
               <Text style={styles.primaryText}>무료로 시작하기</Text>
             </Pressable>
           )}
@@ -74,15 +81,18 @@ const styles = StyleSheet.create({
     maxWidth: 1180,
     minHeight: 76,
     paddingHorizontal: 24,
+    paddingVertical: 12,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 18
+    gap: 14
   },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11
+    gap: 11,
+    minWidth: 176
   },
   logo: {
     height: 47,
@@ -93,7 +103,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 21,
     fontWeight: '800',
-    letterSpacing: -0.6
+    letterSpacing: 0
   },
   brandSub: {
     color: colors.muted,
@@ -102,15 +112,17 @@ const styles = StyleSheet.create({
   },
   nav: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 5,
     flex: 1,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    minWidth: 260
   },
   navItem: {
-    minHeight: 42,
+    minHeight: 38,
     justifyContent: 'center',
-    paddingHorizontal: 17,
+    paddingHorizontal: 14,
     borderRadius: 22
   },
   navItemActive: {
@@ -118,7 +130,7 @@ const styles = StyleSheet.create({
   },
   navText: {
     color: colors.muted,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700'
   },
   navTextActive: {
@@ -126,8 +138,10 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 12
+    gap: 10,
+    justifyContent: 'flex-end'
   },
   userLabel: {
     color: colors.ink,

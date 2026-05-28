@@ -34,7 +34,7 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
       <View style={styles.infoPanel}>
         <Text style={styles.eyebrow}>START LEARNING</Text>
         <Text style={styles.infoTitle}>새로운 학습 기록을{'\n'}시작하세요</Text>
-        {['AI에게 바로 질문하기', '긴 본문 핵심 요약하기', '오답 원인 분석으로 복습하기'].map((item) => (
+        {['AI에게 바로 질문하기', '일정과 태스크 정리하기', '커뮤니티에서 학습 기록 나누기'].map((item) => (
           <View key={item} style={styles.benefit}>
             <View style={styles.check} />
             <Text style={styles.benefitText}>{item}</Text>
@@ -51,10 +51,10 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.label}>비밀번호</Text>
         <TextInput onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor="#A1AAA8" secureTextEntry style={styles.input} value={password} />
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-        <Pressable disabled={loading} onPress={handleRegister} style={[styles.primaryButton, loading && styles.disabledButton]}>
+        <Pressable accessibilityRole="button" disabled={loading} onPress={handleRegister} style={[styles.primaryButton, loading && styles.disabledButton]}>
           {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>가입하고 시작하기</Text>}
         </Pressable>
-        <Pressable disabled={loading} onPress={() => onNavigate('login')} style={styles.loginLink}>
+        <Pressable accessibilityRole="button" disabled={loading} onPress={() => onNavigate('login')} style={styles.loginLink}>
           <Text style={styles.loginText}>이미 계정이 있으신가요? <Text style={styles.emphasis}>로그인</Text></Text>
         </Pressable>
       </View>
@@ -72,17 +72,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     alignSelf: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 66
   },
-  infoPanel: { flex: 1, gap: 15 },
+  infoPanel: { flex: 1, gap: 15, minWidth: 280 },
   eyebrow: { color: colors.mintDeep, fontSize: 12, letterSpacing: 1.5, fontWeight: '800' },
-  infoTitle: { color: colors.ink, fontSize: 36, lineHeight: 49, fontWeight: '800', letterSpacing: -1.2, marginBottom: 20 },
+  infoTitle: { color: colors.ink, fontSize: 36, lineHeight: 49, fontWeight: '800', letterSpacing: 0, marginBottom: 20 },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: colors.surface, padding: 15, borderRadius: 15 },
   check: { height: 22, width: 22, borderRadius: 11, backgroundColor: colors.mint, borderWidth: 6, borderColor: colors.mintSoft },
   benefitText: { color: colors.ink, fontWeight: '600', fontSize: 14 },
   formCard: {
-    width: 430,
+    width: '100%',
+    maxWidth: 430,
+    minWidth: 280,
     borderRadius: 27,
     borderWidth: 1,
     borderColor: colors.line,

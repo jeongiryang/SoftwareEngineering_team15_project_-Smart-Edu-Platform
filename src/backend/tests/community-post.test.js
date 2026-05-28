@@ -1,5 +1,7 @@
 const mockUsers = [];
 const mockPosts = [];
+const mockReactions = [];
+const mockBookmarks = [];
 let mockNextUserId = 1;
 let mockNextPostId = 1;
 
@@ -22,6 +24,29 @@ function mockBuildRepositoryPost(post) {
       comments: post.commentCount || 0
     }
   };
+}
+
+function mockBuildEngagementSummaries(postIds, userId) {
+  return new Map(
+    postIds.map((postId) => {
+      const id = Number(postId);
+      const reactions = mockReactions.filter((reaction) => reaction.postId === id);
+      const bookmarks = mockBookmarks.filter((bookmark) => bookmark.postId === id);
+      const currentUserReaction = reactions.find((reaction) => reaction.userId === Number(userId));
+      const currentUserBookmark = bookmarks.find((bookmark) => bookmark.userId === Number(userId));
+
+      return [
+        id,
+        {
+          likeCount: reactions.filter((reaction) => reaction.type === 'LIKE').length,
+          dislikeCount: reactions.filter((reaction) => reaction.type === 'DISLIKE').length,
+          bookmarkCount: bookmarks.length,
+          myReaction: currentUserReaction?.type ?? null,
+          isBookmarked: Boolean(currentUserBookmark)
+        }
+      ];
+    })
+  );
 }
 
 jest.mock('../src/repositories/user.repository', () => ({
@@ -87,10 +112,28 @@ jest.mock('../src/repositories/community.repository', () => ({
 
     return post ? mockBuildRepositoryPost(post) : null;
   }),
-  findPosts: jest.fn(async ({ page, pageSize, category }) => {
+  findPostEngagementSummaries: jest.fn(async (postIds, userId) =>
+    mockBuildEngagementSummaries(postIds, userId)
+  ),
+  findPosts: jest.fn(async ({ page, pageSize, category, search, sort = 'latest' }) => {
+    const normalizedSearch = search ? String(search).toLowerCase() : undefined;
     const filteredPosts = mockPosts
       .filter((post) => !category || post.category === category)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .filter((post) => {
+        if (!normalizedSearch) {
+          return true;
+        }
+
+        return (
+          post.title.toLowerCase().includes(normalizedSearch) ||
+          post.content.toLowerCase().includes(normalizedSearch)
+        );
+      })
+      .sort((a, b) => {
+        const direction = sort === 'oldest' ? 1 : -1;
+
+        return direction * (a.createdAt.getTime() - b.createdAt.getTime());
+      });
     const start = (page - 1) * pageSize;
 
     return {
@@ -158,6 +201,8 @@ function expectSafePostPayload(payload) {
 beforeEach(() => {
   mockUsers.length = 0;
   mockPosts.length = 0;
+  mockReactions.length = 0;
+  mockBookmarks.length = 0;
   mockNextUserId = 1;
   mockNextPostId = 1;
   jest.clearAllMocks();
@@ -265,17 +310,114 @@ describe('Community Post API', () => {
     expectSafePostPayload(response.body);
   });
 
+  it('lists community posts with reaction and bookmark summary for the current user', async () => {
+    const currentUser = await registerTestUser();
+    const otherUser = await registerTestUser();
+    const targetPost = await createTestPost(currentUser.token, { title: 'Engagement target' });
+    const otherPost = await createTestPost(currentUser.token, { title: 'Other engagement post' });
+
+    mockReactions.push(
+      { postId: targetPost.id, userId: currentUser.user.id, type: 'LIKE' },
+      { postId: targetPost.id, userId: otherUser.user.id, type: 'DISLIKE' },
+      { postId: otherPost.id, userId: otherUser.user.id, type: 'LIKE' }
+    );
+    mockBookmarks.push(
+      { postId: targetPost.id, userId: currentUser.user.id },
+      { postId: targetPost.id, userId: otherUser.user.id },
+      { postId: otherPost.id, userId: otherUser.user.id }
+    );
+
+    const response = await request(app)
+      .get('/api/community/posts?sort=oldest')
+      .set(createAuthHeader(currentUser.token));
+
+    expect(response.status).toBe(200);
+    const targetSummary = response.body.posts.find((post) => post.id === targetPost.id);
+    const otherSummary = response.body.posts.find((post) => post.id === otherPost.id);
+
+    expect(targetSummary).toEqual(
+      expect.objectContaining({
+        likeCount: 1,
+        dislikeCount: 1,
+        bookmarkCount: 2,
+        myReaction: 'LIKE',
+        isBookmarked: true
+      })
+    );
+    expect(otherSummary).toEqual(
+      expect.objectContaining({
+        likeCount: 1,
+        dislikeCount: 0,
+        bookmarkCount: 1,
+        myReaction: null,
+        isBookmarked: false
+      })
+    );
+    expect(communityRepository.findPostEngagementSummaries).toHaveBeenCalledWith(
+      expect.arrayContaining([targetPost.id, otherPost.id]),
+      currentUser.user.id
+    );
+    expectSafePostPayload(response.body);
+  });
+
+  it('returns default engagement summary for posts without reactions or bookmarks', async () => {
+    const { token } = await registerTestUser();
+    const post = await createTestPost(token, { title: 'No engagement post' });
+
+    const response = await request(app)
+      .get(`/api/community/posts/${post.id}`)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.post).toEqual(
+      expect.objectContaining({
+        likeCount: 0,
+        dislikeCount: 0,
+        bookmarkCount: 0,
+        myReaction: null,
+        isBookmarked: false
+      })
+    );
+  });
+
   it.each([
     '/api/community/posts?page=abc',
     '/api/community/posts?page=0',
     '/api/community/posts?pageSize=-1',
     '/api/community/posts?pageSize=51',
-    '/api/community/posts?category=NOTICE'
+    '/api/community/posts?category=NOTICE',
+    '/api/community/posts?search=',
+    '/api/community/posts?search=%20%20%20',
+    '/api/community/posts?sort=popular'
   ])('rejects invalid list query "%s"', async (path) => {
     const { token } = await registerTestUser();
 
     const response = await request(app)
       .get(path)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects non-string search query values', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/community/posts')
+      .query({ search: ['math', 'science'] })
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects search query values longer than 100 characters', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/community/posts')
+      .query({ search: 'a'.repeat(101) })
       .set(createAuthHeader(token));
 
     expect(response.status).toBe(400);
@@ -295,6 +437,114 @@ describe('Community Post API', () => {
     expect(response.body.posts).toHaveLength(1);
     expect(response.body.posts[0].id).toBe(freePost.id);
     expect(response.body.posts[0].category).toBe('FREE');
+  });
+
+  it('searches community posts by title', async () => {
+    const { token } = await registerTestUser();
+    const targetPost = await createTestPost(token, {
+      title: 'Calculus question',
+      content: 'Limit problem'
+    });
+    await createTestPost(token, {
+      title: 'Vocabulary note',
+      content: 'English study'
+    });
+
+    const response = await request(app)
+      .get('/api/community/posts?search=calc')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.posts).toHaveLength(1);
+    expect(response.body.posts[0].id).toBe(targetPost.id);
+    expect(response.body.pagination.total).toBe(1);
+  });
+
+  it('searches community posts by content', async () => {
+    const { token } = await registerTestUser();
+    await createTestPost(token, {
+      title: 'Free talk',
+      content: 'Daily study log'
+    });
+    const targetPost = await createTestPost(token, {
+      title: 'Question',
+      content: 'Geometry proof strategy'
+    });
+
+    const response = await request(app)
+      .get('/api/community/posts?search=proof')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.posts).toHaveLength(1);
+    expect(response.body.posts[0].id).toBe(targetPost.id);
+    expect(response.body.pagination.total).toBe(1);
+  });
+
+  it('applies search with category filter and sort options', async () => {
+    const { token } = await registerTestUser();
+    await createTestPost(token, {
+      category: 'QUESTION',
+      title: 'Math question',
+      content: 'calculus'
+    });
+    const firstFreePost = await createTestPost(token, {
+      category: 'FREE',
+      title: 'Math free post',
+      content: 'algebra'
+    });
+    const secondFreePost = await createTestPost(token, {
+      category: 'FREE',
+      title: 'Daily note',
+      content: 'math habit'
+    });
+    await createTestPost(token, {
+      category: 'FREE',
+      title: 'English free post',
+      content: 'vocabulary'
+    });
+
+    const response = await request(app)
+      .get('/api/community/posts?category=FREE&search=math&sort=oldest')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.posts.map((post) => post.id)).toEqual([
+      firstFreePost.id,
+      secondFreePost.id
+    ]);
+    expect(response.body.pagination.total).toBe(2);
+    expect(communityRepository.findPosts).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 10,
+      category: 'FREE',
+      search: 'math',
+      sort: 'oldest'
+    });
+  });
+
+  it('sorts community posts by latest and oldest options', async () => {
+    const { token } = await registerTestUser();
+    const firstPost = await createTestPost(token, { title: 'First post' });
+    const secondPost = await createTestPost(token, { title: 'Second post' });
+
+    const latestResponse = await request(app)
+      .get('/api/community/posts?sort=latest')
+      .set(createAuthHeader(token));
+    const oldestResponse = await request(app)
+      .get('/api/community/posts?sort=oldest')
+      .set(createAuthHeader(token));
+
+    expect(latestResponse.status).toBe(200);
+    expect(latestResponse.body.posts.map((post) => post.id)).toEqual([
+      secondPost.id,
+      firstPost.id
+    ]);
+    expect(oldestResponse.status).toBe(200);
+    expect(oldestResponse.body.posts.map((post) => post.id)).toEqual([
+      firstPost.id,
+      secondPost.id
+    ]);
   });
 
   it('reads a single community post', async () => {
@@ -317,6 +567,42 @@ describe('Community Post API', () => {
         title: '학습 인증',
         content: '오늘 공부 완료',
         commentCount: 0
+      })
+    );
+    expectSafePostPayload(response.body);
+  });
+
+  it('reads a single community post with current user engagement status', async () => {
+    const currentUser = await registerTestUser();
+    const otherUser = await registerTestUser();
+    const post = await createTestPost(currentUser.token, {
+      category: 'FREE',
+      title: 'Engagement detail',
+      content: 'Detail content'
+    });
+
+    mockReactions.push(
+      { postId: post.id, userId: currentUser.user.id, type: 'DISLIKE' },
+      { postId: post.id, userId: otherUser.user.id, type: 'LIKE' }
+    );
+    mockBookmarks.push(
+      { postId: post.id, userId: currentUser.user.id },
+      { postId: post.id, userId: otherUser.user.id }
+    );
+
+    const response = await request(app)
+      .get(`/api/community/posts/${post.id}`)
+      .set(createAuthHeader(currentUser.token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.post).toEqual(
+      expect.objectContaining({
+        id: post.id,
+        likeCount: 1,
+        dislikeCount: 1,
+        bookmarkCount: 2,
+        myReaction: 'DISLIKE',
+        isBookmarked: true
       })
     );
     expectSafePostPayload(response.body);
@@ -461,6 +747,140 @@ describe('Community Post API', () => {
 describe('Community Post repository deletePost', () => {
   afterEach(() => {
     jest.dontMock('../src/utils/prisma');
+  });
+
+  it('builds search, category, sort and pagination query options', async () => {
+    jest.resetModules();
+
+    const mockPrisma = {
+      boardPost: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0)
+      }
+    };
+
+    jest.doMock('../src/utils/prisma', () => mockPrisma);
+
+    const realCommunityRepository = jest.requireActual('../src/repositories/community.repository');
+    const result = await realCommunityRepository.findPosts({
+      page: 2,
+      pageSize: 5,
+      category: 'QUESTION',
+      search: 'calculus',
+      sort: 'oldest'
+    });
+
+    const expectedWhere = {
+      category: 'QUESTION',
+      OR: [
+        {
+          title: {
+            contains: 'calculus',
+            mode: 'insensitive'
+          }
+        },
+        {
+          content: {
+            contains: 'calculus',
+            mode: 'insensitive'
+          }
+        }
+      ]
+    };
+
+    expect(result).toEqual({ posts: [], total: 0 });
+    expect(mockPrisma.boardPost.findMany).toHaveBeenCalledWith({
+      where: expectedWhere,
+      include: expect.any(Object),
+      orderBy: { createdAt: 'asc' },
+      skip: 5,
+      take: 5
+    });
+    expect(mockPrisma.boardPost.count).toHaveBeenCalledWith({ where: expectedWhere });
+  });
+
+  it('builds engagement summary queries for counts and current user status', async () => {
+    jest.resetModules();
+
+    const mockPrisma = {
+      communityReaction: {
+        groupBy: jest.fn().mockResolvedValue([
+          { postId: 1, type: 'LIKE', _count: { id: 2 } },
+          { postId: 1, type: 'DISLIKE', _count: { id: 1 } },
+          { postId: 2, type: 'LIKE', _count: { id: 1 } }
+        ]),
+        findMany: jest.fn().mockResolvedValue([{ postId: 1, type: 'DISLIKE' }])
+      },
+      communityBookmark: {
+        groupBy: jest.fn().mockResolvedValue([{ postId: 1, _count: { id: 3 } }]),
+        findMany: jest.fn().mockResolvedValue([{ postId: 2 }])
+      }
+    };
+
+    jest.doMock('../src/utils/prisma', () => mockPrisma);
+
+    const realCommunityRepository = jest.requireActual('../src/repositories/community.repository');
+    const summaries = await realCommunityRepository.findPostEngagementSummaries([1, 2], 7);
+
+    expect(summaries.get(1)).toEqual({
+      likeCount: 2,
+      dislikeCount: 1,
+      bookmarkCount: 3,
+      myReaction: 'DISLIKE',
+      isBookmarked: false
+    });
+    expect(summaries.get(2)).toEqual({
+      likeCount: 1,
+      dislikeCount: 0,
+      bookmarkCount: 0,
+      myReaction: null,
+      isBookmarked: true
+    });
+    expect(mockPrisma.communityReaction.groupBy).toHaveBeenCalledWith({
+      by: ['postId', 'type'],
+      where: {
+        postId: {
+          in: [1, 2]
+        }
+      },
+      _count: {
+        id: true
+      }
+    });
+    expect(mockPrisma.communityBookmark.groupBy).toHaveBeenCalledWith({
+      by: ['postId'],
+      where: {
+        postId: {
+          in: [1, 2]
+        }
+      },
+      _count: {
+        id: true
+      }
+    });
+    expect(mockPrisma.communityReaction.findMany).toHaveBeenCalledWith({
+      where: {
+        postId: {
+          in: [1, 2]
+        },
+        userId: 7
+      },
+      select: {
+        postId: true,
+        type: true
+      }
+    });
+    expect(mockPrisma.communityBookmark.findMany).toHaveBeenCalledWith({
+      where: {
+        postId: {
+          in: [1, 2]
+        },
+        userId: 7
+      },
+      select: {
+        postId: true
+      }
+    });
   });
 
   it('does not delete comments when ownership is not confirmed in transaction', async () => {

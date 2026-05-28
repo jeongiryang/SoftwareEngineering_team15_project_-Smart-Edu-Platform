@@ -5,26 +5,26 @@ const icon = require('../assets/sagaksagak-app-icon.png');
 
 const availableFeatures = [
   {
-    label: 'AI 질문',
-    title: '막힌 개념을 바로 질문',
-    description: '학습 중 생긴 질문을 적고 맥락에 맞는 답변을 확인합니다.'
+    label: 'AI 학습',
+    title: '질문부터 오답 분석까지',
+    description: '질문, 추천, 요약, 오답 분석 흐름을 한 화면에서 이어갑니다.'
   },
   {
-    label: 'AI 요약',
-    title: '긴 학습 내용을 짧게',
-    description: '읽어야 할 본문을 핵심 요약으로 정리해 복습 시간을 줄입니다.'
+    label: '일정/칸반',
+    title: '계획과 태스크를 함께 관리',
+    description: '학습 일정과 칸반 보드로 오늘 해야 할 일을 정리합니다.'
   },
   {
-    label: '오답 분석',
-    title: '틀린 이유를 기록',
-    description: '문제와 내 답을 입력하면 취약 유형과 해설을 함께 정리합니다.'
+    label: '커뮤니티',
+    title: '게시글과 댓글로 학습 공유',
+    description: '질문과 기록을 나누고 반응, 북마크, 신고 흐름을 사용할 수 있습니다.'
   }
 ];
 
 const flowSteps = [
   '회원가입으로 내 학습 공간을 만듭니다.',
-  '질문, 요약, 오답 분석 중 필요한 도움을 선택합니다.',
-  'AI 피드백으로 오늘의 학습 방향을 다듬습니다.'
+  'AI, 일정, 칸반, 커뮤니티 중 필요한 도구를 선택합니다.',
+  '기록과 피드백을 모아 오늘의 학습 방향을 다듬습니다.'
 ];
 
 export default function LandingScreen({ onNavigate }) {
@@ -38,13 +38,13 @@ export default function LandingScreen({ onNavigate }) {
           <Text style={styles.title}>공부의 흔적을{'\n'}사각사각 쌓아가세요</Text>
           <Text style={styles.description}>
             질문하고, 요약하고, 틀린 이유를 되짚는 흐름을 한곳에서 관리하는
-            학습 파트너입니다. 현재 제공되는 AI 학습 지원으로 오늘의 공부를 시작하세요.
+            학습 파트너입니다. AI 학습, 일정, 칸반, 커뮤니티로 오늘의 공부를 시작하세요.
           </Text>
           <View style={styles.heroActions}>
-            <Pressable onPress={() => onNavigate('register')} style={styles.primaryButton}>
+            <Pressable accessibilityRole="button" onPress={() => onNavigate('register')} style={styles.primaryButton}>
               <Text style={styles.primaryText}>무료로 시작하기</Text>
             </Pressable>
-            <Pressable onPress={() => onNavigate('login')} style={styles.secondaryButton}>
+            <Pressable accessibilityRole="button" onPress={() => onNavigate('login')} style={styles.secondaryButton}>
               <Text style={styles.secondaryText}>로그인</Text>
             </Pressable>
           </View>
@@ -55,7 +55,7 @@ export default function LandingScreen({ onNavigate }) {
             <View style={styles.dot} />
             <View>
               <Text style={styles.miniTitle}>오늘의 학습 지원</Text>
-              <Text style={styles.miniDescription}>AI 오답 분석을 시작해 보세요</Text>
+              <Text style={styles.miniDescription}>계획과 복습을 한 번에 이어가세요</Text>
             </View>
           </View>
         </View>
@@ -82,7 +82,7 @@ export default function LandingScreen({ onNavigate }) {
           <Text style={styles.flowTitle}>계획에서 복습까지,{'\n'}가볍게 시작하는 학습</Text>
           <Text style={styles.flowDescription}>
             사각사각은 다양한 학습자의 기록과 반복 학습을 돕는 서비스로 설계되었습니다.
-            이번 화면에서는 인증과 AI 학습 지원의 사용 흐름을 먼저 제공합니다.
+            이번 화면에서는 현재 연결된 학습 도구와 시작 흐름을 함께 제공합니다.
           </Text>
         </View>
         <View style={styles.steps}>
@@ -116,13 +116,15 @@ const styles = StyleSheet.create({
     paddingTop: 62,
     paddingBottom: 70,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 52
   },
   heroCopy: {
     flex: 1,
-    maxWidth: 610
+    maxWidth: 610,
+    minWidth: 280
   },
   pill: {
     alignSelf: 'flex-start',
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 52,
     lineHeight: 65,
-    letterSpacing: -2.5
+    letterSpacing: 0
   },
   description: {
     color: colors.muted,
@@ -153,6 +155,7 @@ const styles = StyleSheet.create({
   },
   heroActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginTop: 36
   },
@@ -185,7 +188,8 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   visualCard: {
-    width: 405,
+    width: '100%',
+    maxWidth: 405,
     height: 465,
     backgroundColor: colors.cream,
     borderRadius: 38,
@@ -195,7 +199,8 @@ const styles = StyleSheet.create({
   },
   heroIcon: {
     height: 282,
-    width: 282,
+    width: '70%',
+    maxWidth: 282,
     borderRadius: 61
   },
   miniPanel: {
@@ -243,7 +248,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontWeight: '800',
     fontSize: 30,
-    letterSpacing: -1
+    letterSpacing: 0
   },
   sectionDescription: {
     color: colors.muted,
@@ -255,11 +260,13 @@ const styles = StyleSheet.create({
     maxWidth: 1180,
     paddingHorizontal: 26,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 16,
     marginBottom: 64
   },
   featureCard: {
     flex: 1,
+    minWidth: 250,
     minHeight: 182,
     padding: 25,
     borderRadius: 22,
@@ -297,6 +304,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: colors.mintSoft,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 48
   },
@@ -318,6 +326,7 @@ const styles = StyleSheet.create({
   },
   steps: {
     flex: 1,
+    minWidth: 260,
     gap: 12,
     justifyContent: 'center'
   },
