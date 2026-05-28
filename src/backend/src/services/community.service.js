@@ -199,6 +199,22 @@ function sanitizeBookmark(bookmark) {
   };
 }
 
+function sanitizeBookmarkListItem(bookmark, engagementSummary) {
+  if (!bookmark) {
+    return null;
+  }
+
+  return {
+    bookmarkId: bookmark.id,
+    bookmarkedAt: bookmark.createdAt,
+    post: sanitizePostWithEngagement(bookmark.post, {
+      ...buildDefaultEngagementSummary(),
+      ...(engagementSummary || {}),
+      isBookmarked: true
+    })
+  };
+}
+
 function buildPostData(payload = {}, options = { partial: false }) {
   assertPlainObject(payload, 'Community post payload must be an object');
   assertSupportedFields(payload, POST_FIELDS, 'Community post payload contains unsupported fields');
@@ -311,6 +327,26 @@ function buildCommentListOptions(query = {}) {
   };
 }
 
+function buildBookmarkListOptions(query = {}) {
+  const page = parseOptionalPositiveInteger(query.page, 'page', DEFAULT_PAGE);
+  const pageSize = parseOptionalPositiveInteger(query.pageSize, 'pageSize', DEFAULT_PAGE_SIZE);
+
+  if (pageSize > MAX_PAGE_SIZE) {
+    throw validationError(`pageSize must be less than or equal to ${MAX_PAGE_SIZE}`, {
+      field: 'pageSize',
+      max: MAX_PAGE_SIZE
+    });
+  }
+
+  const sort = normalizeSort(query.sort);
+
+  return {
+    page,
+    pageSize,
+    sort
+  };
+}
+
 async function listPosts(query, userId) {
   const options = buildListOptions(query);
   const { posts, total } = await communityRepository.findPosts(options);
@@ -322,6 +358,31 @@ async function listPosts(query, userId) {
 
   return {
     posts: posts.map((post) => sanitizePostWithEngagement(post, summaries.get(post.id))),
+    pagination: {
+      page: options.page,
+      pageSize: options.pageSize,
+      total,
+      totalPages
+    }
+  };
+}
+
+async function listBookmarks(query, userId) {
+  const options = buildBookmarkListOptions(query);
+  const { bookmarks, total } = await communityRepository.findBookmarksByUserId({
+    userId,
+    ...options
+  });
+  const summaries = await communityRepository.findPostEngagementSummaries(
+    bookmarks.map((bookmark) => bookmark.postId),
+    userId
+  );
+  const totalPages = Math.ceil(total / options.pageSize);
+
+  return {
+    bookmarks: bookmarks.map((bookmark) =>
+      sanitizeBookmarkListItem(bookmark, summaries.get(bookmark.postId))
+    ),
     pagination: {
       page: options.page,
       pageSize: options.pageSize,
@@ -530,6 +591,7 @@ module.exports = {
   REACTION_TYPES,
   POST_SORTS,
   buildBookmarkData,
+  buildBookmarkListOptions,
   buildCommentData,
   buildCommentListOptions,
   buildListOptions,
@@ -544,9 +606,11 @@ module.exports = {
   deletePost,
   deleteReaction,
   getPostById,
+  listBookmarks,
   listComments,
   listPosts,
   sanitizeBookmark,
+  sanitizeBookmarkListItem,
   sanitizeComment,
   sanitizePost,
   sanitizePostWithEngagement,

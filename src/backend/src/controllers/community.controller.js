@@ -8,6 +8,12 @@ const listPostsController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, result);
 });
 
+const listBookmarksController = asyncHandler(async (req, res) => {
+  const result = await communityService.listBookmarks(req.query, req.user.id);
+
+  sendSuccess(res, 200, result);
+});
+
 const createPostController = asyncHandler(async (req, res) => {
   const post = await communityService.createPost(req.user.id, req.body);
 
@@ -90,6 +96,7 @@ module.exports = {
   deletePost: deletePostController,
   deleteReaction: deleteReactionController,
   getPostById: getPostByIdController,
+  listBookmarks: listBookmarksController,
   listComments: listCommentsController,
   listPosts: listPostsController,
   updateComment: updateCommentController,

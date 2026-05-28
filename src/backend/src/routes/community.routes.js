@@ -9,6 +9,7 @@ const {
   deletePost,
   deleteReaction,
   getPostById,
+  listBookmarks,
   listComments,
   listPosts,
   updateComment,
@@ -20,6 +21,7 @@ const router = express.Router();
 
 router.get('/posts', authMiddleware, listPosts);
 router.post('/posts', authMiddleware, createPost);
+router.get('/bookmarks', authMiddleware, listBookmarks);
 router.get('/posts/:postId/comments', authMiddleware, listComments);
 router.post('/posts/:postId/comments', authMiddleware, createComment);
 router.post('/posts/:postId/reactions', authMiddleware, createReaction);
