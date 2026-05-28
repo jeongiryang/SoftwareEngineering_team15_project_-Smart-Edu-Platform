@@ -67,6 +67,16 @@ beforeEach(() => {
   mockNextTaskId = 1;
   mockNextFocusSessionId = 1;
   jest.clearAllMocks();
+  focusRepository.findFocusSessionsByUserId.mockResolvedValue([]);
+  focusRepository.findFocusSessionsByUserIdAndDateRange.mockResolvedValue([]);
+  focusRepository.createFocusSession.mockImplementation(async (userId, data) => ({
+    id: mockNextFocusSessionId++,
+    userId,
+    ...data,
+    createdAt: new Date('2026-05-26T00:00:00.000Z')
+  }));
+  statisticsRepository.findFocusSessionsByUserIdAndDateRange.mockResolvedValue([]);
+  statisticsRepository.findTasksByUserIdAndDateRange.mockResolvedValue([]);
 });
 
 describe('Focus & Statistics API', () => {
@@ -112,6 +122,10 @@ describe('Focus & Statistics API', () => {
         memo: 'Deep focus'
       })
     );
+    expect(response.body.focusSession).not.toHaveProperty('passwordHash');
+    expect(response.body.focusSession).not.toHaveProperty('password');
+    expect(response.body.focusSession).not.toHaveProperty('token');
+    expect(response.body.focusSession).not.toHaveProperty('email');
   });
 
   it('rejects invalid focus session payloads', async () => {
@@ -128,6 +142,45 @@ describe('Focus & Statistics API', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it.each([
+    ['zero', 0],
+    ['negative', -1],
+    ['string', '3600000']
+  ])('rejects %s durationMs values', async (label, durationMs) => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/focus-sessions')
+      .set(createAuthHeader(token))
+      .send({
+        startedAt: '2026-05-25T10:00:00.000Z',
+        endedAt: '2026-05-25T11:00:00.000Z',
+        durationMs
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects unsupported focus session payload fields and userId spoofing', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/focus-sessions')
+      .set(createAuthHeader(token))
+      .send({
+        userId: 999,
+        status: 'DONE',
+        startedAt: '2026-05-25T10:00:00.000Z',
+        endedAt: '2026-05-25T11:00:00.000Z',
+        durationMs: 3600000
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+    expect(focusRepository.createFocusSession).not.toHaveBeenCalled();
   });
 
   it('returns 404 when taskId does not belong to the current user', async () => {
@@ -208,6 +261,11 @@ describe('Focus & Statistics API', () => {
         durationMs: 1800000
       })
     );
+    expect(focusRepository.findFocusSessionsByUserIdAndDateRange).toHaveBeenCalledWith(
+      user.id,
+      new Date('2026-05-01T00:00:00.000Z'),
+      new Date('2026-05-31T23:59:59.999Z')
+    );
   });
 
   it('rejects incomplete focus session date filters', async () => {
@@ -221,8 +279,20 @@ describe('Focus & Statistics API', () => {
     expect(response.body.code).toBe('VALIDATION_ERROR');
   });
 
-  it('calculates summary statistics correctly', async () => {
+  it('rejects unsupported focus session query fields', async () => {
     const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/focus-sessions?startDate=2026-05-01&endDate=2026-05-31&userId=999')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+    expect(focusRepository.findFocusSessionsByUserIdAndDateRange).not.toHaveBeenCalled();
+  });
+
+  it('calculates summary statistics correctly', async () => {
+    const { token, user } = await registerTestUser();
 
     statisticsRepository.findFocusSessionsByUserIdAndDateRange.mockResolvedValue([
       {
@@ -253,6 +323,44 @@ describe('Focus & Statistics API', () => {
       sessionCount: 2,
       taskCount: 3
     });
+    expect(statisticsRepository.findFocusSessionsByUserIdAndDateRange).toHaveBeenCalledWith(
+      user.id,
+      new Date('2026-05-01T00:00:00.000Z'),
+      new Date('2026-05-31T23:59:59.999Z')
+    );
+    expect(statisticsRepository.findTasksByUserIdAndDateRange).toHaveBeenCalledWith(
+      user.id,
+      new Date('2026-05-01T00:00:00.000Z'),
+      new Date('2026-05-31T23:59:59.999Z')
+    );
+  });
+
+  it('returns stable empty summary statistics', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/statistics/summary?startDate=2026-05-01&endDate=2026-05-31')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.summary).toEqual({
+      totalMinutes: 0,
+      completionRate: 0,
+      sessionCount: 0,
+      taskCount: 0
+    });
+  });
+
+  it('rejects unsupported statistics query fields', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/statistics/summary?startDate=2026-05-01&endDate=2026-05-31&userId=999')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+    expect(statisticsRepository.findFocusSessionsByUserIdAndDateRange).not.toHaveBeenCalled();
   });
 
   it('returns heatmap data grouped by date', async () => {
@@ -291,6 +399,17 @@ describe('Focus & Statistics API', () => {
         sessionCount: 1
       }
     });
+  });
+
+  it('returns stable empty heatmap data', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/statistics/heatmap?startDate=2026-05-01&endDate=2026-05-31')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.heatmap).toEqual({});
   });
 
   it('rejects invalid statistics date ranges', async () => {

@@ -4,6 +4,17 @@ const {
 } = require('../repositories/statistics.repository');
 const { validationError } = require('../utils/errors');
 
+const STATISTICS_QUERY_FIELDS = ['startDate', 'endDate'];
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function assertSupportedFields(payload, allowedFields, message) {
+  const unsupportedFields = Object.keys(payload).filter((field) => !allowedFields.includes(field));
+
+  if (unsupportedFields.length > 0) {
+    throw validationError(message, { fields: unsupportedFields });
+  }
+}
+
 function parseDateField(value, field) {
   const date = new Date(value);
 
@@ -14,9 +25,26 @@ function parseDateField(value, field) {
   return date;
 }
 
+function parseDateBoundaryField(value, field, boundary) {
+  if (typeof value === 'string' && DATE_ONLY_PATTERN.test(value)) {
+    const suffix = boundary === 'end' ? 'T23:59:59.999Z' : 'T00:00:00.000Z';
+    return new Date(`${value}${suffix}`);
+  }
+
+  return parseDateField(value, field);
+}
+
 function normalizeDateRange(query = {}) {
-  const startDate = parseDateField(query.startDate, 'startDate');
-  const endDate = parseDateField(query.endDate, 'endDate');
+  assertSupportedFields(query, STATISTICS_QUERY_FIELDS, 'Statistics query contains unsupported fields');
+
+  if (!query.startDate || !query.endDate) {
+    throw validationError('startDate and endDate are required together', {
+      fields: ['startDate', 'endDate']
+    });
+  }
+
+  const startDate = parseDateBoundaryField(query.startDate, 'startDate', 'start');
+  const endDate = parseDateBoundaryField(query.endDate, 'endDate', 'end');
 
   if (startDate > endDate) {
     throw validationError('startDate must be earlier than or equal to endDate', {
@@ -69,6 +97,7 @@ async function getHeatmapData(userId, query = {}) {
 }
 
 module.exports = {
+  STATISTICS_QUERY_FIELDS,
   getHeatmapData,
   getSummary,
   normalizeDateRange

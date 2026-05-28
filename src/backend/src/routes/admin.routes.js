@@ -1,8 +1,10 @@
 const express = require('express');
 const {
   getUsers,
+  listCommunityReports,
   updateUserStatus,
   getReports,
+  processCommunityReport,
   moderatePost,
   moderateComment,
   moderateChallenge
@@ -17,6 +19,8 @@ router.use(adminMiddleware);
 
 router.get('/users', getUsers);
 router.patch('/users/:userId/status', updateUserStatus);
+router.get('/community/reports', listCommunityReports);
+router.patch('/community/reports/:reportId', processCommunityReport);
 router.get('/reports', getReports);
 router.patch('/posts/:postId/moderation', moderatePost);
 router.patch('/comments/:commentId/moderation', moderateComment);

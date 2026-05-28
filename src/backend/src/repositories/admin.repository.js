@@ -1,5 +1,50 @@
 const prisma = require('../utils/prisma');
 
+const ADMIN_USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  status: true
+};
+
+const COMMUNITY_REPORT_INCLUDE = {
+  reporter: {
+    select: ADMIN_USER_SELECT
+  },
+  resolvedBy: {
+    select: ADMIN_USER_SELECT
+  },
+  post: {
+    select: {
+      id: true,
+      category: true,
+      title: true,
+      reported: true,
+      user: {
+        select: ADMIN_USER_SELECT
+      }
+    }
+  },
+  comment: {
+    select: {
+      id: true,
+      postId: true,
+      content: true,
+      reported: true,
+      user: {
+        select: ADMIN_USER_SELECT
+      },
+      post: {
+        select: {
+          id: true,
+          title: true
+        }
+      }
+    }
+  }
+};
+
 function findAllUsers() {
   return prisma.user.findMany({
     orderBy: { id: 'asc' }
@@ -83,6 +128,88 @@ function findAdminActions() {
       }
     },
     orderBy: { createdAt: 'desc' }
+  });
+}
+
+async function findCommunityReports({ status, targetType, page, pageSize }) {
+  const where = {};
+  const skip = (page - 1) * pageSize;
+
+  if (status) {
+    where.status = status;
+  }
+
+  if (targetType) {
+    where.targetType = targetType;
+  }
+
+  const [reports, total] = await prisma.$transaction([
+    prisma.communityReport.findMany({
+      where,
+      include: COMMUNITY_REPORT_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize
+    }),
+    prisma.communityReport.count({ where })
+  ]);
+
+  return { reports, total };
+}
+
+function findCommunityReportById(id) {
+  return prisma.communityReport.findUnique({
+    where: { id },
+    include: COMMUNITY_REPORT_INCLUDE
+  });
+}
+
+async function processCommunityReport(report, adminId, { status, resolutionNote }) {
+  return prisma.$transaction(async (tx) => {
+    await tx.communityReport.update({
+      where: { id: report.id },
+      data: {
+        status,
+        resolvedById: adminId,
+        resolvedAt: new Date(),
+        resolutionNote
+      }
+    });
+
+    if (report.targetType === 'POST' && report.postId) {
+      const pendingCount = await tx.communityReport.count({
+        where: {
+          targetType: 'POST',
+          postId: report.postId,
+          status: 'PENDING'
+        }
+      });
+
+      await tx.boardPost.update({
+        where: { id: report.postId },
+        data: { reported: pendingCount > 0 }
+      });
+    }
+
+    if (report.targetType === 'COMMENT' && report.commentId) {
+      const pendingCount = await tx.communityReport.count({
+        where: {
+          targetType: 'COMMENT',
+          commentId: report.commentId,
+          status: 'PENDING'
+        }
+      });
+
+      await tx.comment.update({
+        where: { id: report.commentId },
+        data: { reported: pendingCount > 0 }
+      });
+    }
+
+    return tx.communityReport.findUnique({
+      where: { id: report.id },
+      include: COMMUNITY_REPORT_INCLUDE
+    });
   });
 }
 
@@ -190,6 +317,9 @@ module.exports = {
   findReportedPosts,
   findReportedComments,
   findAdminActions,
+  findCommunityReports,
+  findCommunityReportById,
+  processCommunityReport,
   findPostById,
   deletePostAndLog,
   dismissPostReport,

@@ -8,6 +8,8 @@ const { notFoundError, validationError } = require('../utils/errors');
 const { normalizeString, parsePositiveInteger } = require('../utils/validators');
 
 const FOCUS_SESSION_FIELDS = ['taskId', 'startedAt', 'endedAt', 'durationMs', 'memo'];
+const FOCUS_SESSION_QUERY_FIELDS = ['startDate', 'endDate'];
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function assertPlainObject(payload, message) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -31,6 +33,40 @@ function parseDateField(value, field) {
   }
 
   return date;
+}
+
+function parseDateBoundaryField(value, field, boundary) {
+  if (typeof value === 'string' && DATE_ONLY_PATTERN.test(value)) {
+    const suffix = boundary === 'end' ? 'T23:59:59.999Z' : 'T00:00:00.000Z';
+    return new Date(`${value}${suffix}`);
+  }
+
+  return parseDateField(value, field);
+}
+
+function normalizeDateRangeQuery(query = {}) {
+  assertSupportedFields(query, FOCUS_SESSION_QUERY_FIELDS, 'Focus session query contains unsupported fields');
+
+  if (!query.startDate && !query.endDate) {
+    return null;
+  }
+
+  if (!query.startDate || !query.endDate) {
+    throw validationError('startDate and endDate are required together', {
+      fields: ['startDate', 'endDate']
+    });
+  }
+
+  const startDate = parseDateBoundaryField(query.startDate, 'startDate', 'start');
+  const endDate = parseDateBoundaryField(query.endDate, 'endDate', 'end');
+
+  if (startDate > endDate) {
+    throw validationError('startDate must be earlier than or equal to endDate', {
+      fields: ['startDate', 'endDate']
+    });
+  }
+
+  return { startDate, endDate };
 }
 
 function parseDurationMs(value) {
@@ -115,36 +151,29 @@ async function recordFocusSession(userId, payload) {
 }
 
 async function listFocusSessions(userId, query = {}) {
-  let focusSessions;
+  const dateRange = normalizeDateRangeQuery(query);
 
-  if (query.startDate || query.endDate) {
-    if (!query.startDate || !query.endDate) {
-      throw validationError('startDate and endDate are required together', {
-        fields: ['startDate', 'endDate']
-      });
-    }
+  if (dateRange) {
+    const focusSessions = await findFocusSessionsByUserIdAndDateRange(
+      userId,
+      dateRange.startDate,
+      dateRange.endDate
+    );
 
-    const startedAt = parseDateField(query.startDate, 'startDate');
-    const endedAt = parseDateField(query.endDate, 'endDate');
-
-    if (startedAt > endedAt) {
-      throw validationError('startDate must be earlier than or equal to endDate', {
-        fields: ['startDate', 'endDate']
-      });
-    }
-
-    focusSessions = await findFocusSessionsByUserIdAndDateRange(userId, startedAt, endedAt);
-  } else {
-    focusSessions = await findFocusSessionsByUserId(userId);
+    return focusSessions.map(sanitizeFocusSession);
   }
+
+  const focusSessions = await findFocusSessionsByUserId(userId);
 
   return focusSessions.map(sanitizeFocusSession);
 }
 
 module.exports = {
   FOCUS_SESSION_FIELDS,
+  FOCUS_SESSION_QUERY_FIELDS,
   buildFocusSessionData,
   listFocusSessions,
+  normalizeDateRangeQuery,
   recordFocusSession,
   sanitizeFocusSession
 };
