@@ -149,8 +149,7 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
     minWidth: 280,
-    maxWidth: 380,
-    alignSelf: 'flex-start'
+    alignSelf: 'stretch'
   },
   header: {
     flexDirection: 'row',

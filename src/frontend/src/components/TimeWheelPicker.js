@@ -4,16 +4,13 @@ import { colors } from '../styles/theme';
 
 const ITEM_HEIGHT = 54;
 const VISIBLE_ROWS = 5;
-const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) =>
-  String(index * 5).padStart(2, '0')
-);
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) =>
-  String(index).padStart(2, '0')
-);
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0'));
 const LOOP_COPIES = 3;
 
 function splitTime(value) {
   const [hour = '09', minute = '00'] = (value || '09:00').split(':');
+
   return {
     hour: hour.padStart(2, '0'),
     minute: minute.padStart(2, '0')
@@ -21,7 +18,7 @@ function splitTime(value) {
 }
 
 function clampTimePart(value, max) {
-  const numeric = Number(value.replace(/\D/g, ''));
+  const numeric = Number(String(value || '').replace(/\D/g, ''));
 
   if (Number.isNaN(numeric)) {
     return '00';
@@ -34,10 +31,8 @@ function clampTimePart(value, max) {
 function WheelColumn({ accent, currentValue, label, onChange, options }) {
   const scrollRef = useRef(null);
   const currentRawIndexRef = useRef(options.length + Math.max(options.indexOf(currentValue), 0));
-  const repeatedOptions = useMemo(
-    () => Array.from({ length: LOOP_COPIES }, () => options).flat(),
-    [options]
-  );
+  const isProgrammaticScrollRef = useRef(false);
+  const repeatedOptions = useMemo(() => Array.from({ length: LOOP_COPIES }, () => options).flat(), [options]);
   const selectedIndex = Math.max(options.indexOf(currentValue), 0);
   const verticalPadding = ((VISIBLE_ROWS - 1) / 2) * ITEM_HEIGHT;
 
@@ -54,6 +49,7 @@ function WheelColumn({ accent, currentValue, label, onChange, options }) {
     if (normalizedIndex !== selectedIndex || shouldRecenter) {
       const nextRawIndex = options.length + selectedIndex;
       currentRawIndexRef.current = nextRawIndex;
+      isProgrammaticScrollRef.current = true;
       scrollRef.current.scrollTo({
         y: nextRawIndex * ITEM_HEIGHT,
         animated: true
@@ -68,6 +64,7 @@ function WheelColumn({ accent, currentValue, label, onChange, options }) {
 
     const initialIndex = options.length + selectedIndex;
     currentRawIndexRef.current = initialIndex;
+    isProgrammaticScrollRef.current = true;
     scrollRef.current.scrollTo({
       y: initialIndex * ITEM_HEIGHT,
       animated: false
@@ -89,6 +86,7 @@ function WheelColumn({ accent, currentValue, label, onChange, options }) {
 
     const centeredRawIndex = options.length + normalizeRawIndex(currentRawIndexRef.current);
     currentRawIndexRef.current = centeredRawIndex;
+    isProgrammaticScrollRef.current = true;
     scrollRef.current.scrollTo({
       y: centeredRawIndex * ITEM_HEIGHT,
       animated: false
@@ -102,7 +100,21 @@ function WheelColumn({ accent, currentValue, label, onChange, options }) {
     onChange(options[normalizeRawIndex(rawIndex)]);
   }
 
+  function handleMomentumScrollEnd(event) {
+    if (isProgrammaticScrollRef.current) {
+      isProgrammaticScrollRef.current = false;
+      return;
+    }
+
+    handleScrollEnd(event);
+  }
+
   function handleScrollEnd(event) {
+    if (isProgrammaticScrollRef.current) {
+      isProgrammaticScrollRef.current = false;
+      return;
+    }
+
     updateSelectionFromOffset(event);
     recenterIfNeeded();
   }
@@ -122,8 +134,7 @@ function WheelColumn({ accent, currentValue, label, onChange, options }) {
           ref={scrollRef}
           contentContainerStyle={{ paddingVertical: verticalPadding }}
           decelerationRate="fast"
-          onMomentumScrollEnd={handleScrollEnd}
-          onScroll={updateSelectionFromOffset}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
           onScrollEndDrag={handleScrollEnd}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
@@ -168,30 +179,56 @@ export default function TimeWheelPicker({
   const { hour, minute } = useMemo(() => splitTime(value), [value]);
 
   useEffect(() => {
-    setDraftHour(hour);
-    setDraftMinute(minute);
-  }, [hour, minute]);
+    if (!isPreciseMode) {
+      setDraftHour(hour);
+      setDraftMinute(minute);
+    }
+  }, [hour, minute, isPreciseMode]);
 
   function handleHourChange(nextHour) {
+    if (isPreciseMode) {
+      setDraftHour(nextHour);
+    }
+
     onChange(`${nextHour}:${minute}`);
   }
 
   function handleMinuteChange(nextMinute) {
+    if (isPreciseMode) {
+      setDraftMinute(nextMinute);
+    }
+
     onChange(`${hour}:${nextMinute}`);
+  }
+
+  function handleTogglePreciseMode() {
+    setIsPreciseMode((current) => {
+      const nextMode = !current;
+
+      if (nextMode) {
+        setDraftHour(hour);
+        setDraftMinute(minute);
+      }
+
+      return nextMode;
+    });
+  }
+
+  function handleDraftHourChange(nextValue) {
+    setDraftHour(nextValue.replace(/\D/g, '').slice(0, 2));
+  }
+
+  function handleDraftMinuteChange(nextValue) {
+    setDraftMinute(nextValue.replace(/\D/g, '').slice(0, 2));
   }
 
   function applyPreciseTime(nextHour = draftHour, nextMinute = draftMinute) {
     const safeHour = clampTimePart(nextHour, 23);
     const safeMinute = clampTimePart(nextMinute, 59);
-    onChange(`${safeHour}:${safeMinute}`);
-  }
 
-  function adjustMinute(diff) {
-    const totalMinutes = Number(hour) * 60 + Number(minute) + diff;
-    const wrappedMinutes = (totalMinutes + 24 * 60) % (24 * 60);
-    const nextHour = String(Math.floor(wrappedMinutes / 60)).padStart(2, '0');
-    const nextMinute = String(wrappedMinutes % 60).padStart(2, '0');
-    onChange(`${nextHour}:${nextMinute}`);
+    setDraftHour(safeHour);
+    setDraftMinute(safeMinute);
+    onChange(`${safeHour}:${safeMinute}`);
   }
 
   return (
@@ -209,7 +246,7 @@ export default function TimeWheelPicker({
         ) : null}
       </View>
 
-      <Pressable onPress={() => setIsPreciseMode((current) => !current)} style={styles.currentValueCard}>
+      <Pressable onPress={handleTogglePreciseMode} style={styles.currentValueCard}>
         <Text style={styles.currentValueLabel}>현재 선택</Text>
         <Text
           style={[
@@ -220,7 +257,7 @@ export default function TimeWheelPicker({
           {hour}:{minute}
         </Text>
         <Text style={styles.currentValueHint}>
-          {isPreciseMode ? '직접 조정 열림' : '눌러서 1분 단위 미세 조정'}
+          {isPreciseMode ? '직접 입력 열림' : '눌러서 직접 입력 열기'}
         </Text>
       </Pressable>
 
@@ -232,8 +269,7 @@ export default function TimeWheelPicker({
               <TextInput
                 keyboardType="number-pad"
                 maxLength={2}
-                onBlur={() => applyPreciseTime()}
-                onChangeText={setDraftHour}
+                onChangeText={handleDraftHourChange}
                 style={styles.preciseInput}
                 value={draftHour}
               />
@@ -244,22 +280,26 @@ export default function TimeWheelPicker({
               <TextInput
                 keyboardType="number-pad"
                 maxLength={2}
-                onBlur={() => applyPreciseTime()}
-                onChangeText={setDraftMinute}
+                onChangeText={handleDraftMinuteChange}
                 style={styles.preciseInput}
                 value={draftMinute}
               />
             </View>
           </View>
+
           <View style={styles.preciseActionRow}>
-            <Pressable onPress={() => adjustMinute(-1)} style={styles.preciseButton}>
-              <Text style={styles.preciseButtonText}>-1분</Text>
-            </Pressable>
             <Pressable onPress={() => applyPreciseTime()} style={styles.preciseButton}>
               <Text style={styles.preciseButtonText}>적용</Text>
             </Pressable>
-            <Pressable onPress={() => adjustMinute(1)} style={styles.preciseButton}>
-              <Text style={styles.preciseButtonText}>+1분</Text>
+            <Pressable
+              onPress={() => {
+                setDraftHour(hour);
+                setDraftMinute(minute);
+                setIsPreciseMode(false);
+              }}
+              style={styles.preciseButton}
+            >
+              <Text style={styles.preciseButtonText}>닫기</Text>
             </Pressable>
           </View>
         </View>
@@ -277,7 +317,7 @@ export default function TimeWheelPicker({
         />
       </View>
 
-      {showCaption ? <Text style={styles.caption}>시와 분을 각각 위아래로 움직여 5분 단위로 선택합니다.</Text> : null}
+      {showCaption ? <Text style={styles.caption}>시와 분을 각각 위아래로 움직이거나 직접 입력해 시간을 맞춥니다.</Text> : null}
     </View>
   );
 }
@@ -286,9 +326,8 @@ const styles = StyleSheet.create({
   container: {
     gap: 10,
     flex: 1,
-    minWidth: 260,
-    maxWidth: 340,
-    alignSelf: 'flex-start'
+    minWidth: 320,
+    alignSelf: 'stretch'
   },
   header: {
     flexDirection: 'row',

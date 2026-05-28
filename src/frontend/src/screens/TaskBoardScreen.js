@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     width: '100%',
-    maxWidth: 1280,
+    maxWidth: 1680,
     alignSelf: 'center',
     paddingHorizontal: 24,
     paddingTop: 28,
@@ -597,6 +597,7 @@ const styles = StyleSheet.create({
     padding: 22
   },
   formPanel: {
+    width: '100%',
     gap: 16
   },
   panelEyebrow: {
@@ -667,7 +668,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 14,
-    alignItems: 'flex-start'
+    alignItems: 'stretch'
   },
   optionRow: {
     flexDirection: 'row',
