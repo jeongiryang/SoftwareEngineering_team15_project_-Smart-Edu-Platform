@@ -12,6 +12,7 @@ const statisticsRoutes = require('./statistics.routes');
 const communityRoutes = require('./community.routes');
 const accessibilityRoutes = require('./accessibility.routes');
 const rewardRoutes = require('./reward.routes');
+const friendRoutes = require('./friend.routes');
 
 const router = express.Router();
 
@@ -28,5 +29,6 @@ router.use('/statistics', statisticsRoutes);
 router.use('/community', communityRoutes);
 router.use('/accessibility', accessibilityRoutes);
 router.use('/rewards', rewardRoutes);
+router.use('/friends', friendRoutes);
 
 module.exports = router;

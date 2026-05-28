@@ -4,6 +4,8 @@ import { PanelSkeleton } from '../components/Skeleton';
 import {
   changeCurrentUserPassword,
   getCommunityBookmarks,
+  getFriendRequests,
+  getFriends,
   getMyRewards,
   getSchedules,
   getStatisticsSummary,
@@ -23,6 +25,8 @@ const EMPTY_PROFILE_DATA = {
     recentPointTransactions: []
   },
   bookmarks: [],
+  friends: [],
+  friendRequests: { received: [], sent: [] },
   todaySummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 },
   weekSummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 }
 };
@@ -209,11 +213,13 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     const weekRange = getDateRange(7);
 
     try {
-      const [scheduleResult, taskResult, rewardResult, bookmarkResult, todayResult, weekResult] = await Promise.all([
+      const [scheduleResult, taskResult, rewardResult, bookmarkResult, friendsResult, requestsResult, todayResult, weekResult] = await Promise.all([
         getSchedules(token),
         getTasks(token),
         getMyRewards(token),
         getCommunityBookmarks(token, { page: 1, pageSize: 3 }),
+        getFriends(token),
+        getFriendRequests(token),
         getStatisticsSummary(token, todayRange),
         getStatisticsSummary(token, weekRange)
       ]);
@@ -226,6 +232,11 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
           ...(rewardResult?.rewards || {})
         },
         bookmarks: Array.isArray(bookmarkResult?.bookmarks) ? bookmarkResult.bookmarks : [],
+        friends: Array.isArray(friendsResult?.friends) ? friendsResult.friends : [],
+        friendRequests: {
+          ...EMPTY_PROFILE_DATA.friendRequests,
+          ...(requestsResult?.requests || {})
+        },
         todaySummary: todayResult?.summary || EMPTY_PROFILE_DATA.todaySummary,
         weekSummary: weekResult?.summary || EMPTY_PROFILE_DATA.weekSummary
       });
@@ -410,6 +421,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
             <MetricCard label="최근 7일 집중" value={formatMinutes(profileData.weekSummary.totalMinutes)} helper={`완료율 ${profileData.weekSummary.completionRate || 0}%`} tone="blue" />
             <MetricCard label="완료 태스크" value={`${formatNumber(derived.doneTasks.length)}개`} helper={`진행 중 ${derived.inProgressTasks.length}개`} />
             <MetricCard label="보유 포인트" value={`${formatNumber(rewardPoints)}P`} helper={`배지 ${derived.badges.length}개`} tone="mint" />
+            <MetricCard label="학습 친구" value={`${formatNumber(profileData.friends.length)}명`} helper={`받은 요청 ${profileData.friendRequests.received.length}건`} tone="blue" />
           </View>
 
           <View style={styles.bentoGrid}>
@@ -588,6 +600,11 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   <Text style={styles.quickIcon}>▥</Text>
                   <Text style={styles.quickTitle}>통계 확인</Text>
                   <Text style={styles.quickText}>주간 집중 흐름 보기</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => onNavigate('friends')} style={(state) => [styles.quickButton, ...interactiveStateStyles(state, { kind: 'card' })]}>
+                  <Text style={styles.quickIcon}>친</Text>
+                  <Text style={styles.quickTitle}>친구 관리</Text>
+                  <Text style={styles.quickText}>요청과 친구 목록 확인</Text>
                 </Pressable>
                 <Pressable accessibilityRole="button" onPress={() => onNavigate('community')} style={(state) => [styles.quickButton, ...interactiveStateStyles(state, { kind: 'card' })]}>
                   <Text style={styles.quickIcon}>💬</Text>

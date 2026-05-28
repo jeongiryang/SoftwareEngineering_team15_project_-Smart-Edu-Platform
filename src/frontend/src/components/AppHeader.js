@@ -48,6 +48,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
               <NavItem label="대시보드" screen="dashboard" />
               <NavItem label="프로필" screen="profile" />
               <NavItem label="통계" screen="statistics" />
+              <NavItem label="친구" screen="friends" />
               <NavItem label="AI 학습" screen="aiLearning" />
               <NavItem label="접근성" screen="accessibility" />
               <NavItem label="커뮤니티" screen="community" />
