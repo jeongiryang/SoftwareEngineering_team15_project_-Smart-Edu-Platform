@@ -42,6 +42,14 @@ export async function request(path, options = {}) {
   return data;
 }
 
+function buildQueryString(params = {}) {
+  const pairs = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+
+  return pairs.length ? `?${pairs.join('&')}` : '';
+}
+
 export function registerUser({ email, password, name }) {
   return request('/auth/register', {
     method: 'POST',
@@ -146,5 +154,152 @@ export function moderateAdminComment(token, commentId, action, reason) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({ action, reason })
+  });
+}
+
+export function getCommunityPosts(token, params = {}) {
+  return request(`/community/posts${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getCommunityPost(token, postId) {
+  return request(`/community/posts/${postId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCommunityPost(token, payload) {
+  return request('/community/posts', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateCommunityPost(token, postId, payload) {
+  return request(`/community/posts/${postId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteCommunityPost(token, postId) {
+  return request(`/community/posts/${postId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getCommunityComments(token, postId, params = {}) {
+  return request(`/community/posts/${postId}/comments${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCommunityComment(token, postId, payload) {
+  return request(`/community/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateCommunityComment(token, commentId, payload) {
+  return request(`/community/comments/${commentId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteCommunityComment(token, commentId) {
+  return request(`/community/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCommunityReaction(token, postId, type) {
+  return request(`/community/posts/${postId}/reactions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ type })
+  });
+}
+
+export function deleteCommunityReaction(token, postId) {
+  return request(`/community/posts/${postId}/reactions`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCommunityBookmark(token, postId) {
+  return request(`/community/posts/${postId}/bookmarks`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function deleteCommunityBookmark(token, postId) {
+  return request(`/community/posts/${postId}/bookmarks`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getCommunityBookmarks(token, params = {}) {
+  return request(`/community/bookmarks${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function reportCommunityPost(token, postId, reason) {
+  return request(`/community/posts/${postId}/reports`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ reason })
+  });
+}
+
+export function reportCommunityComment(token, commentId, reason) {
+  return request(`/community/comments/${commentId}/reports`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ reason })
   });
 }
