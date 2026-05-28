@@ -21,6 +21,23 @@ import { colors, interactions, interactiveStateStyles, shadows } from '../styles
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const AI_MOCK_MODE_STORAGE_KEY = 'smartEdu.aiMockMode';
+
+function readStoredMockMode() {
+  try {
+    return globalThis.localStorage?.getItem(AI_MOCK_MODE_STORAGE_KEY) === 'true';
+  } catch (error) {
+    return false;
+  }
+}
+
+function writeStoredMockMode(enabled) {
+  try {
+    globalThis.localStorage?.setItem(AI_MOCK_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
+  } catch (error) {
+    // localStorage is unavailable in some native or restricted browser contexts.
+  }
+}
 
 function formatFileSize(bytes = 0) {
   if (bytes < 1024 * 1024) {
@@ -28,6 +45,73 @@ function formatFileSize(bytes = 0) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function createMockQuestionAnswer(question) {
+  return [
+    `데모 응답입니다. 질문의 핵심은 "${question.slice(0, 80)}${question.length > 80 ? '...' : ''}"로 확인됩니다.`,
+    '먼저 개념을 한 문장으로 정리하고, 교재 예제 1개를 풀어 본 뒤, 헷갈린 부분만 다시 질문해 보세요.',
+    '실제 외부 AI 호출이 아닌 발표/데모 안정성을 위한 Mock 응답입니다.'
+  ].join(' ');
+}
+
+function createMockRecommendation() {
+  return {
+    recommendedSubject: '오늘의 복습 루틴',
+    tips: [
+      '마감이 가까운 일정 1개를 먼저 확인하세요.',
+      '25분 집중 세션을 시작하고 끝난 뒤 완료한 내용을 기록하세요.',
+      '오답노트에서 같은 유형 문제를 1개만 다시 풀어 보세요.'
+    ]
+  };
+}
+
+function createMockSummary(content) {
+  const preview = content.length > 80 ? `${content.slice(0, 80)}...` : content;
+
+  return [
+    '- 데모 요약입니다. 본문에서 핵심 개념과 연결 단어를 먼저 분리합니다.',
+    '- 예시나 문제 풀이가 있다면 개념 적용 순서를 따로 표시합니다.',
+    `- 다시 볼 부분: ${preview}`
+  ].join('\n');
+}
+
+function createMockWrongAnswerAnalysis(problem, userAnswer) {
+  const weakType = /[+\-*/=]/.test(problem) ? 'calculation mistake' : 'concept misunderstanding';
+
+  return {
+    weakType,
+    explanation: [
+      '데모 분석입니다. 실제 외부 AI 호출 없이 오답 점검 흐름만 확인합니다.',
+      `문제 핵심: ${problem.slice(0, 80)}${problem.length > 80 ? '...' : ''}`,
+      userAnswer ? `작성한 답: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '작성한 답이 없어 풀이 과정 중심으로 점검합니다.',
+      '정답을 바로 외우기보다 왜 그 선택을 했는지 한 단계만 다시 적어 보세요.'
+    ].join(' ')
+  };
+}
+
+function getAIErrorMessage(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+  const status = error?.status;
+
+  if (status === 401 || message.includes('token') || message.includes('unauthorized')) {
+    return '로그인 정보가 만료되었을 수 있습니다. 다시 로그인하거나 Mock 모드로 데모 흐름을 확인해 주세요.';
+  }
+
+  if (status === 429 || code.includes('too_many') || message.includes('quota') || message.includes('rate limit') || message.includes('too many')) {
+    return 'AI 요청 한도나 quota를 초과했을 수 있습니다. 잠시 후 다시 시도하거나 Mock 모드를 켜서 데모를 이어가세요.';
+  }
+
+  if (status === 503 || code.includes('ai_provider') || message.includes('provider') || message.includes('api key') || message.includes('configured')) {
+    return 'AI 제공자 설정이나 API key 상태를 확인해야 합니다. 현재 화면에서는 Mock 모드로 안전하게 시연할 수 있습니다.';
+  }
+
+  if (message.includes('network') || message.includes('failed to fetch')) {
+    return '네트워크 연결이 불안정해 AI 응답을 가져오지 못했습니다. 연결을 확인하거나 Mock 모드로 전환해 주세요.';
+  }
+
+  return 'AI 응답을 불러오지 못했습니다. 민감정보를 포함하지 않았는지 확인하고, 필요하면 Mock 모드로 데모 흐름을 확인해 주세요.';
 }
 
 export default function AILearningScreen({ onNavigate, token, user }) {
@@ -40,6 +124,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [imageUploadError, setImageUploadError] = useState('');
   const [imageAttachment, setImageAttachment] = useState(null);
+  const [isMockMode, setIsMockMode] = useState(readStoredMockMode);
 
   // Tab 1: AI 학습 질의 (Q&A) States
   const [questionInput, setQuestionInput] = useState('');
@@ -69,6 +154,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const MAX_SUMMARY_LENGTH = 3000;
   const MAX_PROBLEM_LENGTH = 1000;
   const MAX_ANSWER_LENGTH = 1000;
+
+  useEffect(() => {
+    writeStoredMockMode(isMockMode);
+  }, [isMockMode]);
 
   useEffect(() => () => {
     if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
@@ -191,6 +280,21 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     resetFeedback();
 
     try {
+      if (isMockMode) {
+        setRecentQnaList((prev) => [
+          {
+            question: questionText,
+            answer: createMockQuestionAnswer(questionText),
+            isTruncated: false,
+            isMock: true
+          },
+          ...prev
+        ]);
+        setQuestionInput('');
+        setSuccessMsg('Mock 모드 응답을 추가했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.');
+        return;
+      }
+
       // Allow truncate fallback when checked
       const response = await askAIQuestion(token, {
         question: questionText,
@@ -202,18 +306,15 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         {
           question: qnaRecord.question,
           answer: qnaRecord.answer,
-          isTruncated: qnaRecord.isTruncated
+          isTruncated: qnaRecord.isTruncated,
+          isMock: false
         },
         ...prev
       ]);
       setQuestionInput('');
       setSuccessMsg('AI 답변 생성이 성공적으로 완료되었습니다.');
     } catch (err) {
-      if (err.message.includes('429') || err.message.toLowerCase().includes('rate limit') || err.message.toLowerCase().includes('too many')) {
-        setErrorMsg('AI 요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.');
-      } else {
-        setErrorMsg(err.message || '답변 요청 중 오류가 발생했습니다.');
-      }
+      setErrorMsg(getAIErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -225,20 +326,26 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     resetFeedback();
 
     try {
+      if (isMockMode) {
+        setRecommendationResult({
+          ...createMockRecommendation(),
+          isMock: true
+        });
+        setSuccessMsg('Mock 모드 추천을 표시했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.');
+        return;
+      }
+
       const response = await getAIRecommendation(token);
       const rec = response.recommendation;
 
       setRecommendationResult({
         recommendedSubject: rec.recommendationJson.recommendedSubject,
-        tips: rec.recommendationJson.tips || []
+        tips: rec.recommendationJson.tips || [],
+        isMock: false
       });
       setSuccessMsg('맞춤 학습 분석 및 추천 팁이 업데이트되었습니다.');
     } catch (err) {
-      if (err.message.includes('429') || err.message.toLowerCase().includes('rate limit') || err.message.toLowerCase().includes('too many')) {
-        setErrorMsg('AI 요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.');
-      } else {
-        setErrorMsg(err.message || '학습 추천 요청 중 오류가 발생했습니다.');
-      }
+      setErrorMsg(getAIErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -258,6 +365,16 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     resetFeedback();
 
     try {
+      if (isMockMode) {
+        setSummaryResult({
+          summary: createMockSummary(contentText),
+          isTruncated: false,
+          isMock: true
+        });
+        setSuccessMsg('Mock 모드 요약을 표시했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.');
+        return;
+      }
+
       const response = await summarizeText(token, {
         content: contentText,
         allowTruncate: true
@@ -265,15 +382,12 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
       setSummaryResult({
         summary: response.summary,
-        isTruncated: response.isTruncated
+        isTruncated: response.isTruncated,
+        isMock: false
       });
       setSuccessMsg('문서 3줄 요약이 완료되었습니다.');
     } catch (err) {
-      if (err.message.includes('429') || err.message.toLowerCase().includes('rate limit') || err.message.toLowerCase().includes('too many')) {
-        setErrorMsg('AI 요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.');
-      } else {
-        setErrorMsg(err.message || '텍스트 요약 요청 중 오류가 발생했습니다.');
-      }
+      setErrorMsg(getAIErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -299,6 +413,19 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     resetFeedback();
 
     try {
+      if (isMockMode) {
+        const mockAnalysis = createMockWrongAnswerAnalysis(problemText, userAnswerText);
+        setWrongAnalysisResult({
+          problem: problemText,
+          userAnswer: userAnswerText || null,
+          explanation: mockAnalysis.explanation,
+          weakType: mockAnalysis.weakType,
+          isMock: true
+        });
+        setSuccessMsg('Mock 모드 오답 분석을 표시했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.');
+        return;
+      }
+
       const response = await analyzeWrongAnswer(token, {
         problem: problemText,
         userAnswer: userAnswerText || undefined,
@@ -310,15 +437,12 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         problem: note.problem,
         userAnswer: note.userAnswer,
         explanation: note.explanation,
-        weakType: note.weakType
+        weakType: note.weakType,
+        isMock: false
       });
       setSuccessMsg('오답 원인 분석이 성공적으로 완료되었습니다.');
     } catch (err) {
-      if (err.message.includes('429') || err.message.toLowerCase().includes('rate limit') || err.message.toLowerCase().includes('too many')) {
-        setErrorMsg('AI 요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.');
-      } else {
-        setErrorMsg(err.message || '오답 원인 분석 요청 중 오류가 발생했습니다.');
-      }
+      setErrorMsg(getAIErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -334,6 +458,35 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         </View>
         <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>대시보드로 가기</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.mockModeCard}>
+        <View style={styles.mockModeCopy}>
+          <Text style={styles.mockModeLabel}>AI Mock 모드</Text>
+          <Text style={styles.mockModeText}>
+            발표나 데모 중 AI token 만료, quota 초과, API key 누락이 발생하면 실제 외부 호출 없이 안전한 예시 응답으로 흐름을 확인합니다.
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: isMockMode }}
+          onPress={() => {
+            setIsMockMode((prev) => !prev);
+            resetFeedback();
+            setSuccessMsg(!isMockMode
+              ? 'AI Mock 모드를 켰습니다. 실제 외부 AI 호출 없이 데모 응답을 표시합니다.'
+              : 'AI Mock 모드를 껐습니다. 기존 AI 학습 API 흐름을 사용합니다.');
+          }}
+          style={(state) => [
+            styles.mockToggle,
+            isMockMode && styles.mockToggleActive,
+            ...interactiveStateStyles(state)
+          ]}
+        >
+          <Text style={[styles.mockToggleText, isMockMode && styles.mockToggleTextActive]}>
+            {isMockMode ? 'Mock 사용 중' : 'Mock 켜기'}
+          </Text>
         </Pressable>
       </View>
 
@@ -534,7 +687,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   <View key={idx} style={styles.qnaCard}>
                     <View style={styles.qnaHeader}>
                       <Text style={styles.qnaLabelUser}>Q. 내 질문</Text>
-                      {item.isTruncated && <Text style={styles.truncateBadge}>자동 요약됨</Text>}
+                      <View style={styles.badgeRow}>
+                        {item.isMock && <Text style={styles.mockBadge}>Mock 응답</Text>}
+                        {item.isTruncated && <Text style={styles.truncateBadge}>자동 요약됨</Text>}
+                      </View>
                     </View>
                     <Text style={styles.qnaTextUser}>{item.question}</Text>
                     <View style={styles.divider} />
@@ -575,7 +731,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
             {/* Recommendation Result */}
             {recommendationResult && (
               <View style={styles.recommendCard}>
-                <Text style={styles.recommendLabel}>📚 AI 추천 학습 과목</Text>
+                <View style={styles.resultHeaderRow}>
+                  <Text style={styles.recommendLabel}>📚 AI 추천 학습 과목</Text>
+                  {recommendationResult.isMock && <Text style={styles.mockBadge}>Mock 추천</Text>}
+                </View>
                 <View style={styles.subjectBox}>
                   <Text style={styles.subjectText}>{recommendationResult.recommendedSubject}</Text>
                 </View>
@@ -637,7 +796,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
                   <Text style={styles.summaryCardTitle}>📋 AI 3줄 요약 결과</Text>
-                  {summaryResult.isTruncated && <Text style={styles.truncateBadge}>앞부분 요약됨 (3000자 초과)</Text>}
+                  <View style={styles.badgeRow}>
+                    {summaryResult.isMock && <Text style={styles.mockBadge}>Mock 요약</Text>}
+                    {summaryResult.isTruncated && <Text style={styles.truncateBadge}>앞부분 요약됨 (3000자 초과)</Text>}
+                  </View>
                 </View>
                 <View style={styles.summaryContentBox}>
                   <ReadableText style={styles.summaryText}>{summaryResult.summary}</ReadableText>
@@ -709,10 +871,13 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <View style={styles.wrongCard}>
                 <View style={styles.wrongHeaderRow}>
                   <Text style={styles.wrongLabel}>🎯 틀린 원인 분석 결과</Text>
-                  <View style={styles.weakBadge}>
-                    <Text style={styles.weakBadgeText}>
-                      {wrongAnalysisResult.weakType === 'calculation mistake' ? '연산 실수' : '개념 이해 부족'}
-                    </Text>
+                  <View style={styles.badgeRow}>
+                    {wrongAnalysisResult.isMock && <Text style={styles.mockBadge}>Mock 분석</Text>}
+                    <View style={styles.weakBadge}>
+                      <Text style={styles.weakBadgeText}>
+                        {wrongAnalysisResult.weakType === 'calculation mistake' ? '연산 실수' : '개념 이해 부족'}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
@@ -775,6 +940,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.muted,
     marginTop: 4
+  },
+  mockModeCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    padding: 18,
+    ...interactions.transition
+  },
+  mockModeCopy: {
+    flex: 1,
+    minWidth: 260,
+    gap: 6
+  },
+  mockModeLabel: {
+    color: colors.mintDeep,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  mockModeText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600'
+  },
+  mockToggle: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  mockToggleActive: {
+    backgroundColor: colors.blueDeep,
+    borderColor: colors.blueDeep
+  },
+  mockToggleText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  mockToggleTextActive: {
+    color: colors.surface
   },
   transparencyPanel: {
     flexDirection: 'row',
@@ -1182,6 +1399,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     fontWeight: '700'
+  },
+  mockBadge: {
+    fontSize: 10,
+    color: colors.blueDeep,
+    backgroundColor: colors.blueSoft,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    fontWeight: '900'
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 6
+  },
+  resultHeaderRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 8
   },
   recommendCard: {
     backgroundColor: colors.surface,
