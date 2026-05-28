@@ -142,6 +142,16 @@ function getQuestProgressLabel(quest) {
   return `${progressValue}개 / ${targetValue}개`;
 }
 
+function getQuestProgressWidth(progressRate) {
+  const ratio = Math.max(0, Math.min(Number(progressRate || 0), 1));
+
+  if (ratio === 0) {
+    return '0%';
+  }
+
+  return `${Math.max(6, Math.round(ratio * 100))}%`;
+}
+
 function buildClaimMessage(result) {
   const points = result?.reward?.pointTransaction?.amount || result?.reward?.quest?.rewardPoints || 0;
   const badgeName = result?.reward?.badge?.badge?.name;
@@ -405,7 +415,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                           <View
                             style={[
                               styles.progressBar,
-                              { width: `${Math.max(6, Math.round((quest.progressRate || 0) * 100))}%` }
+                              { width: getQuestProgressWidth(quest.progressRate) }
                             ]}
                           />
                         </View>
