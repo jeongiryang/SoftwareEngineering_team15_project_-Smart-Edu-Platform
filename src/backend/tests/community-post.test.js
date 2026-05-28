@@ -1,5 +1,7 @@
 const mockUsers = [];
 const mockPosts = [];
+const mockReactions = [];
+const mockBookmarks = [];
 let mockNextUserId = 1;
 let mockNextPostId = 1;
 
@@ -22,6 +24,29 @@ function mockBuildRepositoryPost(post) {
       comments: post.commentCount || 0
     }
   };
+}
+
+function mockBuildEngagementSummaries(postIds, userId) {
+  return new Map(
+    postIds.map((postId) => {
+      const id = Number(postId);
+      const reactions = mockReactions.filter((reaction) => reaction.postId === id);
+      const bookmarks = mockBookmarks.filter((bookmark) => bookmark.postId === id);
+      const currentUserReaction = reactions.find((reaction) => reaction.userId === Number(userId));
+      const currentUserBookmark = bookmarks.find((bookmark) => bookmark.userId === Number(userId));
+
+      return [
+        id,
+        {
+          likeCount: reactions.filter((reaction) => reaction.type === 'LIKE').length,
+          dislikeCount: reactions.filter((reaction) => reaction.type === 'DISLIKE').length,
+          bookmarkCount: bookmarks.length,
+          myReaction: currentUserReaction?.type ?? null,
+          isBookmarked: Boolean(currentUserBookmark)
+        }
+      ];
+    })
+  );
 }
 
 jest.mock('../src/repositories/user.repository', () => ({
@@ -87,6 +112,9 @@ jest.mock('../src/repositories/community.repository', () => ({
 
     return post ? mockBuildRepositoryPost(post) : null;
   }),
+  findPostEngagementSummaries: jest.fn(async (postIds, userId) =>
+    mockBuildEngagementSummaries(postIds, userId)
+  ),
   findPosts: jest.fn(async ({ page, pageSize, category, search, sort = 'latest' }) => {
     const normalizedSearch = search ? String(search).toLowerCase() : undefined;
     const filteredPosts = mockPosts
@@ -173,6 +201,8 @@ function expectSafePostPayload(payload) {
 beforeEach(() => {
   mockUsers.length = 0;
   mockPosts.length = 0;
+  mockReactions.length = 0;
+  mockBookmarks.length = 0;
   mockNextUserId = 1;
   mockNextPostId = 1;
   jest.clearAllMocks();
@@ -278,6 +308,76 @@ describe('Community Post API', () => {
     });
     expect(firstPost.id).not.toBe(secondPost.id);
     expectSafePostPayload(response.body);
+  });
+
+  it('lists community posts with reaction and bookmark summary for the current user', async () => {
+    const currentUser = await registerTestUser();
+    const otherUser = await registerTestUser();
+    const targetPost = await createTestPost(currentUser.token, { title: 'Engagement target' });
+    const otherPost = await createTestPost(currentUser.token, { title: 'Other engagement post' });
+
+    mockReactions.push(
+      { postId: targetPost.id, userId: currentUser.user.id, type: 'LIKE' },
+      { postId: targetPost.id, userId: otherUser.user.id, type: 'DISLIKE' },
+      { postId: otherPost.id, userId: otherUser.user.id, type: 'LIKE' }
+    );
+    mockBookmarks.push(
+      { postId: targetPost.id, userId: currentUser.user.id },
+      { postId: targetPost.id, userId: otherUser.user.id },
+      { postId: otherPost.id, userId: otherUser.user.id }
+    );
+
+    const response = await request(app)
+      .get('/api/community/posts?sort=oldest')
+      .set(createAuthHeader(currentUser.token));
+
+    expect(response.status).toBe(200);
+    const targetSummary = response.body.posts.find((post) => post.id === targetPost.id);
+    const otherSummary = response.body.posts.find((post) => post.id === otherPost.id);
+
+    expect(targetSummary).toEqual(
+      expect.objectContaining({
+        likeCount: 1,
+        dislikeCount: 1,
+        bookmarkCount: 2,
+        myReaction: 'LIKE',
+        isBookmarked: true
+      })
+    );
+    expect(otherSummary).toEqual(
+      expect.objectContaining({
+        likeCount: 1,
+        dislikeCount: 0,
+        bookmarkCount: 1,
+        myReaction: null,
+        isBookmarked: false
+      })
+    );
+    expect(communityRepository.findPostEngagementSummaries).toHaveBeenCalledWith(
+      expect.arrayContaining([targetPost.id, otherPost.id]),
+      currentUser.user.id
+    );
+    expectSafePostPayload(response.body);
+  });
+
+  it('returns default engagement summary for posts without reactions or bookmarks', async () => {
+    const { token } = await registerTestUser();
+    const post = await createTestPost(token, { title: 'No engagement post' });
+
+    const response = await request(app)
+      .get(`/api/community/posts/${post.id}`)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.post).toEqual(
+      expect.objectContaining({
+        likeCount: 0,
+        dislikeCount: 0,
+        bookmarkCount: 0,
+        myReaction: null,
+        isBookmarked: false
+      })
+    );
   });
 
   it.each([
@@ -472,6 +572,42 @@ describe('Community Post API', () => {
     expectSafePostPayload(response.body);
   });
 
+  it('reads a single community post with current user engagement status', async () => {
+    const currentUser = await registerTestUser();
+    const otherUser = await registerTestUser();
+    const post = await createTestPost(currentUser.token, {
+      category: 'FREE',
+      title: 'Engagement detail',
+      content: 'Detail content'
+    });
+
+    mockReactions.push(
+      { postId: post.id, userId: currentUser.user.id, type: 'DISLIKE' },
+      { postId: post.id, userId: otherUser.user.id, type: 'LIKE' }
+    );
+    mockBookmarks.push(
+      { postId: post.id, userId: currentUser.user.id },
+      { postId: post.id, userId: otherUser.user.id }
+    );
+
+    const response = await request(app)
+      .get(`/api/community/posts/${post.id}`)
+      .set(createAuthHeader(currentUser.token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.post).toEqual(
+      expect.objectContaining({
+        id: post.id,
+        likeCount: 1,
+        dislikeCount: 1,
+        bookmarkCount: 2,
+        myReaction: 'DISLIKE',
+        isBookmarked: true
+      })
+    );
+    expectSafePostPayload(response.body);
+  });
+
   it.each(['abc', '0', '-1'])('rejects invalid postId "%s"', async (postId) => {
     const { token } = await registerTestUser();
 
@@ -661,6 +797,90 @@ describe('Community Post repository deletePost', () => {
       take: 5
     });
     expect(mockPrisma.boardPost.count).toHaveBeenCalledWith({ where: expectedWhere });
+  });
+
+  it('builds engagement summary queries for counts and current user status', async () => {
+    jest.resetModules();
+
+    const mockPrisma = {
+      communityReaction: {
+        groupBy: jest.fn().mockResolvedValue([
+          { postId: 1, type: 'LIKE', _count: { id: 2 } },
+          { postId: 1, type: 'DISLIKE', _count: { id: 1 } },
+          { postId: 2, type: 'LIKE', _count: { id: 1 } }
+        ]),
+        findMany: jest.fn().mockResolvedValue([{ postId: 1, type: 'DISLIKE' }])
+      },
+      communityBookmark: {
+        groupBy: jest.fn().mockResolvedValue([{ postId: 1, _count: { id: 3 } }]),
+        findMany: jest.fn().mockResolvedValue([{ postId: 2 }])
+      }
+    };
+
+    jest.doMock('../src/utils/prisma', () => mockPrisma);
+
+    const realCommunityRepository = jest.requireActual('../src/repositories/community.repository');
+    const summaries = await realCommunityRepository.findPostEngagementSummaries([1, 2], 7);
+
+    expect(summaries.get(1)).toEqual({
+      likeCount: 2,
+      dislikeCount: 1,
+      bookmarkCount: 3,
+      myReaction: 'DISLIKE',
+      isBookmarked: false
+    });
+    expect(summaries.get(2)).toEqual({
+      likeCount: 1,
+      dislikeCount: 0,
+      bookmarkCount: 0,
+      myReaction: null,
+      isBookmarked: true
+    });
+    expect(mockPrisma.communityReaction.groupBy).toHaveBeenCalledWith({
+      by: ['postId', 'type'],
+      where: {
+        postId: {
+          in: [1, 2]
+        }
+      },
+      _count: {
+        id: true
+      }
+    });
+    expect(mockPrisma.communityBookmark.groupBy).toHaveBeenCalledWith({
+      by: ['postId'],
+      where: {
+        postId: {
+          in: [1, 2]
+        }
+      },
+      _count: {
+        id: true
+      }
+    });
+    expect(mockPrisma.communityReaction.findMany).toHaveBeenCalledWith({
+      where: {
+        postId: {
+          in: [1, 2]
+        },
+        userId: 7
+      },
+      select: {
+        postId: true,
+        type: true
+      }
+    });
+    expect(mockPrisma.communityBookmark.findMany).toHaveBeenCalledWith({
+      where: {
+        postId: {
+          in: [1, 2]
+        },
+        userId: 7
+      },
+      select: {
+        postId: true
+      }
+    });
   });
 
   it('does not delete comments when ownership is not confirmed in transaction', async () => {

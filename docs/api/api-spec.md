@@ -1290,7 +1290,7 @@ Response 예시:
 | 인증 | 필요 (`Authorization: Bearer <JWT_TOKEN>`) |
 | 사용 모델 | `BoardPost`, `PostCategory`, `Comment`, `ReactionType`, `CommunityReaction`, `CommunityBookmark` |
 | 1차 범위 | 게시글 목록/상세/작성/수정/삭제, 댓글 목록/작성/수정/삭제, 게시글 반응 생성/전환/취소, 게시글 북마크 생성/취소, pagination, category filter, 게시글 title/content 검색, 게시글 최신순/오래된순 정렬 |
-| 제외 범위 | 답글, 내 북마크 목록, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터, 게시글 목록/상세 응답의 reaction/bookmark count 및 사용자별 상태 보강 |
+| 제외 범위 | 답글, 내 북마크 목록, 신고, 관리자 신고 처리 연동, 프론트 화면, seed 데이터 |
 
 커뮤니티 게시글 API는 `routes → controllers → services → repositories → Prisma` 구조로 구현함. 기존 DB 과제 커뮤니티 레포의 기능 흐름과 정보 구조는 참고하지만, 기존 코드와 static HTML/CSS/Vanilla JS UI는 복사하지 않음.
 
@@ -1315,6 +1315,8 @@ Response 예시:
 - 북마크는 사용자 1명당 게시글 1개에 1개만 가질 수 있음.
 - 같은 게시글을 다시 북마크해도 중복 row를 만들지 않고 현재 북마크를 유지함.
 - 북마크 취소는 현재 사용자 본인의 북마크만 삭제하며, 북마크가 없으면 404로 처리함.
+- 게시글 목록/상세 응답에는 `likeCount`, `dislikeCount`, `bookmarkCount`, `myReaction`, `isBookmarked`를 포함함.
+- `myReaction`과 `isBookmarked`는 현재 인증 사용자 기준으로 계산하며, 다른 사용자의 반응/북마크는 count에만 반영함.
 - 응답에는 `passwordHash`, password, token, email 등 불필요한 민감정보를 포함하지 않음.
 - 게시글 삭제 시 현재 schema의 `Comment` relation에 cascade가 없으므로, 작성자 소유 게시글 확인 후 연결 댓글을 먼저 삭제하고 게시글을 삭제함.
 
@@ -1349,7 +1351,12 @@ Response `200`:
         "id": 1,
         "name": "사용자 이름"
       },
-      "commentCount": 0
+      "commentCount": 0,
+      "likeCount": 0,
+      "dislikeCount": 0,
+      "bookmarkCount": 0,
+      "myReaction": null,
+      "isBookmarked": false
     }
   ],
   "pagination": {
@@ -1426,7 +1433,12 @@ Response `200`:
       "id": 1,
       "name": "사용자 이름"
     },
-    "commentCount": 0
+    "commentCount": 0,
+    "likeCount": 0,
+    "dislikeCount": 0,
+    "bookmarkCount": 0,
+    "myReaction": null,
+    "isBookmarked": false
   }
 }
 ```
@@ -1741,7 +1753,7 @@ Error:
 |---|---|---|
 | `GET` | `/api/community/bookmarks` | 내 북마크 목록 조회 |
 
-내 북마크 목록 API와 게시글 목록/상세 응답의 `likeCount`, `dislikeCount`, `bookmarkCount`, `myReaction`, `isBookmarked` 보강은 후속 범위로 둠.
+내 북마크 목록 API는 후속 범위로 둠. 게시글 목록/상세 응답의 반응/북마크 count/status는 `GET /api/community/posts`, `GET /api/community/posts/:postId` 응답에 반영함.
 
 신고 API는 `CommunityReport` 모델 도입 여부와 함께 후속 설계에서 확정함. 후보 경로는 `/api/community/reports` 또는 `/api/community/posts/:postId/reports`이며, 현재 문서에서는 구현 완료로 표시하지 않음.
 
@@ -2089,9 +2101,9 @@ Response 예시:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark 포함. 최신 확인 기준 13 suites / 238 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, AI, Study Note, Community Post, Community Comment, Community Reaction, Community Bookmark 포함. 최신 확인 기준 13 suites / 242 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 44 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 24 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
