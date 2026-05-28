@@ -32,6 +32,57 @@ const DEV_SEED_USERS = [
   }
 ];
 
+const DEV_SHOP_ITEMS = [
+  {
+    code: 'PROFILE_AVATAR_SKY',
+    name: '하늘 연필 아바타',
+    description: '밝은 하늘색 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 15,
+    assetUrl: '/assets/shop/avatar-sky.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_FOREST',
+    name: '숲 연필 아바타',
+    description: '차분한 초록 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 20,
+    assetUrl: '/assets/shop/avatar-forest.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_DAWN',
+    name: '새벽 학습 배경',
+    description: '잔잔한 새벽 톤 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 25,
+    assetUrl: '/assets/shop/background-dawn.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_MINT',
+    name: '민트 노트 배경',
+    description: '민트 톤 노트 스타일 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 30,
+    assetUrl: '/assets/shop/background-mint.png'
+  },
+  {
+    code: 'TITLE_EARLY_BIRD',
+    name: '아침형 학습러',
+    description: '일찍 시작하는 학습자용 칭호입니다.',
+    type: 'TITLE',
+    price: 18,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_TASK_MASTER',
+    name: '할 일 정복자',
+    description: '할 일 관리에 강한 학습자용 칭호입니다.',
+    type: 'TITLE',
+    price: 22,
+    assetUrl: null
+  }
+];
+
 function looksLikeProductionUrl(value) {
   if (typeof value !== 'string') {
     return false;
@@ -99,6 +150,31 @@ async function seedDevelopmentData(prisma) {
 
   for (const seedUser of DEV_SEED_USERS) {
     users.push(await upsertSeedUser(prisma, seedUser, passwordHash));
+  }
+
+  for (const item of DEV_SHOP_ITEMS) {
+    await prisma.shopItem.upsert({
+      where: {
+        code: item.code
+      },
+      update: {
+        name: item.name,
+        description: item.description,
+        type: item.type,
+        price: item.price,
+        assetUrl: item.assetUrl,
+        isActive: true
+      },
+      create: {
+        code: item.code,
+        name: item.name,
+        description: item.description,
+        type: item.type,
+        price: item.price,
+        assetUrl: item.assetUrl,
+        isActive: true
+      }
+    });
   }
 
   // Get the normal user to associate posts and challenges with
@@ -315,6 +391,7 @@ if (require.main === module) {
 
 module.exports = {
   DEV_SEED_PASSWORD,
+  DEV_SHOP_ITEMS,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl,

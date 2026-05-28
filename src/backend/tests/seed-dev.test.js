@@ -1,5 +1,6 @@
 const {
   DEV_SEED_PASSWORD,
+  DEV_SHOP_ITEMS,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl
@@ -30,6 +31,28 @@ describe('development seed script', () => {
       ])
     );
     expect(DEV_SEED_PASSWORD).toEqual(expect.any(String));
+  });
+
+  it('defines default shop seed items for profile customization', () => {
+    expect(DEV_SHOP_ITEMS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'PROFILE_AVATAR_SKY',
+          type: 'PROFILE_IMAGE',
+          price: expect.any(Number)
+        }),
+        expect.objectContaining({
+          code: 'PROFILE_BACKGROUND_DAWN',
+          type: 'PROFILE_BACKGROUND',
+          price: expect.any(Number)
+        }),
+        expect.objectContaining({
+          code: 'TITLE_EARLY_BIRD',
+          type: 'TITLE',
+          price: expect.any(Number)
+        })
+      ])
+    );
   });
 
   it('requires database environment keys before running seed', () => {

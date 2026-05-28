@@ -11,6 +11,7 @@ const focusRoutes = require('./focus.routes');
 const statisticsRoutes = require('./statistics.routes');
 const communityRoutes = require('./community.routes');
 const rewardRoutes = require('./reward.routes');
+const shopRoutes = require('./shop.routes');
 
 const router = express.Router();
 
@@ -26,5 +27,6 @@ router.use('/focus-sessions', focusRoutes);
 router.use('/statistics', statisticsRoutes);
 router.use('/community', communityRoutes);
 router.use('/rewards', rewardRoutes);
+router.use('/shop', shopRoutes);
 
 module.exports = router;

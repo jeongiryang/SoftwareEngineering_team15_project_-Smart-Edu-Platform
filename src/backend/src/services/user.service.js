@@ -16,6 +16,8 @@ function sanitizeProfile(profile) {
     learningGoal: profile.learningGoal,
     preferredSubject: profile.preferredSubject,
     profileImageUrl: profile.profileImageUrl,
+    profileBackgroundUrl: profile.profileBackgroundUrl,
+    titleText: profile.titleText,
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt
   };
