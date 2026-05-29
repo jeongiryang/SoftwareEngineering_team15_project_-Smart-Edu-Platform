@@ -395,6 +395,7 @@ model BoardPost {
   category  PostCategory        @default(FREE)
   title     String
   content   String
+  viewCount Int                 @default(0) @map("view_count")
   reported  Boolean             @default(false)
   createdAt DateTime            @default(now()) @map("created_at")
   updatedAt DateTime            @updatedAt @map("updated_at")

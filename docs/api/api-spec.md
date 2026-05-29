@@ -1842,8 +1842,8 @@ Query:
 | `page` | 선택 | positive integer, 기본값 `1` |
 | `pageSize` | 선택 | positive integer, 기본값 `10`, 최대 `50` |
 | `category` | 선택 | `QUESTION`, `FREE`, `STUDY_PROOF` 중 하나 |
-| `search` | 선택 | `title`, `content` 대상 포함 검색. trim 후 빈 문자열 또는 100자 초과는 400 |
-| `sort` | 선택 | `latest` 또는 `oldest`. 기본값 `latest` |
+| `search` | 선택 | `title`, `content`, 작성자 `name` 대상 포함 검색. trim 후 빈 문자열 또는 100자 초과는 400 |
+| `sort` | 선택 | `latest`, `oldest`, `likes`, `views`, `comments` 중 하나. 기본값 `latest` |
 
 Response `200`:
 
@@ -1856,6 +1856,7 @@ Response `200`:
       "category": "QUESTION",
       "title": "학습 질문",
       "content": "문제 풀이 질문입니다.",
+      "viewCount": 0,
       "createdAt": "2026-05-26T00:00:00.000Z",
       "updatedAt": "2026-05-26T00:00:00.000Z",
       "author": {
@@ -1907,8 +1908,9 @@ Response `201`:
     "userId": 1,
     "category": "QUESTION",
     "title": "학습 질문",
-    "content": "문제 풀이 질문입니다.",
-    "createdAt": "2026-05-26T00:00:00.000Z",
+      "content": "문제 풀이 질문입니다.",
+      "viewCount": 0,
+      "createdAt": "2026-05-26T00:00:00.000Z",
     "updatedAt": "2026-05-26T00:00:00.000Z",
     "author": {
       "id": 1,
@@ -1937,8 +1939,9 @@ Response `200`:
     "userId": 1,
     "category": "QUESTION",
     "title": "학습 질문",
-    "content": "문제 풀이 질문입니다.",
-    "createdAt": "2026-05-26T00:00:00.000Z",
+      "content": "문제 풀이 질문입니다.",
+      "viewCount": 1,
+      "createdAt": "2026-05-26T00:00:00.000Z",
     "updatedAt": "2026-05-26T00:00:00.000Z",
     "author": {
       "id": 1,
@@ -1959,6 +1962,10 @@ Error:
 - `400`: invalid `postId`
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음
+
+Note:
+
+- 상세 조회 성공 시 `viewCount`가 1 증가함.
 
 #### 9.4.4 게시글 수정
 
@@ -3467,10 +3474,10 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 22 suites / 402 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 23 suites / 425 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 41 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 31 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
@@ -3511,5 +3518,6 @@ Request Body:
 | 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.17~§9.4.18) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-29 | 커뮤니티 댓글 반응 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-29 | 커뮤니티 게시글 작성자 검색, 좋아요/조회수/댓글순 정렬, 조회수 응답 및 상세 조회 증가 정책 반영 |
 | 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-29 | 친구 추가 및 친구 목록 API(§6.5) 구현 완료 내역과 테스트 결과 반영 |
