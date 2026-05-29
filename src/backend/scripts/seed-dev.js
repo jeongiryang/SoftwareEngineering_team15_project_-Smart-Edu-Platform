@@ -168,7 +168,8 @@ const SEED_BADGE_CODES = [
   'SAGAK_STREAK_SPROUT',
   'SAGAK_COMMUNITY_HELPER',
   'SAGAK_ROUTINE_PENCIL',
-  'SAGAK_QUIZ_LEAF'
+  'SAGAK_QUIZ_LEAF',
+  'SAGAK_BOSS_DAWN_SLAYER'
 ];
 
 const SEED_QUEST_CODES = [
@@ -178,6 +179,11 @@ const SEED_QUEST_CODES = [
   'QUEST_FOCUS_600',
   'QUEST_TASK_7',
   'QUEST_REVIEW_ROUTINE'
+];
+
+const SEED_BOSS_RAID_CODES = [
+  'BOSS_DAWN_PENCIL',
+  'BOSS_MIDNIGHT_GUARDIAN'
 ];
 
 function looksLikeProductionUrl(value) {
@@ -347,6 +353,34 @@ async function resetSeedData(prisma, seedUsers) {
   await prisma.pointTransaction.deleteMany({
     where: {
       userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidRewardClaim.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidContribution.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidPartyMember.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidParty.deleteMany({
+    where: {
+      OR: [
+        { ownerId: { in: userIds } },
+        { raid: { code: { in: SEED_BOSS_RAID_CODES } } }
+      ]
+    }
+  });
+  await prisma.bossRaid.deleteMany({
+    where: {
+      code: { in: SEED_BOSS_RAID_CODES }
     }
   });
   await prisma.userQuest.deleteMany({
@@ -2103,6 +2137,115 @@ async function seedRewards(prisma, usersByEmail) {
   });
 }
 
+async function seedBossRaids(prisma, usersByEmail) {
+  const mainUser = usersByEmail['dev.user@example.com'];
+  const peerUser = usersByEmail['dev.peer@example.com'];
+  const rewardUser = usersByEmail['dev.reward@example.com'];
+
+  const bossBadge = await prisma.badge.create({
+    data: {
+      code: 'SAGAK_BOSS_DAWN_SLAYER',
+      name: '보스 레이드 클리어',
+      description: '스터디 보스를 함께 처치한 파티원에게 지급되는 한정 배지',
+      iconUrl: '/assets/badges/sagak-boss-dawn-slayer.png',
+      condition: 'BOSS_RAID_CLEAR'
+    }
+  });
+
+  const dawnBossRaid = await prisma.bossRaid.create({
+    data: {
+      code: 'BOSS_DAWN_PENCIL',
+      name: '새벽 연필 보스',
+      description: '집중 시간과 완료 태스크를 모아 연필 보스의 HP를 깎는 협동 레이드',
+      imageUrl: '/assets/raids/dawn-pencil-boss.png',
+      maxHp: 360,
+      focusMinuteDamage: 1,
+      taskCompletionDamage: 15,
+      baseRewardPoints: 50,
+      bonusRewardPoolPoints: 120,
+      badgeId: bossBadge.id,
+      startsAt: daysFromNow(-2, 6, 0),
+      endsAt: daysFromNow(5, 23, 0),
+      isActive: true
+    }
+  });
+
+  await prisma.bossRaid.create({
+    data: {
+      code: 'BOSS_MIDNIGHT_GUARDIAN',
+      name: '자정 수호자 보스',
+      description: '주말 누적 학습량으로 공략하는 다음 단계의 협동 보스',
+      imageUrl: '/assets/raids/midnight-guardian-boss.png',
+      maxHp: 540,
+      focusMinuteDamage: 1,
+      taskCompletionDamage: 18,
+      baseRewardPoints: 70,
+      bonusRewardPoolPoints: 180,
+      startsAt: daysFromNow(1, 6, 0),
+      endsAt: daysFromNow(8, 23, 0),
+      isActive: true
+    }
+  });
+
+  const sampleParty = await prisma.bossRaidParty.create({
+    data: {
+      raidId: dawnBossRaid.id,
+      ownerId: mainUser.id,
+      name: '아침 집중팟',
+      joinCode: 'DAWN01',
+      status: 'OPEN',
+      totalDamage: 210,
+      remainingHp: 150,
+      lastCalculatedAt: daysFromNow(0, 9, 0),
+      members: {
+        create: [
+          {
+            userId: mainUser.id,
+            joinedAt: daysFromNow(-1, 7, 30)
+          },
+          {
+            userId: peerUser.id,
+            joinedAt: daysFromNow(-1, 7, 45)
+          },
+          {
+            userId: rewardUser.id,
+            joinedAt: daysFromNow(-1, 8, 0)
+          }
+        ]
+      }
+    }
+  });
+
+  await prisma.bossRaidContribution.createMany({
+    data: [
+      {
+        partyId: sampleParty.id,
+        userId: mainUser.id,
+        focusMinutes: 90,
+        completedTaskCount: 3,
+        totalDamage: 135,
+        lastContributedAt: daysFromNow(0, 9, 0)
+      },
+      {
+        partyId: sampleParty.id,
+        userId: peerUser.id,
+        focusMinutes: 30,
+        completedTaskCount: 1,
+        totalDamage: 45,
+        lastContributedAt: daysFromNow(0, 9, 0)
+      },
+      {
+        partyId: sampleParty.id,
+        userId: rewardUser.id,
+        focusMinutes: 15,
+        completedTaskCount: 1,
+        totalDamage: 30,
+        lastContributedAt: daysFromNow(0, 9, 0)
+      }
+    ]
+  });
+}
+
 async function seedAccessibility(prisma, usersByEmail) {
   const mainUser = usersByEmail['dev.user@example.com'];
   const peerUser = usersByEmail['dev.peer@example.com'];
@@ -2290,6 +2433,7 @@ async function seedDevelopmentData(prisma) {
   await seedChallenge(prisma, usersByEmail);
   await seedLearningAndAi(prisma, usersByEmail);
   await seedRewards(prisma, usersByEmail);
+  await seedBossRaids(prisma, usersByEmail);
   await seedAccessibility(prisma, usersByEmail);
 
   return users;
