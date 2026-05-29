@@ -79,6 +79,11 @@ function GitHubMark() {
 
 export default function LandingScreen({ onNavigate }) {
   const [writtenWord, setWrittenWord] = useState('');
+  const [githubTooltipState, setGithubTooltipState] = useState({
+    focused: false,
+    hovered: false
+  });
+  const showGithubTooltip = githubTooltipState.focused || githubTooltipState.hovered;
 
   useEffect(() => {
     const timers = [];
@@ -206,10 +211,17 @@ export default function LandingScreen({ onNavigate }) {
           <Pressable
             accessibilityLabel="GitHub Repository"
             accessibilityRole="link"
+            onBlur={() => setGithubTooltipState((current) => ({ ...current, focused: false }))}
+            onFocus={() => setGithubTooltipState((current) => ({ ...current, focused: true }))}
+            onHoverIn={() => setGithubTooltipState((current) => ({ ...current, hovered: true }))}
+            onHoverOut={() => setGithubTooltipState((current) => ({ ...current, hovered: false }))}
             onPress={openGitHubRepository}
             style={(state) => [styles.githubButton, ...interactiveStateStyles(state)]}
-            title="GitHub"
           >
+            <View pointerEvents="none" style={[styles.githubTooltip, showGithubTooltip && styles.githubTooltipVisible]}>
+              <Text style={styles.githubTooltipText}>GitHub</Text>
+              <View style={styles.githubTooltipTail} />
+            </View>
             <GitHubMark />
           </Pressable>
         </View>
@@ -527,7 +539,47 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    position: 'relative'
+  },
+  githubTooltip: {
+    position: 'absolute',
+    left: -13,
+    bottom: 50,
+    width: 68,
+    alignItems: 'center',
+    opacity: 0,
+    transform: [{ translateY: 5 }],
+    zIndex: 10,
+    transitionDuration: '150ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'ease-out'
+  },
+  githubTooltipVisible: {
+    opacity: 1,
+    transform: [{ translateY: 0 }]
+  },
+  githubTooltipText: {
+    backgroundColor: colors.ink,
+    borderRadius: 10,
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    textAlign: 'center'
+  },
+  githubTooltipTail: {
+    width: 0,
+    height: 0,
+    borderLeftColor: 'transparent',
+    borderLeftWidth: 5,
+    borderRightColor: 'transparent',
+    borderRightWidth: 5,
+    borderTopColor: colors.ink,
+    borderTopWidth: 6,
+    marginTop: -1
   },
   githubNativeMark: {
     width: 28,
