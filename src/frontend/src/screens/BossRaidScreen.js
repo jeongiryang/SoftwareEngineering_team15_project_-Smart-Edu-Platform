@@ -1,0 +1,980 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
+import {
+  claimBossRaidReward,
+  createBossRaidParty,
+  getBossRaidPartyDetail,
+  getBossRaids,
+  getMyBossRaidParties,
+  joinBossRaidParty
+} from '../services/api';
+import { colors, interactiveStateStyles, radii, shadows } from '../styles/theme';
+
+function formatNumber(value) {
+  return Intl.NumberFormat('ko-KR').format(Number(value) || 0);
+}
+
+function getProgressRate(totalDamage, maxHp) {
+  if (!maxHp || maxHp <= 0) {
+    return 0;
+  }
+
+  return Math.min(totalDamage / maxHp, 1);
+}
+
+function BossImage({ imageUrl, name }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!imageUrl || failed) {
+    return (
+      <View style={styles.bossImageFallback}>
+        <Text style={styles.bossImageFallbackEmoji}>👹</Text>
+        <Text style={styles.bossImageFallbackText}>{name}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      source={{ uri: imageUrl }}
+      onError={() => setFailed(true)}
+      resizeMode="cover"
+      style={styles.bossImage}
+    />
+  );
+}
+
+function RaidStatusChip({ status }) {
+  const config = {
+    OPEN: { label: '진행 중', style: styles.statusOpen },
+    CLEARED: { label: '처치 완료', style: styles.statusCleared },
+    CLOSED: { label: '종료됨', style: styles.statusClosed }
+  }[status] || { label: status, style: styles.statusClosed };
+
+  return (
+    <View style={[styles.statusChip, config.style]}>
+      <Text style={styles.statusChipText}>{config.label}</Text>
+    </View>
+  );
+}
+
+function SummaryCard({ label, value, description, emphasis }) {
+  return (
+    <View style={[styles.summaryCard, emphasis && styles.summaryCardEmphasis]}>
+      <Text style={[styles.summaryLabel, emphasis && styles.summaryLabelEmphasis]}>{label}</Text>
+      <Text style={[styles.summaryValue, emphasis && styles.summaryValueEmphasis]}>{value}</Text>
+      <Text style={[styles.summaryDescription, emphasis && styles.summaryDescriptionEmphasis]}>
+        {description}
+      </Text>
+    </View>
+  );
+}
+
+export default function BossRaidScreen({ token, user }) {
+  const [raids, setRaids] = useState([]);
+  const [parties, setParties] = useState([]);
+  const [selectedRaidId, setSelectedRaidId] = useState(null);
+  const [selectedPartyId, setSelectedPartyId] = useState(null);
+  const [selectedParty, setSelectedParty] = useState(null);
+  const [createPartyName, setCreatePartyName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const selectedRaid = useMemo(
+    () => raids.find((raid) => raid.id === selectedRaidId) || raids[0] || null,
+    [raids, selectedRaidId]
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const [raidResponse, partyResponse] = await Promise.all([
+          getBossRaids(token),
+          getMyBossRaidParties(token)
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setRaids(raidResponse.raids || []);
+        setParties(partyResponse.parties || []);
+
+        if (!selectedRaidId && raidResponse.raids?.length) {
+          setSelectedRaidId(raidResponse.raids[0].id);
+        }
+
+        if (!selectedPartyId && partyResponse.parties?.length) {
+          setSelectedPartyId(partyResponse.parties[0].id);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(loadError.message || '보스 레이드 정보를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, [token, selectedPartyId, selectedRaidId]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPartyDetail() {
+      if (!selectedPartyId) {
+        setSelectedParty(null);
+        return;
+      }
+
+      try {
+        const response = await getBossRaidPartyDetail(token, selectedPartyId);
+
+        if (active) {
+          setSelectedParty(response.party);
+        }
+      } catch (detailError) {
+        if (active) {
+          setError(detailError.message || '파티 상세 정보를 불러오지 못했습니다.');
+        }
+      }
+    }
+
+    loadPartyDetail();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedPartyId, token]);
+
+  async function refreshParties(nextSelectedPartyId = selectedPartyId) {
+    const partyResponse = await getMyBossRaidParties(token);
+    const nextParties = partyResponse.parties || [];
+
+    setParties(nextParties);
+
+    if (!nextParties.length) {
+      setSelectedPartyId(null);
+      setSelectedParty(null);
+      return;
+    }
+
+    const stillExists = nextParties.some((party) => party.id === nextSelectedPartyId);
+    const resolvedPartyId = stillExists ? nextSelectedPartyId : nextParties[0].id;
+    setSelectedPartyId(resolvedPartyId);
+  }
+
+  async function handleCreateParty() {
+    if (!selectedRaid) {
+      setError('먼저 보스를 선택해주세요.');
+      return;
+    }
+
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await createBossRaidParty(token, {
+        raidId: selectedRaid.id,
+        name: createPartyName || `${user?.name || '스터디'} 파티`
+      });
+
+      setCreatePartyName('');
+      setMessage(`"${response.party.name}" 파티를 생성했어요. 참여 코드는 ${response.party.joinCode} 입니다.`);
+      await refreshParties(response.party.id);
+    } catch (createError) {
+      setError(createError.message || '파티를 생성하지 못했습니다.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleJoinParty() {
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await joinBossRaidParty(token, { joinCode });
+
+      setJoinCode('');
+      setMessage(`"${response.party.name}" 파티에 참가했어요.`);
+      await refreshParties(response.party.id);
+    } catch (joinError) {
+      setError(joinError.message || '파티 참가에 실패했습니다.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleClaimReward() {
+    if (!selectedParty) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await claimBossRaidReward(token, selectedParty.id);
+      const totalReward = response.reward.reward.totalRewardPoints;
+      setMessage(`${formatNumber(totalReward)}P 보상을 받았어요. ${response.reward.badge ? '한정 배지도 함께 지급되었습니다.' : ''}`.trim());
+      await refreshParties(selectedParty.id);
+    } catch (claimError) {
+      setError(claimError.message || '보상 수령에 실패했습니다.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  const selectedPartyProgress = selectedParty
+    ? getProgressRate(selectedParty.totalDamage, selectedParty.raid.maxHp)
+    : 0;
+
+  return (
+    <ScrollView contentContainerStyle={styles.screen} style={styles.scroll}>
+      <View style={styles.heroPanel}>
+        <View style={styles.heroCopy}>
+          <Text style={styles.eyebrow}>협동 퀘스트</Text>
+          <Text style={styles.title}>스터디 보스 레이드</Text>
+          <Text style={styles.description}>
+            원하는 사람끼리 파티를 만들고, 그룹 누적 집중 시간과 완료 태스크 수로 보스 HP를 깎아보세요.
+          </Text>
+        </View>
+        <View style={styles.summaryGrid}>
+          <SummaryCard
+            description="보상은 참여자 공통 포인트 + 개인 기여 보너스 + 한정 배지 구조예요."
+            emphasis
+            label="핵심 규칙"
+            value="5분 갱신"
+          />
+          <SummaryCard
+            description="현재 활성 보스 수"
+            label="보스"
+            value={`${raids.length}개`}
+          />
+          <SummaryCard
+            description="내가 참가한 파티 수"
+            label="내 파티"
+            value={`${parties.length}개`}
+          />
+        </View>
+      </View>
+
+      {message ? (
+        <View style={[styles.notice, styles.noticeSuccess]}>
+          <Text style={styles.noticeText}>{message}</Text>
+        </View>
+      ) : null}
+      {error ? (
+        <View style={[styles.notice, styles.noticeError]}>
+          <Text style={styles.noticeText}>{error}</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>보스 선택</Text>
+        <View style={styles.cardGrid}>
+          {raids.map((raid) => {
+            const active = raid.id === selectedRaid?.id;
+
+            return (
+              <Pressable
+                key={raid.id}
+                onPress={() => setSelectedRaidId(raid.id)}
+                style={(state) => [
+                  styles.raidCard,
+                  active && styles.raidCardActive,
+                  ...interactiveStateStyles(state, { kind: 'card' })
+                ]}
+              >
+                <BossImage imageUrl={raid.imageUrl} name={raid.name} />
+                <View style={styles.raidCardHeader}>
+                  <Text style={styles.raidCardTitle}>{raid.name}</Text>
+                  {raid.hasJoinedParty ? <RaidStatusChip status="OPEN" /> : null}
+                </View>
+                <Text style={styles.raidCardDescription}>{raid.description}</Text>
+                <Text style={styles.raidCardMeta}>
+                  HP {formatNumber(raid.maxHp)} · 기본 보상 {formatNumber(raid.baseRewardPoints)}P
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.actionRow}>
+        <View style={styles.actionPanel}>
+          <Text style={styles.panelTitle}>파티 생성</Text>
+          <Text style={styles.panelDescription}>같이 레이드할 팀 이름을 정하고 새 파티를 만들어요.</Text>
+          <TextInput
+            onChangeText={setCreatePartyName}
+            placeholder="예: 새벽 집중팟"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={createPartyName}
+          />
+          <Pressable
+            disabled={actionLoading || !selectedRaid}
+            onPress={handleCreateParty}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              (actionLoading || !selectedRaid) && styles.disabledButton,
+              pressed && !actionLoading && styles.primaryButtonPressed
+            ]}
+          >
+            <Text style={styles.primaryButtonText}>선택한 보스로 파티 만들기</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.actionPanel}>
+          <Text style={styles.panelTitle}>참여 코드로 참가</Text>
+          <Text style={styles.panelDescription}>친구가 만든 파티의 참여 코드를 입력하면 바로 합류할 수 있어요.</Text>
+          <TextInput
+            autoCapitalize="characters"
+            onChangeText={setJoinCode}
+            placeholder="예: DAWN01"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={joinCode}
+          />
+          <Pressable
+            disabled={actionLoading || !joinCode.trim()}
+            onPress={handleJoinParty}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              (actionLoading || !joinCode.trim()) && styles.disabledButton,
+              pressed && !actionLoading && styles.secondaryButtonPressed
+            ]}
+          >
+            <Text style={styles.secondaryButtonText}>코드로 참가하기</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>내 파티</Text>
+        <View style={styles.partyList}>
+          {parties.map((party) => {
+            const active = party.id === selectedPartyId;
+
+            return (
+              <Pressable
+                key={party.id}
+                onPress={() => setSelectedPartyId(party.id)}
+                style={({ pressed }) => [
+                  styles.partyChip,
+                  active && styles.partyChipActive,
+                  pressed && styles.partyChipPressed
+                ]}
+              >
+                <Text style={[styles.partyChipTitle, active && styles.partyChipTitleActive]}>
+                  {party.name}
+                </Text>
+                <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]}>
+                  {party.raid.name} · {party.joinCode}
+                </Text>
+              </Pressable>
+            );
+          })}
+          {!loading && parties.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateTitle}>아직 참가한 파티가 없어요.</Text>
+              <Text style={styles.emptyStateDescription}>
+                먼저 파티를 만들거나 친구의 참여 코드로 입장해보세요.
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      {selectedParty ? (
+        <View style={styles.detailPanel}>
+          <View style={styles.detailHeader}>
+            <View>
+              <Text style={styles.detailTitle}>{selectedParty.raid.name}</Text>
+              <Text style={styles.detailSubtitle}>
+                {selectedParty.name} · 참여 코드 {selectedParty.joinCode}
+              </Text>
+            </View>
+            <RaidStatusChip status={selectedParty.status} />
+          </View>
+
+          <View style={styles.progressPanel}>
+            <View style={styles.progressMetaRow}>
+              <Text style={styles.progressLabel}>보스 HP</Text>
+              <Text style={styles.progressValue}>
+                {formatNumber(selectedParty.remainingHp)} / {formatNumber(selectedParty.raid.maxHp)}
+              </Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${selectedPartyProgress * 100}%` }]} />
+            </View>
+            <View style={styles.progressInfoRow}>
+              <Text style={styles.progressHint}>누적 데미지 {formatNumber(selectedParty.totalDamage)}</Text>
+              <Text style={styles.progressHint}>
+                1분 = {selectedParty.raid.focusMinuteDamage} DMG · 태스크 1개 = {selectedParty.raid.taskCompletionDamage} DMG
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.detailGrid}>
+            <View style={styles.membersCard}>
+              <Text style={styles.cardTitle}>파티 멤버</Text>
+              {selectedParty.members.map((member) => (
+                <View key={member.userId} style={styles.memberRow}>
+                  <Text style={styles.memberName}>{member.name}</Text>
+                  <Text style={styles.memberJoinedAt}>
+                    참여 {new Date(member.joinedAt).toLocaleDateString('ko-KR')}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.membersCard}>
+              <Text style={styles.cardTitle}>기여도</Text>
+              {selectedParty.contributions.map((contribution) => (
+                <View key={contribution.userId} style={styles.contributionRow}>
+                  <View>
+                    <Text style={styles.memberName}>{contribution.userName}</Text>
+                    <Text style={styles.contributionMeta}>
+                      집중 {formatNumber(contribution.focusMinutes)}분 · 완료 {formatNumber(contribution.completedTaskCount)}개
+                    </Text>
+                  </View>
+                  <Text style={styles.contributionDamage}>{formatNumber(contribution.totalDamage)} DMG</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.rewardPanel}>
+            <View>
+              <Text style={styles.rewardTitle}>처치 보상</Text>
+              <Text style={styles.rewardDescription}>
+                참여자 전원 기본 {formatNumber(selectedParty.raid.baseRewardPoints)}P + 기여도 비율 기반 보너스 풀 {formatNumber(selectedParty.raid.bonusRewardPoolPoints)}P
+              </Text>
+              {selectedParty.raid.badge ? (
+                <Text style={styles.rewardBadge}>
+                  한정 배지: {selectedParty.raid.badge.name}
+                </Text>
+              ) : null}
+            </View>
+            <Pressable
+              disabled={actionLoading || selectedParty.status !== 'CLEARED'}
+              onPress={handleClaimReward}
+              style={({ pressed }) => [
+                styles.claimButton,
+                (actionLoading || selectedParty.status !== 'CLEARED') && styles.disabledButton,
+                pressed && selectedParty.status === 'CLEARED' && styles.primaryButtonPressed
+              ]}
+            >
+              <Text style={styles.claimButtonText}>
+                {selectedParty.status === 'CLEARED' ? '보상 받기' : '처치 후 수령 가능'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+    backgroundColor: colors.background
+  },
+  screen: {
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 80,
+    gap: 24
+  },
+  heroPanel: {
+    gap: 18
+  },
+  heroCopy: {
+    gap: 10
+  },
+  eyebrow: {
+    color: colors.mintDeep,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  title: {
+    color: colors.ink,
+    fontSize: 40,
+    fontWeight: '900'
+  },
+  description: {
+    color: colors.muted,
+    fontSize: 17,
+    lineHeight: 28
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  summaryCard: {
+    flex: 1,
+    minWidth: 220,
+    borderRadius: radii.panel,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 22,
+    gap: 10,
+    ...shadows.card
+  },
+  summaryCardEmphasis: {
+    backgroundColor: colors.blue
+  },
+  summaryLabel: {
+    color: colors.mintDeep,
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  summaryLabelEmphasis: {
+    color: colors.cream
+  },
+  summaryValue: {
+    color: colors.blueDeep,
+    fontSize: 28,
+    fontWeight: '900'
+  },
+  summaryValueEmphasis: {
+    color: colors.surface
+  },
+  summaryDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22
+  },
+  summaryDescriptionEmphasis: {
+    color: colors.blueSoft
+  },
+  notice: {
+    borderRadius: radii.control,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderWidth: 1
+  },
+  noticeSuccess: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success
+  },
+  noticeError: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger
+  },
+  noticeText: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  section: {
+    gap: 14
+  },
+  sectionTitle: {
+    color: colors.ink,
+    fontSize: 28,
+    fontWeight: '900'
+  },
+  cardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  raidCard: {
+    width: 360,
+    maxWidth: '100%',
+    borderRadius: radii.panel,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 18,
+    gap: 14,
+    overflow: 'hidden',
+    ...shadows.card
+  },
+  raidCardActive: {
+    borderColor: colors.mintDeep
+  },
+  bossImage: {
+    width: '100%',
+    height: 190,
+    borderRadius: radii.card,
+    backgroundColor: colors.blueSoft
+  },
+  bossImageFallback: {
+    width: '100%',
+    height: 190,
+    borderRadius: radii.card,
+    backgroundColor: colors.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10
+  },
+  bossImageFallbackEmoji: {
+    fontSize: 56
+  },
+  bossImageFallbackText: {
+    color: colors.blueDeep,
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  raidCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12
+  },
+  raidCardTitle: {
+    color: colors.ink,
+    fontSize: 24,
+    fontWeight: '900',
+    flex: 1
+  },
+  raidCardDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22
+  },
+  raidCardMeta: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  statusChip: {
+    minHeight: 32,
+    paddingHorizontal: 12,
+    borderRadius: radii.chip,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  statusOpen: {
+    backgroundColor: colors.mintSoft
+  },
+  statusCleared: {
+    backgroundColor: colors.successSoft
+  },
+  statusClosed: {
+    backgroundColor: colors.warningSoft
+  },
+  statusChipText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  actionPanel: {
+    flex: 1,
+    minWidth: 320,
+    borderRadius: radii.panel,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 22,
+    gap: 14,
+    ...shadows.card
+  },
+  panelTitle: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '900'
+  },
+  panelDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22
+  },
+  input: {
+    minHeight: 48,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    color: colors.ink,
+    fontSize: 15
+  },
+  primaryButton: {
+    minHeight: 48,
+    borderRadius: radii.control,
+    backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  primaryButtonPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }]
+  },
+  secondaryButton: {
+    minHeight: 48,
+    borderRadius: radii.control,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.mintDeep,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  secondaryButtonPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }]
+  },
+  disabledButton: {
+    opacity: 0.45
+  },
+  primaryButtonText: {
+    color: colors.surface,
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  secondaryButtonText: {
+    color: colors.mintDeep,
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  partyList: {
+    gap: 12
+  },
+  partyChip: {
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 4
+  },
+  partyChipActive: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.mintSoft
+  },
+  partyChipPressed: {
+    opacity: 0.94
+  },
+  partyChipTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  partyChipTitleActive: {
+    color: colors.mintDeep
+  },
+  partyChipMeta: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  emptyState: {
+    borderRadius: radii.panel,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 24,
+    gap: 10
+  },
+  emptyStateTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '800'
+  },
+  emptyStateDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22
+  },
+  detailPanel: {
+    borderRadius: radii.panel,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 24,
+    gap: 20,
+    ...shadows.card
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16
+  },
+  detailTitle: {
+    color: colors.ink,
+    fontSize: 30,
+    fontWeight: '900'
+  },
+  detailSubtitle: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 6
+  },
+  progressPanel: {
+    gap: 10
+  },
+  progressMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  progressLabel: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  progressValue: {
+    color: colors.blueDeep,
+    fontSize: 16,
+    fontWeight: '900'
+  },
+  progressTrack: {
+    width: '100%',
+    height: 18,
+    borderRadius: radii.chip,
+    backgroundColor: colors.blueSoft,
+    overflow: 'hidden'
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: radii.chip,
+    backgroundColor: colors.mint
+  },
+  progressInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    flexWrap: 'wrap'
+  },
+  progressHint: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  detailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  membersCard: {
+    flex: 1,
+    minWidth: 320,
+    borderRadius: radii.card,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 18,
+    gap: 12
+  },
+  cardTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  memberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  memberName: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  memberJoinedAt: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  contributionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    alignItems: 'center'
+  },
+  contributionMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4
+  },
+  contributionDamage: {
+    color: colors.blueDeep,
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  rewardPanel: {
+    borderRadius: radii.card,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: colors.creamStrong,
+    padding: 18,
+    gap: 14
+  },
+  rewardTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  rewardDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22
+  },
+  rewardBadge: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 8
+  },
+  claimButton: {
+    minHeight: 48,
+    borderRadius: radii.control,
+    backgroundColor: colors.success,
+    borderWidth: 1,
+    borderColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  claimButtonText: {
+    color: colors.surface,
+    fontSize: 15,
+    fontWeight: '800'
+  }
+});
