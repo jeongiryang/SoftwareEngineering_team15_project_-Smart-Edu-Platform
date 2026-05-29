@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     color: colors.surface,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     lineHeight: 16,
     paddingHorizontal: 10,
     paddingVertical: 6,
