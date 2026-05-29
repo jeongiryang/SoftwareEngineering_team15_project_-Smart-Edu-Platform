@@ -20,6 +20,7 @@ import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import { getCurrentUser } from './src/services/api';
 import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
 import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
+import { LanguageProvider, useLanguage, useWebTextLocalization } from './src/i18n';
 
 const screens = {
   home: LandingScreen,
@@ -212,7 +213,9 @@ function removeStoredToken() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppRoot />
+      <LanguageProvider>
+        <AppRoot />
+      </LanguageProvider>
     </ThemeProvider>
   );
 }
@@ -373,8 +376,11 @@ function AppChrome({
 }) {
   const { preference, speakText } = useAccessibility();
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
+  const { currentLanguage, translateText } = useLanguage();
   const [readTextError, setReadTextError] = useState('');
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
+
+  useWebTextLocalization(currentLanguage, translateText);
 
   useEffect(() => {
     setHighContrastActive(Boolean(preference.highContrast));
