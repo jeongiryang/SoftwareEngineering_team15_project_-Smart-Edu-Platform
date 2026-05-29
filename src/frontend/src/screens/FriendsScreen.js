@@ -94,10 +94,11 @@ function EmptyState({ actionLabel, description, onPress, title }) {
   );
 }
 
-export default function FriendsScreen({ onNavigate, token }) {
+export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
   const [loading, setLoading] = useState(true);
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState(EMPTY_REQUESTS);
+  const [onlineFriendIds, setOnlineFriendIds] = useState(() => new Set());
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -107,6 +108,7 @@ export default function FriendsScreen({ onNavigate, token }) {
 
   const receivedCount = requests.received.length;
   const sentCount = requests.sent.length;
+  const onlineFriendCount = onlineFriendIds.size;
 
   const summaryText = useMemo(() => {
     if (receivedCount > 0) {
@@ -136,6 +138,7 @@ export default function FriendsScreen({ onNavigate, token }) {
       ]);
 
       setFriends(Array.isArray(friendResult?.friends) ? friendResult.friends : []);
+      setOnlineFriendIds(new Set(Array.isArray(friendResult?.onlineFriendIds) ? friendResult.onlineFriendIds.map(Number) : []));
       setRequests({
         ...EMPTY_REQUESTS,
         ...(requestResult?.requests || {})
@@ -150,6 +153,40 @@ export default function FriendsScreen({ onNavigate, token }) {
   useEffect(() => {
     loadFriends();
   }, [loadFriends]);
+
+  useEffect(() => {
+    if (!realtimeEvent?.type) {
+      return;
+    }
+
+    if (realtimeEvent.type === 'friends.presence.snapshot') {
+      const onlineIds = Array.isArray(realtimeEvent.payload?.onlineFriendIds)
+        ? realtimeEvent.payload.onlineFriendIds.map(Number).filter(Boolean)
+        : [];
+      setOnlineFriendIds(new Set(onlineIds));
+      return;
+    }
+
+    if (realtimeEvent.type === 'friends.presence.updated') {
+      const userId = Number(realtimeEvent.payload?.userId);
+
+      if (!userId) {
+        return;
+      }
+
+      setOnlineFriendIds((previousIds) => {
+        const nextIds = new Set(previousIds);
+
+        if (realtimeEvent.payload?.online) {
+          nextIds.add(userId);
+        } else {
+          nextIds.delete(userId);
+        }
+
+        return nextIds;
+      });
+    }
+  }, [realtimeEvent]);
 
   async function handleSearch() {
     if (!token || searching) {
@@ -246,6 +283,7 @@ export default function FriendsScreen({ onNavigate, token }) {
 
   function renderFriendCard(item) {
     const friend = item.user;
+    const isOnline = onlineFriendIds.has(Number(friend?.id));
 
     return (
       <View key={item.id} style={[styles.friendCard, shadows.card]}>
@@ -253,6 +291,10 @@ export default function FriendsScreen({ onNavigate, token }) {
         <View style={styles.friendCopy}>
           <Text style={styles.friendName}>{friend?.name || '학습 친구'}</Text>
           <Text style={styles.friendMeta}>{friend?.preferredSubject || friend?.learningGoal || friend?.loginId || '함께 공부할 친구'}</Text>
+          <View style={[styles.presenceBadge, isOnline ? styles.presenceOnline : styles.presenceOffline]}>
+            <View style={[styles.presenceDot, isOnline ? styles.presenceDotOnline : styles.presenceDotOffline]} />
+            <Text style={styles.presenceText}>{isOnline ? '온라인' : '오프라인'}</Text>
+          </View>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -342,8 +384,13 @@ export default function FriendsScreen({ onNavigate, token }) {
           <Text style={styles.eyebrow}>FRIENDS</Text>
           <Text style={styles.title}>친구와 함께 학습 흐름을 이어가기</Text>
           <Text style={styles.subtitle}>{summaryText}</Text>
+          <Text style={styles.presenceHelper}>친구에게만 표시되는 접속 상태입니다.</Text>
         </View>
         <View style={styles.heroActions}>
+          <View style={styles.onlineSummaryBadge}>
+            <Text style={styles.onlineSummaryLabel}>현재 접속 중</Text>
+            <Text style={styles.onlineSummaryValue}>{onlineFriendCount}</Text>
+          </View>
           <Pressable accessibilityRole="button" onPress={loadFriends} style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}>
             <Text style={styles.secondaryButtonText}>새로고침</Text>
           </Pressable>
@@ -511,10 +558,36 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: 10
   },
+  presenceHelper: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 8
+  },
   heroActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10
+  },
+  onlineSummaryBadge: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center'
+  },
+  onlineSummaryLabel: {
+    color: colors.mintDeep,
+    fontSize: 10,
+    fontWeight: '900'
+  },
+  onlineSummaryValue: {
+    color: colors.blueDeep,
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18
   },
   primaryButton: {
     minHeight: 44,
@@ -689,6 +762,40 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18
+  },
+  presenceBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  presenceOnline: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  presenceOffline: {
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  presenceDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999
+  },
+  presenceDotOnline: {
+    backgroundColor: colors.mintDeep
+  },
+  presenceDotOffline: {
+    backgroundColor: colors.muted
+  },
+  presenceText: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '900'
   },
   statusBadge: {
     borderRadius: 999,

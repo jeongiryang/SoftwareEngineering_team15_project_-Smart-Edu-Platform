@@ -185,8 +185,15 @@ Response 예시:
 |---|---|
 | 상태 | 구현 완료 |
 | Endpoint | `/ws` |
-| 인증 | 불필요 |
-| 설명 | 접속 중인 클라이언트에 서비스 점검 상태 변경과 관리자 공지를 실시간 broadcast함 |
+| 인증 | 서비스 점검/공지 수신은 불필요, 친구 접속 상태는 연결 후 `presence.authenticate` 메시지로 인증 |
+| 설명 | 접속 중인 클라이언트에 서비스 점검 상태, 관리자 공지, 커뮤니티 새 댓글, 친구 접속 상태를 실시간 전달함 |
+
+클라이언트 발행 메시지:
+
+| Message type | Payload | 설명 |
+|---|---|---|
+| `presence.authenticate` | `{ "token": "<JWT>" }` | WebSocket 연결 후 친구 접속 상태를 수신하기 위해 현재 사용자 token으로 인증함. token은 URL query로 보내지 않음 |
+| `presence.refresh` | `{}` | 인증된 연결에서 현재 온라인 친구 목록 snapshot을 다시 요청함 |
 
 서버 발행 이벤트:
 
@@ -196,6 +203,9 @@ Response 예시:
 | `admin.notice` | `{ "notice": { "id": "...", "title": "...", "message": "...", "level": "info" } }` | 관리자가 실시간 공지를 전송했을 때 발행 |
 | `community.comment.created` | `{ "comment": { "postId": 1, "commentId": 10, "parentId": null, "isReply": false, "author": { "id": 2, "name": "사용자" }, "preview": "댓글 미리보기", "createdAt": "..." } }` | 커뮤니티 게시글에 새 댓글이 작성되었을 때 발행 |
 | `community.reply.created` | `{ "comment": { "postId": 1, "commentId": 11, "parentId": 10, "isReply": true, "author": { "id": 2, "name": "사용자" }, "preview": "대답글 미리보기", "createdAt": "..." } }` | 커뮤니티 게시글에 새 대답글이 작성되었을 때 발행 |
+| `friends.presence.snapshot` | `{ "onlineFriendIds": [2, 3] }` | 인증된 사용자에게 현재 온라인 상태인 친구 ID 목록을 전달 |
+| `friends.presence.updated` | `{ "userId": 2, "online": true, "updatedAt": "..." }` | 친구가 온라인/오프라인 상태로 바뀌었을 때 해당 친구 관계 사용자에게만 전달 |
+| `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
 
 WebSocket URL 기준:
 
@@ -204,11 +214,12 @@ WebSocket URL 기준:
 
 정책:
 
-- WebSocket은 서버 broadcast 수신용으로 사용함.
-- 클라이언트가 임의 관리자 이벤트를 보낼 수 없도록 클라이언트 메시지는 ping/pong 외에는 처리하지 않음.
+- WebSocket은 서버 broadcast 수신을 기본으로 사용하고, 친구 접속 상태는 `presence.authenticate`/`presence.refresh` 메시지만 제한적으로 처리함.
+- 클라이언트가 임의 관리자 이벤트를 보낼 수 없도록 관리자 공지나 점검 상태 변경 메시지는 클라이언트 입력으로 처리하지 않음.
 - WebSocket 연결 실패 시 기존 `GET /api/system/status` 기반 HTTP fallback을 유지함.
+- 친구 접속 상태는 친구 관계가 있는 사용자에게만 표시하며, 정확한 위치나 상세 활동 내역은 전달하지 않음.
 - Vercel은 WebSocket 서버를 실행하지 않고, 브라우저가 Render backend의 `/ws` endpoint에 직접 연결함.
-- WebSocket payload에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
+- 서버 발행 WebSocket payload에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
 
 ---
 
@@ -756,9 +767,13 @@ Response `200`:
         "preferredSubject": "영어"
       }
     }
-  ]
+  ],
+  "onlineFriendIds": [2]
 }
 ```
+
+- `onlineFriendIds`는 현재 WebSocket presence registry 기준으로 온라인 상태인 친구 ID 목록임.
+- 이 값은 HTTP fallback용 snapshot이며, 이후 상태 변화는 `friends.presence.updated` WebSocket event로 반영함.
 
 #### 6.5.3 친구 요청 목록 조회
 

@@ -3,6 +3,7 @@ import { REALTIME_WS_URL } from '../constants/config';
 const DEFAULT_RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 15000];
 
 export function createRealtimeClient({
+  getAuthToken,
   onMessage,
   onStatusChange,
   reconnectDelays = DEFAULT_RECONNECT_DELAYS,
@@ -49,6 +50,32 @@ export function createRealtimeClient({
     }
   }
 
+  function sendMessage(message) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+
+    try {
+      socket.send(JSON.stringify(message));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function authenticatePresence() {
+    const token = typeof getAuthToken === 'function' ? getAuthToken() : null;
+
+    if (!token) {
+      return;
+    }
+
+    sendMessage({
+      type: 'presence.authenticate',
+      payload: { token }
+    });
+  }
+
   function connect() {
     if (manuallyClosed || typeof WebSocket === 'undefined' || !url) {
       updateStatus('unavailable');
@@ -70,6 +97,7 @@ export function createRealtimeClient({
     socket.onopen = () => {
       reconnectAttempt = 0;
       updateStatus('open');
+      authenticatePresence();
     };
 
     socket.onmessage = handleMessage;
@@ -100,6 +128,8 @@ export function createRealtimeClient({
   return {
     connect,
     disconnect,
+    refreshPresence: () => sendMessage({ type: 'presence.refresh' }),
+    send: sendMessage,
     getStatus: () => {
       if (!socket) {
         return manuallyClosed ? 'closed' : 'disconnected';

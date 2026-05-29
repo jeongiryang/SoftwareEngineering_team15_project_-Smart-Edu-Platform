@@ -332,6 +332,7 @@ describe('Friend API', () => {
       .set(createAuthHeader(requester.token));
 
     expect(friendsResponse.status).toBe(200);
+    expect(friendsResponse.body.onlineFriendIds).toEqual([]);
     expect(friendsResponse.body.friends).toEqual([
       expect.objectContaining({
         status: 'ACCEPTED',
@@ -461,6 +462,7 @@ describe('Friend API', () => {
       .get('/api/friends')
       .set(createAuthHeader(requester.token));
 
+    expect(friendsResponse.body.onlineFriendIds).toEqual([]);
     expect(friendsResponse.body.friends).toHaveLength(0);
   });
 });
