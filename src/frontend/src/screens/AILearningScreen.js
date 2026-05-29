@@ -18,6 +18,7 @@ import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
 import ReadableText from '../components/ReadableText';
 import { PanelSkeleton } from '../components/Skeleton';
+import { useAccessibility } from '../contexts/AccessibilityContext';
 import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -27,6 +28,33 @@ const MAX_REVIEW_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_REVIEW_FILE_TYPES = [...SUPPORTED_IMAGE_TYPES, 'application/pdf'];
 const AI_MOCK_MODE_STORAGE_KEY = 'smartEdu.aiMockMode';
 const AI_CHAT_ROOMS_STORAGE_KEY = 'smartEdu.aiChatRooms';
+const AI_AUDIO_BRIEFING_READING_ID = 'ai-audio-briefing';
+const SPEECH_LANG_BY_LANGUAGE = {
+  ko: 'ko-KR',
+  en: 'en-US',
+  ja: 'ja-JP',
+  zh: 'zh-CN'
+};
+const VOICE_LABEL_BY_LANGUAGE = {
+  ADULT_MALE: {
+    ko: '차분한 낮은 톤',
+    en: 'calm low tone',
+    ja: '落ち着いた低めの声',
+    zh: '沉稳低音'
+  },
+  ADULT_FEMALE: {
+    ko: '또렷한 기본 톤',
+    en: 'clear default tone',
+    ja: 'はっきりした標準の声',
+    zh: '清晰默认音色'
+  },
+  CHILD_FRIENDLY: {
+    ko: '밝은 친근한 톤',
+    en: 'bright friendly tone',
+    ja: '明るく親しみやすい声',
+    zh: '明快亲切音色'
+  }
+};
 
 function createDefaultChatRoom() {
   return {
@@ -158,6 +186,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `작성한 답: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '작성한 답이 없어 풀이 과정 중심으로 점검합니다.',
       '정답을 바로 외우기보다 왜 그 선택을 했는지 한 단계만 다시 적어 보세요.'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: '브라우저 음성 데모',
+      title: '오늘의 오디오 브리핑',
+      description: '현재 AI 학습 화면의 기록을 짧게 정리해 접근성 목소리 설정으로 읽어줍니다.',
+      play: '브리핑 듣기',
+      stop: '정지',
+      playing: '오디오 브리핑을 재생합니다.',
+      stopped: '오디오 브리핑을 멈췄습니다.',
+      notSupported: '현재 브라우저는 오디오 브리핑 읽어주기를 지원하지 않습니다.',
+      notice: '외부 AI/TTS API를 호출하지 않는 mock/demo 브리핑입니다.',
+      voiceLabel: (voice) => `접근성 목소리 설정: ${voice}`,
+      actionLabel: '오늘의 AI 학습 오디오 브리핑 재생 또는 정지',
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mock 모드가 켜져 있어 외부 AI 호출 없이 데모 응답으로 학습 흐름을 확인 중입니다.' : 'AI 학습 API 흐름을 사용할 준비가 되어 있습니다. 민감정보는 질문에 포함하지 않는 것이 원칙입니다.',
+        chatCount > 0 ? `최근 AI 대화 ${chatCount}개가 이 브리핑에 반영됩니다.` : '아직 AI 질문 기록이 없어 첫 질문부터 가볍게 시작하면 좋습니다.',
+        hasRecommendation ? '맞춤 학습 추천 결과가 있어 오늘의 복습 루틴을 바로 확인할 수 있습니다.' : '맞춤 추천을 한 번 실행하면 오늘의 복습 방향을 더 쉽게 잡을 수 있습니다.',
+        hasSummary ? '문서 요약 결과가 준비되어 있어 핵심 개념을 다시 훑기 좋습니다.' : '긴 글 요약을 사용하면 자료의 핵심 개념을 빠르게 정리할 수 있습니다.',
+        hasWrongAnalysis ? '오답 분석 기록이 있어 헷갈린 풀이 과정을 다시 볼 수 있습니다.' : '오답 원인 분석을 사용하면 취약한 풀이 단계를 확인할 수 있습니다.',
+        hasReviewMock || hasImageInsight ? '첨부 파일 데모 결과는 실제 분석이 아닌 안내용 mock 결과로만 표시됩니다.' : '이미지나 PDF 첨부는 현재 서버 업로드 없이 미리보기와 mock 안내만 제공합니다.'
+      ]
+    },
     errors: {
       token: '로그인 정보가 만료되었을 수 있습니다. 다시 로그인하거나 Mock 모드로 데모 흐름을 확인해 주세요.',
       quota: 'AI 요청 한도나 quota를 초과했을 수 있습니다. 잠시 후 다시 시도하거나 Mock 모드를 켜서 데모를 이어가세요.',
@@ -233,6 +282,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `Your answer: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : 'No answer was entered, so the review focuses on the solving process.',
       'Before memorizing the correct answer, write one step explaining why you chose that answer.'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: 'Browser voice demo',
+      title: "Today's audio briefing",
+      description: 'Summarizes the current AI learning screen and reads it with your accessibility voice setting.',
+      play: 'Play briefing',
+      stop: 'Stop',
+      playing: 'Playing the audio briefing.',
+      stopped: 'Audio briefing stopped.',
+      notSupported: 'This browser does not support audio briefing playback.',
+      notice: 'This is a mock/demo briefing without external AI or TTS API calls.',
+      voiceLabel: (voice) => `Accessibility voice setting: ${voice}`,
+      actionLabel: "Play or stop today's AI learning audio briefing",
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mock mode is on, so the flow uses demo responses without external AI calls.' : 'The AI learning API flow is ready. Do not include sensitive information in prompts.',
+        chatCount > 0 ? `${chatCount} recent AI chat item${chatCount === 1 ? '' : 's'} will be reflected in this briefing.` : 'There are no AI questions yet, so start with one small question.',
+        hasRecommendation ? 'A personalized recommendation is ready for today’s review routine.' : 'Run a recommendation once to make today’s review direction clearer.',
+        hasSummary ? 'A document summary is ready, so you can review the key ideas quickly.' : 'Use long-text summary to organize key ideas from your material.',
+        hasWrongAnalysis ? 'Wrong-answer analysis is ready, so you can revisit the confusing step.' : 'Use wrong-answer analysis to find the weak step in your solution.',
+        hasReviewMock || hasImageInsight ? 'Attachment demo results are shown only as guided mock results, not real analysis.' : 'Image and PDF attachments currently provide preview and mock guidance without server upload.'
+      ]
+    },
     errors: {
       token: 'Your login session may have expired. Log in again or use Mock mode to continue the demo flow.',
       quota: 'The AI request quota or rate limit may have been exceeded. Try again later or enable Mock mode.',
@@ -308,6 +378,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `入力した答え: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '入力した答えがないため、解き方の流れを中心に確認します。',
       '正解を覚える前に、なぜその選択をしたのかを一段階だけ書き直してみましょう。'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: 'ブラウザ音声デモ',
+      title: '今日のオーディオブリーフィング',
+      description: '現在のAI学習画面の記録を短く整理し、アクセシビリティの音声設定で読み上げます。',
+      play: 'ブリーフィングを聞く',
+      stop: '停止',
+      playing: 'オーディオブリーフィングを再生します。',
+      stopped: 'オーディオブリーフィングを停止しました。',
+      notSupported: '現在のブラウザはオーディオブリーフィングの読み上げに対応していません。',
+      notice: '外部AI/TTS APIを呼び出さないmock/demoブリーフィングです。',
+      voiceLabel: (voice) => `アクセシビリティ音声設定: ${voice}`,
+      actionLabel: '今日のAI学習オーディオブリーフィングを再生または停止',
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mockモードがオンのため、外部AI呼び出しなしでデモ応答を使っています。' : 'AI学習APIフローを使う準備ができています。機密情報は質問に含めないことが原則です。',
+        chatCount > 0 ? `最近のAI会話${chatCount}件をこのブリーフィングに反映します。` : 'まだAI質問の記録がないため、小さな質問から始めるとよいです。',
+        hasRecommendation ? 'パーソナル推薦があり、今日の復習ルーティンを確認できます。' : '推薦を一度実行すると、今日の復習方向が見えやすくなります。',
+        hasSummary ? '文書要約が準備されているため、重要概念をすばやく見直せます。' : '長文要約を使うと、資料の重要概念を整理できます。',
+        hasWrongAnalysis ? '誤答分析があり、迷った解き方をもう一度確認できます。' : '誤答原因分析を使うと、弱い解法ステップを確認できます。',
+        hasReviewMock || hasImageInsight ? '添付ファイルのデモ結果は、実際の分析ではなく案内用のMock結果です。' : '画像やPDF添付は現在、サーバーアップロードなしのプレビューとMock案内のみ提供します。'
+      ]
+    },
     errors: {
       token: 'ログイン情報の有効期限が切れた可能性があります。再ログインするか、Mockモードでデモの流れを確認してください。',
       quota: 'AIリクエスト上限またはquotaを超えた可能性があります。しばらくしてから再試行するか、Mockモードをオンにしてください。',
@@ -383,6 +474,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `填写的答案：${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '没有填写答案，因此会以解题过程为中心检查。',
       '不要急着背正确答案，先写下一步你为什么会这样选择。'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: '浏览器语音演示',
+      title: '今日音频简报',
+      description: '把当前 AI 学习页面的记录简短整理，并用无障碍语音设置朗读。',
+      play: '播放简报',
+      stop: '停止',
+      playing: '正在播放音频简报。',
+      stopped: '已停止音频简报。',
+      notSupported: '当前浏览器不支持音频简报朗读。',
+      notice: '这是不调用外部 AI/TTS API 的 mock/demo 简报。',
+      voiceLabel: (voice) => `无障碍语音设置：${voice}`,
+      actionLabel: '播放或停止今日 AI 学习音频简报',
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mock 模式已开启，因此会使用演示回复，不调用外部 AI。' : 'AI 学习 API 流程已准备就绪。请不要在问题中包含敏感信息。',
+        chatCount > 0 ? `最近 ${chatCount} 条 AI 对话会反映在这份简报中。` : '目前还没有 AI 提问记录，可以先从一个小问题开始。',
+        hasRecommendation ? '已有个性化推荐，可以直接确认今日复习节奏。' : '执行一次推荐后，今日复习方向会更清楚。',
+        hasSummary ? '已有文档摘要，可以快速回顾核心概念。' : '使用长文摘要可以快速整理资料中的核心概念。',
+        hasWrongAnalysis ? '已有错题分析，可以回顾卡住的解题步骤。' : '使用错题原因分析可以确认薄弱的解题步骤。',
+        hasReviewMock || hasImageInsight ? '附件演示结果只是说明用 mock 结果，不是真实分析。' : '图片和 PDF 附件当前只提供预览和 mock 说明，不会上传到服务器。'
+      ]
+    },
     errors: {
       token: '登录信息可能已过期。请重新登录，或使用 Mock 模式继续演示流程。',
       quota: '可能已超过 AI 请求额度或频率限制。请稍后重试，或开启 Mock 模式继续演示。',
@@ -407,6 +519,15 @@ const AI_LOCALIZED_COPY = {
 
 function getAILocalizedCopy(language) {
   return AI_LOCALIZED_COPY[language] || AI_LOCALIZED_COPY.ko;
+}
+
+function getSpeechLanguage(language) {
+  return SPEECH_LANG_BY_LANGUAGE[language] || SPEECH_LANG_BY_LANGUAGE.ko;
+}
+
+function getVoiceLabel(voiceType, language) {
+  const labels = VOICE_LABEL_BY_LANGUAGE[voiceType] || VOICE_LABEL_BY_LANGUAGE.ADULT_FEMALE;
+  return labels[language] || labels.ko;
 }
 
 function getImageAttachmentFeedback({ attachment, error, language }) {
@@ -517,6 +638,7 @@ function getAIErrorMessage(error, language) {
 
 export default function AILearningScreen({ onNavigate, token, user }) {
   const { currentLanguage } = useLanguage();
+  const { reading, speakText, stopSpeech, voiceType } = useAccessibility();
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
   const previewUrlRef = useRef(null);
   const initialChatRoomsRef = useRef(null);
@@ -796,6 +918,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       question: copy.imageInsightQuestion(imageAttachment.name),
       answer: copy.imageInsightAnswer,
       isTruncated: false,
+      isImageInsight: true,
       isMock: true
     });
     setSuccessMsg(copy.imageInsightSuccess);
@@ -991,6 +1114,36 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   }
 
   const activeChatRoom = chatRooms.find((room) => room.id === activeChatRoomId) || chatRooms[0];
+  const aiCopy = getAILocalizedCopy(currentLanguage);
+  const hasImageInsight = recentQnaList.some((item) => item.isImageInsight);
+  const audioBriefingLines = aiCopy.audioBriefing.lines({
+    mockMode: isMockMode,
+    chatCount: recentQnaList.length,
+    hasRecommendation: Boolean(recommendationResult),
+    hasSummary: Boolean(summaryResult),
+    hasWrongAnalysis: Boolean(wrongAnalysisResult),
+    hasReviewMock: Boolean(reviewMockResult),
+    hasImageInsight
+  });
+  const audioBriefingText = audioBriefingLines.join(' ');
+  const isAudioBriefingPlaying = reading.active && reading.id === AI_AUDIO_BRIEFING_READING_ID;
+
+  async function handleAudioBriefingPress() {
+    resetFeedback();
+
+    if (isAudioBriefingPlaying) {
+      stopSpeech();
+      setSuccessMsg(aiCopy.audioBriefing.stopped);
+      return;
+    }
+
+    const started = await speakText(audioBriefingText, {
+      readingId: AI_AUDIO_BRIEFING_READING_ID,
+      lang: getSpeechLanguage(currentLanguage)
+    });
+
+    setSuccessMsg(started ? aiCopy.audioBriefing.playing : aiCopy.audioBriefing.notSupported);
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -1032,6 +1185,43 @@ export default function AILearningScreen({ onNavigate, token, user }) {
             {isMockMode ? 'Mock 사용 중' : 'Mock 켜기'}
           </Text>
         </Pressable>
+      </View>
+
+      <View style={styles.audioBriefingCard}>
+        <View style={styles.audioBriefingHeader}>
+          <View style={styles.audioBriefingCopy}>
+            <Text style={styles.audioBriefingEyebrow}>{aiCopy.audioBriefing.eyebrow}</Text>
+            <Text style={styles.audioBriefingTitle}>{aiCopy.audioBriefing.title}</Text>
+            <Text style={styles.audioBriefingText}>{aiCopy.audioBriefing.description}</Text>
+            <Text style={styles.audioBriefingMeta}>
+              {aiCopy.audioBriefing.voiceLabel(getVoiceLabel(voiceType, currentLanguage))}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={aiCopy.audioBriefing.actionLabel}
+            accessibilityState={{ selected: isAudioBriefingPlaying }}
+            onPress={handleAudioBriefingPress}
+            style={(state) => [
+              styles.audioBriefingButton,
+              isAudioBriefingPlaying && styles.audioBriefingButtonActive,
+              ...interactiveStateStyles(state)
+            ]}
+          >
+            <Text style={[
+              styles.audioBriefingButtonText,
+              isAudioBriefingPlaying && styles.audioBriefingButtonTextActive
+            ]}>
+              {isAudioBriefingPlaying ? aiCopy.audioBriefing.stop : aiCopy.audioBriefing.play}
+            </Text>
+          </Pressable>
+        </View>
+        <View style={styles.audioBriefingLineList}>
+          {audioBriefingLines.map((line) => (
+            <Text key={line} style={styles.audioBriefingLine}>• {line}</Text>
+          ))}
+        </View>
+        <Text style={styles.audioBriefingNotice}>{aiCopy.audioBriefing.notice}</Text>
       </View>
 
       <View style={styles.transparencyPanel}>
@@ -1660,6 +1850,88 @@ const styles = StyleSheet.create({
   },
   mockToggleTextActive: {
     color: colors.surface
+  },
+  audioBriefingCard: {
+    gap: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.surfaceWarm,
+    padding: 18,
+    ...shadows.card,
+    ...interactions.transition
+  },
+  audioBriefingHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14
+  },
+  audioBriefingCopy: {
+    flex: 1,
+    minWidth: 260,
+    gap: 6
+  },
+  audioBriefingEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  audioBriefingTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  audioBriefingText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600'
+  },
+  audioBriefingMeta: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800'
+  },
+  audioBriefingButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blueDeep,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  audioBriefingButtonActive: {
+    backgroundColor: colors.blueDeep,
+    borderColor: colors.blueDeep
+  },
+  audioBriefingButtonText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  audioBriefingButtonTextActive: {
+    color: colors.surface
+  },
+  audioBriefingLineList: {
+    gap: 8
+  },
+  audioBriefingLine: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600'
+  },
+  audioBriefingNotice: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
   },
   transparencyPanel: {
     flexDirection: 'row',
