@@ -1,11 +1,13 @@
 const friendService = require('../services/friend.service');
+const { getOnlineUserIds } = require('../realtime/websocket.server');
 const { sendSuccess } = require('../utils/apiResponse');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const getFriendsController = asyncHandler(async (req, res) => {
   const friends = await friendService.getFriends(req.user.id);
+  const onlineFriendIds = getOnlineUserIds(friends.map((friendship) => friendship.user?.id));
 
-  sendSuccess(res, 200, { friends });
+  sendSuccess(res, 200, { friends, onlineFriendIds });
 });
 
 const getFriendRequestsController = asyncHandler(async (req, res) => {

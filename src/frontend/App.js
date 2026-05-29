@@ -323,6 +323,7 @@ function AppRoot() {
 
   useEffect(() => {
     const realtimeClient = createRealtimeClient({
+      getAuthToken: () => token,
       onMessage: handleRealtimeMessage,
       onStatusChange: setRealtimeStatus
     });
@@ -332,7 +333,7 @@ function AppRoot() {
     return () => {
       realtimeClient.disconnect();
     };
-  }, [handleRealtimeMessage]);
+  }, [handleRealtimeMessage, token]);
 
   useEffect(() => {
     if (!adminNotice) {
