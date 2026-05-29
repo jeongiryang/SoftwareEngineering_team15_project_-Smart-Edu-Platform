@@ -116,7 +116,7 @@ enum FriendshipStatus {
 
 model User {
   id                      Int                         @id @default(autoincrement())
-  email                   String                      @unique
+  loginId                 String                      @unique @map("login_id")
   passwordHash            String                      @map("password_hash")
   name                    String
   role                    Role                        @default(USER)

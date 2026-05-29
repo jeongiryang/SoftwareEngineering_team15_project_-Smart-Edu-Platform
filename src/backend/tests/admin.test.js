@@ -1,7 +1,7 @@
 const mockUsers = [
   {
     id: 1,
-    email: 'dev.user@example.com',
+    loginId: 'dev_user',
     name: '일반 사용자',
     passwordHash: 'hashed-user-password',
     role: 'USER',
@@ -9,7 +9,7 @@ const mockUsers = [
   },
   {
     id: 2,
-    email: 'dev.admin@example.com',
+    loginId: 'admin_user',
     name: '관리자 사용자',
     passwordHash: 'hashed-admin-password',
     role: 'ADMIN',
@@ -25,7 +25,7 @@ const mockPosts = [
     title: '학습 질문',
     content: '디자인 패턴 질문입니다.',
     reported: false,
-    user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' }
+    user: { id: 1, loginId: 'dev_user', name: '일반 사용자' }
   },
   {
     id: 992,
@@ -34,7 +34,7 @@ const mockPosts = [
     title: '부적절한 광고',
     content: '스팸 링크',
     reported: true,
-    user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' }
+    user: { id: 1, loginId: 'dev_user', name: '일반 사용자' }
   }
 ];
 
@@ -45,7 +45,7 @@ const mockComments = [
     userId: 1,
     content: '좋은 질문이네요.',
     reported: false,
-    user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' },
+    user: { id: 1, loginId: 'dev_user', name: '일반 사용자' },
     post: { id: 991, title: '학습 질문' }
   },
   {
@@ -54,7 +54,7 @@ const mockComments = [
     userId: 1,
     content: '부적절한 욕설',
     reported: true,
-    user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' },
+    user: { id: 1, loginId: 'dev_user', name: '일반 사용자' },
     post: { id: 991, title: '학습 질문' }
   }
 ];
@@ -75,7 +75,7 @@ const mockActions = [];
 // Mock repositories
 jest.mock('../src/repositories/user.repository', () => ({
   findUserById: jest.fn(async (id) => mockUsers.find((u) => u.id === Number(id)) || null),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((u) => u.email === email) || null)
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((u) => u.loginId === loginId) || null)
 }));
 
 jest.mock('../src/repositories/admin.repository', () => ({
@@ -93,7 +93,7 @@ jest.mock('../src/repositories/admin.repository', () => ({
         actionType: 'SUSPEND_USER',
         reason,
         createdAt: new Date(),
-        admin: { id: adminId, email: 'dev.admin@example.com', name: '관리자 사용자' }
+        admin: { id: adminId, loginId: 'admin_user', name: '관리자 사용자' }
       });
       return mockUsers[userIndex];
     }
@@ -121,7 +121,7 @@ jest.mock('../src/repositories/admin.repository', () => ({
         actionType: 'HIDE_POST',
         reason,
         createdAt: new Date(),
-        admin: { id: adminId, email: 'dev.admin@example.com', name: '관리자 사용자' }
+        admin: { id: adminId, loginId: 'admin_user', name: '관리자 사용자' }
       });
       return deletedPost;
     }
@@ -148,7 +148,7 @@ jest.mock('../src/repositories/admin.repository', () => ({
         actionType: 'DELETE_COMMENT',
         reason,
         createdAt: new Date(),
-        admin: { id: adminId, email: 'dev.admin@example.com', name: '관리자 사용자' }
+        admin: { id: adminId, loginId: 'admin_user', name: '관리자 사용자' }
       });
       return deletedComment;
     }
@@ -175,7 +175,7 @@ jest.mock('../src/repositories/admin.repository', () => ({
         actionType: 'MODERATE_CHALLENGE',
         reason,
         createdAt: new Date(),
-        admin: { id: adminId, email: 'dev.admin@example.com', name: '관리자 사용자' }
+        admin: { id: adminId, loginId: 'admin_user', name: '관리자 사용자' }
       });
       return mockChallenges[chIndex];
     }
@@ -253,7 +253,7 @@ describe('Admin APIs', () => {
         title: '학습 질문',
         content: '디자인 패턴 질문입니다.',
         reported: false,
-        user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' }
+        user: { id: 1, loginId: 'dev_user', name: '일반 사용자' }
       },
       {
         id: 992,
@@ -262,7 +262,7 @@ describe('Admin APIs', () => {
         title: '부적절한 광고',
         content: '스팸 링크',
         reported: true,
-        user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' }
+        user: { id: 1, loginId: 'dev_user', name: '일반 사용자' }
       }
     );
 
@@ -275,7 +275,7 @@ describe('Admin APIs', () => {
         userId: 1,
         content: '좋은 질문이네요.',
         reported: false,
-        user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' },
+        user: { id: 1, loginId: 'dev_user', name: '일반 사용자' },
         post: { id: 991, title: '학습 질문' }
       },
       {
@@ -284,7 +284,7 @@ describe('Admin APIs', () => {
         userId: 1,
         content: '부적절한 욕설',
         reported: true,
-        user: { id: 1, email: 'dev.user@example.com', name: '일반 사용자' },
+        user: { id: 1, loginId: 'dev_user', name: '일반 사용자' },
         post: { id: 991, title: '학습 질문' }
       }
     );

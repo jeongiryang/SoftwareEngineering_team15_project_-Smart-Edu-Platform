@@ -87,15 +87,8 @@ function formatShortDate(value) {
   }).format(date);
 }
 
-function maskEmail(email = '') {
-  const [localPart, domain] = email.split('@');
-
-  if (!localPart || !domain) {
-    return email || '이메일 없음';
-  }
-
-  const visible = localPart.slice(0, Math.min(3, localPart.length));
-  return `${visible}${localPart.length > 3 ? '***' : ''}@${domain}`;
+function formatLoginId(loginId = '') {
+  return loginId || '아이디 없음';
 }
 
 function getProfileNameFeedback(name, currentName) {
@@ -438,7 +431,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
             <View style={styles.identityChip}>
               <Text style={styles.identityChipText}>{isAdmin ? 'ADMIN' : 'LEARNER'}</Text>
             </View>
-            <Text style={styles.emailText}>{maskEmail(user?.email)}</Text>
+            <Text style={styles.loginIdText}>{formatLoginId(user?.loginId)}</Text>
           </View>
         </View>
         <Pressable
@@ -695,7 +688,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                 </View>
                 <View style={styles.accountOverviewItem}>
                   <Text style={styles.accountOverviewLabel}>로그인 아이디</Text>
-                  <Text style={styles.accountOverviewValue}>{maskEmail(user?.email)}</Text>
+                  <Text style={styles.accountOverviewValue}>{formatLoginId(user?.loginId)}</Text>
                 </View>
                 <View style={styles.accountOverviewItem}>
                   <Text style={styles.accountOverviewLabel}>계정 유형</Text>
@@ -885,7 +878,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900'
   },
-  emailText: {
+  loginIdText: {
     color: colors.muted,
     fontSize: 13,
     fontWeight: '700'

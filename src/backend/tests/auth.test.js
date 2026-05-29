@@ -2,10 +2,10 @@ const mockUsers = [];
 let mockNextUserId = 1;
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
@@ -17,7 +17,7 @@ jest.mock('../src/repositories/user.repository', () => ({
 
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null)
 }));
 
@@ -51,7 +51,7 @@ describe('POST /api/auth/register', () => {
 
     expect(response.status).toBe(201);
     expectSafeUser(response.body.user);
-    expect(response.body.user.email).toBe(payload.email);
+    expect(response.body.user.loginId).toBe(payload.loginId);
     expect(response.body.user.name).toBe(payload.name);
     expect(response.body.user.role).toBe('USER');
     expect(response.body.token).toEqual(expect.any(String));
@@ -60,7 +60,7 @@ describe('POST /api/auth/register', () => {
     expect(mockUsers[0].passwordHash).not.toBe(payload.password);
   });
 
-  it('rejects duplicate email registration', async () => {
+  it('rejects duplicate loginId registration', async () => {
     const payload = createUserPayload();
 
     await request(app)
@@ -79,7 +79,7 @@ describe('POST /api/auth/register', () => {
     const response = await request(app)
       .post('/api/auth/register')
       .send({
-        email: 'missing-fields@example.com'
+        loginId: 'missing_fields'
       });
 
     expect(response.status).toBe(400);
@@ -93,13 +93,13 @@ describe('POST /api/auth/login', () => {
     const response = await request(app)
       .post('/api/auth/login')
       .send({
-        email: payload.email,
+        loginId: payload.loginId,
         password: payload.password
       });
 
     expect(response.status).toBe(200);
     expectSafeUser(response.body.user);
-    expect(response.body.user.email).toBe(payload.email);
+    expect(response.body.user.loginId).toBe(payload.loginId);
     expect(response.body.token).toEqual(expect.any(String));
   });
 
@@ -109,7 +109,7 @@ describe('POST /api/auth/login', () => {
     const response = await request(app)
       .post('/api/auth/login')
       .send({
-        email: payload.email,
+        loginId: payload.loginId,
         password: 'wrong-password'
       });
 
@@ -120,7 +120,7 @@ describe('POST /api/auth/login', () => {
     const response = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'not-found@example.com',
+        loginId: 'not_found',
         password: 'password123'
       });
 
@@ -144,6 +144,6 @@ describe('GET /api/auth/me', () => {
 
     expect(response.status).toBe(200);
     expectSafeUser(response.body.user);
-    expect(response.body.user.email).toBe(payload.email);
+    expect(response.body.user.loginId).toBe(payload.loginId);
   });
 });

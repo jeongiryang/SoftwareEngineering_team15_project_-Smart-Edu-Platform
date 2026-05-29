@@ -33,7 +33,7 @@ function PasswordVisibilityIcon({ visible }) {
 
 export default function LoginScreen({ onAuthenticated, onNavigate }) {
   const { t } = useLanguage();
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -72,7 +72,7 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
 
     try {
       const result = await loginUser({
-        email: email.trim(),
+        loginId: loginId.trim(),
         password
       });
 
@@ -107,14 +107,13 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
         <AccessibleTextInput
           autoCapitalize="none"
           enableVoiceInput={false}
-          keyboardType="email-address"
-          onChangeText={setEmail}
-          placeholder={t('login.identifierPlaceholder', '가입한 이메일 주소')}
+          onChangeText={setLoginId}
+          placeholder={t('login.identifierPlaceholder', '아이디를 입력하세요')}
           placeholderTextColor={colors.muted}
           style={[styles.input, styles.identifierInput]}
-          value={email}
+          value={loginId}
         />
-        <Text style={styles.inputHint}>{t('login.identifierHint', '현재는 가입한 이메일 주소를 아이디로 사용합니다.')}</Text>
+        <Text style={styles.inputHint}>{t('login.identifierHint', '영문 소문자, 숫자, 밑줄, 하이픈을 사용할 수 있어요.')}</Text>
         <Text style={styles.label}>{t('login.password', '비밀번호')}</Text>
         <AccessibleTextInput
           containerStyle={styles.passwordInputContainer}

@@ -4,10 +4,10 @@ let mockNextUserId = 1;
 let mockNextProfileId = 1;
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
@@ -29,7 +29,7 @@ jest.mock('../src/repositories/user.repository', () => ({
 
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null),
   findUserWithProfileById: jest.fn(async (id) => {
     const user = mockUsers.find((item) => item.id === Number(id));
@@ -137,7 +137,7 @@ describe('GET /api/users/me', () => {
 
     expect(response.status).toBe(200);
     expectSafeUser(response.body.user);
-    expect(response.body.user.email).toBe(payload.email);
+    expect(response.body.user.loginId).toBe(payload.loginId);
     expect(response.body.user.profile).toEqual(
       expect.objectContaining({
         userId: response.body.user.id,
@@ -264,7 +264,7 @@ describe('PATCH /api/users/me/password', () => {
     const oldLoginResponse = await request(app)
       .post('/api/auth/login')
       .send({
-        email: payload.email,
+        loginId: payload.loginId,
         password: payload.password
       });
 
@@ -273,7 +273,7 @@ describe('PATCH /api/users/me/password', () => {
     const newLoginResponse = await request(app)
       .post('/api/auth/login')
       .send({
-        email: payload.email,
+        loginId: payload.loginId,
         password: 'new-password-1234'
       });
 

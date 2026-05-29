@@ -33,17 +33,6 @@ function assertSupportedFields(payload, allowedFields, message) {
   }
 }
 
-function maskEmail(email = '') {
-  const [localPart] = String(email).split('@');
-
-  if (!localPart) {
-    return null;
-  }
-
-  const visible = localPart.slice(0, Math.min(3, localPart.length));
-  return `${visible}${localPart.length > 3 ? '***' : ''}`;
-}
-
 function sanitizeFriendUser(user) {
   if (!user) {
     return null;
@@ -54,7 +43,7 @@ function sanitizeFriendUser(user) {
     name: user.name,
     role: user.role,
     status: user.status,
-    emailMasked: maskEmail(user.email),
+    loginId: user.loginId,
     profileImageUrl: user.profile?.profileImageUrl || null,
     learningGoal: user.profile?.learningGoal || null,
     preferredSubject: user.profile?.preferredSubject || null

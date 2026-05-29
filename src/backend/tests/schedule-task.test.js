@@ -6,10 +6,10 @@ let mockNextScheduleId = 1;
 let mockNextTaskId = 1;
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
@@ -21,7 +21,7 @@ jest.mock('../src/repositories/user.repository', () => ({
 
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null)
 }));
 
@@ -287,7 +287,7 @@ describe('Schedule API', () => {
 
   it('blocks access to another user schedule', async () => {
     const { token: ownerToken } = await registerTestUser();
-    const { token: otherToken } = await registerTestUser({ email: 'other-schedule@example.com' });
+    const { token: otherToken } = await registerTestUser({ loginId: 'other_schedule' });
     const schedule = await createTestSchedule(ownerToken);
 
     const response = await request(app)
@@ -377,7 +377,7 @@ describe('Task API', () => {
 
   it('blocks task creation for another user schedule', async () => {
     const { token: ownerToken } = await registerTestUser();
-    const { token: otherToken } = await registerTestUser({ email: 'other-task@example.com' });
+    const { token: otherToken } = await registerTestUser({ loginId: 'other_task' });
     const schedule = await createTestSchedule(ownerToken);
 
     const response = await request(app)
@@ -393,7 +393,7 @@ describe('Task API', () => {
 
   it('blocks access to another user task', async () => {
     const { token: ownerToken } = await registerTestUser();
-    const { token: otherToken } = await registerTestUser({ email: 'other-task-owner@example.com' });
+    const { token: otherToken } = await registerTestUser({ loginId: 'other_task_owner' });
     const task = await createTestTask(ownerToken);
 
     const response = await request(app)

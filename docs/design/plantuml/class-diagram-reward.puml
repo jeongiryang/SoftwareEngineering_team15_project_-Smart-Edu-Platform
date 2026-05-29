@@ -9,7 +9,7 @@ hide circle
 
 class User <<사용자>> {
   - userId: Long
-  - email: String
+  - loginId: String
 }
 
 package "Reward Domain\n보상 도메인" #EEEEEE {

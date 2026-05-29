@@ -339,7 +339,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       <View style={styles.userCardHeader}>
                         <View>
                           <Text style={styles.userCardName}>{item.name}</Text>
-                          <Text style={styles.userCardEmail}>{item.email}</Text>
+                          <Text style={styles.userCardLoginId}>{item.loginId}</Text>
                         </View>
                         <View style={[styles.badge, getStatusStyle(item.status)]}>
                           <Text style={[styles.badgeText, getStatusTextStyle(item.status)]}>{getStatusLabel(item.status)}</Text>
@@ -390,7 +390,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       <Text style={styles.reportTitle}>{item.title}</Text>
                       <Text style={styles.reportContent}>{item.content}</Text>
                       <View style={styles.reportInfoRow}>
-                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.email})</Text>
+                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.loginId})</Text>
                       </View>
                       <View style={styles.reportActions}>
                         <Pressable
@@ -431,7 +431,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       </View>
                       <Text style={styles.reportContent}>{item.content}</Text>
                       <View style={styles.reportInfoRow}>
-                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.email})</Text>
+                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.loginId})</Text>
                       </View>
                       <View style={styles.reportActions}>
                         <Pressable
@@ -481,7 +481,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       </View>
                       <View style={styles.logDetails}>
                         <Text style={styles.logInfoText}>대상 ID: {item.targetId} ({item.targetType})</Text>
-                        <Text style={styles.logInfoText}>처리자: {item.admin?.name || '시스템'} ({item.admin?.email || 'System'})</Text>
+                        <Text style={styles.logInfoText}>처리자: {item.admin?.name || '시스템'} ({item.admin?.loginId || 'System'})</Text>
                         <Text style={styles.logReason}>사유: {item.reason}</Text>
                       </View>
                     </View>
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink
   },
-  userCardEmail: {
+  userCardLoginId: {
     fontSize: 13,
     color: colors.muted,
     marginTop: 2

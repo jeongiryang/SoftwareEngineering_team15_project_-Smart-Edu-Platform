@@ -11,7 +11,7 @@ const PRODUCTION_URL_PATTERNS = ['production', 'prod-', 'prod.'];
 
 const DEV_SEED_USERS = [
   {
-    email: 'dev.user@example.com',
+    loginId: 'dev_user',
     name: '개발용 일반 사용자',
     role: 'USER',
     userType: 'HIGH',
@@ -23,7 +23,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.peer@example.com',
+    loginId: 'study_peer',
     name: '개발용 스터디 친구',
     role: 'USER',
     userType: 'UNIVERSITY',
@@ -35,7 +35,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.community@example.com',
+    loginId: 'community_user',
     name: '개발용 커뮤니티 활동 사용자',
     role: 'USER',
     userType: 'MIDDLE',
@@ -47,7 +47,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.reward@example.com',
+    loginId: 'reward_user',
     name: '개발용 보상 데모 사용자',
     role: 'USER',
     userType: 'EXAM_PREP',
@@ -59,7 +59,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.access@example.com',
+    loginId: 'accessibility_user',
     name: '개발용 접근성 설정 사용자',
     role: 'USER',
     userType: 'SENIOR',
@@ -71,7 +71,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.beginner@example.com',
+    loginId: 'beginner_user',
     name: '개발용 초보 루틴 사용자',
     role: 'USER',
     userType: 'ELEMENTARY',
@@ -83,7 +83,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.admin@example.com',
+    loginId: 'admin_user',
     name: '개발용 관리자',
     role: 'ADMIN',
     userType: 'WORKER',
@@ -197,7 +197,7 @@ const DEV_SHOP_ITEMS = [
 
 const DEV_SHOP_PURCHASES = [
   {
-    email: 'dev.user@example.com',
+    loginId: 'dev_user',
     itemCodes: ['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'],
     equipped: {
       profileImage: 'PROFILE_AVATAR_SKY',
@@ -206,7 +206,7 @@ const DEV_SHOP_PURCHASES = [
     }
   },
   {
-    email: 'dev.reward@example.com',
+    loginId: 'reward_user',
     itemCodes: ['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'],
     equipped: {
       profileImage: 'PROFILE_AVATAR_FOREST',
@@ -215,7 +215,7 @@ const DEV_SHOP_PURCHASES = [
     }
   },
   {
-    email: 'dev.community@example.com',
+    loginId: 'community_user',
     itemCodes: ['PROFILE_AVATAR_SUNSET', 'TITLE_COMMUNITY_HELPER'],
     equipped: {
       profileImage: 'PROFILE_AVATAR_SUNSET',
@@ -223,7 +223,7 @@ const DEV_SHOP_PURCHASES = [
     }
   },
   {
-    email: 'dev.access@example.com',
+    loginId: 'accessibility_user',
     itemCodes: ['PROFILE_BACKGROUND_NIGHT'],
     equipped: {
       profileBackground: 'PROFILE_BACKGROUND_NIGHT'
@@ -355,7 +355,7 @@ function minutesAfter(date, minutes) {
 async function upsertSeedUser(prisma, seedUser, passwordHash) {
   return prisma.user.upsert({
     where: {
-      email: seedUser.email
+      loginId: seedUser.loginId
     },
     update: {
       name: seedUser.name,
@@ -371,7 +371,7 @@ async function upsertSeedUser(prisma, seedUser, passwordHash) {
       }
     },
     create: {
-      email: seedUser.email,
+      loginId: seedUser.loginId,
       name: seedUser.name,
       role: seedUser.role,
       userType: seedUser.userType,
@@ -383,7 +383,7 @@ async function upsertSeedUser(prisma, seedUser, passwordHash) {
     },
     select: {
       id: true,
-      email: true,
+      loginId: true,
       role: true
     }
   });
@@ -593,13 +593,13 @@ async function resetSeedData(prisma, seedUsers) {
   });
 }
 
-async function seedSchedulesAndTasks(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedSchedulesAndTasks(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const softwareReviewStart = daysFromNow(0, 19, 0);
   const algorithmStart = daysFromNow(1, 16, 30);
@@ -850,13 +850,13 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
   return tasks;
 }
 
-async function seedFriendships(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedFriendships(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   await prisma.friendship.createMany({
     data: [
@@ -905,13 +905,13 @@ async function seedFriendships(prisma, usersByEmail) {
   });
 }
 
-async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedFocusAndStatistics(prisma, usersByLoginId, tasks) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
   const mainTask = tasks[0];
   const mainFocusMinutes = [
     35, 0, 55, 80, 0, 110, 45,
@@ -1140,14 +1140,14 @@ async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
   });
 }
 
-async function seedCommunity(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
-  const adminUser = usersByEmail['dev.admin@example.com'];
+async function seedCommunity(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
+  const adminUser = usersByLoginId['admin_user'];
 
   const questionPost = await prisma.boardPost.create({
     data: {
@@ -1466,13 +1466,13 @@ async function seedCommunity(prisma, usersByEmail) {
   });
 }
 
-async function seedChallenge(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedChallenge(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const challenge = await prisma.studyChallenge.create({
     data: {
@@ -1564,11 +1564,11 @@ async function seedChallenge(prisma, usersByEmail) {
   });
 }
 
-async function seedLearningAndAi(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedLearningAndAi(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const architectureNote = await prisma.studyNote.create({
     data: {
@@ -1877,13 +1877,13 @@ async function seedLearningAndAi(prisma, usersByEmail) {
   });
 }
 
-async function seedRewards(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedRewards(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const firstFocusBadge = await prisma.badge.create({
     data: {
@@ -2242,7 +2242,7 @@ async function seedRewards(prisma, usersByEmail) {
   });
 }
 
-async function seedPointShop(prisma, usersByEmail) {
+async function seedPointShop(prisma, usersByLoginId) {
   const shopItems = await prisma.shopItem.findMany({
     where: {
       code: {
@@ -2253,7 +2253,7 @@ async function seedPointShop(prisma, usersByEmail) {
   const shopItemsByCode = Object.fromEntries(shopItems.map((item) => [item.code, item]));
 
   for (const purchaseSeed of DEV_SHOP_PURCHASES) {
-    const user = usersByEmail[purchaseSeed.email];
+    const user = usersByLoginId[purchaseSeed.loginId];
 
     if (!user) {
       continue;
@@ -2296,13 +2296,13 @@ async function seedPointShop(prisma, usersByEmail) {
   }
 }
 
-async function seedAccessibility(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedAccessibility(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   await prisma.accessibilityPreference.create({
     data: {
@@ -2473,7 +2473,7 @@ async function seedDevelopmentData(prisma) {
     users.push(await upsertSeedUser(prisma, seedUser, passwordHash));
   }
 
-  const usersByEmail = Object.fromEntries(users.map((user) => [user.email, user]));
+  const usersByLoginId = Object.fromEntries(users.map((user) => [user.loginId, user]));
   for (const item of DEV_SHOP_ITEMS) {
     await prisma.shopItem.upsert({
       where: {
@@ -2500,15 +2500,15 @@ async function seedDevelopmentData(prisma) {
   }
 
   await resetSeedData(prisma, users);
-  await seedFriendships(prisma, usersByEmail);
-  const tasks = await seedSchedulesAndTasks(prisma, usersByEmail);
-  await seedFocusAndStatistics(prisma, usersByEmail, tasks);
-  await seedCommunity(prisma, usersByEmail);
-  await seedChallenge(prisma, usersByEmail);
-  await seedLearningAndAi(prisma, usersByEmail);
-  await seedRewards(prisma, usersByEmail);
-  await seedPointShop(prisma, usersByEmail);
-  await seedAccessibility(prisma, usersByEmail);
+  await seedFriendships(prisma, usersByLoginId);
+  const tasks = await seedSchedulesAndTasks(prisma, usersByLoginId);
+  await seedFocusAndStatistics(prisma, usersByLoginId, tasks);
+  await seedCommunity(prisma, usersByLoginId);
+  await seedChallenge(prisma, usersByLoginId);
+  await seedLearningAndAi(prisma, usersByLoginId);
+  await seedRewards(prisma, usersByLoginId);
+  await seedPointShop(prisma, usersByLoginId);
+  await seedAccessibility(prisma, usersByLoginId);
 
   return users;
 }
@@ -2523,7 +2523,7 @@ async function main() {
 
     console.log('[seed:dev] Development seed completed');
     users.forEach((user) => {
-      console.log(`[seed:dev] ${user.email} (${user.role})`);
+      console.log(`[seed:dev] ${user.loginId} (${user.role})`);
     });
   } finally {
     await prisma.$disconnect();

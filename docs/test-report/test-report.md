@@ -229,8 +229,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | 테스트 ID | 구분 | 대상 | 테스트 내용 | 명령어 | 기대 결과 | 현재 상태 |
 |---|---|---|---|---|---|---|
 | TC-BE-001 | 유닛/API 테스트 | `GET /api/health` | Health Check API 응답 확인 | `npm test` | `status`가 `ok`이고 service 이름 반환 | 통과 |
-| TC-AUTH-001 | 유닛/API 테스트 | 인증 validation | 회원가입 필수값, 이메일 형식, 비밀번호 길이 검증 | `npm test` | 유효하지 않은 입력 차단 | 통과 |
-| TC-BE-002 | 유닛 테스트 | 공통 validation helper | 필수값, 이메일 형식, 비밀번호 길이 검증 helper 확인 | `npm test` | 공통 validation error 처리 | 통과 |
+| TC-AUTH-001 | 유닛/API 테스트 | 인증 validation | 회원가입 필수값, 아이디 형식, 비밀번호 길이 검증 | `npm test` | 유효하지 않은 입력 차단 | 통과 |
+| TC-BE-002 | 유닛 테스트 | 공통 validation helper | 필수값, 아이디 형식, 비밀번호 길이 검증 helper 확인 | `npm test` | 공통 validation error 처리 | 통과 |
 | TC-BE-003 | 유닛 테스트 | 공통 error/response helper | AppError, 공통 응답 helper, async handler 동작 확인 | `npm test` | status code, error code, payload 처리 일관성 유지 | 통과 |
 | TC-SCHEDULE-001 | 유닛/API 테스트 | 일정/태스크 API | 일정 생성, 수정, 삭제와 태스크 생성, 수정, 상태 변경 검증 | `npm test` | 입력값에 따른 정상 처리 및 사용자별 접근 제한 | 통과 |
 | TC-FOCUS-001 | 유닛/API 테스트 | 집중 세션 기록 및 조회 | `durationMs` 기준 집중 세션 저장, 사용자별 목록 조회, 날짜 필터 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 본인 세션만 기록/조회되고 잘못된 날짜 필터는 차단됨 | 통과 |
@@ -393,11 +393,11 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 
 학습 노트 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 학습 노트 CRUD 기능과 본인 소유 데이터 접근 제한을 확인함. 미인증 요청은 401, invalid noteId와 잘못된 입력은 400, 존재하지 않거나 다른 사용자 소유 노트는 404로 처리되는지 검증함. 자동 테스트는 실제 DB 쓰기 없이 수행함.
 
-보상 API 테스트는 repository mock 기반으로 실제 Express route와 `authMiddleware`, service validation 흐름을 통과시키며 `/api/rewards/me` 보상 현황 조회와 `/api/rewards/quests/:questId/claim` 보상 수령 기능을 확인함. 보상 현황 응답은 포인트 지갑, 퀘스트 진행도, 뱃지, 포인트 내역을 포함하고, 보상 수령은 달성 상태 퀘스트만 처리함. invalid `questId`는 400, 미달성 퀘스트 수령은 409로 처리되는지 확인하며, 응답에 password, token/JWT, email 등 민감정보가 포함되지 않는지 검증함. 중복 수령 방지는 repository transaction에서 `userId`와 `ACHIEVED` 상태 조건으로 처리하는 정책을 둠.
+보상 API 테스트는 repository mock 기반으로 실제 Express route와 `authMiddleware`, service validation 흐름을 통과시키며 `/api/rewards/me` 보상 현황 조회와 `/api/rewards/quests/:questId/claim` 보상 수령 기능을 확인함. 보상 현황 응답은 포인트 지갑, 퀘스트 진행도, 뱃지, 포인트 내역을 포함하고, 보상 수령은 달성 상태 퀘스트만 처리함. invalid `questId`는 400, 미달성 퀘스트 수령은 409로 처리되는지 확인하며, 응답에 password, token/JWT 등 민감정보가 포함되지 않는지 검증함. 중복 수령 방지는 repository transaction에서 `userId`와 `ACHIEVED` 상태 조건으로 처리하는 정책을 둠.
 
-커뮤니티 게시글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts` 게시글 CRUD 기능을 확인함. 목록 조회는 pagination, category filter, title/content search, latest/oldest sort와 반응/북마크 count/status 응답을 검증하고, 생성/수정은 `QUESTION`, `FREE`, `STUDY_PROOF` category와 `title`, `content` validation을 확인함. invalid `postId`는 400, 존재하지 않거나 다른 사용자 소유 게시글은 404로 처리하며, 응답에 `passwordHash`, password, token, email 등 불필요한 민감정보가 포함되지 않는지 확인함. 추가로 repository `findPosts` query option 구성, `findPostEngagementSummaries` 집계 query 구성, `deletePost` transaction에서 소유권 확인 전에 댓글 삭제가 실행되지 않는지 검증함.
+커뮤니티 게시글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts` 게시글 CRUD 기능을 확인함. 목록 조회는 pagination, category filter, title/content search, latest/oldest sort와 반응/북마크 count/status 응답을 검증하고, 생성/수정은 `QUESTION`, `FREE`, `STUDY_PROOF` category와 `title`, `content` validation을 확인함. invalid `postId`는 400, 존재하지 않거나 다른 사용자 소유 게시글은 404로 처리하며, 응답에 `passwordHash`, password, token 등 불필요한 민감정보가 포함되지 않는지 확인함. 추가로 repository `findPosts` query option 구성, `findPostEngagementSummaries` 집계 query 구성, `deletePost` transaction에서 소유권 확인 전에 댓글 삭제가 실행되지 않는지 검증함.
 
-커뮤니티 댓글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/comments` 댓글 목록/작성과 `/api/community/comments/:commentId` 댓글 수정/삭제 기능을 확인함. 목록 조회는 pagination과 대상 게시글 존재 여부를 검증하고, 작성/수정은 `content` validation과 지원하지 않는 field 차단을 확인함. invalid `postId`/`commentId`는 400, 존재하지 않는 게시글/댓글 또는 다른 사용자 소유 댓글은 404로 처리하며, 응답에 `passwordHash`, password, token, email 등 불필요한 민감정보가 포함되지 않는지 확인함.
+커뮤니티 댓글 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/comments` 댓글 목록/작성과 `/api/community/comments/:commentId` 댓글 수정/삭제 기능을 확인함. 목록 조회는 pagination과 대상 게시글 존재 여부를 검증하고, 작성/수정은 `content` validation과 지원하지 않는 field 차단을 확인함. invalid `postId`/`commentId`는 400, 존재하지 않는 게시글/댓글 또는 다른 사용자 소유 댓글은 404로 처리하며, 응답에 `passwordHash`, password, token 등 불필요한 민감정보가 포함되지 않는지 확인함.
 
 커뮤니티 반응 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/reactions` 반응 생성/전환/취소 기능을 확인함. `LIKE`, `DISLIKE` type validation, 지원하지 않는 field와 `userId` spoofing 차단, 동일 type 재요청 시 중복 row 방지, 다른 type 전환, 현재 사용자 반응 취소, 다른 사용자 반응 영향 없음, 민감정보 미노출을 검증함.
 

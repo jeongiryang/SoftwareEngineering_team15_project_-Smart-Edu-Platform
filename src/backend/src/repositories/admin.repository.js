@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 
 const ADMIN_USER_SELECT = {
   id: true,
-  email: true,
+  loginId: true,
   name: true,
   role: true,
   status: true
@@ -102,7 +102,7 @@ function findReportedPosts() {
       user: {
         select: {
           id: true,
-          email: true,
+          loginId: true,
           name: true
         }
       }
@@ -118,7 +118,7 @@ function findReportedComments() {
       user: {
         select: {
           id: true,
-          email: true,
+          loginId: true,
           name: true
         }
       },
@@ -139,7 +139,7 @@ function findAdminActions() {
       admin: {
         select: {
           id: true,
-          email: true,
+          loginId: true,
           name: true
         }
       }

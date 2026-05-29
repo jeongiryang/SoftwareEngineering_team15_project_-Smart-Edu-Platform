@@ -398,7 +398,7 @@ UI/UX 방향:
 
 | 기존 모델 | 역할 | 주요 필드 요약 | Smart Edu 이식 판단 |
 |---|---|---|---|
-| `User` | 게시판 사용자 계정 | `loginId`, `nickname`, `passwordHash`, posts/comments/reactions/bookmarks 관계 | 현재 Smart Edu `User`는 email/name/role/status/userType 기반이므로 직접 이식 불가 |
+| `User` | 게시판 사용자 계정 | `loginId`, `nickname`, `passwordHash`, posts/comments/reactions/bookmarks 관계 | 현재 Smart Edu `User`도 `loginId`를 사용하지만 name/role/status/userType 등 프로젝트 고유 필드가 있으므로 직접 이식 불가 |
 | `Post` | 게시글 | `userId`, `title`, `content`, `category`, `isAnonymous`, `viewCount`, timestamps | 현재 `BoardPost` 확장 또는 새 `CommunityPost` 도입 여부 검토 |
 | `Comment` | 댓글/답글 | `postId`, `userId`, `parentId`, `content`, `isAnonymous`, self relation | 현재 `Comment`에는 `parentId`와 익명 여부가 없으므로 답글 도입 시 schema 검토 필요 |
 | `Like` | 게시글 좋아요 | `postId`, `userId`, `createdAt`, `postId + userId` unique | Smart Edu에서는 `CommunityReaction(type)` 통합 모델로 재설계 |
@@ -416,7 +416,7 @@ UI/UX 방향:
 | 기존 기능 | 기존 API/흐름 | 현재 프로젝트 이식 방향 | 주의사항 |
 |---|---|---|---|
 | Health check | `GET /api/health` | 현재 Health API와 별개로 추가 필요 없음 | 기존 service 이름은 사용하지 않음 |
-| 회원가입 | `POST /api/auth/register` | 현재 Auth API가 이미 있으므로 재사용하지 않음 | 기존 loginId 기반 구조와 현재 email 기반 구조가 다름 |
+| 회원가입 | `POST /api/auth/register` | 현재 Auth API가 이미 있으므로 재사용하지 않음 | 양쪽 모두 loginId 기반이지만 검증 규칙, 응답 구조, 사용자 상태 정책이 다름 |
 | 로그인/로그아웃 | `POST /api/auth/login`, `POST /api/auth/logout` | 현재 token 저장/전달 흐름 유지 | httpOnly cookie 방식 그대로 이식 금지 |
 | 현재 사용자 | `GET /api/auth/me` | 현재 `/api/auth/me`, `/api/users/me` 흐름 유지 | 응답 필드와 인증 실패 처리 다름 |
 | 닉네임/비밀번호 변경 | `PATCH /api/auth/me`, `PATCH /api/auth/password` | 현재 사용자/프로필 정책과 별도 검토 | 커뮤니티 이식 범위 밖 |

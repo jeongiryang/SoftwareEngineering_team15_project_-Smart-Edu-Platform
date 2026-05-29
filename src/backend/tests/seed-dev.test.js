@@ -12,7 +12,7 @@ describe('development seed script', () => {
     expect(DEV_SEED_USERS).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          email: 'dev.user@example.com',
+          loginId: 'dev_user',
           role: 'USER',
           status: 'ACTIVE',
           profile: expect.objectContaining({
@@ -21,7 +21,7 @@ describe('development seed script', () => {
           })
         }),
         expect.objectContaining({
-          email: 'dev.admin@example.com',
+          loginId: 'admin_user',
           role: 'ADMIN',
           status: 'ACTIVE',
           profile: expect.objectContaining({
@@ -60,11 +60,11 @@ describe('development seed script', () => {
     expect(DEV_SHOP_PURCHASES).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          email: 'dev.user@example.com',
+          loginId: 'dev_user',
           itemCodes: expect.arrayContaining(['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'])
         }),
         expect.objectContaining({
-          email: 'dev.reward@example.com',
+          loginId: 'reward_user',
           itemCodes: expect.arrayContaining(['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'])
         })
       ])
