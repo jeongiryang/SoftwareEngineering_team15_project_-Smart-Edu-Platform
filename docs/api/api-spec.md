@@ -3282,7 +3282,109 @@ Response 예시:
 }
 ```
 
-### 9.8 docs 기준 기능 구현 상태 재점검
+### 9.8 스터디 보스 레이드 API
+
+| 항목 | 내용 |
+|---|---|
+| 구현 범위 | 보스 목록 조회, 파티 생성, 참여 코드 참가, 내 파티 조회, 파티 상세 조회, 보상 수령 |
+| 관련 이슈 | #162 |
+
+#### 9.8.1 보스 레이드 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids` | 현재 활성 보스 레이드 목록과 내 파티 참가 여부를 조회함 |
+
+응답 예시:
+
+```json
+{
+  "raids": [
+    {
+      "id": 1,
+      "code": "BOSS_DAWN_PENCIL",
+      "name": "새벽 연필 보스",
+      "description": "집중 시간과 완료 태스크를 모아 HP를 깎는 협동 보스",
+      "imageUrl": "/assets/raids/dawn-pencil-boss.png",
+      "maxHp": 360,
+      "focusMinuteDamage": 1,
+      "taskCompletionDamage": 15,
+      "baseRewardPoints": 50,
+      "bonusRewardPoolPoints": 120,
+      "startsAt": "2026-05-29T06:00:00.000Z",
+      "endsAt": "2026-06-05T23:00:00.000Z",
+      "isActive": true,
+      "hasJoinedParty": true,
+      "badge": {
+        "id": 7,
+        "code": "SAGAK_BOSS_DAWN_SLAYER",
+        "name": "보스 레이드 클리어"
+      }
+    }
+  ]
+}
+```
+
+#### 9.8.2 보스 레이드 파티 생성
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties` | 선택한 보스로 새 파티를 생성함 |
+
+Request Body:
+
+```json
+{
+  "raidId": 1,
+  "name": "아침 집중팟"
+}
+```
+
+#### 9.8.3 참여 코드로 파티 참가
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties/join` | 참여 코드를 입력해 원하는 사람끼리 파티에 참가함 |
+
+Request Body:
+
+```json
+{
+  "joinCode": "DAWN01"
+}
+```
+
+#### 9.8.4 내 파티 목록 및 상세 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids/parties/me` | 내가 참가한 보스 레이드 파티 목록을 조회함 |
+| `GET` | `/api/boss-raids/parties/:partyId` | 파티 상세, 멤버, 기여도, 보스 HP 진행도를 조회함 |
+
+동작 규칙:
+
+- 파티 상세 조회 시 최근 계산 시점이 5분 이상 지났으면 진행도를 재계산함
+- 진행도는 `그룹 누적 집중 시간 + 완료 태스크 수`를 기반으로 계산함
+- MVP 계산식:
+  - `1 집중분 = 1 데미지`
+  - `완료 태스크 1개 = 15 데미지`
+
+#### 9.8.5 보스 보상 수령
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties/:partyId/claim` | 보스를 처치한 뒤 공통 포인트 + 개인 기여 보너스 + 한정 배지를 수령함 |
+
+보상 정책:
+
+- 보스당 사용자 1회만 수령 가능
+- 참여자 공통 기본 포인트 지급
+- 개인 기여도 비율 기반 보너스 풀 추가 지급
+- 레이드 전용 배지가 있으면 함께 지급
+
+---
+
+### 9.9 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
