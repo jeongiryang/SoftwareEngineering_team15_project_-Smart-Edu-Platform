@@ -1,7 +1,10 @@
 const mockUsers = [];
 const mockProfiles = new Map();
+const mockActivityStats = new Map();
 let mockNextUserId = 1;
 let mockNextProfileId = 1;
+const MOCK_CREATED_AT = new Date('2026-05-01T00:00:00.000Z');
+const MOCK_UPDATED_AT = new Date('2026-05-02T00:00:00.000Z');
 
 jest.mock('../src/repositories/user.repository', () => ({
   createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
@@ -11,7 +14,9 @@ jest.mock('../src/repositories/user.repository', () => ({
       name,
       passwordHash,
       role: 'USER',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      createdAt: MOCK_CREATED_AT,
+      updatedAt: MOCK_UPDATED_AT
     };
 
     mockNextUserId += 1;
@@ -23,7 +28,9 @@ jest.mock('../src/repositories/user.repository', () => ({
       preferredSubject: null,
       profileImageUrl: null,
       profileBackgroundUrl: null,
-      titleText: null
+      titleText: null,
+      createdAt: MOCK_CREATED_AT,
+      updatedAt: MOCK_UPDATED_AT
     });
     mockNextProfileId += 1;
 
@@ -42,6 +49,14 @@ jest.mock('../src/repositories/user.repository', () => ({
       ...user,
       profile: mockProfiles.get(user.id) || null
     };
+  }),
+  getUserActivityStats: jest.fn(async (id) => mockActivityStats.get(Number(id)) || {
+    postCount: 0,
+    commentCount: 0,
+    replyCount: 0,
+    likeCount: 0,
+    dislikeCount: 0,
+    bookmarkCount: 0
   }),
   updateUser: jest.fn(async (userId, data) => {
     const user = mockUsers.find((item) => item.id === Number(userId));
@@ -81,6 +96,8 @@ jest.mock('../src/repositories/user.repository', () => ({
       profileImageUrl: existingProfile?.profileImageUrl || null,
       profileBackgroundUrl: existingProfile?.profileBackgroundUrl || null,
       titleText: existingProfile?.titleText || null,
+      createdAt: existingProfile?.createdAt || MOCK_CREATED_AT,
+      updatedAt: MOCK_UPDATED_AT,
       ...data
     };
 
@@ -116,6 +133,7 @@ async function registerTestUser(overrides = {}) {
 beforeEach(() => {
   mockUsers.length = 0;
   mockProfiles.clear();
+  mockActivityStats.clear();
   mockNextUserId = 1;
   mockNextProfileId = 1;
   jest.clearAllMocks();
@@ -173,6 +191,43 @@ describe('GET /api/users/me', () => {
       .set(createAuthHeader(token));
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('GET /api/users/me/activity', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app).get('/api/users/me/activity');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('returns current user community activity stats without sensitive data', async () => {
+    const { token, user } = await registerTestUser();
+    mockActivityStats.set(user.id, {
+      postCount: 4,
+      commentCount: 7,
+      replyCount: 3,
+      likeCount: 11,
+      dislikeCount: 2,
+      bookmarkCount: 5
+    });
+
+    const response = await request(app)
+      .get('/api/users/me/activity')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.activity).toEqual({
+      postCount: 4,
+      commentCount: 7,
+      replyCount: 3,
+      likeCount: 11,
+      dislikeCount: 2,
+      bookmarkCount: 5,
+      reactionBasis: 'GIVEN'
+    });
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+    expect(JSON.stringify(response.body)).not.toContain('token');
   });
 });
 

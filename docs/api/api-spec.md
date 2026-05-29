@@ -540,7 +540,61 @@ Response 예시:
 - `role`, `status`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
 
-### 6.5 친구 추가 및 친구 목록 API
+### 6.5 내 커뮤니티 활동 통계 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/users/me/activity` |
+| 인증 | 필요 |
+| 설명 | 현재 로그인한 사용자의 커뮤니티 활동 수를 마이페이지 요약용으로 반환함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Response 예시:
+
+```json
+{
+  "activity": {
+    "postCount": 4,
+    "commentCount": 7,
+    "replyCount": 3,
+    "likeCount": 11,
+    "dislikeCount": 2,
+    "bookmarkCount": 5,
+    "reactionBasis": "GIVEN"
+  }
+}
+```
+
+집계 기준:
+
+- `postCount`: 내가 작성한 커뮤니티 게시글 수
+- `commentCount`: 내가 작성한 최상위 댓글 수
+- `replyCount`: 내가 작성한 대답글 수
+- `likeCount`: 내가 게시글과 댓글에 누른 좋아요 수
+- `dislikeCount`: 내가 게시글과 댓글에 누른 싫어요 수
+- `bookmarkCount`: 내가 저장한 커뮤니티 북마크 수
+- `reactionBasis`가 `GIVEN`이면 받은 반응이 아니라 내가 누른 반응 기준임.
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안 주의사항:
+
+- 현재 사용자 본인(`req.user.id`) 기준으로만 집계함.
+- 응답에 `passwordHash`, token, JWT 원문을 포함하지 않음.
+
+### 6.6 친구 추가 및 친구 목록 API
 
 친구 기능은 인증된 사용자끼리 친구 요청을 보내고, 수락/거절하고, 친구 목록을 조회하는 1차 MVP 범위로 구현함. DM, 실시간 채팅, 차단, 그룹 기능은 후속 범위임.
 
@@ -3474,7 +3528,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 23 suites / 425 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 23 suites / 427 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
