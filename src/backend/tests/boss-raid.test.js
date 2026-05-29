@@ -47,7 +47,7 @@ function mockBuildParty(overrides = {}) {
     owner: {
       id: 1,
       name: 'Test User',
-      email: 'test.user@example.com'
+      loginId: 'test_user'
     },
     members: [
       {
@@ -56,7 +56,7 @@ function mockBuildParty(overrides = {}) {
         user: {
           id: 1,
           name: 'Test User',
-          email: 'test.user@example.com'
+          loginId: 'test_user'
         }
       },
       {
@@ -65,7 +65,7 @@ function mockBuildParty(overrides = {}) {
         user: {
           id: 2,
           name: 'Party Mate',
-          email: 'party.mate@example.com'
+          loginId: 'party_mate'
         }
       }
     ],
@@ -79,7 +79,7 @@ function mockBuildParty(overrides = {}) {
         user: {
           id: 1,
           name: 'Test User',
-          email: 'test.user@example.com'
+          loginId: 'test_user'
         }
       },
       {
@@ -91,7 +91,7 @@ function mockBuildParty(overrides = {}) {
         user: {
           id: 2,
           name: 'Party Mate',
-          email: 'party.mate@example.com'
+          loginId: 'party_mate'
         }
       }
     ],
@@ -131,7 +131,7 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
           user: {
             id: userId,
             name: 'Joined User',
-            email: 'joined.user@example.com'
+            loginId: 'joined_user'
           }
         }
       ],
@@ -146,7 +146,7 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
           user: {
             id: userId,
             name: 'Joined User',
-            email: 'joined.user@example.com'
+            loginId: 'joined_user'
           }
         }
       ]

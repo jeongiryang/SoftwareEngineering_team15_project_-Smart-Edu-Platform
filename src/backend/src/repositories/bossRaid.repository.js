@@ -32,11 +32,11 @@ const PARTY_INCLUDE = {
   contributions: {
     include: {
       user: {
-                select: {
-                  id: true,
-                  name: true,
-                  loginId: true
-                }
+        select: {
+          id: true,
+          name: true,
+          loginId: true
+        }
       }
     },
     orderBy: {

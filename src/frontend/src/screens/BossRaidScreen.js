@@ -16,10 +16,26 @@ import {
   getMyBossRaidParties,
   joinBossRaidParty
 } from '../services/api';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, radii, shadows } from '../styles/theme';
 
-function formatNumber(value) {
-  return Intl.NumberFormat('ko-KR').format(Number(value) || 0);
+function formatNumber(value, locale = 'ko-KR') {
+  return Intl.NumberFormat(locale).format(Number(value) || 0);
+}
+
+function formatDate(value, locale = 'ko-KR') {
+  if (!value) {
+    return '';
+  }
+
+  return new Date(value).toLocaleDateString(locale);
+}
+
+function interpolate(template, values) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    template
+  );
 }
 
 function getProgressRate(totalDamage, maxHp) {
@@ -52,11 +68,11 @@ function BossImage({ imageUrl, name }) {
   );
 }
 
-function RaidStatusChip({ status }) {
+function RaidStatusChip({ status, t }) {
   const config = {
-    OPEN: { label: '진행 중', style: styles.statusOpen },
-    CLEARED: { label: '처치 완료', style: styles.statusCleared },
-    CLOSED: { label: '종료됨', style: styles.statusClosed }
+    OPEN: { label: t('bossRaid.status.open', '진행 중'), style: styles.statusOpen },
+    CLEARED: { label: t('bossRaid.status.cleared', '처치 완료'), style: styles.statusCleared },
+    CLOSED: { label: t('bossRaid.status.closed', '종료됨'), style: styles.statusClosed }
   }[status] || { label: status, style: styles.statusClosed };
 
   return (
@@ -79,6 +95,8 @@ function SummaryCard({ label, value, description, emphasis }) {
 }
 
 export default function BossRaidScreen({ token, user }) {
+  const { currentLanguage, t } = useLanguage();
+  const locale = languageIntlLocale(currentLanguage);
   const [raids, setRaids] = useState([]);
   const [parties, setParties] = useState([]);
   const [selectedRaidId, setSelectedRaidId] = useState(null);
@@ -116,16 +134,11 @@ export default function BossRaidScreen({ token, user }) {
         setRaids(raidResponse.raids || []);
         setParties(partyResponse.parties || []);
 
-        if (!selectedRaidId && raidResponse.raids?.length) {
-          setSelectedRaidId(raidResponse.raids[0].id);
-        }
-
-        if (!selectedPartyId && partyResponse.parties?.length) {
-          setSelectedPartyId(partyResponse.parties[0].id);
-        }
+        setSelectedRaidId((currentRaidId) => currentRaidId || raidResponse.raids?.[0]?.id || null);
+        setSelectedPartyId((currentPartyId) => currentPartyId || partyResponse.parties?.[0]?.id || null);
       } catch (loadError) {
         if (active) {
-          setError(loadError.message || '보스 레이드 정보를 불러오지 못했습니다.');
+          setError(loadError.message || t('bossRaid.errors.load', '보스 레이드 정보를 불러오지 못했습니다.'));
         }
       } finally {
         if (active) {
@@ -139,7 +152,7 @@ export default function BossRaidScreen({ token, user }) {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [t, token]);
 
   useEffect(() => {
     let active = true;
@@ -160,7 +173,7 @@ export default function BossRaidScreen({ token, user }) {
         }
       } catch (detailError) {
         if (active) {
-          setError(detailError.message || '파티 상세 정보를 불러오지 못했습니다.');
+          setError(detailError.message || t('bossRaid.errors.detailLoad', '파티 상세 정보를 불러오지 못했습니다.'));
         }
       }
     }
@@ -170,7 +183,7 @@ export default function BossRaidScreen({ token, user }) {
     return () => {
       active = false;
     };
-  }, [selectedPartyId, token]);
+  }, [selectedPartyId, t, token]);
 
   async function refreshParties(nextSelectedPartyId = selectedPartyId) {
     const partyResponse = await getMyBossRaidParties(token);
@@ -191,7 +204,7 @@ export default function BossRaidScreen({ token, user }) {
 
   async function handleCreateParty() {
     if (!selectedRaid) {
-      setError('먼저 보스를 선택해주세요.');
+      setError(t('bossRaid.errors.selectBossFirst', '먼저 보스를 선택해주세요.'));
       return;
     }
 
@@ -202,15 +215,21 @@ export default function BossRaidScreen({ token, user }) {
     try {
       const response = await createBossRaidParty(token, {
         raidId: selectedRaid.id,
-        name: createPartyName || `${user?.name || '스터디'} 파티`
+        name: createPartyName || interpolate(
+          t('bossRaid.defaults.partyName', '{name} 파티'),
+          { name: user?.name || t('bossRaid.defaults.studyName', '스터디') }
+        )
       });
 
       setCreatePartyName('');
       setSelectedPartyId(response.party.id);
-      setMessage(`"${response.party.name}" 파티를 생성했어요. 참여 코드는 ${response.party.joinCode} 입니다.`);
+      setMessage(interpolate(
+        t('bossRaid.messages.partyCreated', '"{name}" 파티를 생성했어요. 참여 코드는 {code} 입니다.'),
+        { name: response.party.name, code: response.party.joinCode }
+      ));
       await refreshParties(response.party.id);
     } catch (createError) {
-      setError(createError.message || '파티를 생성하지 못했습니다.');
+      setError(createError.message || t('bossRaid.errors.createParty', '파티를 생성하지 못했습니다.'));
     } finally {
       setActionLoading(false);
     }
@@ -226,10 +245,13 @@ export default function BossRaidScreen({ token, user }) {
 
       setJoinCode('');
       setSelectedPartyId(response.party.id);
-      setMessage(`"${response.party.name}" 파티에 참가했어요.`);
+      setMessage(interpolate(
+        t('bossRaid.messages.partyJoined', '"{name}" 파티에 참가했어요.'),
+        { name: response.party.name }
+      ));
       await refreshParties(response.party.id);
     } catch (joinError) {
-      setError(joinError.message || '파티 참가에 실패했습니다.');
+      setError(joinError.message || t('bossRaid.errors.joinParty', '파티 참가에 실패했습니다.'));
     } finally {
       setActionLoading(false);
     }
@@ -247,10 +269,17 @@ export default function BossRaidScreen({ token, user }) {
     try {
       const response = await claimBossRaidReward(token, selectedParty.id);
       const totalReward = response.reward.reward.totalRewardPoints;
-      setMessage(`${formatNumber(totalReward)}P 보상을 받았어요. ${response.reward.badge ? '한정 배지도 함께 지급되었습니다.' : ''}`.trim());
+      const rewardText = interpolate(
+        t('bossRaid.messages.rewardClaimed', '{points}P 보상을 받았어요.'),
+        { points: formatNumber(totalReward, locale) }
+      );
+      const badgeText = response.reward.badge
+        ? t('bossRaid.messages.badgeGranted', '한정 배지도 함께 지급되었습니다.')
+        : '';
+      setMessage(`${rewardText} ${badgeText}`.trim());
       await refreshParties(selectedParty.id);
     } catch (claimError) {
-      setError(claimError.message || '보상 수령에 실패했습니다.');
+      setError(claimError.message || t('bossRaid.errors.claimReward', '보상 수령에 실패했습니다.'));
     } finally {
       setActionLoading(false);
     }
@@ -264,28 +293,28 @@ export default function BossRaidScreen({ token, user }) {
     <ScrollView contentContainerStyle={styles.screen} style={styles.scroll}>
       <View style={styles.heroPanel}>
         <View style={styles.heroCopy}>
-          <Text style={styles.eyebrow}>협동 퀘스트</Text>
-          <Text style={styles.title}>스터디 보스 레이드</Text>
+          <Text style={styles.eyebrow}>{t('bossRaid.hero.eyebrow', '협동 퀘스트')}</Text>
+          <Text style={styles.title}>{t('bossRaid.hero.title', '스터디 보스 레이드')}</Text>
           <Text style={styles.description}>
-            원하는 사람끼리 파티를 만들고, 그룹 누적 집중 시간과 완료 태스크 수로 보스 HP를 깎아보세요.
+            {t('bossRaid.hero.description', '원하는 사람끼리 파티를 만들고, 그룹 누적 집중 시간과 완료 태스크 수로 보스 HP를 깎아보세요.')}
           </Text>
         </View>
         <View style={styles.summaryGrid}>
           <SummaryCard
-            description="보상은 참여자 공통 포인트 + 개인 기여 보너스 + 한정 배지 구조예요."
+            description={t('bossRaid.summary.ruleDescription', '보상은 참여자 공통 포인트 + 개인 기여 보너스 + 한정 배지 구조예요.')}
             emphasis
-            label="핵심 규칙"
-            value="5분 갱신"
+            label={t('bossRaid.summary.ruleLabel', '핵심 규칙')}
+            value={t('bossRaid.summary.ruleValue', '5분 갱신')}
           />
           <SummaryCard
-            description="현재 활성 보스 수"
-            label="보스"
-            value={`${raids.length}개`}
+            description={t('bossRaid.summary.bossDescription', '현재 활성 보스 수')}
+            label={t('bossRaid.summary.bossLabel', '보스')}
+            value={interpolate(t('bossRaid.units.count', '{count}개'), { count: formatNumber(raids.length, locale) })}
           />
           <SummaryCard
-            description="내가 참가한 파티 수"
-            label="내 파티"
-            value={`${parties.length}개`}
+            description={t('bossRaid.summary.partyDescription', '내가 참가한 파티 수')}
+            label={t('bossRaid.summary.partyLabel', '내 파티')}
+            value={interpolate(t('bossRaid.units.count', '{count}개'), { count: formatNumber(parties.length, locale) })}
           />
         </View>
       </View>
@@ -302,7 +331,7 @@ export default function BossRaidScreen({ token, user }) {
       ) : null}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>보스 선택</Text>
+        <Text style={styles.sectionTitle}>{t('bossRaid.sections.selectBoss', '보스 선택')}</Text>
         <View style={styles.cardGrid}>
           {raids.map((raid) => {
             const active = raid.id === selectedRaid?.id;
@@ -320,11 +349,14 @@ export default function BossRaidScreen({ token, user }) {
                 <BossImage imageUrl={raid.imageUrl} name={raid.name} />
                 <View style={styles.raidCardHeader}>
                   <Text style={styles.raidCardTitle}>{raid.name}</Text>
-                  {raid.hasJoinedParty ? <RaidStatusChip status="OPEN" /> : null}
+                  {raid.hasJoinedParty ? <RaidStatusChip status="OPEN" t={t} /> : null}
                 </View>
                 <Text style={styles.raidCardDescription}>{raid.description}</Text>
                 <Text style={styles.raidCardMeta}>
-                  HP {formatNumber(raid.maxHp)} · 기본 보상 {formatNumber(raid.baseRewardPoints)}P
+                  {interpolate(t('bossRaid.raidCard.meta', 'HP {hp} · 기본 보상 {points}P'), {
+                    hp: formatNumber(raid.maxHp, locale),
+                    points: formatNumber(raid.baseRewardPoints, locale)
+                  })}
                 </Text>
               </Pressable>
             );
@@ -334,11 +366,11 @@ export default function BossRaidScreen({ token, user }) {
 
       <View style={styles.actionRow}>
         <View style={styles.actionPanel}>
-          <Text style={styles.panelTitle}>파티 생성</Text>
-          <Text style={styles.panelDescription}>같이 레이드할 팀 이름을 정하고 새 파티를 만들어요.</Text>
+          <Text style={styles.panelTitle}>{t('bossRaid.create.title', '파티 생성')}</Text>
+          <Text style={styles.panelDescription}>{t('bossRaid.create.description', '같이 레이드할 팀 이름을 정하고 새 파티를 만들어요.')}</Text>
           <TextInput
             onChangeText={setCreatePartyName}
-            placeholder="예: 새벽 집중팟"
+            placeholder={t('bossRaid.create.placeholder', '예: 새벽 집중팟')}
             placeholderTextColor={colors.muted}
             style={styles.input}
             value={createPartyName}
@@ -352,17 +384,17 @@ export default function BossRaidScreen({ token, user }) {
               pressed && !actionLoading && styles.primaryButtonPressed
             ]}
           >
-            <Text style={styles.primaryButtonText}>선택한 보스로 파티 만들기</Text>
+            <Text style={styles.primaryButtonText}>{t('bossRaid.create.button', '선택한 보스로 파티 만들기')}</Text>
           </Pressable>
         </View>
 
         <View style={styles.actionPanel}>
-          <Text style={styles.panelTitle}>참여 코드로 참가</Text>
-          <Text style={styles.panelDescription}>친구가 만든 파티의 참여 코드를 입력하면 바로 합류할 수 있어요.</Text>
+          <Text style={styles.panelTitle}>{t('bossRaid.join.title', '참여 코드로 참가')}</Text>
+          <Text style={styles.panelDescription}>{t('bossRaid.join.description', '친구가 만든 파티의 참여 코드를 입력하면 바로 합류할 수 있어요.')}</Text>
           <TextInput
             autoCapitalize="characters"
             onChangeText={setJoinCode}
-            placeholder="예: DAWN01"
+            placeholder={t('bossRaid.join.placeholder', '예: DAWN01')}
             placeholderTextColor={colors.muted}
             style={styles.input}
             value={joinCode}
@@ -376,13 +408,13 @@ export default function BossRaidScreen({ token, user }) {
               pressed && !actionLoading && styles.secondaryButtonPressed
             ]}
           >
-            <Text style={styles.secondaryButtonText}>코드로 참가하기</Text>
+            <Text style={styles.secondaryButtonText}>{t('bossRaid.join.button', '코드로 참가하기')}</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>내 파티</Text>
+        <Text style={styles.sectionTitle}>{t('bossRaid.sections.myParties', '내 파티')}</Text>
         <View style={styles.partyList}>
           {parties.map((party) => {
             const active = party.id === selectedPartyId;
@@ -411,9 +443,9 @@ export default function BossRaidScreen({ token, user }) {
           })}
           {!loading && parties.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateTitle}>아직 참가한 파티가 없어요.</Text>
+              <Text style={styles.emptyStateTitle}>{t('bossRaid.empty.title', '아직 참가한 파티가 없어요.')}</Text>
               <Text style={styles.emptyStateDescription}>
-                먼저 파티를 만들거나 친구의 참여 코드로 입장해보세요.
+                {t('bossRaid.empty.description', '먼저 파티를 만들거나 친구의 참여 코드로 입장해보세요.')}
               </Text>
             </View>
           ) : null}
@@ -426,54 +458,69 @@ export default function BossRaidScreen({ token, user }) {
             <View>
               <Text style={styles.detailTitle}>{selectedParty.raid.name}</Text>
               <Text style={styles.detailSubtitle}>
-                {selectedParty.name} · 참여 코드 {selectedParty.joinCode}
+                {interpolate(t('bossRaid.detail.subtitle', '{name} · 참여 코드 {code}'), {
+                  name: selectedParty.name,
+                  code: selectedParty.joinCode
+                })}
               </Text>
             </View>
-            <RaidStatusChip status={selectedParty.status} />
+            <RaidStatusChip status={selectedParty.status} t={t} />
           </View>
 
           <View style={styles.progressPanel}>
             <View style={styles.progressMetaRow}>
-              <Text style={styles.progressLabel}>보스 HP</Text>
+              <Text style={styles.progressLabel}>{t('bossRaid.detail.hpLabel', '보스 HP')}</Text>
               <Text style={styles.progressValue}>
-                {formatNumber(selectedParty.remainingHp)} / {formatNumber(selectedParty.raid.maxHp)}
+                {formatNumber(selectedParty.remainingHp, locale)} / {formatNumber(selectedParty.raid.maxHp, locale)}
               </Text>
             </View>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${selectedPartyProgress * 100}%` }]} />
             </View>
             <View style={styles.progressInfoRow}>
-              <Text style={styles.progressHint}>누적 데미지 {formatNumber(selectedParty.totalDamage)}</Text>
               <Text style={styles.progressHint}>
-                1분 = {selectedParty.raid.focusMinuteDamage} DMG · 태스크 1개 = {selectedParty.raid.taskCompletionDamage} DMG
+                {interpolate(t('bossRaid.detail.totalDamage', '누적 데미지 {damage}'), {
+                  damage: formatNumber(selectedParty.totalDamage, locale)
+                })}
+              </Text>
+              <Text style={styles.progressHint}>
+                {interpolate(t('bossRaid.detail.damageRule', '1분 = {focusDamage} DMG · 태스크 1개 = {taskDamage} DMG'), {
+                  focusDamage: selectedParty.raid.focusMinuteDamage,
+                  taskDamage: selectedParty.raid.taskCompletionDamage
+                })}
               </Text>
             </View>
           </View>
 
           <View style={styles.detailGrid}>
             <View style={styles.membersCard}>
-              <Text style={styles.cardTitle}>파티 멤버</Text>
+              <Text style={styles.cardTitle}>{t('bossRaid.detail.members', '파티 멤버')}</Text>
               {selectedParty.members.map((member) => (
                 <View key={member.userId} style={styles.memberRow}>
                   <Text style={styles.memberName}>{member.name}</Text>
                   <Text style={styles.memberJoinedAt}>
-                    참여 {new Date(member.joinedAt).toLocaleDateString('ko-KR')}
+                    {interpolate(t('bossRaid.detail.joinedAt', '참여 {date}'), {
+                      date: formatDate(member.joinedAt, locale)
+                    })}
                   </Text>
                 </View>
               ))}
             </View>
 
             <View style={styles.membersCard}>
-              <Text style={styles.cardTitle}>기여도</Text>
+              <Text style={styles.cardTitle}>{t('bossRaid.detail.contribution', '기여도')}</Text>
               {selectedParty.contributions.map((contribution) => (
                 <View key={contribution.userId} style={styles.contributionRow}>
                   <View>
                     <Text style={styles.memberName}>{contribution.userName}</Text>
                     <Text style={styles.contributionMeta}>
-                      집중 {formatNumber(contribution.focusMinutes)}분 · 완료 {formatNumber(contribution.completedTaskCount)}개
+                      {interpolate(t('bossRaid.detail.contributionMeta', '집중 {minutes}분 · 완료 {tasks}개'), {
+                        minutes: formatNumber(contribution.focusMinutes, locale),
+                        tasks: formatNumber(contribution.completedTaskCount, locale)
+                      })}
                     </Text>
                   </View>
-                  <Text style={styles.contributionDamage}>{formatNumber(contribution.totalDamage)} DMG</Text>
+                  <Text style={styles.contributionDamage}>{formatNumber(contribution.totalDamage, locale)} DMG</Text>
                 </View>
               ))}
             </View>
@@ -481,13 +528,18 @@ export default function BossRaidScreen({ token, user }) {
 
           <View style={styles.rewardPanel}>
             <View>
-              <Text style={styles.rewardTitle}>처치 보상</Text>
+              <Text style={styles.rewardTitle}>{t('bossRaid.reward.title', '처치 보상')}</Text>
               <Text style={styles.rewardDescription}>
-                참여자 전원 기본 {formatNumber(selectedParty.raid.baseRewardPoints)}P + 기여도 비율 기반 보너스 풀 {formatNumber(selectedParty.raid.bonusRewardPoolPoints)}P
+                {interpolate(t('bossRaid.reward.description', '참여자 전원 기본 {basePoints}P + 기여도 비율 기반 보너스 풀 {bonusPoints}P'), {
+                  basePoints: formatNumber(selectedParty.raid.baseRewardPoints, locale),
+                  bonusPoints: formatNumber(selectedParty.raid.bonusRewardPoolPoints, locale)
+                })}
               </Text>
               {selectedParty.raid.badge ? (
                 <Text style={styles.rewardBadge}>
-                  한정 배지: {selectedParty.raid.badge.name}
+                  {interpolate(t('bossRaid.reward.badge', '한정 배지: {badgeName}'), {
+                    badgeName: selectedParty.raid.badge.name
+                  })}
                 </Text>
               ) : null}
             </View>
@@ -501,7 +553,9 @@ export default function BossRaidScreen({ token, user }) {
               ]}
             >
               <Text style={styles.claimButtonText}>
-                {selectedParty.status === 'CLEARED' ? '보상 받기' : '처치 후 수령 가능'}
+                {selectedParty.status === 'CLEARED'
+                  ? t('bossRaid.reward.claimButton', '보상 받기')
+                  : t('bossRaid.reward.lockedButton', '처치 후 수령 가능')}
               </Text>
             </Pressable>
           </View>
