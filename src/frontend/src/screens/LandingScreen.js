@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 const GITHUB_REPOSITORY_URL = 'https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform';
-const GITHUB_MARK_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#111827" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.87c.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.06-1.86 3.75-3.64 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.45.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>'
-)}`;
+const GITHUB_ICON_COLOR = '#24292f';
+const githubSvgStyle = {
+  display: 'block',
+  flexShrink: 0
+};
 
 const availableFeatures = [
   {
@@ -43,6 +45,36 @@ function openGitHubRepository() {
   }
 
   Linking.openURL(GITHUB_REPOSITORY_URL);
+}
+
+function GitHubMark() {
+  if (Platform.OS === 'web') {
+    return (
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        height="28"
+        style={githubSvgStyle}
+        viewBox="0 0 16 16"
+        width="28"
+      >
+        <path
+          d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.87c.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.06-1.86 3.75-3.64 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.45.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+          fill={GITHUB_ICON_COLOR}
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.githubNativeMark}>
+      <View style={styles.githubNativeEarRow}>
+        <View style={styles.githubNativeEar} />
+        <View style={styles.githubNativeEar} />
+      </View>
+      <View style={styles.githubNativeHead} />
+    </View>
+  );
 }
 
 export default function LandingScreen({ onNavigate }) {
@@ -178,13 +210,7 @@ export default function LandingScreen({ onNavigate }) {
             style={(state) => [styles.githubButton, ...interactiveStateStyles(state)]}
             title="GitHub"
           >
-            <Image
-              accessibilityElementsHidden
-              accessible={false}
-              importantForAccessibility="no-hide-descendants"
-              source={{ uri: GITHUB_MARK_URI }}
-              style={styles.githubIcon}
-            />
+            <GitHubMark />
           </Pressable>
         </View>
       </View>
@@ -494,8 +520,8 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   githubButton: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.line,
@@ -503,8 +529,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  githubIcon: {
-    width: 27,
-    height: 27
+  githubNativeMark: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  githubNativeEarRow: {
+    position: 'absolute',
+    top: 3,
+    width: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  githubNativeEar: {
+    width: 9,
+    height: 9,
+    borderRadius: 2,
+    backgroundColor: GITHUB_ICON_COLOR,
+    transform: [{ rotate: '45deg' }]
+  },
+  githubNativeHead: {
+    width: 25,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: GITHUB_ICON_COLOR,
+    marginTop: 6
   }
 });
