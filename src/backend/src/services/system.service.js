@@ -5,6 +5,8 @@ const { normalizeString } = require('../utils/validators');
 const DEFAULT_MAINTENANCE_TITLE = '사각사각 업데이트 중';
 const DEFAULT_MAINTENANCE_MESSAGE = '더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.';
 const MAINTENANCE_FIELDS = ['enabled', 'title', 'message', 'estimatedEndAt'];
+const ADMIN_NOTICE_FIELDS = ['title', 'message', 'level'];
+const ADMIN_NOTICE_LEVELS = ['info', 'success', 'warning', 'danger'];
 const MAX_TITLE_LENGTH = 80;
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -152,9 +154,41 @@ async function updateMaintenanceSetting(payload = {}) {
   return sanitizeMaintenanceSetting(updated);
 }
 
+function buildAdminNoticePayload(payload = {}) {
+  assertPlainObject(payload);
+
+  const unsupportedFields = Object.keys(payload).filter((field) => !ADMIN_NOTICE_FIELDS.includes(field));
+
+  if (unsupportedFields.length > 0) {
+    throw validationError('Admin notice payload contains unsupported fields', {
+      fields: unsupportedFields
+    });
+  }
+
+  const title = normalizeRequiredText(payload.title, 'title', MAX_TITLE_LENGTH);
+  const message = normalizeRequiredText(payload.message, 'message', MAX_MESSAGE_LENGTH);
+  const level = payload.level === undefined ? 'info' : normalizeString(payload.level);
+
+  if (!ADMIN_NOTICE_LEVELS.includes(level)) {
+    throw validationError('level must be one of info, success, warning, danger', {
+      field: 'level',
+      allowed: ADMIN_NOTICE_LEVELS
+    });
+  }
+
+  return {
+    id: `notice-${Date.now()}`,
+    level,
+    message,
+    title
+  };
+}
+
 module.exports = {
+  ADMIN_NOTICE_LEVELS,
   DEFAULT_MAINTENANCE_MESSAGE,
   DEFAULT_MAINTENANCE_TITLE,
+  buildAdminNoticePayload,
   buildMaintenanceUpdateData,
   getMaintenanceSetting,
   sanitizeMaintenanceSetting,

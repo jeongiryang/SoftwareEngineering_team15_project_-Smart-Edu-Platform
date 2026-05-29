@@ -17,6 +17,7 @@ const {
 } = require('../controllers/admin.controller');
 const {
   getMaintenanceSetting,
+  sendAdminNotice,
   updateMaintenanceSetting
 } = require('../controllers/system.controller');
 const { authMiddleware } = require('../middleware/auth.middleware');
@@ -40,6 +41,7 @@ router.post('/rewards/quests', createRewardQuest);
 router.patch('/rewards/quests/:questId', updateRewardQuest);
 router.get('/system/maintenance', getMaintenanceSetting);
 router.patch('/system/maintenance', updateMaintenanceSetting);
+router.post('/system/notice', sendAdminNotice);
 router.patch('/posts/:postId/moderation', moderatePost);
 router.patch('/comments/:commentId/moderation', moderateComment);
 router.patch('/challenges/:challengeId/moderation', moderateChallenge);

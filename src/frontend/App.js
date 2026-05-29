@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import AppHeader from './src/components/AppHeader';
 import ConfirmModal from './src/components/ConfirmModal';
+import RealtimeNotice from './src/components/RealtimeNotice';
 import { PanelSkeleton } from './src/components/Skeleton';
 import { colors } from './src/styles/theme';
 import LandingScreen from './src/screens/LandingScreen';
@@ -21,6 +22,7 @@ import PointShopScreen from './src/screens/PointShopScreen';
 import BossRaidScreen from './src/screens/BossRaidScreen';
 import MaintenanceScreen from './src/screens/MaintenanceScreen';
 import { getCurrentUser, getSystemStatus } from './src/services/api';
+import { createRealtimeClient } from './src/services/realtime';
 import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
 import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
 import { LanguageProvider, useLanguage, useWebTextLocalization } from './src/i18n';
@@ -236,6 +238,8 @@ function AppRoot() {
   const [maintenanceStatus, setMaintenanceStatus] = useState(null);
   const [maintenanceLoading, setMaintenanceLoading] = useState(true);
   const [maintenanceError, setMaintenanceError] = useState('');
+  const [, setRealtimeStatus] = useState('disconnected');
+  const [adminNotice, setAdminNotice] = useState(null);
 
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LandingScreen;
@@ -298,6 +302,44 @@ function AppRoot() {
   useEffect(() => {
     refreshMaintenanceStatus();
   }, [refreshMaintenanceStatus]);
+
+  const handleRealtimeMessage = useCallback((event) => {
+    if (event.type === 'maintenance.updated') {
+      setMaintenanceStatus(event.payload?.maintenance || { enabled: false });
+      setMaintenanceError('');
+      return;
+    }
+
+    if (event.type === 'admin.notice' && event.payload?.notice) {
+      setAdminNotice({
+        ...event.payload.notice,
+        receivedAt: event.sentAt || new Date().toISOString()
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const realtimeClient = createRealtimeClient({
+      onMessage: handleRealtimeMessage,
+      onStatusChange: setRealtimeStatus
+    });
+
+    realtimeClient.connect();
+
+    return () => {
+      realtimeClient.disconnect();
+    };
+  }, [handleRealtimeMessage]);
+
+  useEffect(() => {
+    if (!adminNotice) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => setAdminNotice(null), 9000);
+
+    return () => clearTimeout(timer);
+  }, [adminNotice]);
 
   useEffect(() => {
     let isMounted = true;
@@ -366,7 +408,9 @@ function AppRoot() {
       <AccessibilityProvider token={token}>
         <AppChrome
           activeScreenName="home"
+          adminNotice={adminNotice}
           navigateTo={navigateTo}
+          onCloseAdminNotice={() => setAdminNotice(null)}
           showLogoutModal={false}
           user={null}
         >
@@ -384,7 +428,9 @@ function AppRoot() {
       <AccessibilityProvider token={token}>
         <AppChrome
           activeScreenName="home"
+          adminNotice={adminNotice}
           navigateTo={navigateTo}
+          onCloseAdminNotice={() => setAdminNotice(null)}
           showHeader={false}
           showLogoutModal={false}
           user={user}
@@ -407,8 +453,10 @@ function AppRoot() {
     <AccessibilityProvider token={token}>
       <AppChrome
         activeScreenName={activeScreenName}
+        adminNotice={adminNotice}
         handleLogout={handleLogout}
         navigateTo={navigateTo}
+        onCloseAdminNotice={() => setAdminNotice(null)}
         setShowLogoutModal={setShowLogoutModal}
         showLogoutModal={showLogoutModal}
         user={user}
@@ -430,9 +478,11 @@ function AppRoot() {
 
 function AppChrome({
   activeScreenName,
+  adminNotice,
   children,
   handleLogout,
   navigateTo,
+  onCloseAdminNotice,
   setShowLogoutModal,
   showHeader = true,
   showLogoutModal,
@@ -511,6 +561,7 @@ function AppChrome({
         />
       ) : null}
       {children}
+      <RealtimeNotice notice={adminNotice} onClose={onCloseAdminNotice} />
       {user && preference.voiceOutputEnabled ? (
         <Pressable
           accessibilityRole="button"
