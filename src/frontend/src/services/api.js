@@ -703,6 +703,25 @@ export function deleteCommunityReaction(token, postId) {
   });
 }
 
+export function createCommunityCommentReaction(token, commentId, type) {
+  return request(`/community/comments/${commentId}/reactions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ type })
+  });
+}
+
+export function deleteCommunityCommentReaction(token, commentId) {
+  return request(`/community/comments/${commentId}/reactions`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function createCommunityBookmark(token, postId) {
   return request(`/community/posts/${postId}/bookmarks`, {
     method: 'POST',

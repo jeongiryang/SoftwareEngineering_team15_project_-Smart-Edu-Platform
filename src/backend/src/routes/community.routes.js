@@ -2,12 +2,14 @@ const express = require('express');
 const {
   createBookmark,
   createComment,
+  createCommentReaction,
   createCommentReport,
   createPost,
   createPostReport,
   createReaction,
   deleteBookmark,
   deleteComment,
+  deleteCommentReaction,
   deletePost,
   deleteReaction,
   getPostById,
@@ -35,6 +37,8 @@ router.get('/posts/:postId', authMiddleware, getPostById);
 router.patch('/posts/:postId', authMiddleware, updatePost);
 router.delete('/posts/:postId', authMiddleware, deletePost);
 router.post('/comments/:commentId/reports', authMiddleware, createCommentReport);
+router.post('/comments/:commentId/reactions', authMiddleware, createCommentReaction);
+router.delete('/comments/:commentId/reactions', authMiddleware, deleteCommentReaction);
 router.patch('/comments/:commentId', authMiddleware, updateComment);
 router.delete('/comments/:commentId', authMiddleware, deleteComment);
 

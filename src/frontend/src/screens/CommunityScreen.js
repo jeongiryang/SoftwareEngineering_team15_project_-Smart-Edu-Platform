@@ -10,10 +10,12 @@ import AccessibleTextInput from '../components/AccessibleTextInput';
 import {
   createCommunityBookmark,
   createCommunityComment,
+  createCommunityCommentReaction,
   createCommunityPost,
   createCommunityReaction,
   deleteCommunityBookmark,
   deleteCommunityComment,
+  deleteCommunityCommentReaction,
   deleteCommunityPost,
   deleteCommunityReaction,
   getCommunityBookmarks,
@@ -109,6 +111,8 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   });
   const [commentPage, setCommentPage] = useState(1);
   const [commentContent, setCommentContent] = useState('');
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
   const [editingComment, setEditingComment] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState('');
   const [postFormMode, setPostFormMode] = useState(null);
@@ -349,6 +353,38 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     }
   }
 
+  async function submitReply(parentComment) {
+    if (!selectedPost || !parentComment) {
+      return;
+    }
+
+    const content = replyContent.trim();
+
+    if (!content) {
+      setErrorMessage(translateText('대답글 내용을 입력해 주세요.'));
+      return;
+    }
+
+    setBusy(true);
+    resetMessages();
+
+    try {
+      await createCommunityComment(token, selectedPost.id, {
+        parentId: parentComment.id,
+        content
+      });
+      setReplyTarget(null);
+      setReplyContent('');
+      setSuccessMessage(translateText('대답글을 작성했습니다.'));
+      await loadPostDetail(selectedPost.id, commentPage);
+      await loadPosts();
+    } catch (error) {
+      setErrorMessage(error.message || translateText('대답글 작성에 실패했습니다.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function startEditComment(comment) {
     setEditingComment(comment);
     setEditingCommentContent(comment.content);
@@ -436,17 +472,83 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     try {
       if (post.myReaction === type) {
         await deleteCommunityReaction(token, post.id);
-        setSuccessMessage('반응을 취소했습니다.');
+        setSuccessMessage(translateText('반응을 취소했습니다.'));
       } else {
         await createCommunityReaction(token, post.id, type);
-        setSuccessMessage(type === 'LIKE' ? '좋아요를 반영했습니다.' : '싫어요를 반영했습니다.');
+        setSuccessMessage(
+          type === 'LIKE' ? translateText('좋아요를 반영했습니다.') : translateText('싫어요를 반영했습니다.')
+        );
       }
 
       await refreshAfterPostAction(post.id);
     } catch (error) {
-      setErrorMessage(error.message || '반응 처리에 실패했습니다.');
+      setErrorMessage(error.message || translateText('반응 처리에 실패했습니다.'));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function toggleCommentReaction(comment, type) {
+    setBusy(true);
+    resetMessages();
+
+    try {
+      if (comment.myReaction === type) {
+        await deleteCommunityCommentReaction(token, comment.id);
+        setSuccessMessage(translateText('댓글 반응을 취소했습니다.'));
+      } else {
+        await createCommunityCommentReaction(token, comment.id, type);
+        setSuccessMessage(
+          type === 'LIKE'
+            ? translateText('댓글에 좋아요를 남겼습니다.')
+            : translateText('댓글에 싫어요를 남겼습니다.')
+        );
+      }
+
+      await loadPostDetail(selectedPost.id, commentPage);
+    } catch (error) {
+      setErrorMessage(error.message || translateText('댓글 반응 처리에 실패했습니다.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyPostLink(post) {
+    if (!post) {
+      return;
+    }
+
+    resetMessages();
+
+    const link =
+      typeof window !== 'undefined' && window.location
+        ? `${window.location.origin}${window.location.pathname}?screen=community&postId=${post.id}`
+        : `community/post/${post.id}`;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+      } else if (typeof document !== 'undefined') {
+        const textarea = document.createElement('textarea');
+        textarea.value = link;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        if (!copied) {
+          throw new Error('clipboard-copy-failed');
+        }
+      } else {
+        throw new Error('clipboard-unavailable');
+      }
+
+      setSuccessMessage(translateText('게시글 링크를 복사했습니다.'));
+    } catch (error) {
+      setErrorMessage(translateText('클립보드 복사에 실패했습니다. 브라우저 권한을 확인해 주세요.'));
     }
   }
 
@@ -525,6 +627,8 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     setReportTarget(null);
     setPostFormMode(null);
     setCommentContent('');
+    setReplyTarget(null);
+    setReplyContent('');
     setEditingComment(null);
     setCommentPage(1);
     loadPostDetail(post.id, 1);
@@ -942,6 +1046,25 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     ));
   }
 
+  function renderReactionButton({ active, count, icon, label, onPress }) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label} ${count || 0}`}
+        disabled={busy}
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.reactionButton,
+          active && styles.reactionButtonActive,
+          pressed && styles.buttonPressed
+        ]}
+      >
+        <Text style={[styles.reactionIcon, active && styles.reactionTextActive]}>{icon}</Text>
+        <Text style={[styles.reactionCount, active && styles.reactionTextActive]}>{count || 0}</Text>
+      </Pressable>
+    );
+  }
+
   function renderPostCard(post) {
     return (
       <View key={post.id} style={[styles.card, shadows.card, selectedPost?.id === post.id && styles.cardActive]}>
@@ -965,36 +1088,20 @@ export default function CommunityScreen({ onNavigate, token, user }) {
           >
             <Text style={styles.secondaryButtonText}>상세</Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${post.title} 좋아요`}
-            disabled={busy}
-            onPress={() => toggleReaction(post, 'LIKE')}
-            style={({ pressed }) => [
-              styles.smallButton,
-              post.myReaction === 'LIKE' && styles.smallButtonActive,
-              pressed && styles.buttonPressed
-            ]}
-          >
-            <Text style={[styles.smallButtonText, post.myReaction === 'LIKE' && styles.smallButtonTextActive]}>
-              좋아요
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${post.title} 싫어요`}
-            disabled={busy}
-            onPress={() => toggleReaction(post, 'DISLIKE')}
-            style={({ pressed }) => [
-              styles.smallButton,
-              post.myReaction === 'DISLIKE' && styles.smallButtonActive,
-              pressed && styles.buttonPressed
-            ]}
-          >
-            <Text style={[styles.smallButtonText, post.myReaction === 'DISLIKE' && styles.smallButtonTextActive]}>
-              싫어요
-            </Text>
-          </Pressable>
+          {renderReactionButton({
+            active: post.myReaction === 'LIKE',
+            count: post.likeCount,
+            icon: '👍',
+            label: `${post.title} ${translateText('좋아요')}`,
+            onPress: () => toggleReaction(post, 'LIKE')
+          })}
+          {renderReactionButton({
+            active: post.myReaction === 'DISLIKE',
+            count: post.dislikeCount,
+            icon: '👎',
+            label: `${post.title} ${translateText('싫어요')}`,
+            onPress: () => toggleReaction(post, 'DISLIKE')
+          })}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${post.title} 북마크 ${post.isBookmarked ? '해제' : '추가'}`}
@@ -1009,6 +1116,15 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             <Text style={[styles.smallButtonText, post.isBookmarked && styles.bookmarkButtonTextActive]}>
               {post.isBookmarked ? '북마크됨' : '북마크'}
             </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${post.title} 링크 공유`}
+            disabled={busy}
+            onPress={() => copyPostLink(post)}
+            style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.smallButtonText}>{translateText('공유')}</Text>
           </Pressable>
         </View>
       </View>
@@ -1044,36 +1160,20 @@ export default function CommunityScreen({ onNavigate, token, user }) {
         <View style={styles.detailActionPanel}>
           <Text style={styles.actionPanelTitle}>반응과 저장</Text>
           <View style={styles.cardActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="게시글 좋아요"
-            disabled={busy}
-            onPress={() => toggleReaction(selectedPost, 'LIKE')}
-            style={({ pressed }) => [
-              styles.smallButton,
-              selectedPost.myReaction === 'LIKE' && styles.smallButtonActive,
-              pressed && styles.buttonPressed
-            ]}
-          >
-            <Text style={[styles.smallButtonText, selectedPost.myReaction === 'LIKE' && styles.smallButtonTextActive]}>
-              좋아요
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="게시글 싫어요"
-            disabled={busy}
-            onPress={() => toggleReaction(selectedPost, 'DISLIKE')}
-            style={({ pressed }) => [
-              styles.smallButton,
-              selectedPost.myReaction === 'DISLIKE' && styles.smallButtonActive,
-              pressed && styles.buttonPressed
-            ]}
-          >
-            <Text style={[styles.smallButtonText, selectedPost.myReaction === 'DISLIKE' && styles.smallButtonTextActive]}>
-              싫어요
-            </Text>
-          </Pressable>
+          {renderReactionButton({
+            active: selectedPost.myReaction === 'LIKE',
+            count: selectedPost.likeCount,
+            icon: '👍',
+            label: translateText('게시글 좋아요'),
+            onPress: () => toggleReaction(selectedPost, 'LIKE')
+          })}
+          {renderReactionButton({
+            active: selectedPost.myReaction === 'DISLIKE',
+            count: selectedPost.dislikeCount,
+            icon: '👎',
+            label: translateText('게시글 싫어요'),
+            onPress: () => toggleReaction(selectedPost, 'DISLIKE')
+          })}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={selectedPost.isBookmarked ? '게시글 북마크 해제' : '게시글 북마크 추가'}
@@ -1096,6 +1196,15 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             style={({ pressed }) => [styles.warningButton, pressed && styles.buttonPressed]}
           >
             <Text style={styles.warningButtonText}>게시글 신고</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="게시글 링크 공유"
+            disabled={busy}
+            onPress={() => copyPostLink(selectedPost)}
+            style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.smallButtonText}>{translateText('공유')}</Text>
           </Pressable>
           </View>
         </View>
@@ -1159,14 +1268,57 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     );
   }
 
-  function renderComment(comment) {
-    const ownComment = isOwnContent(comment, user);
-    const isEditing = editingComment?.id === comment.id;
+  function renderReplyForm(comment) {
+    if (replyTarget?.id !== comment.id) {
+      return null;
+    }
 
     return (
-      <View key={comment.id} style={styles.commentCard}>
+      <View style={styles.replyForm}>
+        <AccessibleTextInput
+          multiline
+          onChangeText={setReplyContent}
+          placeholder={translateText('대답글을 입력해 주세요.')}
+          style={[styles.input, styles.replyInput]}
+          textAlignVertical="top"
+          value={replyContent}
+        />
+        <View style={styles.actionRow}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => submitReply(comment)}
+            style={({ pressed }) => [styles.primaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.primaryButtonText}>{translateText('대답글 작성')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => {
+              setReplyTarget(null);
+              setReplyContent('');
+            }}
+            style={({ pressed }) => [styles.secondaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.secondaryButtonText}>{translateText('취소')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  function renderComment(comment, level = 0) {
+    const ownComment = isOwnContent(comment, user);
+    const isEditing = editingComment?.id === comment.id;
+    const isReply = level > 0;
+
+    return (
+      <View key={comment.id} style={[styles.commentCard, isReply && styles.replyCard]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.authorText}>{comment.author?.name || '알 수 없음'}</Text>
+          <Text style={styles.authorText}>
+            {isReply ? '↳ ' : ''}{comment.author?.name || '알 수 없음'}
+          </Text>
           <Text style={styles.dateText}>{formatDate(comment.createdAt, currentLanguage)}</Text>
         </View>
         {isEditing ? (
@@ -1201,6 +1353,34 @@ export default function CommunityScreen({ onNavigate, token, user }) {
         )}
         {!isEditing ? (
           <View style={styles.cardActions}>
+            {renderReactionButton({
+              active: comment.myReaction === 'LIKE',
+              count: comment.likeCount,
+              icon: '👍',
+              label: translateText('댓글 좋아요'),
+              onPress: () => toggleCommentReaction(comment, 'LIKE')
+            })}
+            {renderReactionButton({
+              active: comment.myReaction === 'DISLIKE',
+              count: comment.dislikeCount,
+              icon: '👎',
+              label: translateText('댓글 싫어요'),
+              onPress: () => toggleCommentReaction(comment, 'DISLIKE')
+            })}
+            {!isReply ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={translateText('대답글 작성')}
+                disabled={busy}
+                onPress={() => {
+                  setReplyTarget(comment);
+                  setReplyContent('');
+                }}
+                style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
+              >
+                <Text style={styles.smallButtonText}>{translateText('대답글')}</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="댓글 신고"
@@ -1227,6 +1407,12 @@ export default function CommunityScreen({ onNavigate, token, user }) {
                 </Pressable>
               </>
             ) : null}
+          </View>
+        ) : null}
+        {renderReplyForm(comment)}
+        {!isReply && Array.isArray(comment.replies) && comment.replies.length ? (
+          <View style={styles.replyList}>
+            {comment.replies.map((reply) => renderComment(reply, level + 1))}
           </View>
         ) : null}
       </View>
@@ -1483,6 +1669,9 @@ const styles = StyleSheet.create({
   commentInput: {
     minHeight: 76
   },
+  replyInput: {
+    minHeight: 64
+  },
   sectionTitle: {
     color: colors.ink,
     fontSize: 17,
@@ -1613,6 +1802,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingHorizontal: 8,
     paddingVertical: 4
+  },
+  reactionButton: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    ...interactions.transition
+  },
+  reactionButtonActive: {
+    backgroundColor: colors.blue,
+    borderColor: colors.blue
+  },
+  reactionIcon: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  reactionCount: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  reactionTextActive: {
+    color: colors.surface
   },
   cardActions: {
     flexDirection: 'row',
@@ -1747,6 +1967,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     padding: 12,
     gap: 8
+  },
+  replyCard: {
+    marginLeft: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.mint,
+    backgroundColor: colors.surface
+  },
+  replyForm: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 10,
+    gap: 8
+  },
+  replyList: {
+    gap: 8,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.line,
+    paddingLeft: 8
   },
   commentText: {
     color: colors.ink,

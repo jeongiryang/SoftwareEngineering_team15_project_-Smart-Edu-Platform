@@ -138,6 +138,7 @@ model User {
   posts                   BoardPost[]
   comments                Comment[]
   communityReactions      CommunityReaction[]
+  commentReactions        CommentReaction[]
   communityBookmarks      CommunityBookmark[]
   communityReports        CommunityReport[]           @relation("CommunityReportReporter")
   resolvedReports         CommunityReport[]           @relation("CommunityReportResolver")
@@ -410,15 +411,38 @@ model Comment {
   id        Int       @id @default(autoincrement())
   postId    Int       @map("post_id")
   userId    Int       @map("user_id")
+  parentId  Int?      @map("parent_id")
   content   String
   reported  Boolean   @default(false)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   post      BoardPost @relation(fields: [postId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  reactions CommentReaction[]
   reports   CommunityReport[]
 
+  @@index([postId, parentId])
+  @@index([parentId])
   @@map("comments")
+}
+
+model CommentReaction {
+  id        Int          @id @default(autoincrement())
+  commentId Int          @map("comment_id")
+  userId    Int          @map("user_id")
+  type      ReactionType
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  comment   Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@index([type])
+  @@map("comment_reactions")
 }
 
 model CommunityReaction {

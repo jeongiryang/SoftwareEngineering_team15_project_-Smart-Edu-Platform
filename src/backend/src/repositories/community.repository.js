@@ -20,12 +20,36 @@ const COMMENT_INCLUDE = {
       id: true,
       name: true
     }
+  },
+  _count: {
+    select: {
+      replies: true
+    }
+  }
+};
+
+const COMMENT_WITH_REPLIES_INCLUDE = {
+  ...COMMENT_INCLUDE,
+  replies: {
+    include: COMMENT_INCLUDE,
+    orderBy: {
+      createdAt: 'asc'
+    }
   }
 };
 
 const REACTION_SELECT = {
   id: true,
   postId: true,
+  userId: true,
+  type: true,
+  createdAt: true,
+  updatedAt: true
+};
+
+const COMMENT_REACTION_SELECT = {
+  id: true,
+  commentId: true,
   userId: true,
   type: true,
   createdAt: true,
@@ -254,13 +278,13 @@ function findCommentById(commentId) {
 }
 
 async function findCommentsByPostId({ postId, page, pageSize }) {
-  const where = { postId };
+  const where = { postId, parentId: null };
   const skip = (page - 1) * pageSize;
 
   const [comments, total] = await Promise.all([
     prisma.comment.findMany({
       where,
-      include: COMMENT_INCLUDE,
+      include: COMMENT_WITH_REPLIES_INCLUDE,
       orderBy: { createdAt: 'asc' },
       skip,
       take: pageSize
@@ -269,6 +293,77 @@ async function findCommentsByPostId({ postId, page, pageSize }) {
   ]);
 
   return { comments, total };
+}
+
+async function findCommentReactionSummaries(commentIds, userId) {
+  const ids = [...new Set(commentIds.map(Number))].filter((id) => Number.isInteger(id) && id > 0);
+
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const [reactionCounts, currentUserReactions] = await Promise.all([
+    prisma.commentReaction.groupBy({
+      by: ['commentId', 'type'],
+      where: {
+        commentId: {
+          in: ids
+        }
+      },
+      _count: {
+        id: true
+      }
+    }),
+    prisma.commentReaction.findMany({
+      where: {
+        commentId: {
+          in: ids
+        },
+        userId
+      },
+      select: {
+        commentId: true,
+        type: true
+      }
+    })
+  ]);
+
+  const summaries = new Map(
+    ids.map((id) => [
+      id,
+      {
+        likeCount: 0,
+        dislikeCount: 0,
+        myReaction: null
+      }
+    ])
+  );
+
+  reactionCounts.forEach((row) => {
+    const summary = summaries.get(row.commentId);
+
+    if (!summary) {
+      return;
+    }
+
+    if (row.type === 'LIKE') {
+      summary.likeCount = row._count.id;
+    }
+
+    if (row.type === 'DISLIKE') {
+      summary.dislikeCount = row._count.id;
+    }
+  });
+
+  currentUserReactions.forEach((reaction) => {
+    const summary = summaries.get(reaction.commentId);
+
+    if (summary) {
+      summary.myReaction = reaction.type;
+    }
+  });
+
+  return summaries;
 }
 
 async function findBookmarksByUserId({ userId, page, pageSize, sort = 'latest' }) {
@@ -300,6 +395,26 @@ function createComment(postId, userId, data) {
       ...data
     },
     include: COMMENT_INCLUDE
+  });
+}
+
+function upsertCommentReaction(commentId, userId, type) {
+  return prisma.commentReaction.upsert({
+    where: {
+      commentId_userId: {
+        commentId,
+        userId
+      }
+    },
+    update: {
+      type
+    },
+    create: {
+      commentId,
+      userId,
+      type
+    },
+    select: COMMENT_REACTION_SELECT
   });
 }
 
@@ -494,6 +609,17 @@ async function deleteComment(commentId, userId) {
   return result.count;
 }
 
+async function deleteCommentReaction(commentId, userId) {
+  const result = await prisma.commentReaction.deleteMany({
+    where: {
+      commentId,
+      userId
+    }
+  });
+
+  return result.count;
+}
+
 async function deleteReaction(postId, userId) {
   const result = await prisma.communityReaction.deleteMany({
     where: {
@@ -522,11 +648,13 @@ module.exports = {
   createPost,
   createPostReport,
   deleteBookmark,
+  deleteCommentReaction,
   deleteReaction,
   deleteComment,
   deletePost,
   findCommentById,
   findCommentByIdAndUserId,
+  findCommentReactionSummaries,
   findCommentReportByReporterAndCommentId,
   findBookmarksByUserId,
   findCommentsByPostId,
@@ -536,6 +664,7 @@ module.exports = {
   findPostReportByReporterAndPostId,
   findPosts,
   upsertBookmark,
+  upsertCommentReaction,
   upsertReaction,
   updateComment,
   updatePost
