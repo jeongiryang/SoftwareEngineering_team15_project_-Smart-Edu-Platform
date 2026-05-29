@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
 import { SkeletonBlock } from '../components/Skeleton';
-import { claimRewardQuest, getMyRewards } from '../services/api';
+import { claimRewardQuest, getMyRewards, getSchedules, getTasks } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const AI_GUIDE_STORAGE_KEY = 'sagaksagakAiGuideDismissed';
@@ -272,6 +272,90 @@ function buildMotivationAction(rewardData, activeQuests) {
   };
 }
 
+function parseDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getLocalDateKey(value) {
+  const date = parseDate(value);
+
+  if (!date) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatPreviewDate(value) {
+  const date = parseDate(value);
+
+  if (!date) {
+    return '날짜 없음';
+  }
+
+  return date.toLocaleString('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function getPriorityLabel(priority) {
+  if (priority === 'HIGH') {
+    return '높음';
+  }
+
+  if (priority === 'LOW') {
+    return '낮음';
+  }
+
+  return '보통';
+}
+
+function getStatusLabel(status) {
+  if (status === 'DONE') {
+    return '완료';
+  }
+
+  if (status === 'IN_PROGRESS') {
+    return '진행 중';
+  }
+
+  return '할 일';
+}
+
+function getUpcomingSchedules(schedules = []) {
+  const now = Date.now();
+
+  return schedules
+    .filter((schedule) => {
+      const startAt = parseDate(schedule.startAt);
+      return startAt && startAt.getTime() >= now - 60 * 60 * 1000;
+    })
+    .sort((left, right) => new Date(left.startAt).getTime() - new Date(right.startAt).getTime())
+    .slice(0, 3);
+}
+
+function getPreviewTasks(tasks = []) {
+  return tasks
+    .filter((task) => task.status !== 'DONE')
+    .sort((left, right) => {
+      const leftDate = parseDate(left.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const rightDate = parseDate(right.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      return leftDate - rightDate;
+    })
+    .slice(0, 4);
+}
+
 function RewardPanelSkeleton() {
   return (
     <View style={styles.rewardSkeletonShell}>
@@ -321,6 +405,9 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const [claimingQuestId, setClaimingQuestId] = useState(null);
   const [claimMessage, setClaimMessage] = useState('');
   const [selectedQuizOption, setSelectedQuizOption] = useState(null);
+  const [planningLoading, setPlanningLoading] = useState(true);
+  const [planningError, setPlanningError] = useState('');
+  const [planningData, setPlanningData] = useState({ schedules: [], tasks: [] });
   const [isQuickQuizHiddenToday, setIsQuickQuizHiddenToday] = useState(() => {
     try {
       return globalThis.localStorage?.getItem(QUICK_QUIZ_DISMISS_KEY) === getTodayKey();
@@ -377,6 +464,19 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const quickQuiz = useMemo(() => getDailyQuickQuiz(), []);
   const isQuizAnswered = selectedQuizOption !== null;
   const isQuizCorrect = selectedQuizOption === quickQuiz.answerIndex;
+  const upcomingSchedules = useMemo(
+    () => getUpcomingSchedules(planningData.schedules),
+    [planningData.schedules]
+  );
+  const previewTasks = useMemo(() => getPreviewTasks(planningData.tasks), [planningData.tasks]);
+  const todayScheduleCount = useMemo(() => {
+    const today = getLocalDateKey(new Date());
+    return (planningData.schedules || []).filter((schedule) => getLocalDateKey(schedule.startAt) === today).length;
+  }, [planningData.schedules]);
+  const activeTaskCount = useMemo(
+    () => (planningData.tasks || []).filter((task) => task.status !== 'DONE').length,
+    [planningData.tasks]
+  );
 
   function isGuideDismissed() {
     try {
@@ -453,8 +553,36 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     }
   }
 
+  async function loadPlanningPreview() {
+    if (!token) {
+      setPlanningData({ schedules: [], tasks: [] });
+      setPlanningError('');
+      setPlanningLoading(false);
+      return;
+    }
+
+    setPlanningLoading(true);
+    setPlanningError('');
+
+    try {
+      const [scheduleResult, taskResult] = await Promise.all([getSchedules(token), getTasks(token)]);
+      setPlanningData({
+        schedules: scheduleResult.schedules || [],
+        tasks: taskResult.tasks || []
+      });
+    } catch (error) {
+      setPlanningError(error.message || '일정과 할 일 미리보기를 불러오지 못했습니다.');
+    } finally {
+      setPlanningLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadRewards();
+  }, [token]);
+
+  useEffect(() => {
+    loadPlanningPreview();
   }, [token]);
 
   async function handleClaimQuest(questId) {
@@ -508,6 +636,131 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     } catch (error) {
       // Disabled storage should not block the non-forced quiz flow.
     }
+  }
+
+  function renderPlanningPreview() {
+    if (planningLoading) {
+      return (
+        <View style={[styles.planningPanel, shadows.card]}>
+          <View style={styles.planningHeader}>
+            <View>
+              <Text style={styles.planningEyebrow}>TODAY PREVIEW</Text>
+              <Text style={styles.planningTitle}>일정과 할 일 미리보기</Text>
+            </View>
+          </View>
+          <View style={styles.planningGrid}>
+            <View style={styles.planningColumn}>
+              <SkeletonBlock height={18} width="34%" />
+              <SkeletonBlock height={54} />
+              <SkeletonBlock height={54} />
+            </View>
+            <View style={styles.planningColumn}>
+              <SkeletonBlock height={18} width="40%" />
+              <SkeletonBlock height={54} />
+              <SkeletonBlock height={54} />
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={[styles.planningPanel, shadows.card]}>
+        <View style={styles.planningHeader}>
+          <View>
+            <Text style={styles.planningEyebrow}>TODAY PREVIEW</Text>
+            <Text style={styles.planningTitle}>일정과 할 일 미리보기</Text>
+            <Text style={styles.planningSubtitle}>오늘 확인할 일정과 진행 중인 태스크만 작게 모았습니다.</Text>
+          </View>
+          <View style={styles.planningSummaryRow}>
+            <View style={styles.planningSummaryChip}>
+              <Text style={styles.planningSummaryValue}>{todayScheduleCount}</Text>
+              <Text style={styles.planningSummaryLabel}>오늘 일정</Text>
+            </View>
+            <View style={styles.planningSummaryChip}>
+              <Text style={styles.planningSummaryValue}>{activeTaskCount}</Text>
+              <Text style={styles.planningSummaryLabel}>남은 할 일</Text>
+            </View>
+          </View>
+        </View>
+
+        {planningError ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{planningError}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.planningGrid}>
+          <View style={styles.planningColumn}>
+            <View style={styles.previewColumnHeader}>
+              <Text style={styles.previewColumnTitle}>다가오는 일정</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('schedule')}
+                style={(state) => [styles.previewLinkButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.previewLinkText}>일정 열기</Text>
+              </Pressable>
+            </View>
+
+            {upcomingSchedules.length ? (
+              upcomingSchedules.map((schedule) => (
+                <View key={schedule.id} style={styles.previewItem}>
+                  <View style={styles.previewItemMarker} />
+                  <View style={styles.previewItemCopy}>
+                    <Text style={styles.previewItemTitle} numberOfLines={1}>
+                      {schedule.title}
+                    </Text>
+                    <Text style={styles.previewItemMeta}>
+                      {formatPreviewDate(schedule.startAt)} · {schedule.subject || '과목 없음'} · 우선순위 {getPriorityLabel(schedule.priority)}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.previewEmptyBox}>
+                <Text style={styles.emptyTitle}>다가오는 일정이 없습니다.</Text>
+                <Text style={styles.emptyText}>오늘의 목표를 하나 등록하면 대시보드에서 바로 확인할 수 있습니다.</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.planningColumn}>
+            <View style={styles.previewColumnHeader}>
+              <Text style={styles.previewColumnTitle}>진행할 할 일</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('taskBoard')}
+                style={(state) => [styles.previewLinkButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.previewLinkText}>칸반 열기</Text>
+              </Pressable>
+            </View>
+
+            {previewTasks.length ? (
+              previewTasks.map((task) => (
+                <View key={task.id} style={styles.previewItem}>
+                  <View style={[styles.previewItemMarker, styles.taskPreviewMarker]} />
+                  <View style={styles.previewItemCopy}>
+                    <Text style={styles.previewItemTitle} numberOfLines={1}>
+                      {task.title}
+                    </Text>
+                    <Text style={styles.previewItemMeta}>
+                      {getStatusLabel(task.status)} · 마감 {formatPreviewDate(task.dueDate)} · {task.priority || 'MEDIUM'}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.previewEmptyBox}>
+                <Text style={styles.emptyTitle}>남은 할 일이 없습니다.</Text>
+                <Text style={styles.emptyText}>작은 복습 태스크를 추가해 오늘의 흐름을 만들어 보세요.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -658,6 +911,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             )}
           </View>
         </View>
+
+        {renderPlanningPreview()}
 
         <View style={[styles.rewardPanel, shadows.card]}>
           <View style={styles.rewardHeader}>
@@ -1373,6 +1628,142 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 16,
+    gap: 6
+  },
+  planningPanel: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 22,
+    gap: 18
+  },
+  planningHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  planningEyebrow: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8
+  },
+  planningTitle: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '900',
+    marginTop: 6
+  },
+  planningSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6
+  },
+  planningSummaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  planningSummaryChip: {
+    minWidth: 104,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  planningSummaryValue: {
+    color: colors.blue,
+    fontSize: 20,
+    fontWeight: '900'
+  },
+  planningSummaryLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 2
+  },
+  planningGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  planningColumn: {
+    flex: 1,
+    minWidth: 280,
+    gap: 10
+  },
+  previewColumnHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap'
+  },
+  previewColumnTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '900'
+  },
+  previewLinkButton: {
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  previewLinkText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  previewItem: {
+    flexDirection: 'row',
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 12
+  },
+  previewItemMarker: {
+    width: 8,
+    borderRadius: 999,
+    backgroundColor: colors.mint
+  },
+  taskPreviewMarker: {
+    backgroundColor: colors.blue
+  },
+  previewItemCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  previewItemTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  previewItemMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4
+  },
+  previewEmptyBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
     gap: 6
   },
   rewardPanel: {
