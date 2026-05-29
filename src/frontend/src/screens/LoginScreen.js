@@ -20,10 +20,22 @@ const learningMessageKeys = [
   'login.message.10'
 ];
 
+function PasswordVisibilityIcon({ visible }) {
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.eyeIcon}>
+      <View style={styles.eyeShape}>
+        <View style={styles.eyePupil} />
+      </View>
+      {!visible ? <View style={styles.eyeSlash} /> : null}
+    </View>
+  );
+}
+
 export default function LoginScreen({ onAuthenticated, onNavigate }) {
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
@@ -91,25 +103,40 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
       <View style={[styles.formCard, shadows.card]}>
         <Text style={styles.title}>{t('login.title', '로그인')}</Text>
         <Text style={styles.subtitle}>{t('login.subtitle', '사각사각 계정으로 학습 공간에 접속하세요.')}</Text>
-        <Text style={styles.label}>{t('login.email', '이메일')}</Text>
+        <Text style={styles.label}>{t('login.identifier', '아이디')}</Text>
         <AccessibleTextInput
           autoCapitalize="none"
-          forceVoiceInput
+          enableVoiceInput={false}
           keyboardType="email-address"
           onChangeText={setEmail}
-          placeholder="example@email.com"
+          placeholder={t('login.identifierPlaceholder', '가입한 이메일 주소')}
           placeholderTextColor={colors.muted}
-          style={styles.input}
+          style={[styles.input, styles.identifierInput]}
           value={email}
         />
+        <Text style={styles.inputHint}>{t('login.identifierHint', '현재는 가입한 이메일 주소를 아이디로 사용합니다.')}</Text>
         <Text style={styles.label}>{t('login.password', '비밀번호')}</Text>
         <AccessibleTextInput
+          containerStyle={styles.passwordInputContainer}
           onChangeText={setPassword}
           placeholder={t('login.passwordPlaceholder', '비밀번호를 입력하세요')}
           placeholderTextColor={colors.muted}
           enableVoiceInput={false}
-          secureTextEntry
-          style={styles.input}
+          rightAccessory={(
+            <Pressable
+              accessibilityLabel={showPassword ? t('login.password.hide', '비밀번호 숨기기') : t('login.password.show', '비밀번호 보기')}
+              accessibilityRole="button"
+              onPress={() => setShowPassword((current) => !current)}
+              style={(state) => [
+                styles.passwordToggle,
+                ...interactiveStateStyles(state)
+              ]}
+            >
+              <PasswordVisibilityIcon visible={showPassword} />
+            </Pressable>
+          )}
+          secureTextEntry={!showPassword}
+          style={[styles.input, styles.passwordInput]}
           value={password}
         />
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -245,6 +272,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.ink,
     marginBottom: 19
+  },
+  identifierInput: {
+    marginBottom: 7
+  },
+  inputHint: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 18
+  },
+  passwordInputContainer: {
+    marginBottom: 19
+  },
+  passwordInput: {
+    marginBottom: 0
+  },
+  passwordToggle: {
+    width: 44,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  eyeIcon: {
+    width: 23,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  eyeShape: {
+    width: 22,
+    height: 13,
+    borderWidth: 2,
+    borderColor: colors.blueDeep,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ scaleY: 0.74 }]
+  },
+  eyePupil: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.blueDeep
+  },
+  eyeSlash: {
+    position: 'absolute',
+    width: 24,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.blueDeep,
+    transform: [{ rotate: '-35deg' }]
   },
   errorText: {
     color: colors.danger,
