@@ -157,6 +157,14 @@ export function updateCurrentUser(token, payload) {
   });
 }
 
+export function getMyActivityStats(token) {
+  return request('/users/me/activity', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function searchUsers(token, keyword) {
   return request(`/users/search${buildQueryString({ keyword })}`, {
     headers: {
@@ -750,6 +758,25 @@ export function createCommunityReaction(token, postId, type) {
 
 export function deleteCommunityReaction(token, postId) {
   return request(`/community/posts/${postId}/reactions`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCommunityCommentReaction(token, commentId, type) {
+  return request(`/community/comments/${commentId}/reactions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ type })
+  });
+}
+
+export function deleteCommunityCommentReaction(token, commentId) {
+  return request(`/community/comments/${commentId}/reactions`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`

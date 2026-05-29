@@ -26,6 +26,16 @@ const createReactionController = asyncHandler(async (req, res) => {
   sendCreated(res, { reaction });
 });
 
+const createCommentReactionController = asyncHandler(async (req, res) => {
+  const reaction = await communityService.createCommentReaction(
+    req.params.commentId,
+    req.user.id,
+    req.body
+  );
+
+  sendCreated(res, { reaction });
+});
+
 const createBookmarkController = asyncHandler(async (req, res) => {
   const bookmark = await communityService.createBookmark(req.params.postId, req.user.id, req.body);
 
@@ -49,7 +59,7 @@ const createCommentReportController = asyncHandler(async (req, res) => {
 });
 
 const listCommentsController = asyncHandler(async (req, res) => {
-  const result = await communityService.listComments(req.params.postId, req.query);
+  const result = await communityService.listComments(req.params.postId, req.query, req.user.id);
 
   sendSuccess(res, 200, result);
 });
@@ -84,6 +94,12 @@ const deleteReactionController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, result);
 });
 
+const deleteCommentReactionController = asyncHandler(async (req, res) => {
+  const result = await communityService.deleteCommentReaction(req.params.commentId, req.user.id);
+
+  sendSuccess(res, 200, result);
+});
+
 const deleteBookmarkController = asyncHandler(async (req, res) => {
   const result = await communityService.deleteBookmark(req.params.postId, req.user.id);
 
@@ -105,12 +121,14 @@ const deleteCommentController = asyncHandler(async (req, res) => {
 module.exports = {
   createBookmark: createBookmarkController,
   createComment: createCommentController,
+  createCommentReaction: createCommentReactionController,
   createCommentReport: createCommentReportController,
   createPost: createPostController,
   createPostReport: createPostReportController,
   createReaction: createReactionController,
   deleteBookmark: deleteBookmarkController,
   deleteComment: deleteCommentController,
+  deleteCommentReaction: deleteCommentReactionController,
   deletePost: deletePostController,
   deleteReaction: deleteReactionController,
   getPostById: getPostByIdController,

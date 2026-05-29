@@ -442,6 +442,11 @@ async function resetSeedData(prisma, seedUsers) {
       ]
     }
   });
+  await prisma.commentReaction.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
   await prisma.comment.deleteMany({
     where: {
       OR: [
@@ -1267,6 +1272,193 @@ async function seedCommunity(prisma, usersByLoginId) {
     }
   });
 
+  const expandedPostSeeds = [
+    {
+      loginId: 'dev_user',
+      category: 'QUESTION',
+      title: '요구사항 추적표를 발표에서 어떻게 설명하면 좋을까요?',
+      content: 'FR/UC 연결을 보여주려는데 너무 문서 중심으로 보일까 봐 걱정입니다. 화면 흐름과 함께 설명하는 팁이 있을까요?',
+      viewCount: 143,
+      days: -18,
+      hour: 9
+    },
+    {
+      loginId: 'study_peer',
+      category: 'FREE',
+      title: '다국어 QA하면서 발견한 문구 체크 방식 공유',
+      content: '언어를 바꾼 뒤 새로고침하고 버튼, 빈 상태, 오류 메시지를 한 화면씩 보는 방식이 가장 빠르게 누락을 찾았습니다.',
+      viewCount: 89,
+      days: -17,
+      hour: 21
+    },
+    {
+      loginId: 'community_user',
+      category: 'STUDY_PROOF',
+      title: '커뮤니티 댓글 정리하고 40분 집중했습니다',
+      content: '질문 글에 답변을 남기고, 북마크한 자료를 다시 보면서 짧게 복습했습니다.',
+      viewCount: 126,
+      days: -16,
+      hour: 18
+    },
+    {
+      loginId: 'reward_user',
+      category: 'QUESTION',
+      title: '포인트 상점 칭호는 어떤 기준으로 고르면 좋을까요?',
+      content: '프로필에서 보이는 칭호가 너무 튀지 않으면서도 학습 동기를 줄 수 있는 기준을 고민 중입니다.',
+      viewCount: 71,
+      days: -15,
+      hour: 14
+    },
+    {
+      loginId: 'accessibility_user',
+      category: 'FREE',
+      title: '읽어주기 목소리 미리듣기 사용 후기',
+      content: '목소리마다 속도와 높낮이가 조금 달라서 미리듣기 버튼이 있으면 설정을 고르기 훨씬 편합니다.',
+      viewCount: 64,
+      days: -14,
+      hour: 11
+    },
+    {
+      loginId: 'beginner_user',
+      category: 'QUESTION',
+      title: '1초 퀴즈는 하루에 몇 번 보는 게 적당할까요?',
+      content: '너무 자주 나오면 부담스럽고, 한 번만 나오면 잊어버릴 것 같아서 적당한 빈도를 찾고 있습니다.',
+      viewCount: 52,
+      days: -13,
+      hour: 20
+    },
+    {
+      loginId: 'dev_user',
+      category: 'STUDY_PROOF',
+      title: 'D-Day 계획으로 태스크 8개 나눠서 완료',
+      content: '마감일 기준으로 범위를 나누고 오늘 해야 할 분량만 칸반에서 처리했습니다.',
+      viewCount: 157,
+      days: -12,
+      hour: 22
+    },
+    {
+      loginId: 'study_peer',
+      category: 'QUESTION',
+      title: '통계 그래프에서 가장 집중한 요일을 어떻게 해석하나요?',
+      content: '히트맵과 막대그래프는 보이는데, 주간 패턴 문구를 발표 때 어떻게 설명하면 좋을지 궁금합니다.',
+      viewCount: 118,
+      days: -11,
+      hour: 13
+    },
+    {
+      loginId: 'community_user',
+      category: 'FREE',
+      title: '시험 전날 체크리스트 템플릿 공유',
+      content: '범위 확인, 오답노트 3개, 25분 집중 2회, 잠들기 전 10분 복습으로 구성했습니다.',
+      viewCount: 201,
+      days: -10,
+      hour: 8
+    },
+    {
+      loginId: 'reward_user',
+      category: 'STUDY_PROOF',
+      title: '퀘스트 보상 받고 프로필 배경 적용 완료',
+      content: '보상 포인트를 모아 민트 배경을 적용했습니다. 작은 변화지만 프로필 확인이 더 즐거워졌습니다.',
+      viewCount: 96,
+      days: -9,
+      hour: 19
+    },
+    {
+      loginId: 'accessibility_user',
+      category: 'QUESTION',
+      title: '큰 글씨 모드에서 표 보기와 카드 보기 중 어떤 게 편한가요?',
+      content: '커뮤니티 목록을 볼 때 큰 글씨 상태에서는 카드가 편한지 표가 편한지 의견을 듣고 싶습니다.',
+      viewCount: 81,
+      days: -8,
+      hour: 16
+    },
+    {
+      loginId: 'beginner_user',
+      category: 'FREE',
+      title: '처음으로 북마크 기능을 써봤습니다',
+      content: '자주 볼 질문 글을 저장해 두니 마이페이지에서 다시 찾기 쉬웠습니다.',
+      viewCount: 44,
+      days: -7,
+      hour: 17
+    },
+    {
+      loginId: 'dev_user',
+      category: 'QUESTION',
+      title: 'AI mock 응답과 실제 AI 응답을 발표에서 어떻게 구분할까요?',
+      content: '현재는 demo/mock 흐름이라 실제 외부 AI 호출이 없다는 점을 명확하게 말하려고 합니다.',
+      viewCount: 173,
+      days: -6,
+      hour: 10
+    },
+    {
+      loginId: 'study_peer',
+      category: 'STUDY_PROOF',
+      title: '친구 요청 정리하고 주간 목표를 다시 잡았습니다',
+      content: '친구 목록을 확인한 뒤 이번 주에는 짧은 집중 기록을 매일 남기기로 했습니다.',
+      viewCount: 67,
+      days: -5,
+      hour: 12
+    },
+    {
+      loginId: 'community_user',
+      category: 'QUESTION',
+      title: '검색어 기록은 몇 개 정도가 적당할까요?',
+      content: '최근 검색어가 너무 많으면 오히려 복잡해 보여서 5개 정도가 적당한지 고민 중입니다.',
+      viewCount: 101,
+      days: -4,
+      hour: 15
+    },
+    {
+      loginId: 'reward_user',
+      category: 'FREE',
+      title: '상점 아이템 가격 밸런스 의견 받습니다',
+      content: '프로필 이미지와 배경, 칭호 가격 차이가 너무 크지 않도록 조정 기준을 정리해 보고 있습니다.',
+      viewCount: 58,
+      days: -3,
+      hour: 21
+    },
+    {
+      loginId: 'accessibility_user',
+      category: 'STUDY_PROOF',
+      title: '음성 안내 켜고 일정 2개 정리했습니다',
+      content: '오늘은 큰 글씨와 읽어주기를 함께 켜고 일정 화면을 정리했습니다.',
+      viewCount: 73,
+      days: -2,
+      hour: 9
+    },
+    {
+      loginId: 'beginner_user',
+      category: 'QUESTION',
+      title: '마이페이지 활동 통계는 어떤 기준인가요?',
+      content: '좋아요 수가 내가 받은 것인지 내가 누른 것인지 헷갈려서 기준 설명이 있으면 좋겠습니다.',
+      viewCount: 132,
+      days: -1,
+      hour: 18
+    }
+  ];
+
+  const expandedPosts = [];
+
+  for (const seed of expandedPostSeeds) {
+    const author = usersByLoginId[seed.loginId];
+    const post = await prisma.boardPost.create({
+      data: {
+        userId: author.id,
+        category: seed.category,
+        title: seed.title,
+        content: seed.content,
+        viewCount: seed.viewCount,
+        reported: false,
+        createdAt: daysFromNow(seed.days, seed.hour, 0)
+      }
+    });
+
+    expandedPosts.push({
+      post,
+      authorLoginId: seed.loginId
+    });
+  }
+
   const answerComment = await prisma.comment.create({
     data: {
       id: SEED_IDS.comments.answer,
@@ -1336,6 +1528,111 @@ async function seedCommunity(prisma, usersByLoginId) {
       reported: false
     }
   });
+
+  const reactionUsers = [mainUser, peerUser, communityUser, rewardUser, accessUser, beginnerUser];
+  const expandedComments = [];
+
+  for (let index = 0; index < expandedPosts.length; index += 1) {
+    const { post, authorLoginId } = expandedPosts[index];
+    const commentAuthor = reactionUsers.find((candidate) => candidate.loginId !== authorLoginId) || peerUser;
+    const replyAuthor = reactionUsers.find((candidate) => candidate.id !== commentAuthor.id && candidate.loginId !== authorLoginId) || mainUser;
+    const comment = await prisma.comment.create({
+      data: {
+        postId: post.id,
+        userId: commentAuthor.id,
+        content: index % 2 === 0
+          ? '이 흐름이면 발표 때도 바로 설명하기 좋겠습니다. 북마크해 두겠습니다.'
+          : '실제 화면에서 확인할 수 있는 예시라서 데모 때 쓰기 좋겠습니다.',
+        reported: false,
+        createdAt: daysFromNow(-Math.max(1, 17 - index), 10 + (index % 8), 20)
+      }
+    });
+    const reply = await prisma.comment.create({
+      data: {
+        postId: post.id,
+        userId: replyAuthor.id,
+        parentId: comment.id,
+        content: index % 3 === 0
+          ? '대답글까지 연결해 두면 토론 흐름이 더 잘 보입니다.'
+          : '이 기준으로 한 번 더 정리해 보겠습니다.',
+        reported: false,
+        createdAt: daysFromNow(-Math.max(1, 16 - index), 11 + (index % 7), 35)
+      }
+    });
+
+    expandedComments.push(comment, reply);
+
+    if (index % 4 === 0) {
+      const secondCommentAuthor = reactionUsers.find(
+        (candidate) => candidate.id !== commentAuthor.id && candidate.id !== replyAuthor.id && candidate.loginId !== authorLoginId
+      ) || beginnerUser;
+      expandedComments.push(await prisma.comment.create({
+        data: {
+          postId: post.id,
+          userId: secondCommentAuthor.id,
+          content: '검색과 정렬 테스트에도 도움이 되는 글입니다.',
+          reported: false,
+          createdAt: daysFromNow(-Math.max(1, 15 - index), 18, 5)
+        }
+      }));
+    }
+  }
+
+  for (let index = 0; index < expandedPosts.length; index += 1) {
+    const { post, authorLoginId } = expandedPosts[index];
+    const reactionCount = 2 + (index % 4);
+    const candidates = reactionUsers.filter((candidate) => candidate.loginId !== authorLoginId).slice(0, reactionCount);
+
+    for (let reactionIndex = 0; reactionIndex < candidates.length; reactionIndex += 1) {
+      await prisma.communityReaction.create({
+        data: {
+          postId: post.id,
+          userId: candidates[reactionIndex].id,
+          type: (index + reactionIndex) % 7 === 0 ? 'DISLIKE' : 'LIKE'
+        }
+      });
+    }
+  }
+
+  for (let index = 0; index < expandedPosts.length; index += 1) {
+    const { post, authorLoginId } = expandedPosts[index];
+    const bookmarkUsers = reactionUsers.filter((candidate) => candidate.loginId !== authorLoginId).slice(0, 1 + (index % 3));
+
+    for (const bookmarkUser of bookmarkUsers) {
+      await prisma.communityBookmark.create({
+        data: {
+          postId: post.id,
+          userId: bookmarkUser.id
+        }
+      });
+    }
+  }
+
+  const commentReactionTargets = [answerComment, reportedComment, resourceThanksComment, ...expandedComments];
+
+  for (let index = 0; index < commentReactionTargets.length; index += 1) {
+    const comment = commentReactionTargets[index];
+    const primaryUser = reactionUsers.find((candidate) => candidate.id !== comment.userId) || mainUser;
+
+    await prisma.commentReaction.create({
+      data: {
+        commentId: comment.id,
+        userId: primaryUser.id,
+        type: index % 6 === 0 ? 'DISLIKE' : 'LIKE'
+      }
+    });
+
+    if (index % 5 === 0) {
+      const secondaryUser = reactionUsers.find((candidate) => candidate.id !== comment.userId && candidate.id !== primaryUser.id) || peerUser;
+      await prisma.commentReaction.create({
+        data: {
+          commentId: comment.id,
+          userId: secondaryUser.id,
+          type: 'LIKE'
+        }
+      });
+    }
+  }
 
   await prisma.communityReaction.create({
     data: {

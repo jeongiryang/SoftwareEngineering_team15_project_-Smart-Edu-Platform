@@ -8,6 +8,7 @@ import {
   getCommunityBookmarks,
   getFriendRequests,
   getFriends,
+  getMyActivityStats,
   getMyRewards,
   getSchedules,
   getStatisticsSummary,
@@ -29,6 +30,15 @@ const EMPTY_PROFILE_DATA = {
   bookmarks: [],
   friends: [],
   friendRequests: { received: [], sent: [] },
+  activityStats: {
+    postCount: 0,
+    commentCount: 0,
+    replyCount: 0,
+    likeCount: 0,
+    dislikeCount: 0,
+    bookmarkCount: 0,
+    reactionBasis: 'GIVEN'
+  },
   todaySummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 },
   weekSummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 }
 };
@@ -89,6 +99,18 @@ function formatShortDate(value) {
 
 function formatLoginId(loginId = '') {
   return loginId || '아이디 없음';
+}
+
+function formatAccountStatus(status) {
+  if (status === 'SUSPENDED') {
+    return '제한된 계정';
+  }
+
+  if (status === 'DELETED') {
+    return '탈퇴 처리 계정';
+  }
+
+  return '활성 계정';
 }
 
 function getProfileNameFeedback(name, currentName) {
@@ -263,13 +285,14 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     const weekRange = getDateRange(7);
 
     try {
-      const [scheduleResult, taskResult, rewardResult, bookmarkResult, friendsResult, requestsResult, todayResult, weekResult] = await Promise.all([
+      const [scheduleResult, taskResult, rewardResult, bookmarkResult, friendsResult, requestsResult, activityResult, todayResult, weekResult] = await Promise.all([
         getSchedules(token),
         getTasks(token),
         getMyRewards(token),
         getCommunityBookmarks(token, { page: 1, pageSize: 3 }),
         getFriends(token),
         getFriendRequests(token),
+        getMyActivityStats(token),
         getStatisticsSummary(token, todayRange),
         getStatisticsSummary(token, weekRange)
       ]);
@@ -286,6 +309,10 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
         friendRequests: {
           ...EMPTY_PROFILE_DATA.friendRequests,
           ...(requestsResult?.requests || {})
+        },
+        activityStats: {
+          ...EMPTY_PROFILE_DATA.activityStats,
+          ...(activityResult?.activity || {})
         },
         todaySummary: todayResult?.summary || EMPTY_PROFILE_DATA.todaySummary,
         weekSummary: weekResult?.summary || EMPTY_PROFILE_DATA.weekSummary
@@ -416,6 +443,15 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
   const rewardPoints = profileData.rewards?.account?.pointBalance || 0;
   const visibleBadges = derived.badges.slice(0, 4);
   const visibleQuests = derived.activeQuests.slice(0, 3);
+  const activityStats = profileData.activityStats || EMPTY_PROFILE_DATA.activityStats;
+  const activityItems = [
+    { key: 'posts', label: '작성 글', value: activityStats.postCount },
+    { key: 'comments', label: '댓글', value: activityStats.commentCount },
+    { key: 'replies', label: '대답글', value: activityStats.replyCount },
+    { key: 'likes', label: '내가 누른 좋아요', value: activityStats.likeCount },
+    { key: 'dislikes', label: '내가 누른 싫어요', value: activityStats.dislikeCount },
+    { key: 'bookmarks', label: '북마크', value: activityStats.bookmarkCount }
+  ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -465,6 +501,21 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
               </Pressable>
             </View>
           ) : null}
+
+          <View style={styles.accountMetaGrid}>
+            <View style={styles.accountMetaCard}>
+              <Text style={styles.accountMetaLabel}>가입일</Text>
+              <Text style={styles.accountMetaValue}>{formatShortDate(user?.createdAt)}</Text>
+            </View>
+            <View style={styles.accountMetaCard}>
+              <Text style={styles.accountMetaLabel}>계정 상태</Text>
+              <Text style={styles.accountMetaValue}>{formatAccountStatus(user?.status)}</Text>
+            </View>
+            <View style={styles.accountMetaCard}>
+              <Text style={styles.accountMetaLabel}>로그인 아이디</Text>
+              <Text style={styles.accountMetaValue}>{formatLoginId(user?.loginId)}</Text>
+            </View>
+          </View>
 
           <View style={styles.metricGrid}>
             <MetricCard label="오늘 집중" value={formatMinutes(profileData.todaySummary.totalMinutes)} helper={`${profileData.todaySummary.sessionCount || 0}회 기록`} tone="mint" />
@@ -568,6 +619,18 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   ))}
                 </View>
               ) : null}
+            </SectionCard>
+
+            <SectionCard title="커뮤니티 활동" subtitle="내가 작성하거나 누른 활동 기준으로 집계합니다.">
+              <View style={styles.activityGrid}>
+                {activityItems.map((item) => (
+                  <View key={item.key} style={styles.activityStatCard}>
+                    <Text style={styles.activityStatValue}>{formatNumber(item.value)}</Text>
+                    <Text style={styles.activityStatLabel}>{item.label}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.activityBasisText}>좋아요/싫어요는 내가 게시글과 댓글에 누른 반응 수입니다.</Text>
             </SectionCard>
 
             <SectionCard
@@ -938,6 +1001,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900'
   },
+  accountMetaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+  accountMetaCard: {
+    flex: 1,
+    minWidth: 190,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16,
+    gap: 6
+  },
+  accountMetaLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  accountMetaValue: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '900'
+  },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1182,6 +1270,36 @@ const styles = StyleSheet.create({
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '900'
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  activityStatCard: {
+    flex: 1,
+    minWidth: 130,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
+    gap: 5
+  },
+  activityStatValue: {
+    color: colors.blueDeep,
+    fontSize: 22,
+    fontWeight: '900'
+  },
+  activityStatLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  activityBasisText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
   },
   bookmarkBlock: {
     gap: 12

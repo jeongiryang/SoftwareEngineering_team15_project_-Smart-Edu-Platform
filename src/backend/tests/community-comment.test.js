@@ -29,7 +29,18 @@ function mockBuildRepositoryPost(post) {
 function mockBuildRepositoryComment(comment) {
   return {
     ...comment,
-    user: mockBuildAuthor(comment.userId)
+    user: mockBuildAuthor(comment.userId),
+    _count: {
+      replies: mockComments.filter((item) => item.parentId === comment.id).length
+    },
+    replies: mockComments
+      .filter((item) => item.parentId === comment.id)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .map((item) => ({
+        ...item,
+        user: mockBuildAuthor(item.userId),
+        _count: { replies: 0 }
+      }))
   };
 }
 
@@ -126,9 +137,23 @@ jest.mock('../src/repositories/community.repository', () => ({
 
     return comment ? mockBuildRepositoryComment(comment) : null;
   }),
+  findCommentById: jest.fn(async (id) => {
+    const comment = mockComments.find((item) => item.id === Number(id));
+
+    return comment ? mockBuildRepositoryComment(comment) : null;
+  }),
+  findCommentReactionSummaries: jest.fn(async (commentIds) => {
+    const summaries = new Map();
+
+    commentIds.forEach((id) => {
+      summaries.set(Number(id), { likeCount: 0, dislikeCount: 0, myReaction: null });
+    });
+
+    return summaries;
+  }),
   findCommentsByPostId: jest.fn(async ({ postId, page, pageSize }) => {
     const filteredComments = mockComments
-      .filter((comment) => comment.postId === Number(postId))
+      .filter((comment) => comment.postId === Number(postId) && !comment.parentId)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     const start = (page - 1) * pageSize;
 
@@ -364,6 +389,78 @@ describe('Community Comment API', () => {
       })
     );
     expectSafeCommentPayload(response.body);
+  });
+
+  it('creates a reply for a top-level comment and returns it under the parent list', async () => {
+    const { token } = await registerTestUser();
+    const post = await createTestPost(token);
+    const parent = await createTestComment(token, post.id, { content: 'parent comment' });
+
+    const replyResponse = await request(app)
+      .post(`/api/community/posts/${post.id}/comments`)
+      .set(createAuthHeader(token))
+      .send({ parentId: parent.id, content: 'reply comment' });
+
+    expect(replyResponse.status).toBe(201);
+    expect(replyResponse.body.comment).toEqual(
+      expect.objectContaining({
+        postId: post.id,
+        parentId: parent.id,
+        content: 'reply comment'
+      })
+    );
+
+    const listResponse = await request(app)
+      .get(`/api/community/posts/${post.id}/comments`)
+      .set(createAuthHeader(token));
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.comments).toHaveLength(1);
+    expect(listResponse.body.comments[0]).toEqual(
+      expect.objectContaining({
+        id: parent.id,
+        replyCount: 1,
+        replies: [
+          expect.objectContaining({
+            parentId: parent.id,
+            content: 'reply comment'
+          })
+        ]
+      })
+    );
+  });
+
+  it('rejects replies to replies', async () => {
+    const { token } = await registerTestUser();
+    const post = await createTestPost(token);
+    const parent = await createTestComment(token, post.id, { content: 'parent comment' });
+    const reply = await createTestComment(token, post.id, {
+      parentId: parent.id,
+      content: 'first reply'
+    });
+
+    const response = await request(app)
+      .post(`/api/community/posts/${post.id}/comments`)
+      .set(createAuthHeader(token))
+      .send({ parentId: reply.id, content: 'nested reply' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects replies when parent comment belongs to another post', async () => {
+    const { token } = await registerTestUser();
+    const firstPost = await createTestPost(token, { title: 'first' });
+    const secondPost = await createTestPost(token, { title: 'second' });
+    const parent = await createTestComment(token, firstPost.id);
+
+    const response = await request(app)
+      .post(`/api/community/posts/${secondPost.id}/comments`)
+      .set(createAuthHeader(token))
+      .send({ parentId: parent.id, content: 'wrong post reply' });
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('NOT_FOUND');
   });
 
   it('returns 404 when creating a comment for a missing post', async () => {
