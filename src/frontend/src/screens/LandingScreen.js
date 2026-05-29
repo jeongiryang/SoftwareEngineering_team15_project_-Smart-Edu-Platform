@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
@@ -10,31 +11,29 @@ const githubSvgStyle = {
   flexShrink: 0
 };
 
-const availableFeatures = [
+const availableFeatureKeys = [
   {
-    label: 'AI 학습',
-    title: '질문부터 오답 분석까지',
-    description: '질문, 추천, 요약, 오답 분석 흐름을 한 화면에서 이어갑니다.'
+    labelKey: 'landing.feature.ai.label',
+    titleKey: 'landing.feature.ai.title',
+    descriptionKey: 'landing.feature.ai.description'
   },
   {
-    label: '일정/칸반',
-    title: '계획과 태스크를 함께 관리',
-    description: '학습 일정과 칸반 보드로 오늘 해야 할 일을 정리합니다.'
+    labelKey: 'landing.feature.plan.label',
+    titleKey: 'landing.feature.plan.title',
+    descriptionKey: 'landing.feature.plan.description'
   },
   {
-    label: '커뮤니티',
-    title: '게시글과 댓글로 학습 공유',
-    description: '질문과 기록을 나누고 반응, 북마크, 신고 흐름을 사용할 수 있습니다.'
+    labelKey: 'landing.feature.community.label',
+    titleKey: 'landing.feature.community.title',
+    descriptionKey: 'landing.feature.community.description'
   }
 ];
 
-const flowSteps = [
-  '회원가입으로 내 학습 공간을 만듭니다.',
-  'AI, 일정, 칸반, 커뮤니티 중 필요한 도구를 선택합니다.',
-  '기록과 피드백을 모아 오늘의 학습 방향을 다듬습니다.'
+const flowStepKeys = [
+  'landing.flow.step1',
+  'landing.flow.step2',
+  'landing.flow.step3'
 ];
-
-const writingWord = '사각사각';
 
 function openGitHubRepository() {
   const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -78,12 +77,15 @@ function GitHubMark() {
 }
 
 export default function LandingScreen({ onNavigate }) {
+  const { t } = useLanguage();
   const [writtenWord, setWrittenWord] = useState('');
   const [githubTooltipState, setGithubTooltipState] = useState({
     focused: false,
     hovered: false
   });
   const showGithubTooltip = githubTooltipState.focused || githubTooltipState.hovered;
+  const writingWord = t('landing.hero.writingWord', '사각사각');
+  const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
 
   useEffect(() => {
     const timers = [];
@@ -110,28 +112,30 @@ export default function LandingScreen({ onNavigate }) {
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, []);
+  }, [writingWord]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView dataSet={{ sagakI18nIgnore: 'true' }} style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         <View style={styles.heroCopy}>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>개인화 학습 관리 플랫폼</Text>
+            <Text style={styles.pillText}>{t('landing.hero.pill', '개인화 학습 관리 플랫폼')}</Text>
           </View>
-          <Text accessibilityLabel="공부의 흔적을 사각사각 쌓아가세요" style={styles.title}>
-            공부의 흔적을{'\n'}
+          <Text accessibilityLabel={t('landing.hero.fullLabel', '공부의 흔적을 사각사각 쌓아가세요')} style={styles.title}>
+            {t('landing.hero.prefix', '공부의 흔적을')}{'\n'}
             <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.writingWord}>
               {writtenWord || ' '}
             </Text>
             <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.cursor}>
               {writtenWord.length < writingWord.length ? '|' : ''}
             </Text>
-            {' '}쌓아가세요
+            {heroSuffix ? ` ${heroSuffix}` : ''}
           </Text>
           <Text style={styles.description}>
-            질문하고, 요약하고, 틀린 이유를 되짚는 흐름을 한곳에서 관리하는
-            학습 파트너입니다. AI 학습, 일정, 칸반, 커뮤니티로 오늘의 공부를 시작하세요.
+            {t(
+              'landing.hero.description',
+              '질문하고, 요약하고, 틀린 이유를 되짚는 흐름을 한곳에서 관리하는 학습 파트너입니다. AI 학습, 일정, 칸반, 커뮤니티로 오늘의 공부를 시작하세요.'
+            )}
           </Text>
           <View style={styles.heroActions}>
             <Pressable
@@ -139,14 +143,14 @@ export default function LandingScreen({ onNavigate }) {
               onPress={() => onNavigate('register')}
               style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}
             >
-              <Text style={styles.primaryText}>무료로 시작하기</Text>
+              <Text style={styles.primaryText}>{t('landing.cta.primary', '무료로 시작하기')}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={() => onNavigate('login')}
               style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
             >
-              <Text style={styles.secondaryText}>로그인</Text>
+              <Text style={styles.secondaryText}>{t('landing.cta.secondary', '로그인')}</Text>
             </Pressable>
           </View>
         </View>
@@ -155,8 +159,8 @@ export default function LandingScreen({ onNavigate }) {
           <View style={styles.miniPanel}>
             <View style={styles.dot} />
             <View>
-              <Text style={styles.miniTitle}>오늘의 학습 지원</Text>
-              <Text style={styles.miniDescription}>계획과 복습을 한 번에 이어가세요</Text>
+              <Text style={styles.miniTitle}>{t('landing.mini.title', '오늘의 학습 지원')}</Text>
+              <Text style={styles.miniDescription}>{t('landing.mini.description', '계획과 복습을 한 번에 이어가세요')}</Text>
             </View>
           </View>
         </View>
@@ -164,45 +168,55 @@ export default function LandingScreen({ onNavigate }) {
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionEyebrow}>AVAILABLE NOW</Text>
-        <Text style={styles.sectionTitle}>지금 연결된 학습 도구</Text>
-        <Text style={styles.sectionDescription}>현재 구현된 API와 연결된 기능만 안내합니다.</Text>
+        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '지금 연결된 학습 도구')}</Text>
+        <Text style={styles.sectionDescription}>
+          {t('landing.section.available.description', '현재 구현된 API와 연결된 기능만 안내합니다.')}
+        </Text>
       </View>
       <View style={styles.featureGrid}>
-        {availableFeatures.map((feature) => (
+        {availableFeatureKeys.map((feature) => {
+          const featureLabel = t(feature.labelKey);
+          const featureTitle = t(feature.titleKey);
+          const featureDescription = t(feature.descriptionKey);
+
+          return (
           <Pressable
-            accessibilityLabel={`${feature.label}: ${feature.title}`}
-            key={feature.title}
+            accessibilityLabel={`${featureLabel}: ${featureTitle}`}
+            key={feature.titleKey}
             style={(state) => [styles.featureCard, shadows.card, ...interactiveStateStyles(state, { kind: 'card' })]}
           >
-            <Text style={styles.featureLabel}>{feature.label}</Text>
-            <Text style={styles.featureTitle}>{feature.title}</Text>
-            <Text style={styles.featureDescription}>{feature.description}</Text>
+            <Text style={styles.featureLabel}>{featureLabel}</Text>
+            <Text style={styles.featureTitle}>{featureTitle}</Text>
+            <Text style={styles.featureDescription}>{featureDescription}</Text>
           </Pressable>
-        ))}
+          );
+        })}
       </View>
 
       <View style={styles.flow}>
         <View style={styles.flowCopy}>
           <Text style={styles.sectionEyebrow}>LEARNING FLOW</Text>
-          <Text style={styles.flowTitle}>계획에서 복습까지,{'\n'}가볍게 시작하는 학습</Text>
+          <Text style={styles.flowTitle}>{t('landing.flow.title', '계획에서 복습까지,\n가볍게 시작하는 학습')}</Text>
           <Text style={styles.flowDescription}>
-            사각사각은 다양한 학습자의 기록과 반복 학습을 돕는 서비스로 설계되었습니다.
-            이번 화면에서는 현재 연결된 학습 도구와 시작 흐름을 함께 제공합니다.
+            {t(
+              'landing.flow.description',
+              '사각사각은 다양한 학습자의 기록과 반복 학습을 돕는 서비스로 설계되었습니다. 이번 화면에서는 현재 연결된 학습 도구와 시작 흐름을 함께 제공합니다.'
+            )}
           </Text>
         </View>
         <View style={styles.steps}>
-          {flowSteps.map((step, index) => (
-            <View key={step} style={styles.step}>
+          {flowStepKeys.map((stepKey, index) => (
+            <View key={stepKey} style={styles.step}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>{index + 1}</Text>
               </View>
-              <Text style={styles.stepText}>{step}</Text>
+              <Text style={styles.stepText}>{t(stepKey)}</Text>
             </View>
           ))}
         </View>
       </View>
 
-      <View style={styles.footer}>
+      <View dataSet={{ sagakI18nIgnore: 'true' }} style={styles.footer}>
         <View style={styles.footerInner}>
           <View style={styles.footerCopy}>
             <Text style={styles.footerCopyright}>© 2026 CWNU Software Engineering Team 15 · 사각사각</Text>
