@@ -37,7 +37,6 @@ const screens = {
   taskBoard: TaskBoardScreen,
   pointShop: PointShopScreen,
   accessibility: AccessibilityScreen,
-  pointShop: PointShopScreen,
   admin: AdminScreen
 };
 
@@ -56,8 +55,6 @@ const screenPaths = {
   community: '/community',
   schedule: '/schedule',
   taskBoard: '/task-board',
-  pointShop: '/shop',
-  accessibility: '/accessibility',
   pointShop: '/shop',
   accessibility: '/accessibility',
   admin: '/admin'

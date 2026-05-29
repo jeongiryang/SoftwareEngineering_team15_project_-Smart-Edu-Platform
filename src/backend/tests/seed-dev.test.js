@@ -1,6 +1,7 @@
 const {
   DEV_SEED_PASSWORD,
   DEV_SHOP_ITEMS,
+  DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl
@@ -50,6 +51,21 @@ describe('development seed script', () => {
           code: 'TITLE_EARLY_BIRD',
           type: 'TITLE',
           price: expect.any(Number)
+        })
+      ])
+    );
+  });
+
+  it('defines demo shop purchases for profile shop screens', () => {
+    expect(DEV_SHOP_PURCHASES).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          email: 'dev.user@example.com',
+          itemCodes: expect.arrayContaining(['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'])
+        }),
+        expect.objectContaining({
+          email: 'dev.reward@example.com',
+          itemCodes: expect.arrayContaining(['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'])
         })
       ])
     );

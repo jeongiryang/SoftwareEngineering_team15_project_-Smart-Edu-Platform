@@ -9,6 +9,7 @@ import {
   purchaseShopItem,
   unequipShopItem
 } from '../services/api';
+import { useLanguage } from '../i18n';
 import { colors, shadows } from '../styles/theme';
 
 const ITEM_SECTION_META = {
@@ -38,8 +39,51 @@ const EQUIPPED_ITEM_KEYS = {
   TITLE: 'title'
 };
 
-function formatNumber(value) {
-  return new Intl.NumberFormat('ko-KR').format(Number(value || 0));
+const LOCALE_MAP = {
+  ko: 'ko-KR',
+  en: 'en-US',
+  ja: 'ja-JP',
+  zh: 'zh-CN'
+};
+
+function formatNumber(value, language = 'ko') {
+  return new Intl.NumberFormat(LOCALE_MAP[language] || LOCALE_MAP.ko).format(Number(value || 0));
+}
+
+function formatPointLabel(value, language = 'ko') {
+  const formatted = formatNumber(value, language);
+
+  if (language === 'en') {
+    return `${formatted} pts`;
+  }
+
+  if (language === 'zh') {
+    return `${formatted} 积分`;
+  }
+
+  return `${formatted}P`;
+}
+
+function formatCount(value, language = 'ko') {
+  const formatted = formatNumber(value, language);
+
+  if (language === 'en') {
+    return Number(value || 0) === 1 ? `${formatted} item` : `${formatted} items`;
+  }
+
+  if (language === 'zh') {
+    return `${formatted} 个`;
+  }
+
+  if (language === 'ja') {
+    return `${formatted}個`;
+  }
+
+  return `${formatted}개`;
+}
+
+function formatPurchaseDate(value, language = 'ko') {
+  return new Date(value).toLocaleDateString(LOCALE_MAP[language] || LOCALE_MAP.ko);
 }
 
 function getPreviewTone(code = '') {
@@ -79,32 +123,106 @@ function getInitialLabel(text = '') {
   return trimmed ? trimmed.slice(0, 1).toUpperCase() : 'S';
 }
 
-function getItemStatusLabel(item) {
+function getLocalizedItemName(item, translateText) {
+  return translateText(item.name);
+}
+
+function getLocalizedItemDescription(item, translateText) {
+  return translateText(item.description || '설명이 아직 준비되지 않았어요.');
+}
+
+function getItemStatusLabel(item, language, translateText) {
   if (item.equipped) {
-    return '적용 중';
+    return translateText('적용 중');
   }
 
   if (item.owned) {
-    return '보유 중';
+    return translateText('보유 중');
   }
 
-  return `${formatNumber(item.price)}P`;
+  return formatPointLabel(item.price, language);
 }
 
-function getPurchaseMessage(item) {
-  return `${formatNumber(item.price)}포인트로 "${item.name}" 아이템을 구매했어요.`;
+function getPurchaseMessage(item, language, translateText) {
+  const itemName = getLocalizedItemName(item, translateText);
+  const price = formatPointLabel(item.price, language);
+
+  if (language === 'en') {
+    return `Purchased "${itemName}" for ${price}.`;
+  }
+
+  if (language === 'ja') {
+    return `「${itemName}」を${price}で購入しました。`;
+  }
+
+  if (language === 'zh') {
+    return `已用 ${price} 购买“${itemName}”。`;
+  }
+
+  return `${price}로 "${itemName}" 아이템을 구매했어요.`;
 }
 
-function getEquipMessage(item) {
+function getEquipMessage(item, language, translateText) {
+  const itemName = getLocalizedItemName(item, translateText);
+
+  if (language === 'en') {
+    if (item.type === 'PROFILE_IMAGE') {
+      return `Applied "${itemName}" as your profile image.`;
+    }
+
+    if (item.type === 'PROFILE_BACKGROUND') {
+      return `Applied "${itemName}" as your profile background.`;
+    }
+
+    return `Applied "${itemName}" as your title.`;
+  }
+
+  if (language === 'ja') {
+    if (item.type === 'PROFILE_IMAGE') {
+      return `「${itemName}」をプロフィール画像に適用しました。`;
+    }
+
+    if (item.type === 'PROFILE_BACKGROUND') {
+      return `「${itemName}」をプロフィール背景に適用しました。`;
+    }
+
+    return `「${itemName}」を称号に適用しました。`;
+  }
+
+  if (language === 'zh') {
+    if (item.type === 'PROFILE_IMAGE') {
+      return `已将“${itemName}”设为个人头像。`;
+    }
+
+    if (item.type === 'PROFILE_BACKGROUND') {
+      return `已将“${itemName}”设为个人背景。`;
+    }
+
+    return `已将“${itemName}”设为称号。`;
+  }
+
   if (item.type === 'PROFILE_IMAGE') {
-    return `"${item.name}" 프로필 이미지를 적용했어요.`;
+    return `"${itemName}" 프로필 이미지를 적용했어요.`;
   }
 
   if (item.type === 'PROFILE_BACKGROUND') {
-    return `"${item.name}" 프로필 배경을 적용했어요.`;
+    return `"${itemName}" 프로필 배경을 적용했어요.`;
   }
 
-  return `"${item.name}" 칭호를 적용했어요.`;
+  return `"${itemName}" 칭호를 적용했어요.`;
+}
+
+function getShopErrorMessage(error, translateText, fallback) {
+  const message = error?.message || '';
+  const knownMessages = {
+    'Shop item already purchased': '이미 구매한 아이템이에요.',
+    'Not enough points to purchase this item': '포인트가 부족해요.',
+    'Purchase the shop item before equipping it': '구매한 아이템만 적용할 수 있어요.',
+    'Shop item not found': '상점 아이템을 찾지 못했어요.',
+    'type must be one of PROFILE_IMAGE, PROFILE_BACKGROUND, TITLE': '지원하지 않는 꾸미기 타입이에요.'
+  };
+
+  return translateText(knownMessages[message] || fallback);
 }
 
 function resolveAssetSource(assetUrl) {
@@ -115,7 +233,7 @@ function resolveAssetSource(assetUrl) {
   return SHOP_ASSET_SOURCE_MAP[assetUrl] || null;
 }
 
-function ProfilePreview({ user, shop, failedImages, onImageError }) {
+function ProfilePreview({ currentLanguage, translateText, user, shop, failedImages, onImageError }) {
   const profile = shop.profile || {};
   const avatarTone = getPreviewTone(shop.equippedItems?.profileImage?.code || 'PROFILE');
   const avatarUri = profile.profileImageUrl;
@@ -124,7 +242,7 @@ function ProfilePreview({ user, shop, failedImages, onImageError }) {
   const resolvedBackgroundSource = resolveAssetSource(backgroundUri);
   const avatarFailed = avatarUri ? failedImages[`profile-${avatarUri}`] : false;
   const backgroundFailed = backgroundUri ? failedImages[`background-${backgroundUri}`] : false;
-  const titleText = profile.titleText || '아직 적용된 칭호가 없어요';
+  const titleText = profile.titleText ? translateText(profile.titleText) : translateText('아직 적용된 칭호가 없어요');
 
   return (
     <View style={[styles.previewCard, shadows.card]}>
@@ -142,11 +260,11 @@ function ProfilePreview({ user, shop, failedImages, onImageError }) {
 
       <View style={styles.previewHeader}>
         <View>
-          <Text style={styles.previewEyebrow}>현재 적용 상태</Text>
-          <Text style={styles.previewTitle}>내 꾸미기 미리보기</Text>
+          <Text style={styles.previewEyebrow}>{translateText('현재 적용 상태')}</Text>
+          <Text style={styles.previewTitle}>{translateText('내 꾸미기 미리보기')}</Text>
         </View>
         <View style={styles.previewBalanceChip}>
-          <Text style={styles.previewBalanceText}>{formatNumber(shop.account?.pointBalance)}P</Text>
+          <Text style={styles.previewBalanceText}>{formatPointLabel(shop.account?.pointBalance, currentLanguage)}</Text>
         </View>
       </View>
 
@@ -166,9 +284,9 @@ function ProfilePreview({ user, shop, failedImages, onImageError }) {
         </View>
 
         <View style={styles.previewCopy}>
-          <Text style={styles.previewName}>{user?.name || '학습자'}</Text>
+          <Text style={styles.previewName}>{user?.name || translateText('학습자')}</Text>
           <View style={styles.previewTitleWrap}>
-            <Text style={styles.previewTitleLabel}>현재 칭호</Text>
+            <Text style={styles.previewTitleLabel}>{translateText('현재 칭호')}</Text>
             <View style={styles.titleChip}>
               <Text style={styles.titleChipIcon}>✦</Text>
               <Text style={styles.titleChipText}>{titleText}</Text>
@@ -181,12 +299,15 @@ function ProfilePreview({ user, shop, failedImages, onImageError }) {
 }
 
 function ShopItemCard({
+  currentLanguage,
   item,
+  meta,
   busyItemId,
   failedImages,
   onEquip,
   onImageError,
-  onPurchase
+  onPurchase,
+  translateText
 }) {
   const tone = getPreviewTone(item.code);
   const previewKey = `item-${item.id}`;
@@ -200,16 +321,16 @@ function ShopItemCard({
     <View style={[styles.itemCard, shadows.card]}>
       <View style={styles.itemCardHeader}>
         <View style={[styles.itemTypeChip, { backgroundColor: tone.background }]}>
-          <Text style={[styles.itemTypeChipText, { color: tone.accent }]}>{ITEM_SECTION_META[item.type].title}</Text>
+          <Text style={[styles.itemTypeChipText, { color: tone.accent }]}>{translateText(meta.title)}</Text>
         </View>
-        <Text style={styles.itemPriceText}>{getItemStatusLabel(item)}</Text>
+        <Text style={styles.itemPriceText}>{getItemStatusLabel(item, currentLanguage, translateText)}</Text>
       </View>
 
       <View style={[styles.itemPreview, { backgroundColor: tone.background }]}>
         {item.type === 'TITLE' ? (
           <View style={styles.titlePreviewBox}>
             <Text style={[styles.titlePreviewIcon, { color: tone.accent }]}>✦</Text>
-            <Text style={[styles.titlePreviewText, { color: tone.accent }]}>{item.name}</Text>
+            <Text style={[styles.titlePreviewText, { color: tone.accent }]}>{getLocalizedItemName(item, translateText)}</Text>
           </View>
         ) : resolvedAssetSource && !imageFailed ? (
           <Image
@@ -225,14 +346,14 @@ function ShopItemCard({
         ) : (
           <View style={[styles.itemBackgroundFallback, { backgroundColor: colors.surface }]}>
             <Text style={[styles.itemBackgroundFallbackEmoji, { color: tone.accent }]}>🎒</Text>
-            <Text style={[styles.itemBackgroundFallbackText, { color: tone.accent }]}>{item.name}</Text>
+            <Text style={[styles.itemBackgroundFallbackText, { color: tone.accent }]}>{getLocalizedItemName(item, translateText)}</Text>
           </View>
         )}
       </View>
 
       <View style={styles.itemCopy}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemDescription}>{item.description || '설명이 아직 준비되지 않았어요.'}</Text>
+        <Text style={styles.itemName}>{getLocalizedItemName(item, translateText)}</Text>
+        <Text style={styles.itemDescription}>{getLocalizedItemDescription(item, translateText)}</Text>
       </View>
 
       <View style={styles.itemActions}>
@@ -243,7 +364,9 @@ function ShopItemCard({
             onPress={() => onPurchase(item)}
             style={[styles.primaryActionButton, busy && styles.disabledButton]}
           >
-            <Text style={styles.primaryActionText}>{busy ? '구매 중...' : `구매하기 · ${formatNumber(item.price)}P`}</Text>
+            <Text style={styles.primaryActionText}>
+              {busy ? translateText('구매 중...') : `${translateText('구매하기')} · ${formatPointLabel(item.price, currentLanguage)}`}
+            </Text>
           </Pressable>
         ) : (
           <Pressable
@@ -257,7 +380,7 @@ function ShopItemCard({
             ]}
           >
             <Text style={[styles.secondaryActionText, item.equipped && styles.activeActionText]}>
-              {busy ? '적용 중...' : item.equipped ? '적용 중' : '적용하기'}
+              {busy ? translateText('적용 중...') : item.equipped ? translateText('적용 중') : translateText('적용하기')}
             </Text>
           </Pressable>
         )}
@@ -266,12 +389,12 @@ function ShopItemCard({
   );
 }
 
-function PurchaseHistory({ purchases }) {
+function PurchaseHistory({ currentLanguage, purchases, translateText }) {
   if (!purchases.length) {
     return (
       <View style={styles.emptyPanel}>
-        <Text style={styles.emptyTitle}>아직 구매한 아이템이 없어요</Text>
-        <Text style={styles.emptyDescription}>포인트를 모은 뒤 원하는 꾸미기 아이템을 골라 보세요.</Text>
+        <Text style={styles.emptyTitle}>{translateText('아직 구매한 아이템이 없어요')}</Text>
+        <Text style={styles.emptyDescription}>{translateText('포인트를 모은 뒤 원하는 꾸미기 아이템을 골라 보세요.')}</Text>
       </View>
     );
   }
@@ -281,12 +404,12 @@ function PurchaseHistory({ purchases }) {
       {purchases.map((purchase) => (
         <View key={purchase.id} style={styles.historyCard}>
           <View>
-            <Text style={styles.historyName}>{purchase.item.name}</Text>
+            <Text style={styles.historyName}>{getLocalizedItemName(purchase.item, translateText)}</Text>
             <Text style={styles.historyMeta}>
-              {ITEM_SECTION_META[purchase.item.type].title} · {new Date(purchase.purchasedAt).toLocaleDateString('ko-KR')}
+              {translateText(ITEM_SECTION_META[purchase.item.type].title)} · {formatPurchaseDate(purchase.purchasedAt, currentLanguage)}
             </Text>
           </View>
-          <Text style={styles.historyPrice}>{formatNumber(purchase.item.price)}P</Text>
+          <Text style={styles.historyPrice}>{formatPointLabel(purchase.item.price, currentLanguage)}</Text>
         </View>
       ))}
     </View>
@@ -294,6 +417,7 @@ function PurchaseHistory({ purchases }) {
 }
 
 export default function PointShopScreen({ token, user }) {
+  const { currentLanguage, translateText } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyItemId, setBusyItemId] = useState('');
@@ -342,12 +466,12 @@ export default function PointShopScreen({ token, user }) {
         purchases: []
       });
     } catch (error) {
-      setErrorMessage(error.message || '포인트 상점 정보를 불러오지 못했어요.');
+      setErrorMessage(getShopErrorMessage(error, translateText, '포인트 상점 정보를 불러오지 못했어요.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, translateText]);
 
   useEffect(() => {
     loadShop();
@@ -366,10 +490,10 @@ export default function PointShopScreen({ token, user }) {
 
     try {
       await purchaseShopItem(token, item.id);
-      setSuccessMessage(getPurchaseMessage(item));
+      setSuccessMessage(getPurchaseMessage(item, currentLanguage, translateText));
       await loadShop(true);
     } catch (error) {
-      setErrorMessage(error.message || '아이템 구매에 실패했습니다.');
+      setErrorMessage(getShopErrorMessage(error, translateText, '아이템 구매에 실패했습니다.'));
     } finally {
       setBusyItemId('');
     }
@@ -381,10 +505,10 @@ export default function PointShopScreen({ token, user }) {
 
     try {
       await equipShopItem(token, item.id);
-      setSuccessMessage(getEquipMessage(item));
+      setSuccessMessage(getEquipMessage(item, currentLanguage, translateText));
       await loadShop(true);
     } catch (error) {
-      setErrorMessage(error.message || '아이템 적용에 실패했습니다.');
+      setErrorMessage(getShopErrorMessage(error, translateText, '아이템 적용에 실패했습니다.'));
     } finally {
       setBusyItemId('');
     }
@@ -396,10 +520,10 @@ export default function PointShopScreen({ token, user }) {
 
     try {
       await unequipShopItem(token, type);
-      setSuccessMessage('기본 꾸미기 상태로 되돌렸어요.');
+      setSuccessMessage(translateText('기본 꾸미기 상태로 되돌렸어요.'));
       await loadShop(true);
     } catch (error) {
-      setErrorMessage(error.message || '기본 상태로 되돌리지 못했어요.');
+      setErrorMessage(getShopErrorMessage(error, translateText, '기본 상태로 되돌리지 못했어요.'));
     } finally {
       setBusyItemId('');
     }
@@ -420,9 +544,9 @@ export default function PointShopScreen({ token, user }) {
         <View style={styles.heroHeader}>
           <View style={styles.heroCopy}>
             <Text style={styles.heroEyebrow}>POINT SHOP</Text>
-            <Text style={styles.heroTitle}>포인트 상점</Text>
+            <Text style={styles.heroTitle}>{translateText('포인트 상점')}</Text>
             <Text style={styles.heroDescription}>
-              보상으로 모은 포인트로 프로필 이미지, 배경, 칭호를 구매하고 적용할 수 있어요.
+              {translateText('보상으로 모은 포인트로 프로필 이미지, 배경, 칭호를 구매하고 적용할 수 있어요.')}
             </Text>
           </View>
           <Pressable
@@ -434,29 +558,29 @@ export default function PointShopScreen({ token, user }) {
             }}
             style={[styles.refreshButton, refreshing && styles.disabledButton]}
           >
-            <Text style={styles.refreshButtonText}>{refreshing ? '불러오는 중' : '새로고침'}</Text>
+            <Text style={styles.refreshButtonText}>{refreshing ? translateText('불러오는 중') : translateText('새로고침')}</Text>
           </Pressable>
         </View>
 
         <View style={styles.shopStatsRow}>
           <View style={[styles.statCard, styles.pointCard]}>
-            <Text style={styles.statLabel}>현재 포인트</Text>
-            <Text style={styles.pointValue}>{formatNumber(shop.account?.pointBalance)}P</Text>
+            <Text style={styles.statLabel}>{translateText('현재 포인트')}</Text>
+            <Text style={styles.pointValue}>{formatPointLabel(shop.account?.pointBalance, currentLanguage)}</Text>
             <Text style={[styles.statHint, styles.pointHint]}>
-              퀘스트 보상으로 포인트를 모은 뒤 원하는 아이템을 구매해 보세요.
+              {translateText('퀘스트 보상으로 포인트를 모은 뒤 원하는 아이템을 구매해 보세요.')}
             </Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>구매한 아이템</Text>
-            <Text style={styles.statValue}>{formatNumber(shop.purchases?.length)}개</Text>
-            <Text style={styles.statHint}>구매한 아이템은 언제든 다시 적용할 수 있어요.</Text>
+            <Text style={styles.statLabel}>{translateText('구매한 아이템')}</Text>
+            <Text style={styles.statValue}>{formatCount(shop.purchases?.length, currentLanguage)}</Text>
+            <Text style={styles.statHint}>{translateText('구매한 아이템은 언제든 다시 적용할 수 있어요.')}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>적용 중인 꾸미기</Text>
+            <Text style={styles.statLabel}>{translateText('적용 중인 꾸미기')}</Text>
             <Text style={styles.statValue}>
-              {formatNumber(Object.values(shop.equippedItems || {}).filter(Boolean).length)}개
+              {formatCount(Object.values(shop.equippedItems || {}).filter(Boolean).length, currentLanguage)}
             </Text>
-            <Text style={styles.statHint}>프로필 이미지, 배경, 칭호를 조합해서 내 스타일을 만들 수 있어요.</Text>
+            <Text style={styles.statHint}>{translateText('프로필 이미지, 배경, 칭호를 조합해서 내 스타일을 만들 수 있어요.')}</Text>
           </View>
         </View>
 
@@ -474,10 +598,12 @@ export default function PointShopScreen({ token, user }) {
       </View>
 
       <ProfilePreview
+        currentLanguage={currentLanguage}
         user={user}
         shop={shop}
         failedImages={failedImages}
         onImageError={handleImageError}
+        translateText={translateText}
       />
 
       <View style={styles.sections}>
@@ -489,11 +615,11 @@ export default function PointShopScreen({ token, user }) {
             <View key={type} style={[styles.sectionPanel, shadows.card]}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionHeaderCopy}>
-                  <Text style={styles.sectionTitle}>{meta.emoji} {meta.title}</Text>
-                  <Text style={styles.sectionDescription}>{meta.description}</Text>
+                  <Text style={styles.sectionTitle}>{meta.emoji} {translateText(meta.title)}</Text>
+                  <Text style={styles.sectionDescription}>{translateText(meta.description)}</Text>
                 </View>
                 <View style={styles.sectionHeaderActions}>
-                  <Text style={styles.sectionMeta}>{itemsByType[type].length}개</Text>
+                  <Text style={styles.sectionMeta}>{formatCount(itemsByType[type].length, currentLanguage)}</Text>
                   <Pressable
                     accessibilityRole="button"
                     disabled={!equippedItem || resetting}
@@ -504,7 +630,7 @@ export default function PointShopScreen({ token, user }) {
                     ]}
                   >
                     <Text style={styles.sectionResetButtonText}>
-                      {resetting ? '변경 중...' : meta.defaultLabel}
+                      {resetting ? translateText('변경 중...') : translateText(meta.defaultLabel)}
                     </Text>
                   </Pressable>
                 </View>
@@ -513,13 +639,16 @@ export default function PointShopScreen({ token, user }) {
               <View style={styles.itemGrid}>
                 {itemsByType[type].map((item) => (
                   <ShopItemCard
+                    currentLanguage={currentLanguage}
                     key={item.id}
                     item={item}
+                    meta={meta}
                     busyItemId={busyItemId}
                     failedImages={failedImages}
                     onPurchase={handlePurchase}
                     onEquip={handleEquip}
                     onImageError={handleImageError}
+                    translateText={translateText}
                   />
                 ))}
               </View>
@@ -531,12 +660,16 @@ export default function PointShopScreen({ token, user }) {
       <View style={[styles.sectionPanel, shadows.card]}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>🧾 구매한 아이템</Text>
-            <Text style={styles.sectionDescription}>포인트를 사용해 얻은 꾸미기 아이템 목록입니다.</Text>
+            <Text style={styles.sectionTitle}>🧾 {translateText('구매한 아이템')}</Text>
+            <Text style={styles.sectionDescription}>{translateText('포인트를 사용해 얻은 꾸미기 아이템 목록입니다.')}</Text>
           </View>
-          <Text style={styles.sectionMeta}>{shop.purchases?.length || 0}개</Text>
+          <Text style={styles.sectionMeta}>{formatCount(shop.purchases?.length || 0, currentLanguage)}</Text>
         </View>
-        <PurchaseHistory purchases={shop.purchases || []} />
+        <PurchaseHistory
+          currentLanguage={currentLanguage}
+          purchases={shop.purchases || []}
+          translateText={translateText}
+        />
       </View>
     </ScrollView>
   );

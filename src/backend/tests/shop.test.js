@@ -333,6 +333,29 @@ describe('shop API', () => {
     );
   });
 
+  it('rejects duplicate purchases for the same shop item', async () => {
+    const { token, user } = await registerTestUser();
+
+    mockRewardAccounts.set(user.id, {
+      id: 1,
+      userId: user.id,
+      pointBalance: 40,
+      createdAt: new Date('2026-05-28T10:00:00.000Z'),
+      updatedAt: new Date('2026-05-28T10:00:00.000Z')
+    });
+
+    const firstResponse = await request(app)
+      .post('/api/shop/items/1/purchase')
+      .set(createAuthHeader(token));
+    const secondResponse = await request(app)
+      .post('/api/shop/items/1/purchase')
+      .set(createAuthHeader(token));
+
+    expect(firstResponse.status).toBe(201);
+    expect(secondResponse.status).toBe(409);
+    expect(secondResponse.body.message).toBe('Shop item already purchased');
+  });
+
   it('rejects purchases when the user does not have enough points', async () => {
     const { token, user } = await registerTestUser();
 
@@ -350,6 +373,17 @@ describe('shop API', () => {
 
     expect(response.status).toBe(409);
     expect(response.body.message).toBe('Not enough points to purchase this item');
+  });
+
+  it('rejects equip requests before purchase', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/shop/items/1/equip')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(409);
+    expect(response.body.message).toBe('Purchase the shop item before equipping it');
   });
 
   it('equips a purchased item and exposes the applied profile state', async () => {
@@ -420,5 +454,28 @@ describe('shop API', () => {
     expect(myShopResponse.status).toBe(200);
     expect(myShopResponse.body.shop.profile.profileBackgroundUrl).toBeNull();
     expect(myShopResponse.body.shop.equippedItems.profileBackground).toBeNull();
+  });
+
+  it('validates unequip type and does not expose password hashes', async () => {
+    const { token, user } = await registerTestUser();
+
+    mockPurchases.push({
+      id: 1,
+      userId: user.id,
+      itemId: 3,
+      purchasedAt: new Date('2026-05-28T10:30:00.000Z')
+    });
+
+    const invalidResponse = await request(app)
+      .post('/api/shop/unequip')
+      .set(createAuthHeader(token))
+      .send({ type: 'UNKNOWN' });
+    const myShopResponse = await request(app)
+      .get('/api/shop/me')
+      .set(createAuthHeader(token));
+
+    expect(invalidResponse.status).toBe(400);
+    expect(JSON.stringify(myShopResponse.body)).not.toContain('passwordHash');
+    expect(JSON.stringify(myShopResponse.body)).not.toContain('password123');
   });
 });

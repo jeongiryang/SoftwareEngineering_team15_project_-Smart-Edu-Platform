@@ -68,6 +68,13 @@ function resolveAppliedValue(item) {
 }
 
 function ensureApplicableShopItem(item) {
+  if (item.price < 0) {
+    throw validationError('Shop item price cannot be negative', {
+      field: 'price',
+      itemId: item.id
+    });
+  }
+
   if (item.type !== 'TITLE' && !item.assetUrl) {
     throw validationError('Shop item assetUrl is required for image/background items', {
       field: 'assetUrl',

@@ -1,4 +1,4 @@
-﻿const path = require('path');
+const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const { hashPassword } = require('../src/utils/password');
@@ -192,6 +192,42 @@ const DEV_SHOP_ITEMS = [
     type: 'TITLE',
     price: 26,
     assetUrl: null
+  }
+];
+
+const DEV_SHOP_PURCHASES = [
+  {
+    email: 'dev.user@example.com',
+    itemCodes: ['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_SKY',
+      profileBackground: 'PROFILE_BACKGROUND_DAWN',
+      title: 'TITLE_EARLY_BIRD'
+    }
+  },
+  {
+    email: 'dev.reward@example.com',
+    itemCodes: ['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_FOREST',
+      profileBackground: 'PROFILE_BACKGROUND_MINT',
+      title: 'TITLE_TASK_MASTER'
+    }
+  },
+  {
+    email: 'dev.community@example.com',
+    itemCodes: ['PROFILE_AVATAR_SUNSET', 'TITLE_COMMUNITY_HELPER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_SUNSET',
+      title: 'TITLE_COMMUNITY_HELPER'
+    }
+  },
+  {
+    email: 'dev.access@example.com',
+    itemCodes: ['PROFILE_BACKGROUND_NIGHT'],
+    equipped: {
+      profileBackground: 'PROFILE_BACKGROUND_NIGHT'
+    }
   }
 ];
 const SEED_IDS = {
@@ -439,6 +475,11 @@ async function resetSeedData(prisma, seedUsers) {
   await prisma.studyChallenge.deleteMany({
     where: {
       id: { in: Object.values(SEED_IDS.challenges) }
+    }
+  });
+  await prisma.userShopPurchase.deleteMany({
+    where: {
+      userId: { in: userIds }
     }
   });
 
@@ -2201,6 +2242,60 @@ async function seedRewards(prisma, usersByEmail) {
   });
 }
 
+async function seedPointShop(prisma, usersByEmail) {
+  const shopItems = await prisma.shopItem.findMany({
+    where: {
+      code: {
+        in: DEV_SHOP_ITEMS.map((item) => item.code)
+      }
+    }
+  });
+  const shopItemsByCode = Object.fromEntries(shopItems.map((item) => [item.code, item]));
+
+  for (const purchaseSeed of DEV_SHOP_PURCHASES) {
+    const user = usersByEmail[purchaseSeed.email];
+
+    if (!user) {
+      continue;
+    }
+
+    const purchasedItems = purchaseSeed.itemCodes
+      .map((code) => shopItemsByCode[code])
+      .filter(Boolean);
+
+    if (purchasedItems.length) {
+      await prisma.userShopPurchase.createMany({
+        data: purchasedItems.map((item) => ({
+          userId: user.id,
+          itemId: item.id
+        })),
+        skipDuplicates: true
+      });
+    }
+
+    const equippedImage = shopItemsByCode[purchaseSeed.equipped?.profileImage];
+    const equippedBackground = shopItemsByCode[purchaseSeed.equipped?.profileBackground];
+    const equippedTitle = shopItemsByCode[purchaseSeed.equipped?.title];
+
+    await prisma.userProfile.upsert({
+      where: {
+        userId: user.id
+      },
+      update: {
+        profileImageUrl: equippedImage?.assetUrl || null,
+        profileBackgroundUrl: equippedBackground?.assetUrl || null,
+        titleText: equippedTitle?.name || null
+      },
+      create: {
+        userId: user.id,
+        profileImageUrl: equippedImage?.assetUrl || null,
+        profileBackgroundUrl: equippedBackground?.assetUrl || null,
+        titleText: equippedTitle?.name || null
+      }
+    });
+  }
+}
+
 async function seedAccessibility(prisma, usersByEmail) {
   const mainUser = usersByEmail['dev.user@example.com'];
   const peerUser = usersByEmail['dev.peer@example.com'];
@@ -2412,6 +2507,7 @@ async function seedDevelopmentData(prisma) {
   await seedChallenge(prisma, usersByEmail);
   await seedLearningAndAi(prisma, usersByEmail);
   await seedRewards(prisma, usersByEmail);
+  await seedPointShop(prisma, usersByEmail);
   await seedAccessibility(prisma, usersByEmail);
 
   return users;
@@ -2444,10 +2540,11 @@ if (require.main === module) {
 module.exports = {
   DEV_SEED_PASSWORD,
   DEV_SHOP_ITEMS,
+  DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl,
   seedDevelopmentData,
+  seedPointShop,
   upsertSeedUser
 };
-

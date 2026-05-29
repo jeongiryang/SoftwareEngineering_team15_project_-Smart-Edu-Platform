@@ -32,6 +32,5 @@ router.use('/accessibility', accessibilityRoutes);
 router.use('/rewards', rewardRoutes);
 router.use('/friends', friendRoutes);
 router.use('/shop', shopRoutes);
-router.use('/friends', friendRoutes);
 
 module.exports = router;
