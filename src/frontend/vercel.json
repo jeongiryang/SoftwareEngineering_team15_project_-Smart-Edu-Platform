@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!_expo|assets|favicon.ico|manifest.json|robots.txt).*)",
+      "destination": "/"
+    }
+  ]
+}
