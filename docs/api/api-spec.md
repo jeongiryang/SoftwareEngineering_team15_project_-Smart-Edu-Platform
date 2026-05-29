@@ -194,6 +194,8 @@ Response 예시:
 |---|---|---|
 | `maintenance.updated` | `{ "maintenance": { ... } }` | 관리자가 점검 모드 ON/OFF 또는 안내 문구를 변경했을 때 발행 |
 | `admin.notice` | `{ "notice": { "id": "...", "title": "...", "message": "...", "level": "info" } }` | 관리자가 실시간 공지를 전송했을 때 발행 |
+| `community.comment.created` | `{ "comment": { "postId": 1, "commentId": 10, "parentId": null, "isReply": false, "author": { "id": 2, "name": "사용자" }, "preview": "댓글 미리보기", "createdAt": "..." } }` | 커뮤니티 게시글에 새 댓글이 작성되었을 때 발행 |
+| `community.reply.created` | `{ "comment": { "postId": 1, "commentId": 11, "parentId": 10, "isReply": true, "author": { "id": 2, "name": "사용자" }, "preview": "대답글 미리보기", "createdAt": "..." } }` | 커뮤니티 게시글에 새 대답글이 작성되었을 때 발행 |
 
 WebSocket URL 기준:
 

@@ -140,7 +140,7 @@ function isOwnContent(item, user) {
   return Number(item?.userId) === Number(user?.id);
 }
 
-export default function CommunityScreen({ onNavigate, token, user }) {
+export default function CommunityScreen({ onNavigate, realtimeEvent, token, user }) {
   const { currentLanguage, translateText } = useLanguage();
   const [activeTab, setActiveTab] = useState('posts');
   const [posts, setPosts] = useState([]);
@@ -196,6 +196,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [realtimeNotification, setRealtimeNotification] = useState(null);
 
   useEffect(() => {
     if (activeTab === 'posts') {
@@ -205,6 +206,40 @@ export default function CommunityScreen({ onNavigate, token, user }) {
 
     loadBookmarks();
   }, [activeTab, page, bookmarkPage, pageSize, category, sort, bookmarkSort, search]);
+
+  useEffect(() => {
+    if (
+      !realtimeEvent ||
+      !['community.comment.created', 'community.reply.created'].includes(realtimeEvent.type)
+    ) {
+      return;
+    }
+
+    const comment = realtimeEvent.payload?.comment;
+
+    if (!comment?.postId || !comment.commentId) {
+      return;
+    }
+
+    if (Number(comment.author?.id) === Number(user?.id)) {
+      return;
+    }
+
+    const isCurrentPost = Number(selectedPost?.id) === Number(comment.postId);
+    const isReply = realtimeEvent.type === 'community.reply.created' || Boolean(comment.parentId);
+
+    setRealtimeNotification({
+      id: `${realtimeEvent.type}-${comment.commentId}-${realtimeEvent.sentAt || ''}`,
+      postId: comment.postId,
+      scope: isCurrentPost ? 'detail' : 'list',
+      messageKey: isCurrentPost
+        ? isReply
+          ? '새 대답글이 도착했습니다.'
+          : '새 댓글이 도착했습니다.'
+        : '커뮤니티에 새 댓글 활동이 있습니다.',
+      actionKey: isCurrentPost ? '댓글 새로고침' : '목록 갱신'
+    });
+  }, [realtimeEvent, selectedPost?.id, user?.id]);
 
   async function loadPosts() {
     setLoading(true);
@@ -283,6 +318,22 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   function resetMessages() {
     setErrorMessage('');
     setSuccessMessage('');
+  }
+
+  async function refreshRealtimeNotification() {
+    if (!realtimeNotification) {
+      return;
+    }
+
+    if (realtimeNotification.scope === 'detail' && selectedPost?.id) {
+      await loadPostDetail(selectedPost.id, commentPage);
+    } else if (activeTab === 'bookmarks') {
+      await loadBookmarks();
+    } else {
+      await loadPosts();
+    }
+
+    setRealtimeNotification(null);
   }
 
   function handleSearchSubmit() {
@@ -824,6 +875,31 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       {successMessage ? (
         <View style={styles.successBox}>
           <Text style={styles.successText}>{successMessage}</Text>
+        </View>
+      ) : null}
+      {realtimeNotification ? (
+        <View style={styles.realtimeBox}>
+          <Text style={styles.realtimeText}>
+            {translateText(realtimeNotification.messageKey)}
+          </Text>
+          <View style={styles.realtimeActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={refreshRealtimeNotification}
+              style={(state) => [styles.smallButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.smallButtonText}>
+                {translateText(realtimeNotification.actionKey)}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setRealtimeNotification(null)}
+              style={(state) => [styles.textButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.textButtonLabel}>{translateText('닫기')}</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
 
@@ -2486,6 +2562,24 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontSize: 14,
     fontWeight: '700'
+  },
+  realtimeBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    padding: 12,
+    gap: 10
+  },
+  realtimeText: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  realtimeActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
   },
   disabled: {
     opacity: 0.55

@@ -213,6 +213,12 @@ jest.mock('../src/repositories/community.repository', () => ({
   })
 }));
 
+const mockBroadcastRealtimeEvent = jest.fn(() => ({ clientCount: 0, event: {} }));
+
+jest.mock('../src/realtime/websocket.server', () => ({
+  broadcastRealtimeEvent: (...args) => mockBroadcastRealtimeEvent(...args)
+}));
+
 const request = require('supertest');
 const app = require('../src/app');
 const communityRepository = require('../src/repositories/community.repository');
@@ -388,6 +394,19 @@ describe('Community Comment API', () => {
         }
       })
     );
+    expect(mockBroadcastRealtimeEvent).toHaveBeenCalledWith('community.comment.created', {
+      comment: expect.objectContaining({
+        postId: post.id,
+        commentId: response.body.comment.id,
+        parentId: null,
+        isReply: false,
+        preview: 'useful explanation',
+        author: {
+          id: user.id,
+          name: user.name
+        }
+      })
+    });
     expectSafeCommentPayload(response.body);
   });
 
@@ -409,6 +428,15 @@ describe('Community Comment API', () => {
         content: 'reply comment'
       })
     );
+    expect(mockBroadcastRealtimeEvent).toHaveBeenLastCalledWith('community.reply.created', {
+      comment: expect.objectContaining({
+        postId: post.id,
+        commentId: replyResponse.body.comment.id,
+        parentId: parent.id,
+        isReply: true,
+        preview: 'reply comment'
+      })
+    });
 
     const listResponse = await request(app)
       .get(`/api/community/posts/${post.id}/comments`)
