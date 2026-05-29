@@ -47,6 +47,18 @@ function getEquippedFieldByType(type) {
   return null;
 }
 
+function normalizeShopItemType(type) {
+  const normalizedType = String(type || '').trim().toUpperCase();
+
+  if (normalizedType === 'PROFILE_IMAGE' || normalizedType === 'PROFILE_BACKGROUND' || normalizedType === 'TITLE') {
+    return normalizedType;
+  }
+
+  throw validationError('type must be one of PROFILE_IMAGE, PROFILE_BACKGROUND, TITLE', {
+    field: 'type'
+  });
+}
+
 function resolveAppliedValue(item) {
   if (item.type === 'TITLE') {
     return item.name;
@@ -233,11 +245,31 @@ async function equipShopItem(userId, itemId) {
   };
 }
 
+async function unequipShopItem(userId, type) {
+  const normalizedType = normalizeShopItemType(type);
+  const user = await findUserWithProfileById(userId);
+
+  if (!user) {
+    throw notFoundError('User not found');
+  }
+
+  const targetField = getEquippedFieldByType(normalizedType);
+  const profile = await upsertUserProfile(userId, {
+    [targetField]: null
+  });
+
+  return {
+    profile: sanitizeProfile(profile),
+    type: normalizedType
+  };
+}
+
 module.exports = {
   equipShopItem,
   getMyShop,
   getShopItems,
   purchaseShopItem,
   sanitizeShopItem,
-  sanitizeShopPurchase
+  sanitizeShopPurchase,
+  unequipShopItem
 };

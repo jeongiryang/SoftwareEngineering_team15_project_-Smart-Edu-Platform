@@ -50,6 +50,22 @@ const DEV_SHOP_ITEMS = [
     assetUrl: '/assets/shop/avatar-forest.png'
   },
   {
+    code: 'PROFILE_AVATAR_SUNSET',
+    name: '노을 연필 아바타',
+    description: '따뜻한 노을 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 24,
+    assetUrl: '/assets/shop/avatar-sunset.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_NIGHT',
+    name: '야간 집중 아바타',
+    description: '차분한 밤하늘 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 28,
+    assetUrl: '/assets/shop/avatar-night.png'
+  },
+  {
     code: 'PROFILE_BACKGROUND_DAWN',
     name: '새벽 학습 배경',
     description: '잔잔한 새벽 톤 배경을 프로필에 적용합니다.',
@@ -66,6 +82,22 @@ const DEV_SHOP_ITEMS = [
     assetUrl: '/assets/shop/background-mint.png'
   },
   {
+    code: 'PROFILE_BACKGROUND_CORAL',
+    name: '코랄 플래너 배경',
+    description: '따뜻한 코랄 톤의 플래너 스타일 배경을 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 34,
+    assetUrl: '/assets/shop/background-coral.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_NIGHT',
+    name: '별밤 집중 배경',
+    description: '밤하늘 별빛 느낌의 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 38,
+    assetUrl: '/assets/shop/background-night.png'
+  },
+  {
     code: 'TITLE_EARLY_BIRD',
     name: '아침형 학습러',
     description: '일찍 시작하는 학습자용 칭호입니다.',
@@ -79,6 +111,22 @@ const DEV_SHOP_ITEMS = [
     description: '할 일 관리에 강한 학습자용 칭호입니다.',
     type: 'TITLE',
     price: 22,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_DEEP_FOCUS',
+    name: '몰입 장인',
+    description: '긴 집중 세션을 즐기는 학습자를 위한 칭호입니다.',
+    type: 'TITLE',
+    price: 26,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_COMMUNITY_HELPER',
+    name: '질문 해결사',
+    description: '커뮤니티에서 활발히 돕는 학습자를 위한 칭호입니다.',
+    type: 'TITLE',
+    price: 26,
     assetUrl: null
   }
 ];

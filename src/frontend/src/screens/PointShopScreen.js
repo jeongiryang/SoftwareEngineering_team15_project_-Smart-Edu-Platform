@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SHOP_ASSET_SOURCE_MAP } from '../assets/shop/shopAssetMap';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   equipShopItem,
   getMyShop,
   getShopItems,
-  purchaseShopItem
+  purchaseShopItem,
+  unequipShopItem
 } from '../services/api';
 import { colors, shadows } from '../styles/theme';
 
@@ -14,18 +15,27 @@ const ITEM_SECTION_META = {
   PROFILE_IMAGE: {
     title: '프로필 이미지',
     description: '아바타 스타일 아이템을 구매해서 프로필 이미지를 바꿀 수 있어요.',
-    emoji: '🖼️'
+    emoji: '🖼️',
+    defaultLabel: '프로필 기본으로'
   },
   PROFILE_BACKGROUND: {
     title: '프로필 배경',
     description: '프로필 카드 분위기를 바꿔주는 배경 아이템입니다.',
-    emoji: '🎨'
+    emoji: '🎨',
+    defaultLabel: '배경 기본으로'
   },
   TITLE: {
     title: '칭호',
     description: '학습 스타일을 보여주는 칭호를 구매하고 적용할 수 있어요.',
-    emoji: '🏷️'
+    emoji: '🏷️',
+    defaultLabel: '칭호 기본으로'
   }
+};
+
+const EQUIPPED_ITEM_KEYS = {
+  PROFILE_IMAGE: 'profileImage',
+  PROFILE_BACKGROUND: 'profileBackground',
+  TITLE: 'title'
 };
 
 function formatNumber(value) {
@@ -49,10 +59,18 @@ function getPreviewTone(code = '') {
     };
   }
 
+  if (code.includes('CORAL') || code.includes('SUNSET')) {
+    return {
+      background: '#FFF1EA',
+      accent: '#C46A41',
+      surface: '#FFF9F5'
+    };
+  }
+
   return {
-    background: '#FFF4E5',
-    accent: '#B36A2E',
-    surface: '#FFFDF9'
+    background: '#F0F3FF',
+    accent: '#465D9C',
+    surface: '#FAFBFF'
   };
 }
 
@@ -100,14 +118,28 @@ function resolveAssetSource(assetUrl) {
 function ProfilePreview({ user, shop, failedImages, onImageError }) {
   const profile = shop.profile || {};
   const avatarTone = getPreviewTone(shop.equippedItems?.profileImage?.code || 'PROFILE');
-  const backgroundTone = getPreviewTone(shop.equippedItems?.profileBackground?.code || 'BACKGROUND');
   const avatarUri = profile.profileImageUrl;
+  const backgroundUri = profile.profileBackgroundUrl;
   const resolvedAvatarSource = resolveAssetSource(avatarUri);
+  const resolvedBackgroundSource = resolveAssetSource(backgroundUri);
   const avatarFailed = avatarUri ? failedImages[`profile-${avatarUri}`] : false;
+  const backgroundFailed = backgroundUri ? failedImages[`background-${backgroundUri}`] : false;
   const titleText = profile.titleText || '아직 적용된 칭호가 없어요';
 
   return (
-    <View style={[styles.previewCard, shadows.card, { backgroundColor: backgroundTone.background }]}>
+    <View style={[styles.previewCard, shadows.card]}>
+      {resolvedBackgroundSource && !backgroundFailed ? (
+        <Image
+          source={resolvedBackgroundSource}
+          style={styles.previewBackgroundImage}
+          resizeMode="cover"
+          onError={() => onImageError(`background-${backgroundUri}`)}
+        />
+      ) : (
+        <View style={styles.previewBackgroundFallback} />
+      )}
+      <View style={styles.previewBackgroundOverlay} />
+
       <View style={styles.previewHeader}>
         <View>
           <Text style={styles.previewEyebrow}>현재 적용 상태</Text>
@@ -135,9 +167,12 @@ function ProfilePreview({ user, shop, failedImages, onImageError }) {
 
         <View style={styles.previewCopy}>
           <Text style={styles.previewName}>{user?.name || '학습자'}</Text>
-          <Text style={styles.previewSubtitle}>{shop.equippedItems?.profileImage?.name || '기본 프로필 이미지'}</Text>
-          <View style={[styles.titleChip, { backgroundColor: colors.surface }]}>
-            <Text style={styles.titleChipText}>{titleText}</Text>
+          <View style={styles.previewTitleWrap}>
+            <Text style={styles.previewTitleLabel}>현재 칭호</Text>
+            <View style={styles.titleChip}>
+              <Text style={styles.titleChipIcon}>✦</Text>
+              <Text style={styles.titleChipText}>{titleText}</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -172,14 +207,15 @@ function ShopItemCard({
 
       <View style={[styles.itemPreview, { backgroundColor: tone.background }]}>
         {item.type === 'TITLE' ? (
-          <View style={[styles.titlePreviewBox, { backgroundColor: colors.surface }]}>
+          <View style={styles.titlePreviewBox}>
+            <Text style={[styles.titlePreviewIcon, { color: tone.accent }]}>✦</Text>
             <Text style={[styles.titlePreviewText, { color: tone.accent }]}>{item.name}</Text>
           </View>
         ) : resolvedAssetSource && !imageFailed ? (
           <Image
             source={resolvedAssetSource}
             style={item.type === 'PROFILE_IMAGE' ? styles.itemAvatarImage : styles.itemBackgroundImage}
-            resizeMode={item.type === 'PROFILE_IMAGE' ? 'cover' : 'cover'}
+            resizeMode="cover"
             onError={() => onImageError(previewKey)}
           />
         ) : item.type === 'PROFILE_IMAGE' ? (
@@ -196,7 +232,7 @@ function ShopItemCard({
 
       <View style={styles.itemCopy}>
         <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemDescription}>{item.description || '설명이 준비 중입니다.'}</Text>
+        <Text style={styles.itemDescription}>{item.description || '설명이 아직 준비되지 않았어요.'}</Text>
       </View>
 
       <View style={styles.itemActions}>
@@ -234,8 +270,8 @@ function PurchaseHistory({ purchases }) {
   if (!purchases.length) {
     return (
       <View style={styles.emptyPanel}>
-        <Text style={styles.emptyTitle}>아직 구매한 아이템이 없어요.</Text>
-        <Text style={styles.emptyDescription}>포인트를 모은 뒤 원하는 꾸미기 아이템을 구매해보세요.</Text>
+        <Text style={styles.emptyTitle}>아직 구매한 아이템이 없어요</Text>
+        <Text style={styles.emptyDescription}>포인트를 모은 뒤 원하는 꾸미기 아이템을 골라 보세요.</Text>
       </View>
     );
   }
@@ -306,7 +342,7 @@ export default function PointShopScreen({ token, user }) {
         purchases: []
       });
     } catch (error) {
-      setErrorMessage(error.message || '포인트 상점 정보를 불러오지 못했습니다.');
+      setErrorMessage(error.message || '포인트 상점 정보를 불러오지 못했어요.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -354,6 +390,21 @@ export default function PointShopScreen({ token, user }) {
     }
   }
 
+  async function handleReset(type) {
+    setBusyItemId(`unequip-${type}`);
+    setErrorMessage('');
+
+    try {
+      await unequipShopItem(token, type);
+      setSuccessMessage('기본 꾸미기 상태로 되돌렸어요.');
+      await loadShop(true);
+    } catch (error) {
+      setErrorMessage(error.message || '기본 상태로 되돌리지 못했어요.');
+    } finally {
+      setBusyItemId('');
+    }
+  }
+
   if (loading) {
     return (
       <ScrollView contentContainerStyle={styles.loadingWrap} showsVerticalScrollIndicator={false}>
@@ -383,7 +434,7 @@ export default function PointShopScreen({ token, user }) {
             }}
             style={[styles.refreshButton, refreshing && styles.disabledButton]}
           >
-            <Text style={styles.refreshButtonText}>{refreshing ? '새로고침 중' : '새로고침'}</Text>
+            <Text style={styles.refreshButtonText}>{refreshing ? '불러오는 중' : '새로고침'}</Text>
           </Pressable>
         </View>
 
@@ -391,7 +442,9 @@ export default function PointShopScreen({ token, user }) {
           <View style={[styles.statCard, styles.pointCard]}>
             <Text style={styles.statLabel}>현재 포인트</Text>
             <Text style={styles.pointValue}>{formatNumber(shop.account?.pointBalance)}P</Text>
-            <Text style={[styles.statHint, styles.pointHint]}>퀘스트 보상으로 포인트를 모은 뒤 원하는 아이템을 구매해보세요.</Text>
+            <Text style={[styles.statHint, styles.pointHint]}>
+              퀘스트 보상으로 포인트를 모은 뒤 원하는 아이템을 구매해 보세요.
+            </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>구매한 아이템</Text>
@@ -401,11 +454,9 @@ export default function PointShopScreen({ token, user }) {
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>적용 중인 꾸미기</Text>
             <Text style={styles.statValue}>
-              {formatNumber(
-                Object.values(shop.equippedItems || {}).filter(Boolean).length
-              )}개
+              {formatNumber(Object.values(shop.equippedItems || {}).filter(Boolean).length)}개
             </Text>
-            <Text style={styles.statHint}>이미지는 asset이 준비되면 실제 파일로 자연스럽게 교체됩니다.</Text>
+            <Text style={styles.statHint}>프로필 이미지, 배경, 칭호를 조합해서 내 스타일을 만들 수 있어요.</Text>
           </View>
         </View>
 
@@ -430,38 +481,58 @@ export default function PointShopScreen({ token, user }) {
       />
 
       <View style={styles.sections}>
-        {Object.entries(ITEM_SECTION_META).map(([type, meta]) => (
-          <View key={type} style={[styles.sectionPanel, shadows.card]}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionTitle}>{meta.emoji} {meta.title}</Text>
-                <Text style={styles.sectionDescription}>{meta.description}</Text>
-              </View>
-              <Text style={styles.sectionMeta}>{itemsByType[type].length}개</Text>
-            </View>
+        {Object.entries(ITEM_SECTION_META).map(([type, meta]) => {
+          const equippedItem = shop.equippedItems?.[EQUIPPED_ITEM_KEYS[type]] || null;
+          const resetting = busyItemId === `unequip-${type}`;
 
-            <View style={styles.itemGrid}>
-              {itemsByType[type].map((item) => (
-                <ShopItemCard
-                  key={item.id}
-                  item={item}
-                  busyItemId={busyItemId}
-                  failedImages={failedImages}
-                  onPurchase={handlePurchase}
-                  onEquip={handleEquip}
-                  onImageError={handleImageError}
-                />
-              ))}
+          return (
+            <View key={type} style={[styles.sectionPanel, shadows.card]}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeaderCopy}>
+                  <Text style={styles.sectionTitle}>{meta.emoji} {meta.title}</Text>
+                  <Text style={styles.sectionDescription}>{meta.description}</Text>
+                </View>
+                <View style={styles.sectionHeaderActions}>
+                  <Text style={styles.sectionMeta}>{itemsByType[type].length}개</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={!equippedItem || resetting}
+                    onPress={() => handleReset(type)}
+                    style={[
+                      styles.sectionResetButton,
+                      (!equippedItem || resetting) && styles.disabledButton
+                    ]}
+                  >
+                    <Text style={styles.sectionResetButtonText}>
+                      {resetting ? '변경 중...' : meta.defaultLabel}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.itemGrid}>
+                {itemsByType[type].map((item) => (
+                  <ShopItemCard
+                    key={item.id}
+                    item={item}
+                    busyItemId={busyItemId}
+                    failedImages={failedImages}
+                    onPurchase={handlePurchase}
+                    onEquip={handleEquip}
+                    onImageError={handleImageError}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       <View style={[styles.sectionPanel, shadows.card]}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>👜 구매한 아이템</Text>
-            <Text style={styles.sectionDescription}>포인트를 사용해 획득한 꾸미기 아이템 목록입니다.</Text>
+            <Text style={styles.sectionTitle}>🧾 구매한 아이템</Text>
+            <Text style={styles.sectionDescription}>포인트를 사용해 얻은 꾸미기 아이템 목록입니다.</Text>
           </View>
           <Text style={styles.sectionMeta}>{shop.purchases?.length || 0}개</Text>
         </View>
@@ -573,7 +644,7 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   pointHint: {
-    color: '#D7E4F5'
+    color: '#E3EBF7'
   },
   messageBox: {
     borderRadius: 18,
@@ -597,15 +668,31 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   previewCard: {
+    position: 'relative',
     borderRadius: 28,
+    overflow: 'hidden',
     padding: 24,
-    gap: 18
+    gap: 18,
+    minHeight: 220,
+    backgroundColor: colors.surface
+  },
+  previewBackgroundImage: {
+    ...StyleSheet.absoluteFillObject
+  },
+  previewBackgroundFallback: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.blueSoft
+  },
+  previewBackgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.18)'
   },
   previewHeader: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12
+    gap: 12,
+    zIndex: 1
   },
   previewEyebrow: {
     color: colors.blueDeep,
@@ -621,7 +708,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -634,7 +721,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 18
+    gap: 18,
+    zIndex: 1
   },
   previewAvatar: {
     width: 92,
@@ -642,7 +730,9 @@ const styles = StyleSheet.create({
     borderRadius: 46,
     overflow: 'hidden',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.88)'
   },
   previewAvatarImage: {
     width: '100%',
@@ -655,28 +745,43 @@ const styles = StyleSheet.create({
   previewCopy: {
     flex: 1,
     minWidth: 220,
-    gap: 8
+    gap: 12
   },
   previewName: {
     color: colors.ink,
     fontSize: 24,
     fontWeight: '900'
   },
-  previewSubtitle: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: '700'
+  previewTitleWrap: {
+    gap: 8
+  },
+  previewTitleLabel: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4
   },
   titleChip: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(23,59,99,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.88)'
+  },
+  titleChipIcon: {
+    color: colors.mintDeep,
+    fontSize: 13,
+    fontWeight: '900'
   },
   titleChipText: {
     color: colors.blueDeep,
-    fontSize: 13,
-    fontWeight: '800'
+    fontSize: 14,
+    fontWeight: '900'
   },
   sections: {
     gap: 18
@@ -693,6 +798,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12
   },
+  sectionHeaderCopy: {
+    flex: 1,
+    minWidth: 240
+  },
+  sectionHeaderActions: {
+    alignItems: 'flex-end',
+    gap: 10
+  },
   sectionTitle: {
     color: colors.blueDeep,
     fontSize: 28,
@@ -707,6 +820,21 @@ const styles = StyleSheet.create({
   sectionMeta: {
     color: colors.muted,
     fontSize: 14,
+    fontWeight: '800'
+  },
+  sectionResetButton: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sectionResetButtonText: {
+    color: colors.blueDeep,
+    fontSize: 13,
     fontWeight: '800'
   },
   itemGrid: {
@@ -751,9 +879,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   itemAvatarImage: {
-    width: 92,
-    height: 92,
-    borderRadius: 46
+    width: '100%',
+    height: '100%'
   },
   itemBackgroundImage: {
     width: '100%',
@@ -785,12 +912,22 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   titlePreviewBox: {
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 12
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.84)',
+    borderWidth: 1,
+    borderColor: 'rgba(23,59,99,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6
+  },
+  titlePreviewIcon: {
+    fontSize: 14,
+    fontWeight: '900'
   },
   titlePreviewText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900'
   },
   itemCopy: {

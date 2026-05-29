@@ -389,4 +389,36 @@ describe('shop API', () => {
       })
     );
   });
+
+  it('unequips an equipped item and restores the default state', async () => {
+    const { token, user } = await registerTestUser();
+
+    mockProfiles.set(user.id, {
+      ...mockProfiles.get(user.id),
+      profileBackgroundUrl: '/assets/shop/background-dawn.png'
+    });
+    mockPurchases.push({
+      id: 1,
+      userId: user.id,
+      itemId: 2,
+      purchasedAt: new Date('2026-05-28T10:30:00.000Z')
+    });
+
+    const response = await request(app)
+      .post('/api/shop/unequip')
+      .set(createAuthHeader(token))
+      .send({ type: 'PROFILE_BACKGROUND' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.unequip.type).toBe('PROFILE_BACKGROUND');
+    expect(response.body.unequip.profile.profileBackgroundUrl).toBeNull();
+
+    const myShopResponse = await request(app)
+      .get('/api/shop/me')
+      .set(createAuthHeader(token));
+
+    expect(myShopResponse.status).toBe(200);
+    expect(myShopResponse.body.shop.profile.profileBackgroundUrl).toBeNull();
+    expect(myShopResponse.body.shop.equippedItems.profileBackground).toBeNull();
+  });
 });

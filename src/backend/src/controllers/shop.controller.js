@@ -26,9 +26,16 @@ const equipShopItem = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, { equip: result });
 });
 
+const unequipShopItem = asyncHandler(async (req, res) => {
+  const result = await shopService.unequipShopItem(req.user.id, req.body.type);
+
+  sendSuccess(res, 200, { unequip: result });
+});
+
 module.exports = {
   equipShopItem,
   getMyShop,
   getShopItems,
-  purchaseShopItem
+  purchaseShopItem,
+  unequipShopItem
 };

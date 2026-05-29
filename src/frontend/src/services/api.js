@@ -126,6 +126,16 @@ export function equipShopItem(token, itemId) {
   });
 }
 
+export function unequipShopItem(token, type) {
+  return request('/shop/unequip', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ type })
+  });
+}
+
 export function getSchedules(token) {
   return request('/schedules', {
     headers: {
