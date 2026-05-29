@@ -60,7 +60,7 @@ function getVoiceOption(voiceType) {
   return voiceOptions.find((option) => option.value === voiceType) || voiceOptions[1];
 }
 
-function findBrowserVoice(voiceType, loadedVoices = []) {
+function findBrowserVoice(voiceType, loadedVoices = [], lang = 'ko-KR') {
   if (!hasSpeechSynthesis()) {
     return null;
   }
@@ -68,8 +68,9 @@ function findBrowserVoice(voiceType, loadedVoices = []) {
   const voices = loadedVoices.length > 0
     ? loadedVoices
     : globalThis.speechSynthesis.getVoices?.() || [];
-  const koreanVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith('ko'));
-  const candidates = koreanVoices.length > 0 ? koreanVoices : voices;
+  const languagePrefix = String(lang || 'ko-KR').split('-')[0].toLowerCase();
+  const languageVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith(languagePrefix));
+  const candidates = languageVoices.length > 0 ? languageVoices : voices;
   const option = getVoiceOption(voiceType);
   const genderHints = option.genderHint === 'male'
     ? ['male', 'man', '남성', '남자']
@@ -249,14 +250,15 @@ export function AccessibilityProvider({ children, token }) {
 
     const activeVoiceType = options.voiceType || voiceType;
     const selectedOption = getVoiceOption(activeVoiceType);
+    const speechLanguage = options.lang || 'ko-KR';
     globalThis.speechSynthesis.cancel();
     globalThis.speechSynthesis.resume?.();
     const utterance = new globalThis.SpeechSynthesisUtterance(text);
-    utterance.lang = 'ko-KR';
+    utterance.lang = speechLanguage;
     utterance.volume = 1;
     utterance.pitch = selectedOption.pitch;
     utterance.rate = selectedOption.rate;
-    const browserVoice = findBrowserVoice(activeVoiceType, browserVoices);
+    const browserVoice = findBrowserVoice(activeVoiceType, browserVoices, speechLanguage);
 
     if (browserVoice) {
       utterance.voice = browserVoice;
@@ -293,6 +295,7 @@ export function AccessibilityProvider({ children, token }) {
     const started = playBrowserSpeech(trimmedText, {
       previewVoiceType: options.previewVoiceType || null,
       readingId: options.readingId || null,
+      lang: options.lang || 'ko-KR',
       voiceType: options.voiceType || voiceType
     });
     if (!started) return false;
