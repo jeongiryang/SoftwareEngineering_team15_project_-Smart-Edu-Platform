@@ -4,6 +4,9 @@ import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 const GITHUB_REPOSITORY_URL = 'https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform';
+const GITHUB_MARK_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#111827" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.87c.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.06-1.86 3.75-3.64 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.45.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>'
+)}`;
 
 const availableFeatures = [
   {
@@ -175,13 +178,13 @@ export default function LandingScreen({ onNavigate }) {
             style={(state) => [styles.githubButton, ...interactiveStateStyles(state)]}
             title="GitHub"
           >
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.githubMark}>
-              <View style={[styles.githubEar, styles.githubEarLeft]} />
-              <View style={[styles.githubEar, styles.githubEarRight]} />
-              <View style={styles.githubHead} />
-              <View style={styles.githubBody} />
-              <View style={styles.githubTail} />
-            </View>
+            <Image
+              accessibilityElementsHidden
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              source={{ uri: GITHUB_MARK_URI }}
+              style={styles.githubIcon}
+            />
           </Pressable>
         </View>
       </View>
@@ -496,57 +499,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center'
   },
-  githubMark: {
-    width: 26,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    position: 'relative'
-  },
-  githubEar: {
-    position: 'absolute',
-    top: 1,
-    width: 9,
-    height: 9,
-    borderRadius: 3,
-    backgroundColor: colors.blueDeep,
-    transform: [{ rotate: '45deg' }]
-  },
-  githubEarLeft: {
-    left: 4
-  },
-  githubEarRight: {
-    right: 4
-  },
-  githubHead: {
-    width: 22,
-    height: 18,
-    marginTop: 5,
-    borderRadius: 10,
-    backgroundColor: colors.blueDeep
-  },
-  githubBody: {
-    width: 10,
-    height: 7,
-    marginTop: -2,
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
-    backgroundColor: colors.blueDeep
-  },
-  githubTail: {
-    position: 'absolute',
-    right: 0,
-    bottom: 5,
-    width: 8,
-    height: 5,
-    borderBottomLeftRadius: 6,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: colors.blueDeep,
-    transform: [{ rotate: '-18deg' }]
+  githubIcon: {
+    width: 27,
+    height: 27
   }
 });
