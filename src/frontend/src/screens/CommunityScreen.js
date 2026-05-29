@@ -27,6 +27,7 @@ import {
 } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { PanelSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const CATEGORIES = [
@@ -47,7 +48,7 @@ function getCategoryLabel(category) {
   return CATEGORIES.find((item) => item.value === category)?.label || category;
 }
 
-function formatDate(value) {
+function formatDate(value, language = 'ko') {
   if (!value) {
     return '-';
   }
@@ -58,7 +59,7 @@ function formatDate(value) {
     return String(value);
   }
 
-  return date.toLocaleString('ko-KR', {
+  return date.toLocaleString(languageIntlLocale(language), {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -80,6 +81,7 @@ function isOwnContent(item, user) {
 }
 
 export default function CommunityScreen({ onNavigate, token, user }) {
+  const { currentLanguage, translateText } = useLanguage();
   const [activeTab, setActiveTab] = useState('posts');
   const [posts, setPosts] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
@@ -552,8 +554,8 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   const setCurrentPage = activeTab === 'posts' ? setPage : setBookmarkPage;
   const visibleCount = activeTab === 'posts' ? posts.length : bookmarks.length;
   const totalCount = currentPageInfo.total || 0;
-  const boardLabel = activeTab === 'posts' ? '게시글' : '북마크';
-  const detailLabel = selectedPost ? selectedPost.title : '상세 대기';
+  const boardLabel = activeTab === 'posts' ? translateText('게시글') : translateText('북마크');
+  const detailLabel = selectedPost ? selectedPost.title : translateText('상세 대기');
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -628,17 +630,17 @@ export default function CommunityScreen({ onNavigate, token, user }) {
 
       <View style={styles.boardStatusBar}>
         <Text style={styles.boardStatusText}>
-          <Text style={styles.boardStatusStrong}>{boardLabel}</Text> {visibleCount}개 표시
+          <Text style={styles.boardStatusStrong}>{boardLabel}</Text> {visibleCount} {translateText('개 표시')}
         </Text>
         <Text style={styles.boardStatusDivider}>/</Text>
-        <Text style={styles.boardStatusText}>전체 {totalCount}개</Text>
+        <Text style={styles.boardStatusText}>{translateText('전체')} {totalCount}{translateText('개')}</Text>
         <Text style={styles.boardStatusDivider}>/</Text>
         <Text style={styles.boardStatusText}>
-          {currentPage} / {Math.max(currentPageInfo.totalPages || 1, 1)} 페이지
+          {currentPage} / {Math.max(currentPageInfo.totalPages || 1, 1)} {translateText('페이지')}
         </Text>
         <Text style={styles.boardStatusDivider}>/</Text>
         <Text style={styles.boardStatusText} numberOfLines={1}>
-          선택: {detailLabel}
+          {translateText('선택:')} {detailLabel}
         </Text>
       </View>
 
@@ -934,7 +936,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
 
     return bookmarks.map((bookmark) => (
       <View key={bookmark.bookmarkId} style={styles.bookmarkItem}>
-        <Text style={styles.bookmarkDate}>북마크: {formatDate(bookmark.bookmarkedAt)}</Text>
+        <Text style={styles.bookmarkDate}>{translateText('북마크:')} {formatDate(bookmark.bookmarkedAt, currentLanguage)}</Text>
         {renderPostCard(bookmark.post)}
       </View>
     ));
@@ -945,7 +947,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       <View key={post.id} style={[styles.card, shadows.card, selectedPost?.id === post.id && styles.cardActive]}>
         <View style={styles.cardHeader}>
           <Text style={styles.categoryBadge}>{getCategoryLabel(post.category)}</Text>
-          <Text style={styles.dateText}>{formatDate(post.createdAt)}</Text>
+          <Text style={styles.dateText}>{formatDate(post.createdAt, currentLanguage)}</Text>
         </View>
         <Text style={styles.cardTitle}>{post.title}</Text>
         <Text style={styles.cardContent}>{getPreview(post.content)}</Text>
@@ -1031,7 +1033,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       <View style={[styles.detailCard, shadows.card]}>
         <View style={styles.cardHeader}>
           <Text style={styles.categoryBadge}>{getCategoryLabel(selectedPost.category)}</Text>
-          <Text style={styles.dateText}>{formatDate(selectedPost.createdAt)}</Text>
+          <Text style={styles.dateText}>{formatDate(selectedPost.createdAt, currentLanguage)}</Text>
         </View>
         <Text style={styles.detailTitle}>{selectedPost.title}</Text>
         <Text style={styles.authorText}>작성자: {selectedPost.author?.name || '알 수 없음'}</Text>
@@ -1165,7 +1167,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       <View key={comment.id} style={styles.commentCard}>
         <View style={styles.cardHeader}>
           <Text style={styles.authorText}>{comment.author?.name || '알 수 없음'}</Text>
-          <Text style={styles.dateText}>{formatDate(comment.createdAt)}</Text>
+          <Text style={styles.dateText}>{formatDate(comment.createdAt, currentLanguage)}</Text>
         </View>
         {isEditing ? (
           <View style={styles.editCommentBox}>

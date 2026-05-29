@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
 import { SkeletonBlock } from '../components/Skeleton';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { claimRewardQuest, getMyRewards, getSchedules, getTasks } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -28,6 +29,78 @@ const quickQuizBank = [
     explanation: '짧은 오답 기록은 다음 복습 시점을 잡는 기준이 됩니다.'
   }
 ];
+
+const DASHBOARD_COPY = {
+  ko: {
+    rewardAvailable: '수령 가능한 보상이 {count}개 있습니다. 오늘은 퀘스트 보상을 먼저 확인해 보세요.',
+    rewardProgress: '진행 중인 퀘스트 {count}개가 있습니다. 일정과 칸반을 채우면 보상 진행률이 함께 올라갑니다.',
+    rewardBadges: '현재 {count}개의 배지를 모았습니다. 다음 퀘스트가 열리면 이어서 보상을 쌓을 수 있습니다.',
+    rewardEmpty: '아직 보상 기록이 많지 않습니다. 오늘의 일정과 태스크를 먼저 채워 보상 흐름을 시작해 보세요.',
+    motivationAvailable: '수령 가능한 보상이 {count}개 있어요. 먼저 보상을 받고 오늘 흐름을 가볍게 이어가 보세요.',
+    motivationEmpty: '아직 오늘의 기록이 비어 있어요. 25분 집중 1회나 작은 태스크 하나부터 시작해도 충분합니다.',
+    motivationCompleted: '완료한 태스크가 {count}개 쌓였어요. 다음 태스크는 더 작게 쪼개서 이어가 보세요.',
+    motivationProgress: '진행 중인 퀘스트가 {count}개 있어요. 일정과 칸반을 하나씩 채우면 진행률이 올라갑니다.',
+    motivationDefault: '오늘은 작은 기록을 남기기 좋은 날이에요. 부담 없이 한 가지 학습 행동만 고르면 됩니다.',
+    claimBadge: '{points}포인트와 "{badgeName}" 배지를 받았습니다.',
+    claimPoints: '{points}포인트를 받았습니다.',
+    count: '{count}개',
+    minutes: '{value}분 / {target}분',
+    countProgress: '{value}개 / {target}개'
+  },
+  en: {
+    rewardAvailable: '{count} reward(s) are ready to claim. Check quest rewards first today.',
+    rewardProgress: '{count} quest(s) are in progress. Filling schedules and boards will raise reward progress.',
+    rewardBadges: 'You have collected {count} badge(s). Keep building rewards when the next quest opens.',
+    rewardEmpty: 'There are not many reward records yet. Start by filling today’s schedule and tasks.',
+    motivationAvailable: '{count} reward(s) are ready. Claim them first and continue today’s flow lightly.',
+    motivationEmpty: 'Today’s record is still empty. One 25-minute focus or one small task is enough to start.',
+    motivationCompleted: '{count} completed task(s) have stacked up. Break the next task into a smaller step.',
+    motivationProgress: '{count} quest(s) are in progress. Add schedules and board tasks one by one to raise progress.',
+    motivationDefault: 'Today is a good day to leave a small record. Choose one study action without pressure.',
+    claimBadge: 'Received {points} points and the "{badgeName}" badge.',
+    claimPoints: 'Received {points} points.',
+    count: '{count}',
+    minutes: '{value} min / {target} min',
+    countProgress: '{value} / {target}'
+  },
+  ja: {
+    rewardAvailable: '受け取れる報酬が{count}件あります。今日はクエスト報酬を先に確認しましょう。',
+    rewardProgress: '進行中のクエストが{count}件あります。予定とカンバンを埋めると報酬進捗も上がります。',
+    rewardBadges: '現在{count}個のバッジを集めています。次のクエストでも報酬を続けて積み上げられます。',
+    rewardEmpty: '報酬記録はまだ多くありません。今日の予定とタスクから報酬の流れを始めましょう。',
+    motivationAvailable: '受け取れる報酬が{count}件あります。まず報酬を受け取り、今日の流れを軽く続けましょう。',
+    motivationEmpty: '今日はまだ記録が空です。25分集中1回や小さなタスク1つからで十分です。',
+    motivationCompleted: '完了したタスクが{count}件あります。次のタスクはさらに小さく分けて続けましょう。',
+    motivationProgress: '進行中のクエストが{count}件あります。予定とカンバンを一つずつ埋めると進捗が上がります。',
+    motivationDefault: '今日は小さな記録を残すのに良い日です。負担なく一つの学習行動を選びましょう。',
+    claimBadge: '{points}ポイントと「{badgeName}」バッジを受け取りました。',
+    claimPoints: '{points}ポイントを受け取りました。',
+    count: '{count}件',
+    minutes: '{value}分 / {target}分',
+    countProgress: '{value}件 / {target}件'
+  },
+  zh: {
+    rewardAvailable: '有 {count} 个奖励可领取。今天可以先查看任务奖励。',
+    rewardProgress: '有 {count} 个任务正在进行。填写日程和看板后，奖励进度也会提升。',
+    rewardBadges: '目前已收集 {count} 枚徽章。下一个任务开启后可继续累积奖励。',
+    rewardEmpty: '奖励记录还不多。先填写今天的日程和任务，开始奖励流程。',
+    motivationAvailable: '有 {count} 个奖励可领取。先领取奖励，再轻松延续今天的学习流程。',
+    motivationEmpty: '今天的记录还为空。从一次 25 分钟专注或一个小任务开始就足够了。',
+    motivationCompleted: '已完成 {count} 个任务。下一个任务可以拆得更小再继续。',
+    motivationProgress: '有 {count} 个任务正在进行。逐步填写日程和看板，进度会提高。',
+    motivationDefault: '今天适合留下一个小记录。轻松选择一个学习行动即可。',
+    claimBadge: '获得 {points} 积分和“{badgeName}”徽章。',
+    claimPoints: '获得 {points} 积分。',
+    count: '{count} 个',
+    minutes: '{value} 分 / {target} 分',
+    countProgress: '{value} 个 / {target} 个'
+  }
+};
+
+function dashboardCopy(language, key, values = {}) {
+  const template = DASHBOARD_COPY[language]?.[key] || DASHBOARD_COPY.ko[key] || '';
+  return template.replace(/\{(\w+)\}/g, (_, token) => values[token] ?? '');
+}
 
 const featureCards = [
   {
@@ -135,8 +208,8 @@ function getCardStyle(tone) {
   };
 }
 
-function formatNumber(value) {
-  return new Intl.NumberFormat('ko-KR').format(Number(value || 0));
+function formatNumber(value, language = 'ko') {
+  return new Intl.NumberFormat(languageIntlLocale(language)).format(Number(value || 0));
 }
 
 function getQuestTone(status) {
@@ -151,27 +224,27 @@ function getQuestTone(status) {
   return styles.progressQuest;
 }
 
-function getQuestStatusText(status) {
+function getQuestStatusText(status, translateText) {
   if (status === 'CLAIMED') {
-    return '보상 수령 완료';
+    return translateText('보상 수령 완료');
   }
 
   if (status === 'ACHIEVED') {
-    return '보상 수령 가능';
+    return translateText('보상 수령 가능');
   }
 
-  return '진행 중';
+  return translateText('진행 중');
 }
 
-function getQuestProgressLabel(quest) {
+function getQuestProgressLabel(quest, language) {
   const targetValue = quest?.targetValue || 0;
   const progressValue = quest?.progressValue || 0;
 
   if (quest?.type === 'TOTAL_STUDY_MINUTES') {
-    return `${progressValue}분 / ${targetValue}분`;
+    return dashboardCopy(language, 'minutes', { value: progressValue, target: targetValue });
   }
 
-  return `${progressValue}개 / ${targetValue}개`;
+  return dashboardCopy(language, 'countProgress', { value: progressValue, target: targetValue });
 }
 
 function getQuestProgressWidth(progressRate) {
@@ -184,35 +257,35 @@ function getQuestProgressWidth(progressRate) {
   return `${Math.max(6, Math.round(ratio * 100))}%`;
 }
 
-function buildClaimMessage(result) {
+function buildClaimMessage(result, language) {
   const points = result?.reward?.pointTransaction?.amount || result?.reward?.quest?.rewardPoints || 0;
   const badgeName = result?.reward?.badge?.badge?.name;
 
   if (badgeName) {
-    return `${points}포인트와 "${badgeName}" 배지를 받았습니다.`;
+    return dashboardCopy(language, 'claimBadge', { points, badgeName });
   }
 
-  return `${points}포인트를 받았습니다.`;
+  return dashboardCopy(language, 'claimPoints', { points });
 }
 
-function buildRewardInsight(rewardData, activeQuests) {
+function buildRewardInsight(rewardData, activeQuests, language) {
   const availableQuestCount = activeQuests.filter((quest) => quest.status === 'ACHIEVED').length;
   const progressQuestCount = activeQuests.filter((quest) => quest.status === 'IN_PROGRESS').length;
   const badgeCount = rewardData.badges?.length || 0;
 
   if (availableQuestCount > 0) {
-    return `수령 가능한 보상이 ${availableQuestCount}개 있습니다. 오늘은 퀘스트 보상을 먼저 확인해 보세요.`;
+    return dashboardCopy(language, 'rewardAvailable', { count: availableQuestCount });
   }
 
   if (progressQuestCount > 0) {
-    return `진행 중인 퀘스트 ${progressQuestCount}개가 있습니다. 일정과 칸반을 채우면 보상 진행률이 함께 올라갑니다.`;
+    return dashboardCopy(language, 'rewardProgress', { count: progressQuestCount });
   }
 
   if (badgeCount > 0) {
-    return `현재 ${badgeCount}개의 배지를 모았습니다. 다음 퀘스트가 열리면 이어서 보상을 쌓을 수 있습니다.`;
+    return dashboardCopy(language, 'rewardBadges', { count: badgeCount });
   }
 
-  return '아직 보상 기록이 많지 않습니다. 오늘의 일정과 태스크를 먼저 채워 보상 흐름을 시작해 보세요.';
+  return dashboardCopy(language, 'rewardEmpty');
 }
 
 function getTodayKey() {
@@ -224,50 +297,50 @@ function getDailyQuickQuiz() {
   return quickQuizBank[day % quickQuizBank.length];
 }
 
-function buildMotivationInsight(rewardData, activeQuests) {
+function buildMotivationInsight(rewardData, activeQuests, language) {
   const totalStudyMinutes = Number(rewardData.metrics?.totalStudyMinutes || 0);
   const completedTaskCount = Number(rewardData.metrics?.completedTaskCount || 0);
   const availableQuestCount = activeQuests.filter((quest) => quest.status === 'ACHIEVED').length;
   const progressQuestCount = activeQuests.filter((quest) => quest.status === 'IN_PROGRESS').length;
 
   if (availableQuestCount > 0) {
-    return `수령 가능한 보상이 ${availableQuestCount}개 있어요. 먼저 보상을 받고 오늘 흐름을 가볍게 이어가 보세요.`;
+    return dashboardCopy(language, 'motivationAvailable', { count: availableQuestCount });
   }
 
   if (totalStudyMinutes === 0 && completedTaskCount === 0) {
-    return '아직 오늘의 기록이 비어 있어요. 25분 집중 1회나 작은 태스크 하나부터 시작해도 충분합니다.';
+    return dashboardCopy(language, 'motivationEmpty');
   }
 
   if (completedTaskCount > 0) {
-    return `완료한 태스크가 ${completedTaskCount}개 쌓였어요. 다음 태스크는 더 작게 쪼개서 이어가 보세요.`;
+    return dashboardCopy(language, 'motivationCompleted', { count: completedTaskCount });
   }
 
   if (progressQuestCount > 0) {
-    return `진행 중인 퀘스트가 ${progressQuestCount}개 있어요. 일정과 칸반을 하나씩 채우면 진행률이 올라갑니다.`;
+    return dashboardCopy(language, 'motivationProgress', { count: progressQuestCount });
   }
 
-  return '오늘은 작은 기록을 남기기 좋은 날이에요. 부담 없이 한 가지 학습 행동만 고르면 됩니다.';
+  return dashboardCopy(language, 'motivationDefault');
 }
 
-function buildMotivationAction(rewardData, activeQuests) {
+function buildMotivationAction(rewardData, activeQuests, translateText) {
   const availableQuest = activeQuests.find((quest) => quest.status === 'ACHIEVED');
 
   if (availableQuest) {
     return {
-      label: '보상 확인하기',
+      label: translateText('보상 확인하기'),
       action: 'reward'
     };
   }
 
   if (Number(rewardData.metrics?.completedTaskCount || 0) === 0) {
     return {
-      label: '태스크 만들기',
+      label: translateText('태스크 만들기'),
       screen: 'taskBoard'
     };
   }
 
   return {
-    label: '오늘 일정 보기',
+    label: translateText('오늘 일정 보기'),
     screen: 'schedule'
   };
 }
@@ -294,14 +367,14 @@ function getLocalDateKey(value) {
   return `${year}-${month}-${day}`;
 }
 
-function formatPreviewDate(value) {
+function formatPreviewDate(value, language) {
   const date = parseDate(value);
 
   if (!date) {
-    return '날짜 없음';
+    return null;
   }
 
-  return date.toLocaleString('ko-KR', {
+  return date.toLocaleString(languageIntlLocale(language), {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -309,28 +382,28 @@ function formatPreviewDate(value) {
   });
 }
 
-function getPriorityLabel(priority) {
+function getPriorityLabel(priority, translateText) {
   if (priority === 'HIGH') {
-    return '높음';
+    return translateText('높음');
   }
 
   if (priority === 'LOW') {
-    return '낮음';
+    return translateText('낮음');
   }
 
-  return '보통';
+  return translateText('보통');
 }
 
-function getStatusLabel(status) {
+function getStatusLabel(status, translateText) {
   if (status === 'DONE') {
-    return '완료';
+    return translateText('완료');
   }
 
   if (status === 'IN_PROGRESS') {
-    return '진행 중';
+    return translateText('진행 중');
   }
 
-  return '할 일';
+  return translateText('할 일');
 }
 
 function getUpcomingSchedules(schedules = []) {
@@ -393,6 +466,7 @@ function RewardPanelSkeleton() {
 }
 
 export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
+  const { currentLanguage, translateText } = useLanguage();
   const hasAdminRole = user?.role === 'ADMIN';
   const [showAIGuide, setShowAIGuide] = useState(false);
   const [showAllBadges, setShowAllBadges] = useState(false);
@@ -450,16 +524,16 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     [rewardData.recentPointTransactions, showAllTransactions]
   );
   const rewardInsight = useMemo(
-    () => buildRewardInsight(rewardData, activeQuests),
-    [activeQuests, rewardData]
+    () => buildRewardInsight(rewardData, activeQuests, currentLanguage),
+    [activeQuests, currentLanguage, rewardData]
   );
   const motivationInsight = useMemo(
-    () => buildMotivationInsight(rewardData, activeQuests),
-    [activeQuests, rewardData]
+    () => buildMotivationInsight(rewardData, activeQuests, currentLanguage),
+    [activeQuests, currentLanguage, rewardData]
   );
   const motivationAction = useMemo(
-    () => buildMotivationAction(rewardData, activeQuests),
-    [activeQuests, rewardData]
+    () => buildMotivationAction(rewardData, activeQuests, translateText),
+    [activeQuests, rewardData, translateText]
   );
   const quickQuiz = useMemo(() => getDailyQuickQuiz(), []);
   const isQuizAnswered = selectedQuizOption !== null;
@@ -595,7 +669,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
     try {
       const result = await claimRewardQuest(token, questId);
-      setClaimMessage(buildClaimMessage(result));
+      setClaimMessage(buildClaimMessage(result, currentLanguage));
       await loadRewards({ silent: true });
     } catch (error) {
       setRewardError(error.message || '보상을 수령하지 못했습니다.');
@@ -712,7 +786,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       {schedule.title}
                     </Text>
                     <Text style={styles.previewItemMeta}>
-                      {formatPreviewDate(schedule.startAt)} · {schedule.subject || '과목 없음'} · 우선순위 {getPriorityLabel(schedule.priority)}
+                      {formatPreviewDate(schedule.startAt, currentLanguage) || translateText('날짜 없음')} · {schedule.subject || translateText('과목 없음')} · {translateText('우선순위')} {getPriorityLabel(schedule.priority, translateText)}
                     </Text>
                   </View>
                 </View>
@@ -746,7 +820,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       {task.title}
                     </Text>
                     <Text style={styles.previewItemMeta}>
-                      {getStatusLabel(task.status)} · 마감 {formatPreviewDate(task.dueDate)} · {task.priority || 'MEDIUM'}
+                      {getStatusLabel(task.status, translateText)} · {translateText('마감')} {formatPreviewDate(task.dueDate, currentLanguage) || translateText('날짜 없음')} · {getPriorityLabel(task.priority || 'MEDIUM', translateText)}
                     </Text>
                   </View>
                 </View>
@@ -864,7 +938,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               </View>
             ) : (
               <>
-                <Text style={styles.quickQuizQuestion}>{quickQuiz.question}</Text>
+                <Text style={styles.quickQuizQuestion}>{translateText(quickQuiz.question)}</Text>
                 <View style={styles.quickQuizOptions}>
                   {quickQuiz.options.map((option, index) => {
                     const isSelected = selectedQuizOption === index;
@@ -872,7 +946,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                     return (
                       <Pressable
-                        accessibilityLabel={`1초 복습 퀴즈 선택지: ${option}`}
+                        accessibilityLabel={`${translateText('1초 복습 퀴즈')} ${translateText('선택지')}: ${translateText(option)}`}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
                         key={option}
@@ -891,7 +965,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                             isQuizAnswered && isCorrectOption && styles.quickQuizOptionTextCorrect
                           ]}
                         >
-                          {option}
+                          {translateText(option)}
                         </Text>
                       </Pressable>
                     );
@@ -900,12 +974,12 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 {isQuizAnswered ? (
                   <View style={isQuizCorrect ? styles.quizResultSuccess : styles.quizResultInfo}>
                     <Text style={isQuizCorrect ? styles.quizResultSuccessText : styles.quizResultInfoText}>
-                      {isQuizCorrect ? '정답이에요. 짧게 시작하는 흐름이 좋습니다.' : '괜찮아요. 핵심은 작게 시작하는 습관입니다.'}
+                      {isQuizCorrect ? translateText('정답이에요. 짧게 시작하는 흐름이 좋습니다.') : translateText('괜찮아요. 핵심은 작게 시작하는 습관입니다.')}
                     </Text>
-                    <Text style={styles.quizExplanation}>{quickQuiz.explanation}</Text>
+                    <Text style={styles.quizExplanation}>{translateText(quickQuiz.explanation)}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.quickQuizHint}>데모형 빠른 복습 카드입니다. 잠금화면을 막거나 강제하지 않습니다.</Text>
+                  <Text style={styles.quickQuizHint}>{translateText('데모형 빠른 복습 카드입니다. 잠금화면을 막거나 강제하지 않습니다.')}</Text>
                 )}
               </>
             )}
@@ -941,18 +1015,18 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               <View style={styles.rewardStats}>
                 <View style={[styles.statCard, styles.pointCard]}>
                   <Text style={styles.statLabel}>보유 포인트</Text>
-                  <Text style={styles.pointValue}>{formatNumber(rewardData.account?.pointBalance)}</Text>
+                  <Text style={styles.pointValue}>{formatNumber(rewardData.account?.pointBalance, currentLanguage)}</Text>
                   <Text style={styles.statHint}>보상 수령 시 자동으로 적립됩니다.</Text>
                 </View>
 
                 <View style={styles.metricCard}>
                   <Text style={styles.metricLabel}>누적 집중 시간</Text>
-                  <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.totalStudyMinutes)}분</Text>
+                  <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.totalStudyMinutes, currentLanguage)}{translateText('분')}</Text>
                 </View>
 
                 <View style={styles.metricCard}>
                   <Text style={styles.metricLabel}>완료한 태스크</Text>
-                  <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.completedTaskCount)}개</Text>
+                  <Text style={styles.metricValue}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(rewardData.metrics?.completedTaskCount, currentLanguage) })}</Text>
                 </View>
 
                 <View style={styles.storyCard}>
@@ -977,7 +1051,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 <View style={styles.questColumn}>
                   <View style={styles.subsectionHeader}>
                     <Text style={styles.subsectionTitle}>진행 중인 퀘스트</Text>
-                    <Text style={styles.subsectionMeta}>{activeQuests.length}개</Text>
+                    <Text style={styles.subsectionMeta}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(activeQuests.length, currentLanguage) })}</Text>
                   </View>
 
                   {activeQuests.length === 0 ? (
@@ -1003,7 +1077,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                             </Text>
                           </View>
                           <View style={styles.questStatusChip}>
-                            <Text style={styles.questStatusText}>{getQuestStatusText(quest.status)}</Text>
+                            <Text style={styles.questStatusText}>{getQuestStatusText(quest.status, translateText)}</Text>
                           </View>
                         </View>
 
@@ -1018,8 +1092,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                         <View style={styles.questFooter}>
                           <View>
-                              <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
-                              <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                              <Text style={styles.questProgress}>{getQuestProgressLabel(quest, currentLanguage)}</Text>
+                              <Text style={styles.questReward}>{translateText('보상')} {formatNumber(quest.rewardPoints, currentLanguage)}P</Text>
                             </View>
 
                           {quest.status === 'ACHIEVED' ? (
@@ -1073,7 +1147,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                                   </Text>
                                 </View>
                                 <View style={styles.questStatusChip}>
-                                  <Text style={styles.questStatusText}>{getQuestStatusText(quest.status)}</Text>
+                                  <Text style={styles.questStatusText}>{getQuestStatusText(quest.status, translateText)}</Text>
                                 </View>
                               </View>
 
@@ -1088,8 +1162,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                               <View style={styles.questFooter}>
                                 <View>
-                                  <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
-                                  <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                                  <Text style={styles.questProgress}>{getQuestProgressLabel(quest, currentLanguage)}</Text>
+                                  <Text style={styles.questReward}>{translateText('보상')} {formatNumber(quest.rewardPoints, currentLanguage)}P</Text>
                                 </View>
 
                                 <View style={styles.questTag}>
@@ -1106,7 +1180,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 <View style={styles.badgeColumn}>
                   <View style={styles.subsectionHeader}>
                     <Text style={styles.subsectionTitle}>획득한 배지</Text>
-                    <Text style={styles.subsectionMeta}>{rewardData.badges?.length || 0}개</Text>
+                    <Text style={styles.subsectionMeta}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(rewardData.badges?.length || 0, currentLanguage) })}</Text>
                   </View>
 
                   {rewardData.badges?.length ? (
@@ -1168,7 +1242,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                   <View style={styles.subsectionHeader}>
                     <Text style={styles.subsectionTitle}>최근 포인트 내역</Text>
-                    <Text style={styles.subsectionMeta}>{rewardData.recentPointTransactions?.length || 0}건</Text>
+                    <Text style={styles.subsectionMeta}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(rewardData.recentPointTransactions?.length || 0, currentLanguage) })}</Text>
                   </View>
 
                   {rewardData.recentPointTransactions?.length ? (
@@ -1179,7 +1253,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                           <Text style={styles.transactionReason}>{transaction.reason || transaction.sourceType}</Text>
                           <Text style={styles.transactionMeta}>{transaction.sourceType}</Text>
                         </View>
-                        <Text style={styles.transactionAmount}>+{formatNumber(transaction.amount)}P</Text>
+                        <Text style={styles.transactionAmount}>+{formatNumber(transaction.amount, currentLanguage)}P</Text>
                       </View>
                       ))}
                       {rewardData.recentPointTransactions.length > 5 ? (
