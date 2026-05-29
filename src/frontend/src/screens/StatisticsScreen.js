@@ -168,6 +168,113 @@ function buildStory({ todaySummary, weekSummary, weekBars }) {
   return '집중 시간과 완료 태스크를 함께 보면 이번 주 학습 흐름을 더 쉽게 파악할 수 있습니다.';
 }
 
+function buildFocusTypePrescription({ todaySummary, weekSummary, monthSummary, weekBars, monthCells }) {
+  const activeWeekDays = weekBars.filter((day) => day.minutes > 0);
+  const activeMonthDays = monthCells.filter((day) => day.minutes > 0);
+  const bestDay = weekBars.reduce(
+    (best, day) => (day.minutes > best.minutes ? day : best),
+    weekBars[0] || { label: '오늘', minutes: 0 }
+  );
+  const weekendMinutes = monthCells
+    .filter((day) => {
+      const weekDay = new Date(`${day.key}T00:00:00`).getDay();
+      return weekDay === 0 || weekDay === 6;
+    })
+    .reduce((sum, day) => sum + day.minutes, 0);
+  const weekdayMinutes = monthCells
+    .filter((day) => {
+      const weekDay = new Date(`${day.key}T00:00:00`).getDay();
+      return weekDay !== 0 && weekDay !== 6;
+    })
+    .reduce((sum, day) => sum + day.minutes, 0);
+  const averageSessionMinutes = weekSummary.sessionCount > 0
+    ? Math.round(weekSummary.totalMinutes / weekSummary.sessionCount)
+    : 0;
+  const completionRate = Number(weekSummary.completionRate || 0);
+
+  if (weekSummary.totalMinutes <= 0 && monthSummary.totalMinutes <= 0) {
+    return {
+      type: '시동 거는 학습자',
+      tone: 'starter',
+      summary: '아직 분석할 집중 기록이 적습니다. 25분 집중 1회만 남겨도 다음 주 제안이 더 구체화됩니다.',
+      evidence: '최근 기록 없음',
+      prescriptions: [
+        '오늘은 일정 하나와 25분 집중 1회를 먼저 기록해 보세요.',
+        '태스크는 크게 잡기보다 30분 안에 끝낼 수 있게 쪼개 보세요.',
+        '복습 알림은 선택형으로 켜 두고 부담이 되면 언제든 끄세요.'
+      ]
+    };
+  }
+
+  if (activeWeekDays.length >= 5) {
+    return {
+      type: '꾸준한 루틴러',
+      tone: 'steady',
+      summary: `최근 7일 중 ${activeWeekDays.length}일에 집중 기록이 있습니다. 꾸준함이 가장 큰 강점입니다.`,
+      evidence: `이번 주 ${formatMinutes(weekSummary.totalMinutes)} · 최고 ${bestDay.label} ${formatMinutes(bestDay.minutes)}`,
+      prescriptions: [
+        '지금 흐름을 유지하되 하루 목표를 너무 크게 늘리지는 마세요.',
+        '완료율이 낮은 날은 태스크를 더 작게 나누면 좋습니다.',
+        'T+3, T+7 복습을 한 번씩 끼워 넣으면 장기 기억에 도움이 됩니다.'
+      ]
+    };
+  }
+
+  if (weekendMinutes > weekdayMinutes && weekendMinutes > 0) {
+    return {
+      type: '주말 몰입형',
+      tone: 'weekend',
+      summary: '주말 집중 비중이 높습니다. 평일에는 아주 짧은 기록으로 흐름만 이어도 충분합니다.',
+      evidence: `최근 4주 주말 ${formatMinutes(weekendMinutes)} · 평일 ${formatMinutes(weekdayMinutes)}`,
+      prescriptions: [
+        '평일에는 10~25분짜리 짧은 복습만 남겨도 루틴이 끊기지 않습니다.',
+        '주말 전날에 학습 범위를 미리 나눠 두면 몰입 시간이 더 안정됩니다.',
+        'D-Day 계획은 주말 몰입량이 과해지지 않도록 하루 분량을 확인해 보세요.'
+      ]
+    };
+  }
+
+  if (activeWeekDays.length <= 2 && weekSummary.totalMinutes >= 180) {
+    return {
+      type: '벼락치기 불도저',
+      tone: 'burst',
+      summary: '짧은 기간에 몰아서 집중하는 패턴이 보입니다. 힘은 좋지만 회복 간격도 같이 필요합니다.',
+      evidence: `이번 주 ${activeWeekDays.length}일 집중 · 총 ${formatMinutes(weekSummary.totalMinutes)}`,
+      prescriptions: [
+        '긴 집중 다음 날에는 15분 복습으로 기억을 붙잡아 두세요.',
+        '큰 태스크는 마감 전날에 몰리지 않도록 D-Day 계획으로 분산해 보세요.',
+        '오답노트에는 틀린 이유만 한 줄로 남겨도 다음 복습이 쉬워집니다.'
+      ]
+    };
+  }
+
+  if (averageSessionMinutes > 0 && averageSessionMinutes <= 35) {
+    return {
+      type: '짧고 굵은 스프린터',
+      tone: 'sprint',
+      summary: '짧은 세션으로 집중을 나누는 패턴입니다. 작은 태스크와 잘 맞는 방식입니다.',
+      evidence: `평균 세션 ${formatMinutes(averageSessionMinutes)} · 완료율 ${completionRate}%`,
+      prescriptions: [
+        '25분 집중 후 바로 DONE으로 옮길 수 있는 태스크를 고르세요.',
+        '퀴즈나 오답 확인처럼 짧게 끝나는 복습을 사이에 넣어 보세요.',
+        '완료율이 올라가면 보상 퀘스트 흐름도 함께 확인해 보세요.'
+      ]
+    };
+  }
+
+  return {
+    type: '균형 잡는 학습자',
+    tone: 'balanced',
+    summary: '집중 기록과 태스크 흐름이 조금씩 쌓이고 있습니다. 다음 주에는 반복 가능한 시간대를 찾아보세요.',
+    evidence: `최근 4주 ${activeMonthDays.length}일 기록 · 이번 주 ${formatMinutes(weekSummary.totalMinutes)}`,
+    prescriptions: [
+      '가장 집중이 잘 된 요일과 시간대를 다음 일정에 다시 배치해 보세요.',
+      '완료율이 낮다면 태스크 수보다 크기를 먼저 줄이는 편이 좋습니다.',
+      '주간 목표는 한 번에 많이 늘리기보다 현재 기록보다 10~15분만 더해 보세요.'
+    ]
+  };
+}
+
 function SummaryCard({ helper, label, tone = 'default', value }) {
   return (
     <View style={[styles.summaryCard, tone === 'mint' && styles.summaryMint, tone === 'blue' && styles.summaryBlue]}>
@@ -318,6 +425,16 @@ export default function StatisticsScreen({ onNavigate, token }) {
   }, [heatmap, todaySummary, weekSummary]);
 
   const streakInfo = useMemo(() => buildStreakInfo(heatmap), [heatmap]);
+  const focusPrescription = useMemo(
+    () => buildFocusTypePrescription({
+      todaySummary,
+      weekSummary,
+      monthSummary,
+      weekBars: chartData.weekBars,
+      monthCells: chartData.monthCells
+    }),
+    [chartData.monthCells, chartData.weekBars, monthSummary, todaySummary, weekSummary]
+  );
   const spacedReviewPlan = useMemo(() => buildSpacedReviewPlan(), []);
   const upcomingReviewReminders = useMemo(
     () => [...reviewReminders]
@@ -407,6 +524,31 @@ export default function StatisticsScreen({ onNavigate, token }) {
             <SummaryCard label="이번 주 집중" value={formatMinutes(weekSummary.totalMinutes)} helper={`완료율 ${weekSummary.completionRate || 0}%`} tone="blue" />
             <SummaryCard label="최근 4주 집중" value={formatMinutes(monthSummary.totalMinutes)} helper={`${monthSummary.sessionCount || 0}회 세션`} />
             <SummaryCard label="평균 세션" value={formatMinutes(averageMinutes)} helper={`태스크 ${monthSummary.taskCount || 0}개 기준`} />
+          </View>
+
+          <View style={[styles.focusTypeCard, shadows.card]}>
+            <View style={styles.focusTypeHeader}>
+              <View style={styles.focusTypeTitleGroup}>
+                <Text style={styles.focusTypeEyebrow}>AI STYLE INSIGHT</Text>
+                <Text style={styles.focusTypeTitle}>집중력 유형 · {focusPrescription.type}</Text>
+                <Text style={styles.focusTypeSubtitle}>
+                  실제 외부 AI 호출 없이 통계 데이터를 기준으로 만든 데모 분석입니다.
+                </Text>
+              </View>
+              <View style={[styles.focusTypeBadge, styles[`focusTypeBadge_${focusPrescription.tone}`]]}>
+                <Text style={styles.focusTypeBadgeText}>룰 기반</Text>
+              </View>
+            </View>
+            <Text style={styles.focusTypeSummary}>{focusPrescription.summary}</Text>
+            <Text style={styles.focusTypeEvidence}>{focusPrescription.evidence}</Text>
+            <View style={styles.prescriptionList}>
+              {focusPrescription.prescriptions.map((item, index) => (
+                <View key={item} style={styles.prescriptionItem}>
+                  <Text style={styles.prescriptionIndex}>{index + 1}</Text>
+                  <Text style={styles.prescriptionText}>{item}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <View style={styles.streakReviewGrid}>
@@ -714,6 +856,122 @@ const styles = StyleSheet.create({
   summaryHelper: {
     color: colors.blueDeep,
     fontSize: 12,
+    fontWeight: '700'
+  },
+  focusTypeCard: {
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 24,
+    gap: 16
+  },
+  focusTypeHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 14
+  },
+  focusTypeTitleGroup: {
+    flex: 1,
+    minWidth: 260,
+    gap: 6
+  },
+  focusTypeEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1
+  },
+  focusTypeTitle: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '900'
+  },
+  focusTypeSubtitle: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  focusTypeBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm
+  },
+  focusTypeBadge_steady: {
+    borderColor: colors.mint,
+    backgroundColor: colors.successSoft
+  },
+  focusTypeBadge_weekend: {
+    borderColor: colors.blueSoft,
+    backgroundColor: colors.blueSoft
+  },
+  focusTypeBadge_burst: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft
+  },
+  focusTypeBadge_sprint: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  focusTypeBadge_balanced: {
+    borderColor: colors.blueSoft,
+    backgroundColor: colors.surfaceWarm
+  },
+  focusTypeBadge_starter: {
+    borderColor: colors.line,
+    backgroundColor: colors.cream
+  },
+  focusTypeBadgeText: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  focusTypeSummary: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 24,
+    fontWeight: '700'
+  },
+  focusTypeEvidence: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '800'
+  },
+  prescriptionList: {
+    gap: 10
+  },
+  prescriptionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14
+  },
+  prescriptionIndex: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep,
+    textAlign: 'center',
+    lineHeight: 24,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  prescriptionText: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20,
     fontWeight: '700'
   },
   streakReviewGrid: {
