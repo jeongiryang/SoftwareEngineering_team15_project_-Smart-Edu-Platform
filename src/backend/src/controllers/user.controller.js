@@ -1,4 +1,4 @@
-const { changeMyPassword, getMyUser, updateMyAccount, updateMyProfile } = require('../services/user.service');
+const { changeMyPassword, getMyActivityStats, getMyUser, updateMyAccount, updateMyProfile } = require('../services/user.service');
 const { searchFriendCandidates } = require('../services/friend.service');
 const { sendSuccess } = require('../utils/apiResponse');
 const { asyncHandler } = require('../utils/asyncHandler');
@@ -7,6 +7,12 @@ const getMe = asyncHandler(async (req, res) => {
   const user = await getMyUser(req.user.id);
 
   sendSuccess(res, 200, { user });
+});
+
+const getMyActivityController = asyncHandler(async (req, res) => {
+  const activity = await getMyActivityStats(req.user.id);
+
+  sendSuccess(res, 200, { activity });
 });
 
 const updateMyProfileController = asyncHandler(async (req, res) => {
@@ -36,6 +42,7 @@ const searchUsersController = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getMyActivity: getMyActivityController,
   getMe,
   searchUsers: searchUsersController,
   updateMyAccount: updateMyAccountController,

@@ -10,7 +10,9 @@ function sanitizeUser(user) {
     loginId: user.loginId,
     name: user.name,
     role: user.role,
-    status: user.status
+    status: user.status,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
   };
 }
 

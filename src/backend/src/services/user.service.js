@@ -1,6 +1,7 @@
 const {
   findUserById,
   findUserWithProfileById,
+  getUserActivityStats,
   updateUser,
   updateUserPassword,
   upsertUserProfile
@@ -145,6 +146,21 @@ async function getMyUser(userId) {
   return sanitizeUserWithProfile(user);
 }
 
+async function getMyActivityStats(userId) {
+  const user = await findUserById(userId);
+
+  if (!user) {
+    throw notFoundError('User not found');
+  }
+
+  const stats = await getUserActivityStats(userId);
+
+  return {
+    ...stats,
+    reactionBasis: 'GIVEN'
+  };
+}
+
 async function updateMyAccount(userId, payload) {
   const existingUser = await findUserById(userId);
 
@@ -199,6 +215,7 @@ module.exports = {
   buildProfileUpdateData,
   buildAccountUpdateData,
   changeMyPassword,
+  getMyActivityStats,
   getMyUser,
   sanitizeProfile,
   sanitizeUserWithProfile,

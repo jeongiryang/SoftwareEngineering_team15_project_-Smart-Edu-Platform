@@ -157,6 +157,14 @@ export function updateCurrentUser(token, payload) {
   });
 }
 
+export function getMyActivityStats(token) {
+  return request('/users/me/activity', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function searchUsers(token, keyword) {
   return request(`/users/search${buildQueryString({ keyword })}`, {
     headers: {
