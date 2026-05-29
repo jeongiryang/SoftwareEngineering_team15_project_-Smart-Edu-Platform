@@ -6,6 +6,28 @@ import { claimRewardQuest, getMyRewards } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const AI_GUIDE_STORAGE_KEY = 'sagaksagakAiGuideDismissed';
+const QUICK_QUIZ_DISMISS_KEY = 'sagaksagakQuickQuizDismissedDate';
+
+const quickQuizBank = [
+  {
+    question: '짧은 집중 루틴을 시작할 때 가장 부담이 적은 목표는 무엇일까요?',
+    options: ['25분 집중 1회', '하루 종일 쉬지 않기', '모든 과목 끝내기'],
+    answerIndex: 0,
+    explanation: '작은 집중 기록을 먼저 남기면 다음 태스크로 이어가기 쉽습니다.'
+  },
+  {
+    question: '오늘 일정이 비어 있을 때 가장 먼저 할 일은 무엇일까요?',
+    options: ['큰 시험 계획부터 완성하기', '오늘 목표 1개 등록하기', '기록을 전부 미루기'],
+    answerIndex: 1,
+    explanation: '일정 하나만 등록해도 대시보드와 보상 흐름을 시작할 수 있습니다.'
+  },
+  {
+    question: '복습 흐름을 만들기 좋은 방법은 무엇일까요?',
+    options: ['틀린 문제를 바로 지우기', '오답 이유를 한 줄로 남기기', '모든 알림 끄기'],
+    answerIndex: 1,
+    explanation: '짧은 오답 기록은 다음 복습 시점을 잡는 기준이 됩니다.'
+  }
+];
 
 const featureCards = [
   {
@@ -193,6 +215,63 @@ function buildRewardInsight(rewardData, activeQuests) {
   return '아직 보상 기록이 많지 않습니다. 오늘의 일정과 태스크를 먼저 채워 보상 흐름을 시작해 보세요.';
 }
 
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getDailyQuickQuiz() {
+  const day = new Date().getDate();
+  return quickQuizBank[day % quickQuizBank.length];
+}
+
+function buildMotivationInsight(rewardData, activeQuests) {
+  const totalStudyMinutes = Number(rewardData.metrics?.totalStudyMinutes || 0);
+  const completedTaskCount = Number(rewardData.metrics?.completedTaskCount || 0);
+  const availableQuestCount = activeQuests.filter((quest) => quest.status === 'ACHIEVED').length;
+  const progressQuestCount = activeQuests.filter((quest) => quest.status === 'IN_PROGRESS').length;
+
+  if (availableQuestCount > 0) {
+    return `수령 가능한 보상이 ${availableQuestCount}개 있어요. 먼저 보상을 받고 오늘 흐름을 가볍게 이어가 보세요.`;
+  }
+
+  if (totalStudyMinutes === 0 && completedTaskCount === 0) {
+    return '아직 오늘의 기록이 비어 있어요. 25분 집중 1회나 작은 태스크 하나부터 시작해도 충분합니다.';
+  }
+
+  if (completedTaskCount > 0) {
+    return `완료한 태스크가 ${completedTaskCount}개 쌓였어요. 다음 태스크는 더 작게 쪼개서 이어가 보세요.`;
+  }
+
+  if (progressQuestCount > 0) {
+    return `진행 중인 퀘스트가 ${progressQuestCount}개 있어요. 일정과 칸반을 하나씩 채우면 진행률이 올라갑니다.`;
+  }
+
+  return '오늘은 작은 기록을 남기기 좋은 날이에요. 부담 없이 한 가지 학습 행동만 고르면 됩니다.';
+}
+
+function buildMotivationAction(rewardData, activeQuests) {
+  const availableQuest = activeQuests.find((quest) => quest.status === 'ACHIEVED');
+
+  if (availableQuest) {
+    return {
+      label: '보상 확인하기',
+      action: 'reward'
+    };
+  }
+
+  if (Number(rewardData.metrics?.completedTaskCount || 0) === 0) {
+    return {
+      label: '태스크 만들기',
+      screen: 'taskBoard'
+    };
+  }
+
+  return {
+    label: '오늘 일정 보기',
+    screen: 'schedule'
+  };
+}
+
 function RewardPanelSkeleton() {
   return (
     <View style={styles.rewardSkeletonShell}>
@@ -241,6 +320,14 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const [rewardError, setRewardError] = useState('');
   const [claimingQuestId, setClaimingQuestId] = useState(null);
   const [claimMessage, setClaimMessage] = useState('');
+  const [selectedQuizOption, setSelectedQuizOption] = useState(null);
+  const [isQuickQuizHiddenToday, setIsQuickQuizHiddenToday] = useState(() => {
+    try {
+      return globalThis.localStorage?.getItem(QUICK_QUIZ_DISMISS_KEY) === getTodayKey();
+    } catch (error) {
+      return false;
+    }
+  });
   const [rewardData, setRewardData] = useState({
     account: null,
     metrics: { totalStudyMinutes: 0, completedTaskCount: 0 },
@@ -279,6 +366,17 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     () => buildRewardInsight(rewardData, activeQuests),
     [activeQuests, rewardData]
   );
+  const motivationInsight = useMemo(
+    () => buildMotivationInsight(rewardData, activeQuests),
+    [activeQuests, rewardData]
+  );
+  const motivationAction = useMemo(
+    () => buildMotivationAction(rewardData, activeQuests),
+    [activeQuests, rewardData]
+  );
+  const quickQuiz = useMemo(() => getDailyQuickQuiz(), []);
+  const isQuizAnswered = selectedQuizOption !== null;
+  const isQuizCorrect = selectedQuizOption === quickQuiz.answerIndex;
 
   function isGuideDismissed() {
     try {
@@ -391,6 +489,27 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     });
   }
 
+  function handleMotivationAction() {
+    if (motivationAction.action === 'reward') {
+      loadRewards({ silent: true });
+      return;
+    }
+
+    if (motivationAction.screen) {
+      onNavigate(motivationAction.screen);
+    }
+  }
+
+  function hideQuickQuizToday() {
+    setIsQuickQuizHiddenToday(true);
+
+    try {
+      globalThis.localStorage?.setItem(QUICK_QUIZ_DISMISS_KEY, getTodayKey());
+    } catch (error) {
+      // Disabled storage should not block the non-forced quiz flow.
+    }
+  }
+
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -441,6 +560,102 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <Pressable accessibilityRole="button" onPress={onLogout} style={(state) => [styles.logoutButton, ...interactiveStateStyles(state)]}>
               <Text style={styles.logoutButtonText}>로그아웃</Text>
             </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.motivationGrid}>
+          <View style={[styles.motivationCard, shadows.card]}>
+            <View style={styles.motivationHeader}>
+              <View>
+                <Text style={styles.motivationEyebrow}>TODAY BOOST</Text>
+                <Text style={styles.motivationTitle}>오늘의 학습 자극</Text>
+              </View>
+              <View style={styles.optInChip}>
+                <Text style={styles.optInChipText}>선택형</Text>
+              </View>
+            </View>
+            <Text style={styles.motivationText}>{motivationInsight}</Text>
+            <View style={styles.motivationActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleMotivationAction}
+                style={(state) => [styles.motivationButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.motivationButtonText}>{motivationAction.label}</Text>
+              </Pressable>
+              <Text style={styles.motivationNote}>웹 1차 구현이며 OS 잠금화면 개입은 하지 않습니다.</Text>
+            </View>
+          </View>
+
+          <View style={[styles.quickQuizCard, shadows.card]}>
+            <View style={styles.motivationHeader}>
+              <View>
+                <Text style={styles.motivationEyebrow}>1 SECOND REVIEW</Text>
+                <Text style={styles.motivationTitle}>1초 복습 퀴즈</Text>
+              </View>
+              {!isQuickQuizHiddenToday ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={hideQuickQuizToday}
+                  style={(state) => [styles.skipQuizButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.skipQuizText}>오늘 숨김</Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            {isQuickQuizHiddenToday ? (
+              <View style={styles.quizHiddenBox}>
+                <Text style={styles.emptyTitle}>오늘의 1초 퀴즈를 숨겼어요.</Text>
+                <Text style={styles.emptyText}>강제 퀴즈가 아니라 원할 때만 확인하는 빠른 복습 카드입니다.</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.quickQuizQuestion}>{quickQuiz.question}</Text>
+                <View style={styles.quickQuizOptions}>
+                  {quickQuiz.options.map((option, index) => {
+                    const isSelected = selectedQuizOption === index;
+                    const isCorrectOption = quickQuiz.answerIndex === index;
+
+                    return (
+                      <Pressable
+                        accessibilityLabel={`1초 복습 퀴즈 선택지: ${option}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                        key={option}
+                        onPress={() => setSelectedQuizOption(index)}
+                        style={(state) => [
+                          styles.quickQuizOption,
+                          isSelected && styles.quickQuizOptionSelected,
+                          isQuizAnswered && isCorrectOption && styles.quickQuizOptionCorrect,
+                          ...interactiveStateStyles(state, { kind: 'card' })
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.quickQuizOptionText,
+                            isSelected && styles.quickQuizOptionTextSelected,
+                            isQuizAnswered && isCorrectOption && styles.quickQuizOptionTextCorrect
+                          ]}
+                        >
+                          {option}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {isQuizAnswered ? (
+                  <View style={isQuizCorrect ? styles.quizResultSuccess : styles.quizResultInfo}>
+                    <Text style={isQuizCorrect ? styles.quizResultSuccessText : styles.quizResultInfoText}>
+                      {isQuizCorrect ? '정답이에요. 짧게 시작하는 흐름이 좋습니다.' : '괜찮아요. 핵심은 작게 시작하는 습관입니다.'}
+                    </Text>
+                    <Text style={styles.quizExplanation}>{quickQuiz.explanation}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.quickQuizHint}>데모형 빠른 복습 카드입니다. 잠금화면을 막거나 강제하지 않습니다.</Text>
+                )}
+              </>
+            )}
           </View>
         </View>
 
@@ -978,6 +1193,187 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 13,
     fontWeight: '800'
+  },
+  motivationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18
+  },
+  motivationCard: {
+    flex: 1,
+    minWidth: 300,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 22,
+    gap: 16
+  },
+  quickQuizCard: {
+    flex: 1,
+    minWidth: 300,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    padding: 22,
+    gap: 16
+  },
+  motivationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  motivationEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8
+  },
+  motivationTitle: {
+    color: colors.ink,
+    fontSize: 21,
+    fontWeight: '900',
+    marginTop: 6
+  },
+  optInChip: {
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  optInChipText: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  motivationText: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 24
+  },
+  motivationActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12
+  },
+  motivationButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  motivationButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  motivationNote: {
+    flex: 1,
+    minWidth: 180,
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  skipQuizButton: {
+    minHeight: 36,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  skipQuizText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  quickQuizQuestion: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 25,
+    fontWeight: '800'
+  },
+  quickQuizOptions: {
+    gap: 10
+  },
+  quickQuizOption: {
+    minHeight: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  quickQuizOptionSelected: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  quickQuizOptionCorrect: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.successSoft
+  },
+  quickQuizOptionText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  quickQuizOptionTextSelected: {
+    color: colors.blueDeep
+  },
+  quickQuizOptionTextCorrect: {
+    color: colors.success
+  },
+  quizResultSuccess: {
+    borderRadius: 16,
+    backgroundColor: colors.successSoft,
+    padding: 14,
+    gap: 6
+  },
+  quizResultInfo: {
+    borderRadius: 16,
+    backgroundColor: colors.blueSoft,
+    padding: 14,
+    gap: 6
+  },
+  quizResultSuccessText: {
+    color: colors.success,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  quizResultInfoText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  quizExplanation: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 19
+  },
+  quickQuizHint: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 19
+  },
+  quizHiddenBox: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 16,
+    gap: 6
   },
   rewardPanel: {
     borderRadius: 28,
