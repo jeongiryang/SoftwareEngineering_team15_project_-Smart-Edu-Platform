@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 const GITHUB_REPOSITORY_URL = 'https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform';
+const GITHUB_ICON_COLOR = '#24292f';
+const githubSvgStyle = {
+  display: 'block',
+  flexShrink: 0
+};
 
 const availableFeatures = [
   {
@@ -42,8 +47,43 @@ function openGitHubRepository() {
   Linking.openURL(GITHUB_REPOSITORY_URL);
 }
 
+function GitHubMark() {
+  if (Platform.OS === 'web') {
+    return (
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        height="28"
+        style={githubSvgStyle}
+        viewBox="0 0 16 16"
+        width="28"
+      >
+        <path
+          d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.87c.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.06-1.86 3.75-3.64 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.45.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+          fill={GITHUB_ICON_COLOR}
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.githubNativeMark}>
+      <View style={styles.githubNativeEarRow}>
+        <View style={styles.githubNativeEar} />
+        <View style={styles.githubNativeEar} />
+      </View>
+      <View style={styles.githubNativeHead} />
+    </View>
+  );
+}
+
 export default function LandingScreen({ onNavigate }) {
   const [writtenWord, setWrittenWord] = useState('');
+  const [githubTooltipState, setGithubTooltipState] = useState({
+    focused: false,
+    hovered: false
+  });
+  const showGithubTooltip = githubTooltipState.focused || githubTooltipState.hovered;
 
   useEffect(() => {
     const timers = [];
@@ -171,17 +211,18 @@ export default function LandingScreen({ onNavigate }) {
           <Pressable
             accessibilityLabel="GitHub Repository"
             accessibilityRole="link"
+            onBlur={() => setGithubTooltipState((current) => ({ ...current, focused: false }))}
+            onFocus={() => setGithubTooltipState((current) => ({ ...current, focused: true }))}
+            onHoverIn={() => setGithubTooltipState((current) => ({ ...current, hovered: true }))}
+            onHoverOut={() => setGithubTooltipState((current) => ({ ...current, hovered: false }))}
             onPress={openGitHubRepository}
             style={(state) => [styles.githubButton, ...interactiveStateStyles(state)]}
-            title="GitHub"
           >
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.githubMark}>
-              <View style={[styles.githubEar, styles.githubEarLeft]} />
-              <View style={[styles.githubEar, styles.githubEarRight]} />
-              <View style={styles.githubHead} />
-              <View style={styles.githubBody} />
-              <View style={styles.githubTail} />
+            <View pointerEvents="none" style={[styles.githubTooltip, showGithubTooltip && styles.githubTooltipVisible]}>
+              <Text style={styles.githubTooltipText}>GitHub</Text>
+              <View style={styles.githubTooltipTail} />
             </View>
+            <GitHubMark />
           </Pressable>
         </View>
       </View>
@@ -491,62 +532,80 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   githubButton: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative'
+  },
+  githubTooltip: {
+    position: 'absolute',
+    left: -13,
+    bottom: 50,
+    width: 68,
+    alignItems: 'center',
+    opacity: 0,
+    transform: [{ translateY: 5 }],
+    zIndex: 10,
+    transitionDuration: '150ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'ease-out'
+  },
+  githubTooltipVisible: {
+    opacity: 1,
+    transform: [{ translateY: 0 }]
+  },
+  githubTooltipText: {
+    backgroundColor: colors.ink,
+    borderRadius: 10,
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    textAlign: 'center'
+  },
+  githubTooltipTail: {
+    width: 0,
+    height: 0,
+    borderLeftColor: 'transparent',
+    borderLeftWidth: 5,
+    borderRightColor: 'transparent',
+    borderRightWidth: 5,
+    borderTopColor: colors.ink,
+    borderTopWidth: 6,
+    marginTop: -1
+  },
+  githubNativeMark: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center'
   },
-  githubMark: {
-    width: 26,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    position: 'relative'
-  },
-  githubEar: {
+  githubNativeEarRow: {
     position: 'absolute',
-    top: 1,
+    top: 3,
+    width: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  githubNativeEar: {
     width: 9,
     height: 9,
-    borderRadius: 3,
-    backgroundColor: colors.blueDeep,
+    borderRadius: 2,
+    backgroundColor: GITHUB_ICON_COLOR,
     transform: [{ rotate: '45deg' }]
   },
-  githubEarLeft: {
-    left: 4
-  },
-  githubEarRight: {
-    right: 4
-  },
-  githubHead: {
-    width: 22,
-    height: 18,
-    marginTop: 5,
-    borderRadius: 10,
-    backgroundColor: colors.blueDeep
-  },
-  githubBody: {
-    width: 10,
-    height: 7,
-    marginTop: -2,
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
-    backgroundColor: colors.blueDeep
-  },
-  githubTail: {
-    position: 'absolute',
-    right: 0,
-    bottom: 5,
-    width: 8,
-    height: 5,
-    borderBottomLeftRadius: 6,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: colors.blueDeep,
-    transform: [{ rotate: '-18deg' }]
+  githubNativeHead: {
+    width: 25,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: GITHUB_ICON_COLOR,
+    marginTop: 6
   }
 });
