@@ -491,7 +491,13 @@ export default function ScheduleScreen({ onNavigate, token }) {
         <View style={[styles.panel, styles.formPanel, shadows.card]}>
           <Text style={styles.panelEyebrow}>{editingScheduleId ? 'EDIT MODE' : 'NEW ENTRY'}</Text>
           <Text style={styles.panelTitle}>{editingScheduleId ? '일정 수정' : '새 일정 만들기'}</Text>
+          <View style={styles.formStepStrip}>
+            <Text style={styles.formStepChip}>1 기본 정보</Text>
+            <Text style={styles.formStepChip}>2 날짜와 시간</Text>
+            <Text style={styles.formStepChip}>3 우선순위와 메모</Text>
+          </View>
 
+          <Text style={styles.formSectionTitle}>기본 정보</Text>
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>제목</Text>
             <AccessibleTextInput
@@ -515,6 +521,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
             />
           </View>
 
+          <Text style={styles.formSectionTitle}>날짜와 시간</Text>
           <DateRangeCalendarPicker
             endDate={form.endDate}
             onChange={({ startDate, endDate }) => {
@@ -554,6 +561,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
             </Pressable>
           </View>
 
+          <Text style={styles.formSectionTitle}>정리 옵션</Text>
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>우선순위</Text>
             <View style={styles.optionRow}>
@@ -619,68 +627,10 @@ export default function ScheduleScreen({ onNavigate, token }) {
         </View>
 
         <View style={styles.sideColumn}>
-          <View style={[styles.panel, styles.reminderPanel, shadows.card]}>
-            <Text style={styles.panelEyebrow}>REVIEW REMINDER</Text>
-            <Text style={styles.panelTitle}>복습 알림 만들기</Text>
-            <Text style={styles.reminderDescription}>
-              공부할 시간 약속을 일정 화면에서 바로 등록합니다.
-            </Text>
-            <AccessibleTextInput
-              onChangeText={setReminderTitle}
-              placeholder="예: 오늘 복습"
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-              value={reminderTitle}
-            />
-            <AccessibleTextInput
-              multiline
-              onChangeText={setReminderTask}
-              placeholder="예: 오늘 배운 내용을 10분만 복습해 보세요."
-              placeholderTextColor={colors.muted}
-              style={[styles.input, styles.textArea]}
-              value={reminderTask}
-            />
-            <View style={styles.reminderPickerGrid}>
-              <CalendarDatePicker
-                accent="mint"
-                label="알림 날짜"
-                onChange={setReminderDate}
-                value={reminderDate}
-              />
-              <TimeWheelPicker
-                accent="blue"
-                label="알림 시간"
-                onChange={setReminderTime}
-                quickOptions={QUICK_TIME_OPTIONS}
-                showCaption={false}
-                value={reminderTime}
-              />
-            </View>
-            <View style={styles.reminderSummary}>
-              <Text style={styles.selectionTitle}>알림 예정</Text>
-              <Text style={styles.reminderTimeText}>{reminderDate} {reminderTime}</Text>
-            </View>
-            {reminderErrorMsg ? <Text style={styles.errorText}>{reminderErrorMsg}</Text> : null}
-            {reminderMsg ? <Text style={styles.successText}>{reminderMsg}</Text> : null}
-            <Pressable
-              disabled={reminderSubmitting}
-              onPress={handleCreateReminder}
-              style={(state) => [
-                styles.primaryButton,
-                styles.fullWidthButton,
-                reminderSubmitting && styles.disabledButton,
-                ...interactiveStateStyles(state, { disabled: reminderSubmitting })
-              ]}
-            >
-              <Text style={styles.primaryButtonText}>
-                {reminderSubmitting ? '알림 등록 중...' : '복습 알림 등록'}
-              </Text>
-            </Pressable>
-          </View>
-
           <View style={[styles.panel, styles.listPanel, shadows.card]}>
             <Text style={styles.panelEyebrow}>SAVED SCHEDULES</Text>
             <Text style={styles.panelTitle}>일정 목록</Text>
+            <Text style={styles.listDescription}>저장된 일정을 시간순으로 확인하고 바로 수정할 수 있습니다.</Text>
 
             {loading ? (
               <View style={styles.centerBox}>
@@ -739,6 +689,65 @@ export default function ScheduleScreen({ onNavigate, token }) {
                 </View>
               ))
             )}
+          </View>
+
+          <View style={[styles.panel, styles.reminderPanel, shadows.card]}>
+            <Text style={styles.panelEyebrow}>REVIEW REMINDER</Text>
+            <Text style={styles.panelTitle}>복습 알림 만들기</Text>
+            <Text style={styles.reminderDescription}>
+              공부할 시간 약속을 일정 화면에서 바로 등록합니다.
+            </Text>
+            <AccessibleTextInput
+              onChangeText={setReminderTitle}
+              placeholder="예: 오늘 복습"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={reminderTitle}
+            />
+            <AccessibleTextInput
+              multiline
+              onChangeText={setReminderTask}
+              placeholder="예: 오늘 배운 내용을 10분만 복습해 보세요."
+              placeholderTextColor={colors.muted}
+              style={[styles.input, styles.textArea]}
+              value={reminderTask}
+            />
+            <View style={styles.reminderPickerGrid}>
+              <CalendarDatePicker
+                accent="mint"
+                label="알림 날짜"
+                onChange={setReminderDate}
+                value={reminderDate}
+              />
+              <TimeWheelPicker
+                accent="blue"
+                label="알림 시간"
+                onChange={setReminderTime}
+                quickOptions={QUICK_TIME_OPTIONS}
+                showCaption={false}
+                value={reminderTime}
+              />
+            </View>
+            <View style={styles.reminderSummary}>
+              <Text style={styles.selectionTitle}>알림 예정</Text>
+              <Text style={styles.reminderTimeText}>{reminderDate} {reminderTime}</Text>
+            </View>
+            {reminderErrorMsg ? <Text style={styles.errorText}>{reminderErrorMsg}</Text> : null}
+            {reminderMsg ? <Text style={styles.successText}>{reminderMsg}</Text> : null}
+            <Pressable
+              disabled={reminderSubmitting}
+              onPress={handleCreateReminder}
+              style={(state) => [
+                styles.primaryButton,
+                styles.fullWidthButton,
+                reminderSubmitting && styles.disabledButton,
+                ...interactiveStateStyles(state, { disabled: reminderSubmitting })
+              ]}
+            >
+              <Text style={styles.primaryButtonText}>
+                {reminderSubmitting ? '알림 등록 중...' : '복습 알림 등록'}
+              </Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -884,6 +893,11 @@ const styles = StyleSheet.create({
   listPanel: {
     gap: 14
   },
+  listDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20
+  },
   panelEyebrow: {
     color: colors.mintDeep,
     fontSize: 11,
@@ -894,6 +908,31 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 23,
     fontWeight: '800'
+  },
+  formStepStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 10
+  },
+  formStepChip: {
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  formSectionTitle: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '900',
+    paddingTop: 4
   },
   fieldGroup: {
     gap: 8
