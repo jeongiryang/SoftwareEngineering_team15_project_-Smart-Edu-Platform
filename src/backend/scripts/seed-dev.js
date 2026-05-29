@@ -314,6 +314,15 @@ const SEED_QUEST_CODES = [
   'QUEST_REVIEW_ROUTINE'
 ];
 
+const SEED_BOSS_BADGE_CODES = [
+  'SAGAK_BOSS_DAWN_SLAYER'
+];
+
+const SEED_BOSS_RAID_CODES = [
+  'BOSS_DAWN_PENCIL',
+  'BOSS_MIDNIGHT_GUARDIAN'
+];
+
 function looksLikeProductionUrl(value) {
   if (typeof value !== 'string') {
     return false;
@@ -483,6 +492,35 @@ async function resetSeedData(prisma, seedUsers) {
     }
   });
 
+  await prisma.bossRaidRewardClaim.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidContribution.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidPartyMember.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidParty.deleteMany({
+    where: {
+      OR: [
+        { ownerId: { in: userIds } },
+        { raid: { code: { in: SEED_BOSS_RAID_CODES } } }
+      ]
+    }
+  });
+  await prisma.bossRaid.deleteMany({
+    where: {
+      code: { in: SEED_BOSS_RAID_CODES }
+    }
+  });
+
   await prisma.pointTransaction.deleteMany({
     where: {
       userId: { in: userIds }
@@ -493,9 +531,23 @@ async function resetSeedData(prisma, seedUsers) {
       userId: { in: userIds }
     }
   });
+  await prisma.userQuest.deleteMany({
+    where: {
+      quest: {
+        code: { in: SEED_QUEST_CODES }
+      }
+    }
+  });
   await prisma.userBadge.deleteMany({
     where: {
       userId: { in: userIds }
+    }
+  });
+  await prisma.userBadge.deleteMany({
+    where: {
+      badge: {
+        code: { in: [...SEED_BADGE_CODES, ...SEED_BOSS_BADGE_CODES] }
+      }
     }
   });
   await prisma.rewardQuest.deleteMany({
@@ -505,7 +557,7 @@ async function resetSeedData(prisma, seedUsers) {
   });
   await prisma.badge.deleteMany({
     where: {
-      code: { in: SEED_BADGE_CODES }
+      code: { in: [...SEED_BADGE_CODES, ...SEED_BOSS_BADGE_CODES] }
     }
   });
 
@@ -2349,18 +2401,17 @@ async function seedBossRaids(prisma, usersByLoginId) {
   const sampleParty = await prisma.bossRaidParty.create({
     data: {
       raidId: dawnBossRaid.id,
-      ownerId: mainUser.id,
+      ownerId: peerUser.id,
       name: '아침 집중팟',
       joinCode: 'DAWN01',
       status: 'OPEN',
-      totalDamage: 210,
-      remainingHp: 150,
+      totalDamage: 180,
+      remainingHp: 180,
       lastCalculatedAt: daysFromNow(0, 9, 0),
       members: {
         create: [
-          { userId: mainUser.id, joinedAt: daysFromNow(-1, 7, 30) },
-          { userId: peerUser.id, joinedAt: daysFromNow(-1, 7, 45) },
-          { userId: rewardUser.id, joinedAt: daysFromNow(-1, 8, 0) }
+          { userId: peerUser.id, joinedAt: daysFromNow(-1, 7, 30) },
+          { userId: rewardUser.id, joinedAt: daysFromNow(-1, 7, 45) }
         ]
       }
     }
@@ -2370,7 +2421,7 @@ async function seedBossRaids(prisma, usersByLoginId) {
     data: [
       {
         partyId: sampleParty.id,
-        userId: mainUser.id,
+        userId: peerUser.id,
         focusMinutes: 90,
         completedTaskCount: 3,
         totalDamage: 135,
@@ -2378,18 +2429,10 @@ async function seedBossRaids(prisma, usersByLoginId) {
       },
       {
         partyId: sampleParty.id,
-        userId: peerUser.id,
+        userId: rewardUser.id,
         focusMinutes: 30,
         completedTaskCount: 1,
         totalDamage: 45,
-        lastContributedAt: daysFromNow(0, 9, 0)
-      },
-      {
-        partyId: sampleParty.id,
-        userId: rewardUser.id,
-        focusMinutes: 15,
-        completedTaskCount: 1,
-        totalDamage: 30,
         lastContributedAt: daysFromNow(0, 9, 0)
       }
     ]

@@ -139,7 +139,7 @@ export default function BossRaidScreen({ token, user }) {
     return () => {
       active = false;
     };
-  }, [token, selectedPartyId, selectedRaidId]);
+  }, [token]);
 
   useEffect(() => {
     let active = true;
@@ -149,6 +149,8 @@ export default function BossRaidScreen({ token, user }) {
         setSelectedParty(null);
         return;
       }
+
+      setSelectedParty(null);
 
       try {
         const response = await getBossRaidPartyDetail(token, selectedPartyId);
@@ -204,6 +206,7 @@ export default function BossRaidScreen({ token, user }) {
       });
 
       setCreatePartyName('');
+      setSelectedPartyId(response.party.id);
       setMessage(`"${response.party.name}" 파티를 생성했어요. 참여 코드는 ${response.party.joinCode} 입니다.`);
       await refreshParties(response.party.id);
     } catch (createError) {
@@ -222,6 +225,7 @@ export default function BossRaidScreen({ token, user }) {
       const response = await joinBossRaidParty(token, { joinCode });
 
       setJoinCode('');
+      setSelectedPartyId(response.party.id);
       setMessage(`"${response.party.name}" 파티에 참가했어요.`);
       await refreshParties(response.party.id);
     } catch (joinError) {
@@ -386,7 +390,10 @@ export default function BossRaidScreen({ token, user }) {
             return (
               <Pressable
                 key={party.id}
-                onPress={() => setSelectedPartyId(party.id)}
+                onPress={() => {
+                  setSelectedParty(null);
+                  setSelectedPartyId(party.id);
+                }}
                 style={({ pressed }) => [
                   styles.partyChip,
                   active && styles.partyChipActive,
