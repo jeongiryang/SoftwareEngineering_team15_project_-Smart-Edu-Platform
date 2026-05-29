@@ -12,7 +12,7 @@ const PARTY_INCLUDE = {
     select: {
       id: true,
       name: true,
-      email: true
+      loginId: true
     }
   },
   members: {
@@ -21,7 +21,7 @@ const PARTY_INCLUDE = {
         select: {
           id: true,
           name: true,
-          email: true
+          loginId: true
         }
       }
     },
@@ -32,11 +32,11 @@ const PARTY_INCLUDE = {
   contributions: {
     include: {
       user: {
-        select: {
-          id: true,
-          name: true,
-          email: true
-        }
+                select: {
+                  id: true,
+                  name: true,
+                  loginId: true
+                }
       }
     },
     orderBy: {
