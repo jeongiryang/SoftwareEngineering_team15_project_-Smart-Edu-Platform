@@ -21,6 +21,7 @@ import {
 } from '../services/api';
 import FieldFeedback from '../components/FieldFeedback';
 import { useAccessibility } from '../contexts/AccessibilityContext';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
@@ -186,7 +187,7 @@ function getScheduleTimeFeedback(form) {
   return { tone: 'success', message: '선택한 시간으로 일정이 정리돼요.' };
 }
 
-function formatDateForDisplay(value) {
+function formatDateForDisplay(value, language = 'ko') {
   if (!value) {
     return '-';
   }
@@ -197,7 +198,7 @@ function formatDateForDisplay(value) {
     return value;
   }
 
-  return date.toLocaleString('ko-KR', {
+  return date.toLocaleString(languageIntlLocale(language), {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -225,6 +226,22 @@ function addOneHour(dateText, timeText) {
   };
 }
 
+function formatMonthPart(value, language = 'ko') {
+  const datePart = formatDatePart(value);
+
+  if (!datePart) {
+    return '';
+  }
+
+  const [year, month] = datePart.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+
+  return new Intl.DateTimeFormat(languageIntlLocale(language), {
+    month: 'short',
+    timeZone: 'UTC'
+  }).format(date);
+}
+
 function confirmAction(title, message) {
   if (typeof globalThis.confirm === 'function') {
     return Promise.resolve(globalThis.confirm(message));
@@ -238,19 +255,19 @@ function confirmAction(title, message) {
   });
 }
 
-function getPriorityLabel(priority) {
+function getPriorityLabel(priority, translateText) {
   if (priority === 'HIGH') {
-    return '높음';
+    return translateText('높음');
   }
 
   if (priority === 'LOW') {
-    return '낮음';
+    return translateText('낮음');
   }
 
-  return '보통';
+  return translateText('보통');
 }
 
-function ScheduleSummary({ schedules }) {
+function ScheduleSummary({ schedules, translateText }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayCount = schedules.filter((schedule) => formatDatePart(schedule.startAt) === today).length;
   const highPriorityCount = schedules.filter((schedule) => schedule.priority === 'HIGH').length;
@@ -261,17 +278,17 @@ function ScheduleSummary({ schedules }) {
       <View style={[styles.summaryCard, styles.summaryMint, shadows.card]}>
         <Text style={styles.summaryEyebrow}>TODAY</Text>
         <Text style={styles.summaryValue}>{todayCount}</Text>
-        <Text style={styles.summaryLabel}>오늘 시작 일정</Text>
+        <Text style={styles.summaryLabel}>{translateText('오늘 시작 일정')}</Text>
       </View>
       <View style={[styles.summaryCard, styles.summaryBlue, shadows.card]}>
         <Text style={[styles.summaryEyebrow, styles.summaryEyebrowLight]}>UPCOMING</Text>
         <Text style={[styles.summaryValue, styles.summaryValueLight]}>{upcomingCount}</Text>
-        <Text style={styles.summaryLabelLight}>남은 일정</Text>
+        <Text style={styles.summaryLabelLight}>{translateText('남은 일정')}</Text>
       </View>
       <View style={[styles.summaryCard, styles.summaryWarm, shadows.card]}>
         <Text style={styles.summaryEyebrow}>FOCUS</Text>
         <Text style={styles.summaryValue}>{highPriorityCount}</Text>
-        <Text style={styles.summaryLabel}>높은 우선순위</Text>
+        <Text style={styles.summaryLabel}>{translateText('높은 우선순위')}</Text>
       </View>
     </View>
   );
@@ -279,6 +296,7 @@ function ScheduleSummary({ schedules }) {
 
 export default function ScheduleScreen({ onNavigate, token }) {
   const { scheduleAlarm } = useAccessibility();
+  const { currentLanguage, translateText } = useLanguage();
   const defaultForm = useMemo(() => createInitialForm(), []);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -413,7 +431,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
         scheduleAlarm(result.reminder.id, result.reminder.scheduledAt, result.reminder.message);
       }
 
-      setReminderMsg(`${reminderDate} ${reminderTime}에 복습 알림을 등록했습니다.`);
+      setReminderMsg(`${reminderDate} ${reminderTime} ${translateText('복습 알림을 등록했습니다.')}`);
     } catch (error) {
       setReminderErrorMsg(error.message || '복습 알림 등록에 실패했습니다.');
     } finally {
@@ -485,7 +503,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
         </Pressable>
       </View>
 
-      <ScheduleSummary schedules={schedules} />
+      <ScheduleSummary schedules={schedules} translateText={translateText} />
 
       <View style={styles.twoColumn}>
         <View style={[styles.panel, styles.formPanel, shadows.card]}>
@@ -654,14 +672,14 @@ export default function ScheduleScreen({ onNavigate, token }) {
                 <View key={schedule.id} style={styles.itemCard}>
                   <View style={styles.itemDateBadge}>
                     <Text style={styles.itemDateDay}>{formatDatePart(schedule.startAt).slice(8, 10)}</Text>
-                    <Text style={styles.itemDateMonth}>{formatDatePart(schedule.startAt).slice(5, 7)}월</Text>
+                    <Text style={styles.itemDateMonth}>{formatMonthPart(schedule.startAt, currentLanguage)}</Text>
                   </View>
                   <View style={styles.itemBody}>
                     <View style={styles.itemHeader}>
                       <View style={styles.itemTitleBox}>
                         <Text style={styles.itemTitle}>{schedule.title}</Text>
                         <Text style={styles.itemMeta}>
-                          {schedule.subject || '과목 없음'} · 우선순위 {getPriorityLabel(schedule.priority)}
+                          {schedule.subject || translateText('과목 없음')} · {translateText('우선순위')} {getPriorityLabel(schedule.priority, translateText)}
                         </Text>
                       </View>
                       <View style={styles.inlineActions}>
@@ -682,9 +700,9 @@ export default function ScheduleScreen({ onNavigate, token }) {
                         </Pressable>
                       </View>
                     </View>
-                    <Text style={styles.itemField}>시작: {formatDateForDisplay(schedule.startAt)}</Text>
-                    <Text style={styles.itemField}>종료: {formatDateForDisplay(schedule.endAt)}</Text>
-                    <Text style={styles.itemMemo}>{schedule.memo || '메모 없음'}</Text>
+                    <Text style={styles.itemField}>{translateText('시작:')} {formatDateForDisplay(schedule.startAt, currentLanguage)}</Text>
+                    <Text style={styles.itemField}>{translateText('종료:')} {formatDateForDisplay(schedule.endAt, currentLanguage)}</Text>
+                    <Text style={styles.itemMemo}>{schedule.memo || translateText('메모 없음')}</Text>
                   </View>
                 </View>
               ))
