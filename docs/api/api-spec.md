@@ -2041,13 +2041,38 @@ Response `200`:
       "id": 1,
       "postId": 1,
       "userId": 1,
+      "parentId": null,
       "content": "댓글 내용입니다.",
+      "replyCount": 1,
+      "likeCount": 2,
+      "dislikeCount": 0,
+      "myReaction": "LIKE",
       "createdAt": "2026-05-26T00:00:00.000Z",
       "updatedAt": "2026-05-26T00:00:00.000Z",
       "author": {
         "id": 1,
         "name": "사용자 이름"
-      }
+      },
+      "replies": [
+        {
+          "id": 2,
+          "postId": 1,
+          "userId": 2,
+          "parentId": 1,
+          "content": "대답글 내용입니다.",
+          "replyCount": 0,
+          "likeCount": 0,
+          "dislikeCount": 0,
+          "myReaction": null,
+          "createdAt": "2026-05-26T00:01:00.000Z",
+          "updatedAt": "2026-05-26T00:01:00.000Z",
+          "author": {
+            "id": 2,
+            "name": "다른 사용자"
+          },
+          "replies": []
+        }
+      ]
     }
   ],
   "pagination": {
@@ -2073,9 +2098,14 @@ Request body:
 
 ```json
 {
-  "content": "댓글 내용입니다."
+  "content": "댓글 내용입니다.",
+  "parentId": null
 }
 ```
+
+- `parentId`는 선택값임. 생략 또는 `null`이면 일반 댓글로 생성함.
+- `parentId`에 같은 게시글의 최상위 댓글 id를 전달하면 대답글로 생성함.
+- 대답글에 다시 대답글을 다는 2단 이상 nested reply는 지원하지 않음.
 
 Response `201`:
 
@@ -2085,7 +2115,9 @@ Response `201`:
     "id": 1,
     "postId": 1,
     "userId": 1,
+    "parentId": null,
     "content": "댓글 내용입니다.",
+    "replyCount": 0,
     "createdAt": "2026-05-26T00:00:00.000Z",
     "updatedAt": "2026-05-26T00:00:00.000Z",
     "author": {
@@ -2098,9 +2130,9 @@ Response `201`:
 
 Error:
 
-- `400`: invalid `postId`, `content` 누락 또는 빈 문자열, 지원하지 않는 field 포함
+- `400`: invalid `postId`, invalid `parentId`, `content` 누락 또는 빈 문자열, 지원하지 않는 field 포함, 대답글에 다시 대답글 작성 시도
 - `401`: 인증 token 없음 또는 유효하지 않음
-- `404`: 게시글 없음
+- `404`: 게시글 없음 또는 parent comment 없음
 
 #### 9.4.8 댓글 수정
 
@@ -2210,7 +2242,60 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음 또는 현재 사용자의 반응 없음
 
-#### 9.4.12 게시글 북마크 생성
+#### 9.4.12 댓글 반응 생성/전환
+
+`POST /api/community/comments/:commentId/reactions`
+
+Request body:
+
+```json
+{
+  "type": "LIKE"
+}
+```
+
+`type`은 `LIKE` 또는 `DISLIKE`만 허용함. 같은 사용자가 같은 댓글에 이미 반응한 상태에서 같은 `type`을 다시 요청하면 중복 row를 만들지 않고 현재 반응을 유지함. 다른 `type`을 요청하면 기존 반응을 새 `type`으로 전환함.
+
+Response `201`:
+
+```json
+{
+  "reaction": {
+    "id": 1,
+    "commentId": 1,
+    "userId": 1,
+    "type": "LIKE",
+    "createdAt": "2026-05-27T00:00:00.000Z",
+    "updatedAt": "2026-05-27T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`, `type` 누락, invalid `type`, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음
+
+#### 9.4.13 댓글 반응 취소
+
+`DELETE /api/community/comments/:commentId/reactions`
+
+Response `200`:
+
+```json
+{
+  "message": "Community comment reaction deleted successfully"
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음 또는 현재 사용자의 댓글 반응 없음
+
+#### 9.4.14 게시글 북마크 생성
 
 `POST /api/community/posts/:postId/bookmarks`
 
@@ -2240,7 +2325,7 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음
 
-#### 9.4.13 게시글 북마크 취소
+#### 9.4.15 게시글 북마크 취소
 
 `DELETE /api/community/posts/:postId/bookmarks`
 
@@ -2258,7 +2343,7 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음 또는 현재 사용자의 북마크 없음
 
-#### 9.4.14 내 북마크 목록 조회
+#### 9.4.16 내 북마크 목록 조회
 
 `GET /api/community/bookmarks`
 
@@ -2321,7 +2406,7 @@ Error:
 - `400`: invalid `page`, `pageSize`, `sort`
 - `401`: 인증 token 없음 또는 유효하지 않음
 
-#### 9.4.15 게시글 신고
+#### 9.4.17 게시글 신고
 
 `POST /api/community/posts/:postId/reports`
 
@@ -2366,7 +2451,7 @@ Error:
 - `404`: 게시글 없음
 - `409`: 현재 사용자가 이미 같은 게시글을 신고함
 
-#### 9.4.16 댓글 신고
+#### 9.4.18 댓글 신고
 
 `POST /api/community/comments/:commentId/reports`
 
@@ -3386,8 +3471,8 @@ Request Body:
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 24 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 41 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 31 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 커뮤니티 내 북마크 목록 API 단일 테스트 | 1 suite / 14 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
@@ -3422,8 +3507,9 @@ Request Body:
 | 2026-05-26 | 커뮤니티 게시글 CRUD API(§9.4) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-26 | 커뮤니티 댓글 API(§9.4.6~§9.4.9) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 반응 API(§9.4.10~§9.4.11) 구현 완료 내역과 테스트 결과 반영 |
-| 2026-05-27 | 커뮤니티 북마크 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
-| 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |
-| 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.15~§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-27 | 커뮤니티 북마크 API(§9.4.14~§9.4.15) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.17~§9.4.18) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-29 | 커뮤니티 댓글 반응 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-29 | 친구 추가 및 친구 목록 API(§6.5) 구현 완료 내역과 테스트 결과 반영 |

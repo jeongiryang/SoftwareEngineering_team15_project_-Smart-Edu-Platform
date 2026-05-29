@@ -288,7 +288,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(23 suites / 413 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(23 suites / 423 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
@@ -315,10 +315,10 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Friend focused test | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 통과 | 친구 추가 및 친구 목록 API 단일 테스트 기준 1 suite / 20 tests passed |
 | Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category/search/sort validation, 반응/북마크 count/status 응답, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
 | Community Post focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 통과 | 커뮤니티 게시글 API 단일 테스트 파일과 repository query option 및 삭제 안전성 테스트 기준 1 suite / 48 tests passed |
-| Community Comment API test | `GET/POST/PATCH/DELETE /api/community/posts/:postId/comments`, `PATCH/DELETE /api/community/comments/:commentId` | 통과 | `src/backend/tests/community-comment.test.js`의 repository mock 기반 API 테스트. 미인증 401, pagination validation, invalid postId/commentId 400, 존재하지 않는 게시글/댓글 404, 타인 댓글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
-| Community Comment focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 통과 | 커뮤니티 댓글 API 단일 테스트 기준 1 suite / 38 tests passed |
-| Community Reaction API test | `POST/DELETE /api/community/posts/:postId/reactions` | 통과 | `src/backend/tests/community-reaction.test.js`의 repository mock 기반 API 테스트. 미인증 401, invalid postId 400, 존재하지 않는 게시글 404, LIKE/DISLIKE 생성, 동일 type 재요청, 반응 전환, 반응 취소, 다른 사용자 반응 영향 없음, 민감정보 미노출 검증 포함 |
-| Community Reaction focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 통과 | 커뮤니티 반응 API 단일 테스트 기준 1 suite / 24 tests passed |
+| Community Comment API test | `GET/POST/PATCH/DELETE /api/community/posts/:postId/comments`, `PATCH/DELETE /api/community/comments/:commentId` | 통과 | `src/backend/tests/community-comment.test.js`의 repository mock 기반 API 테스트. 미인증 401, pagination validation, invalid postId/commentId 400, 존재하지 않는 게시글/댓글 404, 대답글 생성/계층 조회/2단 대답글 차단, 타인 댓글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
+| Community Comment focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 통과 | 커뮤니티 댓글 API 단일 테스트 기준 1 suite / 41 tests passed |
+| Community Reaction API test | `POST/DELETE /api/community/posts/:postId/reactions`, `POST/DELETE /api/community/comments/:commentId/reactions` | 통과 | `src/backend/tests/community-reaction.test.js`의 repository mock 기반 API 테스트. 미인증 401, invalid target id 400, 존재하지 않는 게시글/댓글 404, LIKE/DISLIKE 생성, 동일 type 재요청, 반응 전환, 게시글/댓글 반응 취소, 다른 사용자 반응 영향 없음, 민감정보 미노출 검증 포함 |
+| Community Reaction focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 통과 | 커뮤니티 반응 API 단일 테스트 기준 1 suite / 31 tests passed |
 | Community Bookmark API test | `POST/DELETE /api/community/posts/:postId/bookmarks` | 통과 | `src/backend/tests/community-bookmark.test.js`의 repository mock 기반 API 테스트. 미인증 401, invalid postId 400, 존재하지 않는 게시글 404, 북마크 생성, 중복 북마크 요청, 북마크 취소, 다른 사용자 북마크 영향 없음, 민감정보 미노출 검증 포함 |
 | Community Bookmark focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 통과 | 커뮤니티 북마크 API 단일 테스트 기준 1 suite / 16 tests passed |
 | Community Bookmark List API test | `GET /api/community/bookmarks` | 통과 | `src/backend/tests/community-bookmark-list.test.js`의 repository mock 기반 API 테스트. 미인증 401, current user 기준 목록 조회, pagination, latest/oldest sort, invalid query 400, 반응/북마크 count/status 응답, 민감정보 미노출 검증 포함 |
@@ -344,7 +344,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | User/Profile account settings 검증 | 사용자 계정 설정 API 검증 | 통과 | `npm test`(21 suites / 382 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 19 tests passed) 통과 |
 | Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(21 suites / 382 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 10 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(22 suites / 402 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
-| Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 413 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
+| Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 423 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
