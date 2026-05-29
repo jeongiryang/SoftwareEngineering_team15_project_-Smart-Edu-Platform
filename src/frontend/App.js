@@ -17,6 +17,7 @@ import AccessibilityScreen from './src/screens/AccessibilityScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import TaskBoardScreen from './src/screens/TaskBoardScreen';
+import PointShopScreen from './src/screens/PointShopScreen';
 import BossRaidScreen from './src/screens/BossRaidScreen';
 import { getCurrentUser } from './src/services/api';
 import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
@@ -35,13 +36,14 @@ const screens = {
   community: CommunityScreen,
   schedule: ScheduleScreen,
   taskBoard: TaskBoardScreen,
+  pointShop: PointShopScreen,
   bossRaid: BossRaidScreen,
   accessibility: AccessibilityScreen,
   admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'bossRaid', 'accessibility'];
+const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid'];
 
 const screenPaths = {
   home: '/',
@@ -55,6 +57,7 @@ const screenPaths = {
   community: '/community',
   schedule: '/schedule',
   taskBoard: '/task-board',
+  pointShop: '/shop',
   bossRaid: '/boss-raids',
   accessibility: '/accessibility',
   admin: '/admin'

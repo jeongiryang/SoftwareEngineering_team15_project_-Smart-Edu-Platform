@@ -78,7 +78,7 @@ Authorization: Bearer <JWT_TOKEN>
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -122,7 +122,7 @@ Authorization: Bearer <JWT_TOKEN>
 | `401 Unauthorized` | 인증 실패 | 토큰 없음, 토큰 오류, 로그인 실패 |
 | `403 Forbidden` | 권한 없음 | 비활성 사용자, 관리자 권한 부족 |
 | `404 Not Found` | 리소스 없음 | 사용자 또는 대상 데이터 없음 |
-| `409 Conflict` | 충돌 | 중복 이메일 등 |
+| `409 Conflict` | 충돌 | 중복 아이디 등 |
 | `500 Internal Server Error` | 서버 오류 | 예상하지 못한 서버 오류 |
 
 ---
@@ -168,13 +168,13 @@ Response 예시:
 | Method | `POST` |
 | Endpoint | `/api/auth/register` |
 | 인증 | 불필요 |
-| 설명 | 이메일, 비밀번호, 이름을 받아 사용자를 생성하고 JWT를 발급함 |
+| 설명 | 아이디, 비밀번호, 이름을 받아 사용자를 생성하고 JWT를 발급함 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `email` | string | 예 | 사용자 이메일 |
+| `loginId` | string | 예 | 사용자 아이디 |
 | `password` | string | 예 | 사용자 비밀번호 |
 | `name` | string | 예 | 사용자 이름 |
 
@@ -182,7 +182,7 @@ Request 예시:
 
 ```json
 {
-  "email": "user@example.com",
+  "loginId": "user_id",
   "password": "<PASSWORD>",
   "name": "홍길동"
 }
@@ -194,7 +194,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -207,8 +207,8 @@ Response 예시:
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `400` | `VALIDATION_ERROR` | 필수값 누락, 이메일 형식 오류, 비밀번호 길이 부족 |
-| `409` | `CONFLICT` | 이미 가입된 이메일 |
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 아이디 형식 오류, 비밀번호 길이 부족 |
+| `409` | `CONFLICT` | 이미 가입된 아이디 |
 
 보안 주의사항:
 
@@ -224,20 +224,20 @@ Response 예시:
 | Method | `POST` |
 | Endpoint | `/api/auth/login` |
 | 인증 | 불필요 |
-| 설명 | 이메일과 비밀번호를 검증하고 JWT를 발급함 |
+| 설명 | 아이디와 비밀번호를 검증하고 JWT를 발급함 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `email` | string | 예 | 사용자 이메일 |
+| `loginId` | string | 예 | 사용자 아이디 |
 | `password` | string | 예 | 사용자 비밀번호 |
 
 Request 예시:
 
 ```json
 {
-  "email": "user@example.com",
+  "loginId": "user_id",
   "password": "<PASSWORD>"
 }
 ```
@@ -248,7 +248,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -292,7 +292,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -337,7 +337,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE",
@@ -402,7 +402,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "사각 학습자",
     "role": "USER",
     "status": "ACTIVE"
@@ -420,7 +420,7 @@ Response 예시:
 
 보안 주의사항:
 
-- `role`, `status`, `email`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
+- `role`, `status`, `loginId`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
 
 ### 6.3 내 비밀번호 변경
@@ -552,7 +552,7 @@ Response 예시:
 - A→B와 B→A 중복 pending/accepted 관계를 service 계층에서 차단함.
 - 친구 요청 수락/거절은 요청 수신자만 가능함.
 - 응답에는 `passwordHash`, plain password, token/JWT 원문을 포함하지 않음.
-- 사용자 검색 결과의 이메일은 원문 전체를 노출하지 않고 최소 식별 힌트만 제공함.
+- 사용자 검색 결과에는 공개 식별자인 `loginId`를 포함하되 password, token/JWT, `passwordHash`는 포함하지 않음.
 
 #### 6.5.1 친구 추가 대상 검색
 
@@ -562,7 +562,7 @@ Response 예시:
 | Method | `GET` |
 | Endpoint | `/api/users/search?keyword=...` |
 | 인증 | 필요 |
-| 설명 | 이름 또는 이메일 일부로 친구 추가 대상을 검색함 |
+| 설명 | 이름 또는 아이디 일부로 친구 추가 대상을 검색함 |
 
 Query:
 
@@ -580,7 +580,7 @@ Response `200`:
       "name": "학습 친구",
       "role": "USER",
       "status": "ACTIVE",
-      "emailMasked": "lea***",
+      "loginId": "study_peer",
       "profileImageUrl": null,
       "learningGoal": "매일 30분 복습",
       "preferredSubject": "영어",
@@ -634,7 +634,7 @@ Response `200`:
         "name": "학습 친구",
         "role": "USER",
         "status": "ACTIVE",
-        "emailMasked": "lea***",
+        "loginId": "study_peer",
         "profileImageUrl": null,
         "learningGoal": "매일 30분 복습",
         "preferredSubject": "영어"
@@ -670,7 +670,7 @@ Response `200`:
           "name": "보상 데모 사용자",
           "role": "USER",
           "status": "ACTIVE",
-          "emailMasked": "rew***"
+          "loginId": "reward_user"
         }
       }
     ]
@@ -1181,10 +1181,10 @@ npm run seed:dev
 
 생성 또는 갱신되는 개발용 데이터:
 
-| 구분 | Email | Role | UserProfile |
+| 구분 | Login ID | Role | UserProfile |
 |---|---|---|---|
-| 일반 사용자 | `dev.user@example.com` | `USER` | 생성 또는 갱신 |
-| 관리자 사용자 | `dev.admin@example.com` | `ADMIN` | 생성 또는 갱신 |
+| 일반 사용자 | `dev_user` | `USER` | 생성 또는 갱신 |
+| 관리자 사용자 | `admin_user` | `ADMIN` | 생성 또는 갱신 |
 
 주의:
 
@@ -1634,7 +1634,7 @@ Response 예시:
 - 히트맵의 날짜 key는 서버에서 `startedAt`의 UTC 날짜(`YYYY-MM-DD`) 기준으로 그룹핑함.
 - KST 등 사용자 현지 시간대 기준 시각화는 프론트 또는 후속 통계 고도화에서 별도 보정이 필요함.
 - `taskId`를 전달하면 현재 사용자 소유 `StudyTask`인지 확인하며, 없거나 타 사용자 소유이면 404로 처리함.
-- 응답에는 `passwordHash`, password, token/JWT, email 등 민감정보를 포함하지 않음.
+- 응답에는 `passwordHash`, password, token/JWT 등 민감정보를 포함하지 않음.
 
 #### 9.3.1 집중 세션 기록
 
@@ -1828,7 +1828,7 @@ Response `200`:
 - 게시글/댓글 신고는 `CommunityReport`에 `PENDING` 상태로 저장하며, 신고자는 `req.user.id` 기준으로 처리함.
 - 같은 사용자가 같은 게시글 또는 댓글을 다시 신고하면 `409 CONFLICT`로 처리함.
 - 신고 생성 시 기존 관리자 호환을 위해 대상 `BoardPost.reported` 또는 `Comment.reported`를 `true`로 갱신함.
-- 응답에는 `passwordHash`, password, token, email 등 불필요한 민감정보를 포함하지 않음.
+- 응답에는 `passwordHash`, password, token 등 불필요한 민감정보를 포함하지 않음.
 - 게시글 삭제 시 현재 schema의 `Comment` relation에 cascade가 없으므로, 작성자 소유 게시글 확인 후 연결 댓글을 먼저 삭제하고 게시글을 삭제함.
 
 #### 9.4.1 게시글 목록 조회
@@ -2452,14 +2452,14 @@ Response 예시:
   "users": [
     {
       "id": 1,
-      "email": "user@example.com",
+      "loginId": "user_id",
       "name": "홍길동",
       "role": "USER",
       "status": "ACTIVE"
     },
     {
       "id": 2,
-      "email": "dev.admin@example.com",
+      "loginId": "admin_user",
       "name": "관리자",
       "role": "ADMIN",
       "status": "ACTIVE"
@@ -2498,7 +2498,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "SUSPENDED"
@@ -2543,7 +2543,7 @@ Response 예시:
       "reported": true,
       "user": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "홍길동"
       }
     }
@@ -2557,7 +2557,7 @@ Response 예시:
       "reported": true,
       "user": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "홍길동"
       },
       "post": {
@@ -2577,7 +2577,7 @@ Response 예시:
       "createdAt": "2026-05-24T20:30:00.000Z",
       "admin": {
         "id": 2,
-        "email": "dev.admin@example.com",
+        "loginId": "admin_user",
         "name": "관리자"
       }
     }
@@ -2622,7 +2622,7 @@ Response 예시:
       "updatedAt": "2026-05-28T00:00:00.000Z",
       "reporter": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "사용자",
         "role": "USER",
         "status": "ACTIVE"
@@ -2635,7 +2635,7 @@ Response 예시:
         "reported": true,
         "author": {
           "id": 3,
-          "email": "author@example.com",
+          "loginId": "author_user",
           "name": "작성자",
           "role": "USER",
           "status": "ACTIVE"
@@ -2663,7 +2663,7 @@ Error:
 
 - `ADMIN` 사용자만 조회할 수 있음.
 - 신고자, 처리자, 대상 게시글/댓글의 최소 정보만 반환함.
-- 관리자 API 특성상 사용자 email은 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
+- 관리자 API 특성상 사용자 `loginId`는 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
 
 ---
 
@@ -3282,54 +3282,102 @@ Response 예시:
 }
 ```
 
-### 9.8 스터디 보스 레이드 API
+### 9.8 포인트 상점 API
 
-| 항목 | 내용 |
-|---|---|
-| 구현 범위 | 보스 목록 조회, 파티 생성, 참여 코드 참가, 내 파티 조회, 파티 상세 조회, 보상 수령 |
-| 관련 이슈 | #162 |
+포인트 상점은 보상 시스템에서 획득한 포인트를 사용해 프로필 꾸미기용 아이템을 구매/적용하는 기능임.
+현재 MVP 범위에서는 아래 3가지 아이템 타입을 지원함.
 
-#### 9.8.1 보스 레이드 목록 조회
+- `PROFILE_IMAGE`
+- `PROFILE_BACKGROUND`
+- `TITLE`
 
-| Method | Endpoint | 설명 |
-|---|---|---|
-| `GET` | `/api/boss-raids` | 현재 활성 보스 레이드 목록과 내 파티 참가 여부를 조회함 |
+개발용 기본 상점 아이템은 `npm run seed:dev` 실행 시 함께 생성됨.
 
-응답 예시:
-
-```json
-{
-  "raids": [
-    {
-      "id": 1,
-      "code": "BOSS_DAWN_PENCIL",
-      "name": "새벽 연필 보스",
-      "description": "집중 시간과 완료 태스크를 모아 HP를 깎는 협동 보스",
-      "imageUrl": "/assets/raids/dawn-pencil-boss.png",
-      "maxHp": 360,
-      "focusMinuteDamage": 1,
-      "taskCompletionDamage": 15,
-      "baseRewardPoints": 50,
-      "bonusRewardPoolPoints": 120,
-      "startsAt": "2026-05-29T06:00:00.000Z",
-      "endsAt": "2026-06-05T23:00:00.000Z",
-      "isActive": true,
-      "hasJoinedParty": true,
-      "badge": {
-        "id": 7,
-        "code": "SAGAK_BOSS_DAWN_SLAYER",
-        "name": "보스 레이드 클리어"
-      }
-    }
-  ]
-}
-```
-
-#### 9.8.2 보스 레이드 파티 생성
+#### 9.8.1 상점 아이템 목록 조회
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| `POST` | `/api/boss-raids/parties` | 선택한 보스로 새 파티를 생성함 |
+| `GET` | `/api/shop/items` | 로그인한 사용자 기준 상점 아이템 목록 조회 |
+
+#### 9.8.2 내 상점 상태 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/shop/me` | 로그인한 사용자 기준 포인트 잔액, 구매 내역, 현재 적용 상태 조회 |
+
+#### 9.8.3 상점 아이템 구매
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/items/:itemId/purchase` | 포인트를 차감하고 상점 아이템 구매 |
+
+주요 에러:
+
+- `400`: invalid `itemId`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 아이템 없음 또는 비활성 아이템
+- `409`: 이미 구매한 아이템, 또는 포인트 부족
+
+동작:
+
+- 동일 아이템은 사용자당 한 번만 구매 가능함.
+- 구매 시 `RewardAccount.pointBalance`를 차감함.
+- 차감 내역은 `PointTransaction.type = SPEND`, `sourceType = SHOP_ITEM`으로 기록함.
+
+#### 9.8.4 구매 아이템 적용
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/items/:itemId/equip` | 구매한 아이템을 현재 프로필 꾸미기 상태에 적용 |
+
+적용 규칙:
+
+- `PROFILE_IMAGE`는 `UserProfile.profileImageUrl`에 `assetUrl`을 반영함.
+- `PROFILE_BACKGROUND`는 `UserProfile.profileBackgroundUrl`에 `assetUrl`을 반영함.
+- `TITLE`은 `UserProfile.titleText`에 아이템 `name`을 반영함.
+
+#### 9.8.5 기본 꾸미기 상태로 되돌리기
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/unequip` | 타입별로 기본 프로필 이미지/배경/칭호 상태로 되돌림 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `type` | string | 예 | `PROFILE_IMAGE`, `PROFILE_BACKGROUND`, `TITLE` 중 하나 |
+
+### 9.9 스터디 보스 레이드 API
+
+스터디 보스 레이드는 원하는 사람끼리 파티를 만들거나 참여 코드로 합류해서,
+그룹 누적 집중 시간과 완료 태스크 수로 보스 HP를 깎는 협동 퀘스트입니다.
+
+핵심 규칙:
+
+- 파티 단위로 진행
+- 참여 코드로 원하는 사람끼리 합류 가능
+- 데미지 계산:
+  - `1 집중분 = 1 데미지`
+  - `완료 태스크 1개 = 15 데미지`
+- 진행도는 최근 계산 시점 기준 5분 간격으로 갱신
+- 보상은 보스당 사용자 1회만 수령 가능
+- 보상 구조:
+  - 공통 포인트
+  - 개인 기여도 보너스
+  - 한정 배지
+
+#### 9.9.1 보스 레이드 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids` | 현재 활성 보스 레이드 목록과 내 파티 참여 여부 조회 |
+
+#### 9.9.2 보스 레이드 파티 생성
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties` | 특정 보스 레이드에 새 파티 생성 |
 
 Request Body:
 
@@ -3340,11 +3388,11 @@ Request Body:
 }
 ```
 
-#### 9.8.3 참여 코드로 파티 참가
+#### 9.9.3 참여 코드로 파티 참가
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| `POST` | `/api/boss-raids/parties/join` | 참여 코드를 입력해 원하는 사람끼리 파티에 참가함 |
+| `POST` | `/api/boss-raids/parties/join` | 참여 코드로 기존 파티에 합류 |
 
 Request Body:
 
@@ -3354,37 +3402,26 @@ Request Body:
 }
 ```
 
-#### 9.8.4 내 파티 목록 및 상세 조회
+#### 9.9.4 내 파티 목록 / 파티 상세 조회
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| `GET` | `/api/boss-raids/parties/me` | 내가 참가한 보스 레이드 파티 목록을 조회함 |
-| `GET` | `/api/boss-raids/parties/:partyId` | 파티 상세, 멤버, 기여도, 보스 HP 진행도를 조회함 |
+| `GET` | `/api/boss-raids/parties/me` | 내가 참여 중인 보스 레이드 파티 목록 조회 |
+| `GET` | `/api/boss-raids/parties/:partyId` | 파티 상세, 멤버, 기여도, 남은 HP, 클리어 여부 조회 |
 
-동작 규칙:
-
-- 파티 상세 조회 시 최근 계산 시점이 5분 이상 지났으면 진행도를 재계산함
-- 진행도는 `그룹 누적 집중 시간 + 완료 태스크 수`를 기반으로 계산함
-- MVP 계산식:
-  - `1 집중분 = 1 데미지`
-  - `완료 태스크 1개 = 15 데미지`
-
-#### 9.8.5 보스 보상 수령
+#### 9.9.5 보스 레이드 보상 수령
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| `POST` | `/api/boss-raids/parties/:partyId/claim` | 보스를 처치한 뒤 공통 포인트 + 개인 기여 보너스 + 한정 배지를 수령함 |
+| `POST` | `/api/boss-raids/parties/:partyId/claim` | 클리어한 보스 레이드 보상 수령 |
 
-보상 정책:
+응답에는 아래 내용이 포함될 수 있음:
 
-- 보스당 사용자 1회만 수령 가능
-- 참여자 공통 기본 포인트 지급
-- 개인 기여도 비율 기반 보너스 풀 추가 지급
-- 레이드 전용 배지가 있으면 함께 지급
+- 공통 포인트 지급 내역
+- 개인 기여도 기반 보너스 포인트
+- 한정 배지 지급 여부
 
----
-
-### 9.9 docs 기준 기능 구현 상태 재점검
+### 9.10 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -3407,6 +3444,7 @@ Request Body:
 | TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
 | 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, `/api/admin/rewards/badges`, `/api/admin/rewards/quests`, 보상 schema/migration 및 관리자 CRUD API 추가 | 알림 API와 보상 정책 고도화, 프론트 보상 화면 연결 |
+| 포인트 상점/프로필 꾸미기 | FR-24 확장 | 부분 구현 | `/api/shop/items`, `/api/shop/me`, `/api/shop/items/:itemId/purchase`, `/api/shop/items/:itemId/equip`, `/api/shop/unequip`, 포인트 상점 프론트 화면 및 seed 아이템 추가 | 실제 자산 고도화, 마이페이지 연동 범위 확정 |
 | 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
 
 ---

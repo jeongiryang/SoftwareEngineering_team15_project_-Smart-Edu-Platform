@@ -192,6 +192,7 @@ module.exports = {
   getUserRewards,
   sanitizeAccount,
   sanitizeBadge,
+  sanitizePointTransaction,
   sanitizeQuestProgress,
   sanitizeUserBadge
 };

@@ -11,7 +11,7 @@ const PRODUCTION_URL_PATTERNS = ['production', 'prod-', 'prod.'];
 
 const DEV_SEED_USERS = [
   {
-    email: 'dev.user@example.com',
+    loginId: 'dev_user',
     name: '개발용 일반 사용자',
     role: 'USER',
     userType: 'HIGH',
@@ -23,7 +23,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.peer@example.com',
+    loginId: 'study_peer',
     name: '개발용 스터디 친구',
     role: 'USER',
     userType: 'UNIVERSITY',
@@ -35,7 +35,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.community@example.com',
+    loginId: 'community_user',
     name: '개발용 커뮤니티 활동 사용자',
     role: 'USER',
     userType: 'MIDDLE',
@@ -47,7 +47,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.reward@example.com',
+    loginId: 'reward_user',
     name: '개발용 보상 데모 사용자',
     role: 'USER',
     userType: 'EXAM_PREP',
@@ -59,7 +59,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.access@example.com',
+    loginId: 'accessibility_user',
     name: '개발용 접근성 설정 사용자',
     role: 'USER',
     userType: 'SENIOR',
@@ -71,7 +71,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.beginner@example.com',
+    loginId: 'beginner_user',
     name: '개발용 초보 루틴 사용자',
     role: 'USER',
     userType: 'ELEMENTARY',
@@ -83,7 +83,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.admin@example.com',
+    loginId: 'admin_user',
     name: '개발용 관리자',
     role: 'ADMIN',
     userType: 'WORKER',
@@ -96,6 +96,140 @@ const DEV_SEED_USERS = [
   }
 ];
 
+const DEV_SHOP_ITEMS = [
+  {
+    code: 'PROFILE_AVATAR_SKY',
+    name: '하늘 연필 아바타',
+    description: '밝은 하늘색 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 15,
+    assetUrl: '/assets/shop/avatar-sky.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_FOREST',
+    name: '숲 연필 아바타',
+    description: '차분한 초록 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 20,
+    assetUrl: '/assets/shop/avatar-forest.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_SUNSET',
+    name: '노을 연필 아바타',
+    description: '따뜻한 노을 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 24,
+    assetUrl: '/assets/shop/avatar-sunset.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_NIGHT',
+    name: '야간 집중 아바타',
+    description: '차분한 밤하늘 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 28,
+    assetUrl: '/assets/shop/avatar-night.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_DAWN',
+    name: '새벽 학습 배경',
+    description: '잔잔한 새벽 톤 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 25,
+    assetUrl: '/assets/shop/background-dawn.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_MINT',
+    name: '민트 노트 배경',
+    description: '민트 톤 노트 스타일 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 30,
+    assetUrl: '/assets/shop/background-mint.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_CORAL',
+    name: '코랄 플래너 배경',
+    description: '따뜻한 코랄 톤의 플래너 스타일 배경을 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 34,
+    assetUrl: '/assets/shop/background-coral.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_NIGHT',
+    name: '별밤 집중 배경',
+    description: '밤하늘 별빛 느낌의 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 38,
+    assetUrl: '/assets/shop/background-night.png'
+  },
+  {
+    code: 'TITLE_EARLY_BIRD',
+    name: '아침형 학습러',
+    description: '일찍 시작하는 학습자용 칭호입니다.',
+    type: 'TITLE',
+    price: 18,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_TASK_MASTER',
+    name: '할 일 정복자',
+    description: '할 일 관리에 강한 학습자용 칭호입니다.',
+    type: 'TITLE',
+    price: 22,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_DEEP_FOCUS',
+    name: '몰입 장인',
+    description: '긴 집중 세션을 즐기는 학습자를 위한 칭호입니다.',
+    type: 'TITLE',
+    price: 26,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_COMMUNITY_HELPER',
+    name: '질문 해결사',
+    description: '커뮤니티에서 활발히 돕는 학습자를 위한 칭호입니다.',
+    type: 'TITLE',
+    price: 26,
+    assetUrl: null
+  }
+];
+
+const DEV_SHOP_PURCHASES = [
+  {
+    loginId: 'dev_user',
+    itemCodes: ['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_SKY',
+      profileBackground: 'PROFILE_BACKGROUND_DAWN',
+      title: 'TITLE_EARLY_BIRD'
+    }
+  },
+  {
+    loginId: 'reward_user',
+    itemCodes: ['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_FOREST',
+      profileBackground: 'PROFILE_BACKGROUND_MINT',
+      title: 'TITLE_TASK_MASTER'
+    }
+  },
+  {
+    loginId: 'community_user',
+    itemCodes: ['PROFILE_AVATAR_SUNSET', 'TITLE_COMMUNITY_HELPER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_SUNSET',
+      title: 'TITLE_COMMUNITY_HELPER'
+    }
+  },
+  {
+    loginId: 'accessibility_user',
+    itemCodes: ['PROFILE_BACKGROUND_NIGHT'],
+    equipped: {
+      profileBackground: 'PROFILE_BACKGROUND_NIGHT'
+    }
+  }
+];
 const SEED_IDS = {
   posts: {
     question: 900001,
@@ -168,8 +302,7 @@ const SEED_BADGE_CODES = [
   'SAGAK_STREAK_SPROUT',
   'SAGAK_COMMUNITY_HELPER',
   'SAGAK_ROUTINE_PENCIL',
-  'SAGAK_QUIZ_LEAF',
-  'SAGAK_BOSS_DAWN_SLAYER'
+  'SAGAK_QUIZ_LEAF'
 ];
 
 const SEED_QUEST_CODES = [
@@ -179,11 +312,6 @@ const SEED_QUEST_CODES = [
   'QUEST_FOCUS_600',
   'QUEST_TASK_7',
   'QUEST_REVIEW_ROUTINE'
-];
-
-const SEED_BOSS_RAID_CODES = [
-  'BOSS_DAWN_PENCIL',
-  'BOSS_MIDNIGHT_GUARDIAN'
 ];
 
 function looksLikeProductionUrl(value) {
@@ -227,7 +355,7 @@ function minutesAfter(date, minutes) {
 async function upsertSeedUser(prisma, seedUser, passwordHash) {
   return prisma.user.upsert({
     where: {
-      email: seedUser.email
+      loginId: seedUser.loginId
     },
     update: {
       name: seedUser.name,
@@ -243,7 +371,7 @@ async function upsertSeedUser(prisma, seedUser, passwordHash) {
       }
     },
     create: {
-      email: seedUser.email,
+      loginId: seedUser.loginId,
       name: seedUser.name,
       role: seedUser.role,
       userType: seedUser.userType,
@@ -255,7 +383,7 @@ async function upsertSeedUser(prisma, seedUser, passwordHash) {
     },
     select: {
       id: true,
-      email: true,
+      loginId: true,
       role: true
     }
   });
@@ -349,38 +477,15 @@ async function resetSeedData(prisma, seedUsers) {
       id: { in: Object.values(SEED_IDS.challenges) }
     }
   });
+  await prisma.userShopPurchase.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
 
   await prisma.pointTransaction.deleteMany({
     where: {
       userId: { in: userIds }
-    }
-  });
-  await prisma.bossRaidRewardClaim.deleteMany({
-    where: {
-      userId: { in: userIds }
-    }
-  });
-  await prisma.bossRaidContribution.deleteMany({
-    where: {
-      userId: { in: userIds }
-    }
-  });
-  await prisma.bossRaidPartyMember.deleteMany({
-    where: {
-      userId: { in: userIds }
-    }
-  });
-  await prisma.bossRaidParty.deleteMany({
-    where: {
-      OR: [
-        { ownerId: { in: userIds } },
-        { raid: { code: { in: SEED_BOSS_RAID_CODES } } }
-      ]
-    }
-  });
-  await prisma.bossRaid.deleteMany({
-    where: {
-      code: { in: SEED_BOSS_RAID_CODES }
     }
   });
   await prisma.userQuest.deleteMany({
@@ -488,13 +593,13 @@ async function resetSeedData(prisma, seedUsers) {
   });
 }
 
-async function seedSchedulesAndTasks(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedSchedulesAndTasks(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const softwareReviewStart = daysFromNow(0, 19, 0);
   const algorithmStart = daysFromNow(1, 16, 30);
@@ -745,13 +850,13 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
   return tasks;
 }
 
-async function seedFriendships(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedFriendships(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   await prisma.friendship.createMany({
     data: [
@@ -800,13 +905,13 @@ async function seedFriendships(prisma, usersByEmail) {
   });
 }
 
-async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedFocusAndStatistics(prisma, usersByLoginId, tasks) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
   const mainTask = tasks[0];
   const mainFocusMinutes = [
     35, 0, 55, 80, 0, 110, 45,
@@ -1035,14 +1140,14 @@ async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
   });
 }
 
-async function seedCommunity(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
-  const adminUser = usersByEmail['dev.admin@example.com'];
+async function seedCommunity(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
+  const adminUser = usersByLoginId['admin_user'];
 
   const questionPost = await prisma.boardPost.create({
     data: {
@@ -1361,13 +1466,13 @@ async function seedCommunity(prisma, usersByEmail) {
   });
 }
 
-async function seedChallenge(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedChallenge(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const challenge = await prisma.studyChallenge.create({
     data: {
@@ -1459,11 +1564,11 @@ async function seedChallenge(prisma, usersByEmail) {
   });
 }
 
-async function seedLearningAndAi(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedLearningAndAi(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const architectureNote = await prisma.studyNote.create({
     data: {
@@ -1772,13 +1877,13 @@ async function seedLearningAndAi(prisma, usersByEmail) {
   });
 }
 
-async function seedRewards(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedRewards(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const firstFocusBadge = await prisma.badge.create({
     data: {
@@ -2137,15 +2242,69 @@ async function seedRewards(prisma, usersByEmail) {
   });
 }
 
-async function seedBossRaids(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
+async function seedPointShop(prisma, usersByLoginId) {
+  const shopItems = await prisma.shopItem.findMany({
+    where: {
+      code: {
+        in: DEV_SHOP_ITEMS.map((item) => item.code)
+      }
+    }
+  });
+  const shopItemsByCode = Object.fromEntries(shopItems.map((item) => [item.code, item]));
+
+  for (const purchaseSeed of DEV_SHOP_PURCHASES) {
+    const user = usersByLoginId[purchaseSeed.loginId];
+
+    if (!user) {
+      continue;
+    }
+
+    const purchasedItems = purchaseSeed.itemCodes
+      .map((code) => shopItemsByCode[code])
+      .filter(Boolean);
+
+    if (purchasedItems.length) {
+      await prisma.userShopPurchase.createMany({
+        data: purchasedItems.map((item) => ({
+          userId: user.id,
+          itemId: item.id
+        })),
+        skipDuplicates: true
+      });
+    }
+
+    const equippedImage = shopItemsByCode[purchaseSeed.equipped?.profileImage];
+    const equippedBackground = shopItemsByCode[purchaseSeed.equipped?.profileBackground];
+    const equippedTitle = shopItemsByCode[purchaseSeed.equipped?.title];
+
+    await prisma.userProfile.upsert({
+      where: {
+        userId: user.id
+      },
+      update: {
+        profileImageUrl: equippedImage?.assetUrl || null,
+        profileBackgroundUrl: equippedBackground?.assetUrl || null,
+        titleText: equippedTitle?.name || null
+      },
+      create: {
+        userId: user.id,
+        profileImageUrl: equippedImage?.assetUrl || null,
+        profileBackgroundUrl: equippedBackground?.assetUrl || null,
+        titleText: equippedTitle?.name || null
+      }
+    });
+  }
+}
+
+async function seedBossRaids(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const rewardUser = usersByLoginId['reward_user'];
 
   const bossBadge = await prisma.badge.create({
     data: {
       code: 'SAGAK_BOSS_DAWN_SLAYER',
-      name: '보스 레이드 클리어',
+      name: '보스 레이드 슬레이어',
       description: '스터디 보스를 함께 처치한 파티원에게 지급되는 한정 배지',
       iconUrl: '/assets/badges/sagak-boss-dawn-slayer.png',
       condition: 'BOSS_RAID_CLEAR'
@@ -2156,7 +2315,7 @@ async function seedBossRaids(prisma, usersByEmail) {
     data: {
       code: 'BOSS_DAWN_PENCIL',
       name: '새벽 연필 보스',
-      description: '집중 시간과 완료 태스크를 모아 연필 보스의 HP를 깎는 협동 레이드',
+      description: '집중 시간과 완료 태스크를 모아 새벽 연필 보스의 HP를 깎는 협동 레이드',
       imageUrl: '/assets/raids/dawn-pencil-boss.png',
       maxHp: 360,
       focusMinuteDamage: 1,
@@ -2173,7 +2332,7 @@ async function seedBossRaids(prisma, usersByEmail) {
   await prisma.bossRaid.create({
     data: {
       code: 'BOSS_MIDNIGHT_GUARDIAN',
-      name: '자정 수호자 보스',
+      name: '심야 수호자',
       description: '주말 누적 학습량으로 공략하는 다음 단계의 협동 보스',
       imageUrl: '/assets/raids/midnight-guardian-boss.png',
       maxHp: 540,
@@ -2199,18 +2358,9 @@ async function seedBossRaids(prisma, usersByEmail) {
       lastCalculatedAt: daysFromNow(0, 9, 0),
       members: {
         create: [
-          {
-            userId: mainUser.id,
-            joinedAt: daysFromNow(-1, 7, 30)
-          },
-          {
-            userId: peerUser.id,
-            joinedAt: daysFromNow(-1, 7, 45)
-          },
-          {
-            userId: rewardUser.id,
-            joinedAt: daysFromNow(-1, 8, 0)
-          }
+          { userId: mainUser.id, joinedAt: daysFromNow(-1, 7, 30) },
+          { userId: peerUser.id, joinedAt: daysFromNow(-1, 7, 45) },
+          { userId: rewardUser.id, joinedAt: daysFromNow(-1, 8, 0) }
         ]
       }
     }
@@ -2246,13 +2396,13 @@ async function seedBossRaids(prisma, usersByEmail) {
   });
 }
 
-async function seedAccessibility(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedAccessibility(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   await prisma.accessibilityPreference.create({
     data: {
@@ -2423,18 +2573,43 @@ async function seedDevelopmentData(prisma) {
     users.push(await upsertSeedUser(prisma, seedUser, passwordHash));
   }
 
-  const usersByEmail = Object.fromEntries(users.map((user) => [user.email, user]));
+  const usersByLoginId = Object.fromEntries(users.map((user) => [user.loginId, user]));
+  for (const item of DEV_SHOP_ITEMS) {
+    await prisma.shopItem.upsert({
+      where: {
+        code: item.code
+      },
+      update: {
+        name: item.name,
+        description: item.description,
+        type: item.type,
+        price: item.price,
+        assetUrl: item.assetUrl,
+        isActive: true
+      },
+      create: {
+        code: item.code,
+        name: item.name,
+        description: item.description,
+        type: item.type,
+        price: item.price,
+        assetUrl: item.assetUrl,
+        isActive: true
+      }
+    });
+  }
 
   await resetSeedData(prisma, users);
-  await seedFriendships(prisma, usersByEmail);
-  const tasks = await seedSchedulesAndTasks(prisma, usersByEmail);
-  await seedFocusAndStatistics(prisma, usersByEmail, tasks);
-  await seedCommunity(prisma, usersByEmail);
-  await seedChallenge(prisma, usersByEmail);
-  await seedLearningAndAi(prisma, usersByEmail);
-  await seedRewards(prisma, usersByEmail);
-  await seedBossRaids(prisma, usersByEmail);
-  await seedAccessibility(prisma, usersByEmail);
+  await seedFriendships(prisma, usersByLoginId);
+  const tasks = await seedSchedulesAndTasks(prisma, usersByLoginId);
+  await seedFocusAndStatistics(prisma, usersByLoginId, tasks);
+  await seedCommunity(prisma, usersByLoginId);
+  await seedChallenge(prisma, usersByLoginId);
+  await seedLearningAndAi(prisma, usersByLoginId);
+  await seedRewards(prisma, usersByLoginId);
+  await seedPointShop(prisma, usersByLoginId);
+  await seedBossRaids(prisma, usersByLoginId);
+  await seedAccessibility(prisma, usersByLoginId);
 
   return users;
 }
@@ -2449,7 +2624,7 @@ async function main() {
 
     console.log('[seed:dev] Development seed completed');
     users.forEach((user) => {
-      console.log(`[seed:dev] ${user.email} (${user.role})`);
+      console.log(`[seed:dev] ${user.loginId} (${user.role})`);
     });
   } finally {
     await prisma.$disconnect();
@@ -2465,9 +2640,13 @@ if (require.main === module) {
 
 module.exports = {
   DEV_SEED_PASSWORD,
+  DEV_SHOP_ITEMS,
+  DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl,
   seedDevelopmentData,
+  seedPointShop,
+  seedBossRaids,
   upsertSeedUser
 };

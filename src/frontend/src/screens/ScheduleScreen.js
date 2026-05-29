@@ -21,6 +21,7 @@ import {
 } from '../services/api';
 import FieldFeedback from '../components/FieldFeedback';
 import { useAccessibility } from '../contexts/AccessibilityContext';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
@@ -186,7 +187,7 @@ function getScheduleTimeFeedback(form) {
   return { tone: 'success', message: '선택한 시간으로 일정이 정리돼요.' };
 }
 
-function formatDateForDisplay(value) {
+function formatDateForDisplay(value, language = 'ko') {
   if (!value) {
     return '-';
   }
@@ -197,7 +198,7 @@ function formatDateForDisplay(value) {
     return value;
   }
 
-  return date.toLocaleString('ko-KR', {
+  return date.toLocaleString(languageIntlLocale(language), {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -225,6 +226,22 @@ function addOneHour(dateText, timeText) {
   };
 }
 
+function formatMonthPart(value, language = 'ko') {
+  const datePart = formatDatePart(value);
+
+  if (!datePart) {
+    return '';
+  }
+
+  const [year, month] = datePart.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+
+  return new Intl.DateTimeFormat(languageIntlLocale(language), {
+    month: 'short',
+    timeZone: 'UTC'
+  }).format(date);
+}
+
 function confirmAction(title, message) {
   if (typeof globalThis.confirm === 'function') {
     return Promise.resolve(globalThis.confirm(message));
@@ -238,19 +255,19 @@ function confirmAction(title, message) {
   });
 }
 
-function getPriorityLabel(priority) {
+function getPriorityLabel(priority, translateText) {
   if (priority === 'HIGH') {
-    return '높음';
+    return translateText('높음');
   }
 
   if (priority === 'LOW') {
-    return '낮음';
+    return translateText('낮음');
   }
 
-  return '보통';
+  return translateText('보통');
 }
 
-function ScheduleSummary({ schedules }) {
+function ScheduleSummary({ schedules, translateText }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayCount = schedules.filter((schedule) => formatDatePart(schedule.startAt) === today).length;
   const highPriorityCount = schedules.filter((schedule) => schedule.priority === 'HIGH').length;
@@ -261,17 +278,17 @@ function ScheduleSummary({ schedules }) {
       <View style={[styles.summaryCard, styles.summaryMint, shadows.card]}>
         <Text style={styles.summaryEyebrow}>TODAY</Text>
         <Text style={styles.summaryValue}>{todayCount}</Text>
-        <Text style={styles.summaryLabel}>오늘 시작 일정</Text>
+        <Text style={styles.summaryLabel}>{translateText('오늘 시작 일정')}</Text>
       </View>
       <View style={[styles.summaryCard, styles.summaryBlue, shadows.card]}>
         <Text style={[styles.summaryEyebrow, styles.summaryEyebrowLight]}>UPCOMING</Text>
         <Text style={[styles.summaryValue, styles.summaryValueLight]}>{upcomingCount}</Text>
-        <Text style={styles.summaryLabelLight}>남은 일정</Text>
+        <Text style={styles.summaryLabelLight}>{translateText('남은 일정')}</Text>
       </View>
       <View style={[styles.summaryCard, styles.summaryWarm, shadows.card]}>
         <Text style={styles.summaryEyebrow}>FOCUS</Text>
         <Text style={styles.summaryValue}>{highPriorityCount}</Text>
-        <Text style={styles.summaryLabel}>높은 우선순위</Text>
+        <Text style={styles.summaryLabel}>{translateText('높은 우선순위')}</Text>
       </View>
     </View>
   );
@@ -279,6 +296,7 @@ function ScheduleSummary({ schedules }) {
 
 export default function ScheduleScreen({ onNavigate, token }) {
   const { scheduleAlarm } = useAccessibility();
+  const { currentLanguage, translateText } = useLanguage();
   const defaultForm = useMemo(() => createInitialForm(), []);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -413,7 +431,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
         scheduleAlarm(result.reminder.id, result.reminder.scheduledAt, result.reminder.message);
       }
 
-      setReminderMsg(`${reminderDate} ${reminderTime}에 복습 알림을 등록했습니다.`);
+      setReminderMsg(`${reminderDate} ${reminderTime} ${translateText('복습 알림을 등록했습니다.')}`);
     } catch (error) {
       setReminderErrorMsg(error.message || '복습 알림 등록에 실패했습니다.');
     } finally {
@@ -485,13 +503,19 @@ export default function ScheduleScreen({ onNavigate, token }) {
         </Pressable>
       </View>
 
-      <ScheduleSummary schedules={schedules} />
+      <ScheduleSummary schedules={schedules} translateText={translateText} />
 
       <View style={styles.twoColumn}>
         <View style={[styles.panel, styles.formPanel, shadows.card]}>
           <Text style={styles.panelEyebrow}>{editingScheduleId ? 'EDIT MODE' : 'NEW ENTRY'}</Text>
           <Text style={styles.panelTitle}>{editingScheduleId ? '일정 수정' : '새 일정 만들기'}</Text>
+          <View style={styles.formStepStrip}>
+            <Text style={styles.formStepChip}>1 기본 정보</Text>
+            <Text style={styles.formStepChip}>2 날짜와 시간</Text>
+            <Text style={styles.formStepChip}>3 우선순위와 메모</Text>
+          </View>
 
+          <Text style={styles.formSectionTitle}>기본 정보</Text>
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>제목</Text>
             <AccessibleTextInput
@@ -515,6 +539,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
             />
           </View>
 
+          <Text style={styles.formSectionTitle}>날짜와 시간</Text>
           <DateRangeCalendarPicker
             endDate={form.endDate}
             onChange={({ startDate, endDate }) => {
@@ -554,6 +579,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
             </Pressable>
           </View>
 
+          <Text style={styles.formSectionTitle}>정리 옵션</Text>
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>우선순위</Text>
             <View style={styles.optionRow}>
@@ -619,6 +645,70 @@ export default function ScheduleScreen({ onNavigate, token }) {
         </View>
 
         <View style={styles.sideColumn}>
+          <View style={[styles.panel, styles.listPanel, shadows.card]}>
+            <Text style={styles.panelEyebrow}>SAVED SCHEDULES</Text>
+            <Text style={styles.panelTitle}>일정 목록</Text>
+            <Text style={styles.listDescription}>저장된 일정을 시간순으로 확인하고 바로 수정할 수 있습니다.</Text>
+
+            {loading ? (
+              <View style={styles.centerBox}>
+                <Text style={styles.loadingText}>일정 목록 불러오는 중</Text>
+                <PanelSkeleton rows={3} />
+              </View>
+            ) : sortedSchedules.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>등록된 일정이 아직 없습니다.</Text>
+                <Text style={styles.emptyText}>왼쪽에서 날짜와 시간을 먼저 고르면 일정 흐름을 훨씬 쉽게 만들 수 있습니다.</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={resetForm}
+                  style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.emptyActionText}>첫 일정 입력 준비</Text>
+                </Pressable>
+              </View>
+            ) : (
+              sortedSchedules.map((schedule) => (
+                <View key={schedule.id} style={styles.itemCard}>
+                  <View style={styles.itemDateBadge}>
+                    <Text style={styles.itemDateDay}>{formatDatePart(schedule.startAt).slice(8, 10)}</Text>
+                    <Text style={styles.itemDateMonth}>{formatMonthPart(schedule.startAt, currentLanguage)}</Text>
+                  </View>
+                  <View style={styles.itemBody}>
+                    <View style={styles.itemHeader}>
+                      <View style={styles.itemTitleBox}>
+                        <Text style={styles.itemTitle}>{schedule.title}</Text>
+                        <Text style={styles.itemMeta}>
+                          {schedule.subject || translateText('과목 없음')} · {translateText('우선순위')} {getPriorityLabel(schedule.priority, translateText)}
+                        </Text>
+                      </View>
+                      <View style={styles.inlineActions}>
+                        <Pressable onPress={() => handleEdit(schedule)} style={(state) => [styles.inlineButton, ...interactiveStateStyles(state)]}>
+                          <Text style={styles.inlineButtonText}>수정</Text>
+                        </Pressable>
+                        <Pressable
+                          disabled={submitting}
+                          onPress={() => handleDelete(schedule.id)}
+                          style={(state) => [
+                            styles.inlineButton,
+                            styles.deleteButton,
+                            submitting && styles.disabledButton,
+                            ...interactiveStateStyles(state, { disabled: submitting })
+                          ]}
+                        >
+                          <Text style={styles.deleteButtonText}>삭제</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                    <Text style={styles.itemField}>{translateText('시작:')} {formatDateForDisplay(schedule.startAt, currentLanguage)}</Text>
+                    <Text style={styles.itemField}>{translateText('종료:')} {formatDateForDisplay(schedule.endAt, currentLanguage)}</Text>
+                    <Text style={styles.itemMemo}>{schedule.memo || translateText('메모 없음')}</Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+
           <View style={[styles.panel, styles.reminderPanel, shadows.card]}>
             <Text style={styles.panelEyebrow}>REVIEW REMINDER</Text>
             <Text style={styles.panelTitle}>복습 알림 만들기</Text>
@@ -676,69 +766,6 @@ export default function ScheduleScreen({ onNavigate, token }) {
                 {reminderSubmitting ? '알림 등록 중...' : '복습 알림 등록'}
               </Text>
             </Pressable>
-          </View>
-
-          <View style={[styles.panel, styles.listPanel, shadows.card]}>
-            <Text style={styles.panelEyebrow}>SAVED SCHEDULES</Text>
-            <Text style={styles.panelTitle}>일정 목록</Text>
-
-            {loading ? (
-              <View style={styles.centerBox}>
-                <Text style={styles.loadingText}>일정 목록 불러오는 중</Text>
-                <PanelSkeleton rows={3} />
-              </View>
-            ) : sortedSchedules.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>등록된 일정이 아직 없습니다.</Text>
-                <Text style={styles.emptyText}>왼쪽에서 날짜와 시간을 먼저 고르면 일정 흐름을 훨씬 쉽게 만들 수 있습니다.</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={resetForm}
-                  style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
-                >
-                  <Text style={styles.emptyActionText}>첫 일정 입력 준비</Text>
-                </Pressable>
-              </View>
-            ) : (
-              sortedSchedules.map((schedule) => (
-                <View key={schedule.id} style={styles.itemCard}>
-                  <View style={styles.itemDateBadge}>
-                    <Text style={styles.itemDateDay}>{formatDatePart(schedule.startAt).slice(8, 10)}</Text>
-                    <Text style={styles.itemDateMonth}>{formatDatePart(schedule.startAt).slice(5, 7)}월</Text>
-                  </View>
-                  <View style={styles.itemBody}>
-                    <View style={styles.itemHeader}>
-                      <View style={styles.itemTitleBox}>
-                        <Text style={styles.itemTitle}>{schedule.title}</Text>
-                        <Text style={styles.itemMeta}>
-                          {schedule.subject || '과목 없음'} · 우선순위 {getPriorityLabel(schedule.priority)}
-                        </Text>
-                      </View>
-                      <View style={styles.inlineActions}>
-                        <Pressable onPress={() => handleEdit(schedule)} style={(state) => [styles.inlineButton, ...interactiveStateStyles(state)]}>
-                          <Text style={styles.inlineButtonText}>수정</Text>
-                        </Pressable>
-                        <Pressable
-                          disabled={submitting}
-                          onPress={() => handleDelete(schedule.id)}
-                          style={(state) => [
-                            styles.inlineButton,
-                            styles.deleteButton,
-                            submitting && styles.disabledButton,
-                            ...interactiveStateStyles(state, { disabled: submitting })
-                          ]}
-                        >
-                          <Text style={styles.deleteButtonText}>삭제</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                    <Text style={styles.itemField}>시작: {formatDateForDisplay(schedule.startAt)}</Text>
-                    <Text style={styles.itemField}>종료: {formatDateForDisplay(schedule.endAt)}</Text>
-                    <Text style={styles.itemMemo}>{schedule.memo || '메모 없음'}</Text>
-                  </View>
-                </View>
-              ))
-            )}
           </View>
         </View>
       </View>
@@ -884,6 +911,11 @@ const styles = StyleSheet.create({
   listPanel: {
     gap: 14
   },
+  listDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20
+  },
   panelEyebrow: {
     color: colors.mintDeep,
     fontSize: 11,
@@ -894,6 +926,31 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 23,
     fontWeight: '800'
+  },
+  formStepStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 10
+  },
+  formStepChip: {
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  formSectionTitle: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '900',
+    paddingTop: 4
   },
   fieldGroup: {
     gap: 8

@@ -60,12 +60,14 @@ function getVoiceOption(voiceType) {
   return voiceOptions.find((option) => option.value === voiceType) || voiceOptions[1];
 }
 
-function findBrowserVoice(voiceType) {
+function findBrowserVoice(voiceType, loadedVoices = []) {
   if (!hasSpeechSynthesis()) {
     return null;
   }
 
-  const voices = globalThis.speechSynthesis.getVoices?.() || [];
+  const voices = loadedVoices.length > 0
+    ? loadedVoices
+    : globalThis.speechSynthesis.getVoices?.() || [];
   const koreanVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith('ko'));
   const candidates = koreanVoices.length > 0 ? koreanVoices : voices;
   const option = getVoiceOption(voiceType);
@@ -86,6 +88,8 @@ export function AccessibilityProvider({ children, token }) {
     charIndex: -1,
     active: false
   });
+  const [browserVoices, setBrowserVoices] = useState([]);
+  const [previewingVoiceType, setPreviewingVoiceType] = useState(null);
   const [speechError, setSpeechError] = useState('');
   const [activeAlertNotification, setActiveAlertNotification] = useState(null);
   const alarmsRef = useRef({});
@@ -167,6 +171,34 @@ export function AccessibilityProvider({ children, token }) {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (!hasSpeechSynthesis()) {
+      setBrowserVoices([]);
+      return undefined;
+    }
+
+    const synthesis = globalThis.speechSynthesis;
+    const updateVoices = () => {
+      setBrowserVoices(synthesis.getVoices?.() || []);
+    };
+    const previousHandler = synthesis.onvoiceschanged;
+    const handleVoicesChanged = (event) => {
+      previousHandler?.(event);
+      updateVoices();
+    };
+
+    updateVoices();
+    synthesis.onvoiceschanged = handleVoicesChanged;
+
+    return () => {
+      if (synthesis.onvoiceschanged === handleVoicesChanged) {
+        synthesis.onvoiceschanged = previousHandler || null;
+      } else if (previousHandler) {
+        synthesis.onvoiceschanged = previousHandler;
+      }
+    };
+  }, []);
+
   // 알림 토큰 변경 시 백엔드 조회하여 스케줄 복구 (수동으로 예약된 알림들은 무조건 긁어옴)
   useEffect(() => {
     if (!token) {
@@ -201,13 +233,22 @@ export function AccessibilityProvider({ children, token }) {
     };
   }, [token, preference.reviewReminderEnabled]);
 
-  function playBrowserSpeech(text, readingId = null) {
+  function stopSpeech() {
+    if (hasSpeechSynthesis()) {
+      globalThis.speechSynthesis.cancel();
+    }
+    setReading({ id: null, charIndex: -1, active: false });
+    setPreviewingVoiceType(null);
+  }
+
+  function playBrowserSpeech(text, options = {}) {
     if (!hasSpeechSynthesis()) {
       setSpeechError('현재 브라우저는 읽어주기를 지원하지 않습니다.');
       return false;
     }
 
-    const selectedOption = getVoiceOption(voiceType);
+    const activeVoiceType = options.voiceType || voiceType;
+    const selectedOption = getVoiceOption(activeVoiceType);
     globalThis.speechSynthesis.cancel();
     globalThis.speechSynthesis.resume?.();
     const utterance = new globalThis.SpeechSynthesisUtterance(text);
@@ -215,25 +256,28 @@ export function AccessibilityProvider({ children, token }) {
     utterance.volume = 1;
     utterance.pitch = selectedOption.pitch;
     utterance.rate = selectedOption.rate;
-    const browserVoice = findBrowserVoice(voiceType);
+    const browserVoice = findBrowserVoice(activeVoiceType, browserVoices);
 
     if (browserVoice) {
       utterance.voice = browserVoice;
     }
 
     utterance.onstart = () => {
-      setReading({ id: readingId, charIndex: 0, active: true });
+      setReading({ id: options.readingId || null, charIndex: 0, active: true });
+      setPreviewingVoiceType(options.previewVoiceType || null);
     };
     utterance.onboundary = (event) => {
       if (typeof event.charIndex === 'number') {
-        setReading({ id: readingId, charIndex: event.charIndex, active: true });
+        setReading({ id: options.readingId || null, charIndex: event.charIndex, active: true });
       }
     };
     utterance.onend = () => {
       setReading({ id: null, charIndex: -1, active: false });
+      setPreviewingVoiceType(null);
     };
     utterance.onerror = () => {
       setReading({ id: null, charIndex: -1, active: false });
+      setPreviewingVoiceType(null);
       setSpeechError('읽어주기에 실패했습니다. Chrome 사이트 소리 권한과 기기 볼륨을 확인해 주세요.');
     };
 
@@ -246,11 +290,15 @@ export function AccessibilityProvider({ children, token }) {
     if (!trimmedText) return false;
 
     setSpeechError('');
-    const started = playBrowserSpeech(trimmedText, options.readingId || null);
+    const started = playBrowserSpeech(trimmedText, {
+      previewVoiceType: options.previewVoiceType || null,
+      readingId: options.readingId || null,
+      voiceType: options.voiceType || voiceType
+    });
     if (!started) return false;
 
     if (options.saveRequest && token) {
-      await requestTextToSpeech(token, { text: trimmedText, voiceType });
+      await requestTextToSpeech(token, { text: trimmedText, voiceType: options.voiceType || voiceType });
     }
 
     return true;
@@ -258,14 +306,16 @@ export function AccessibilityProvider({ children, token }) {
 
   const value = useMemo(() => ({
     preference,
+    previewingVoiceType,
     reading,
     setPreference,
     setVoiceType,
     speakText,
     speechError,
+    stopSpeech,
     voiceType,
     scheduleAlarm
-  }), [preference, reading, speechError, voiceType]);
+  }), [preference, previewingVoiceType, reading, speechError, voiceType, browserVoices]);
 
   return (
     <AccessibilityContext.Provider value={value}>

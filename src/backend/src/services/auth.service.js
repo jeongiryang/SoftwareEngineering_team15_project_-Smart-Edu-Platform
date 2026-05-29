@@ -1,48 +1,48 @@
-const { createUser, findUserByEmail, findUserById } = require('../repositories/user.repository');
+const { createUser, findUserByLoginId, findUserById } = require('../repositories/user.repository');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { signToken } = require('../utils/jwt');
 const { conflictError, forbiddenError, notFoundError, unauthorizedError } = require('../utils/errors');
-const { normalizeEmail, normalizeString, requireFields, validateEmail, validatePassword } = require('../utils/validators');
+const { normalizeLoginId, normalizeString, requireFields, validateLoginId, validatePassword } = require('../utils/validators');
 
 function sanitizeUser(user) {
   return {
     id: user.id,
-    email: user.email,
+    loginId: user.loginId,
     name: user.name,
     role: user.role,
     status: user.status
   };
 }
 
-function validateRegisterInput({ email, password, name }) {
-  requireFields({ email, password, name }, ['email', 'password', 'name'], 'Email, password, and name are required');
-  validateEmail(email);
+function validateRegisterInput({ loginId, password, name }) {
+  requireFields({ loginId, password, name }, ['loginId', 'password', 'name'], 'Login ID, password, and name are required');
+  validateLoginId(loginId);
   validatePassword(password);
 }
 
-function validateLoginInput({ email, password }) {
-  requireFields({ email, password }, ['email', 'password'], 'Email and password are required');
+function validateLoginInput({ loginId, password }) {
+  requireFields({ loginId, password }, ['loginId', 'password'], 'Login ID and password are required');
 }
 
-async function registerUser({ email, password, name }) {
-  const normalizedEmail = normalizeEmail(email);
+async function registerUser({ loginId, password, name }) {
+  const normalizedLoginId = normalizeLoginId(loginId);
   const normalizedName = normalizeString(name);
 
   validateRegisterInput({
-    email: normalizedEmail,
+    loginId: normalizedLoginId,
     password,
     name: normalizedName
   });
 
-  const existingUser = await findUserByEmail(normalizedEmail);
+  const existingUser = await findUserByLoginId(normalizedLoginId);
 
   if (existingUser) {
-    throw conflictError('Email is already registered');
+    throw conflictError('Login ID is already registered');
   }
 
   const passwordHash = await hashPassword(password);
   const user = await createUser({
-    email: normalizedEmail,
+    loginId: normalizedLoginId,
     name: normalizedName,
     passwordHash
   });
@@ -53,24 +53,24 @@ async function registerUser({ email, password, name }) {
   };
 }
 
-async function loginUser({ email, password }) {
-  const normalizedEmail = normalizeEmail(email);
+async function loginUser({ loginId, password }) {
+  const normalizedLoginId = normalizeLoginId(loginId);
 
   validateLoginInput({
-    email: normalizedEmail,
+    loginId: normalizedLoginId,
     password
   });
 
-  const user = await findUserByEmail(normalizedEmail);
+  const user = await findUserByLoginId(normalizedLoginId);
 
   if (!user) {
-    throw unauthorizedError('Invalid email or password');
+    throw unauthorizedError('Invalid login ID or password');
   }
 
   const passwordMatches = await comparePassword(password, user.passwordHash);
 
   if (!passwordMatches) {
-    throw unauthorizedError('Invalid email or password');
+    throw unauthorizedError('Invalid login ID or password');
   }
 
   if (user.status !== 'ACTIVE') {

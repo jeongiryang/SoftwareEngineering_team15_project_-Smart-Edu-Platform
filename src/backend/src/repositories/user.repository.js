@@ -1,8 +1,8 @@
 const prisma = require('../utils/prisma');
 
-function findUserByEmail(email) {
+function findUserByLoginId(loginId) {
   return prisma.user.findUnique({
-    where: { email }
+    where: { loginId }
   });
 }
 
@@ -21,10 +21,10 @@ function findUserWithProfileById(id) {
   });
 }
 
-function createUser({ email, name, passwordHash }) {
+function createUser({ loginId, name, passwordHash }) {
   return prisma.user.create({
     data: {
-      email,
+      loginId,
       name,
       passwordHash,
       profile: {
@@ -61,7 +61,7 @@ function updateUserPassword(userId, passwordHash) {
 
 module.exports = {
   createUser,
-  findUserByEmail,
+  findUserByLoginId,
   findUserById,
   findUserWithProfileById,
   updateUser,

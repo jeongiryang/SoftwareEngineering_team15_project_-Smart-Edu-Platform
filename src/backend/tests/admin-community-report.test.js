@@ -1,7 +1,7 @@
 const mockUsers = [
   {
     id: 1,
-    email: 'reporter@example.com',
+    loginId: 'reporter_user',
     name: 'Reporter User',
     passwordHash: 'hashed-user-password',
     role: 'USER',
@@ -9,7 +9,7 @@ const mockUsers = [
   },
   {
     id: 2,
-    email: 'admin@example.com',
+    loginId: 'admin_user',
     name: 'Admin User',
     passwordHash: 'hashed-admin-password',
     role: 'ADMIN',
@@ -17,7 +17,7 @@ const mockUsers = [
   },
   {
     id: 3,
-    email: 'author@example.com',
+    loginId: 'author_user',
     name: 'Author User',
     passwordHash: 'hashed-author-password',
     role: 'USER',
@@ -40,7 +40,7 @@ function mockSelectSafeUser(user) {
 
   return {
     id: user.id,
-    email: user.email,
+    loginId: user.loginId,
     name: user.name,
     role: user.role,
     status: user.status
@@ -173,7 +173,7 @@ function resetMockData() {
 
 jest.mock('../src/repositories/user.repository', () => ({
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null)
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null)
 }));
 
 jest.mock('../src/repositories/admin.repository', () => ({

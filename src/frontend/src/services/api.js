@@ -125,17 +125,17 @@ export function enqueueFocusSession(payload, reason = 'manual') {
   return writeFocusSessionQueue(nextQueue);
 }
 
-export function registerUser({ email, password, name }) {
+export function registerUser({ loginId, password, name }) {
   return request('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name })
+    body: JSON.stringify({ loginId, password, name })
   });
 }
 
-export function loginUser({ email, password }) {
+export function loginUser({ loginId, password }) {
   return request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ loginId, password })
   });
 }
 
@@ -235,6 +235,52 @@ export function claimRewardQuest(token, questId) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({})
+  });
+}
+
+export function getShopItems(token) {
+  return request('/shop/items', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getMyShop(token) {
+  return request('/shop/me', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function purchaseShopItem(token, itemId) {
+  return request(`/shop/items/${itemId}/purchase`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function equipShopItem(token, itemId) {
+  return request(`/shop/items/${itemId}/equip`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function unequipShopItem(token, type) {
+  return request('/shop/unequip', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ type })
   });
 }
 

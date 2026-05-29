@@ -10,7 +10,7 @@ hide circle
 package "AI Learning Domain\nAI 학습 지원 도메인" #FFE0B2 {
   class User <<사용자>> {
     - userId: Long
-    - email: String
+    - loginId: String
   }
 
   class AIQuestion <<AI 질의 기록>> {

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useLanguage } from '../i18n';
@@ -5,9 +6,47 @@ import { colors, interactions, interactiveStateStyles } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 
+const authenticatedNavGroups = [
+  {
+    key: 'study',
+    label: '학습',
+    items: [
+      { label: '대시보드', screen: 'dashboard' },
+      { label: '통계', screen: 'statistics' },
+      { label: 'AI 학습', screen: 'aiLearning' },
+      { label: '일정', screen: 'schedule' },
+      { label: '칸반', screen: 'taskBoard' }
+    ]
+  },
+  {
+    key: 'social',
+    label: '소셜',
+    items: [
+      { label: '친구', screen: 'friends' },
+      { label: '커뮤니티', screen: 'community' }
+    ]
+  },
+  {
+    key: 'reward',
+    label: '보상',
+    items: [
+      { label: '상점', screen: 'pointShop' },
+      { label: '레이드', screen: 'bossRaid' }
+    ]
+  },
+  {
+    key: 'settings',
+    label: '설정',
+    items: [
+      { label: '접근성', screen: 'accessibility' }
+    ]
+  }
+];
+
 export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) {
   const authenticated = Boolean(user);
   const hasAdminRole = user?.role === 'ADMIN';
+  const [openMenu, setOpenMenu] = useState(null);
   const { effectiveMode, mode, toggleThemeMode } = useThemeMode();
   const {
     currentLanguage,
@@ -30,7 +69,10 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
     return (
       <Pressable
         accessibilityRole="button"
-        onPress={() => onNavigate(screen)}
+        onPress={() => {
+          setOpenMenu(null);
+          onNavigate(screen);
+        }}
         style={(state) => [
           styles.navItem,
           active && styles.navItemActive,
@@ -41,6 +83,64 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
       >
         <Text style={[styles.navText, active && styles.navTextActive]}>{translateText(label)}</Text>
       </Pressable>
+    );
+  }
+
+  function NavMenu({ group }) {
+    const open = openMenu === group.key;
+    const active = group.items.some((item) => item.screen === activeScreen);
+    const menuLabel = translateText(group.label);
+
+    return (
+      <View style={styles.navMenuWrap}>
+        <Pressable
+          accessibilityLabel={`${menuLabel} ${translateText(open ? '닫기' : '열기')}`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          onPress={() => setOpenMenu(open ? null : group.key)}
+          style={(state) => [
+            styles.navItem,
+            styles.navMenuButton,
+            active && styles.navItemActive,
+            state.hovered && !active && styles.navItemHover,
+            ...interactiveStateStyles(state),
+            active && state.focused && styles.navItemActiveFocus
+          ]}
+          title={menuLabel}
+        >
+          <Text style={[styles.navText, active && styles.navTextActive]}>{menuLabel}</Text>
+          <View style={[styles.chevron, open && styles.chevronOpen]} />
+        </Pressable>
+        {open ? (
+          <View accessibilityRole="menu" style={styles.navSubmenu}>
+            {group.items.map((item) => (
+              <Pressable
+                accessibilityRole="menuitem"
+                key={item.screen}
+                onPress={() => {
+                  setOpenMenu(null);
+                  onNavigate(item.screen);
+                }}
+                style={(state) => [
+                  styles.navSubmenuItem,
+                  activeScreen === item.screen && styles.navSubmenuItemActive,
+                  state.hovered && styles.navSubmenuItemHover,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.navSubmenuText,
+                    activeScreen === item.screen && styles.navSubmenuTextActive
+                  ]}
+                >
+                  {translateText(item.label)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </View>
     );
   }
 
@@ -62,16 +162,9 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
         <View style={styles.nav}>
           {authenticated ? (
             <>
-              <NavItem label="대시보드" screen="dashboard" />
-              <NavItem label="프로필" screen="profile" />
-              <NavItem label="통계" screen="statistics" />
-              <NavItem label="친구" screen="friends" />
-              <NavItem label="AI 학습" screen="aiLearning" />
-              <NavItem label="접근성" screen="accessibility" />
-              <NavItem label="커뮤니티" screen="community" />
-              <NavItem label="일정" screen="schedule" />
-              <NavItem label="칸반" screen="taskBoard" />
-              <NavItem label="레이드" screen="bossRaid" />
+              {authenticatedNavGroups.map((group) => (
+                <NavMenu group={group} key={group.key} />
+              ))}
               {hasAdminRole ? <NavItem label="관리자" screen="admin" /> : null}
             </>
           ) : (
@@ -109,6 +202,24 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
 
           {authenticated ? (
             <>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate('profile')}
+                style={(state) => [
+                  styles.myPageButton,
+                  activeScreen === 'profile' && styles.myPageButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.myPageText,
+                    activeScreen === 'profile' && styles.myPageTextActive
+                  ]}
+                >
+                  {translateText('마이페이지')}
+                </Text>
+              </Pressable>
               <Text style={styles.userLabel}>{displayName}님</Text>
               <Pressable
                 accessibilityRole="button"
@@ -141,48 +252,81 @@ function LanguageSelector({
   supportedLanguages,
   t
 }) {
+  const [open, setOpen] = useState(false);
   const betaLabel = t('language.betaBadge', 'Beta');
+  const selectorLabel = t('language.selectorLabel', '언어 선택');
+  const currentLabel = getLanguageLabel(currentLanguage);
+  const currentBeta = isLanguageBeta(currentLanguage);
 
   return (
     <View
-      accessibilityLabel={t('language.selectorLabel', '언어 선택')}
-      accessibilityRole="radiogroup"
       dataSet={{ sagakI18nIgnore: 'true' }}
-      style={styles.languageSelector}
+      style={styles.languageDropdown}
     >
-      {supportedLanguages.map((option) => {
-        const active = option.code === currentLanguage;
-        const beta = isLanguageBeta(option.code);
+      <Pressable
+        accessibilityLabel={`${selectorLabel}: ${currentLabel}${currentBeta ? ` ${betaLabel}` : ''}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        dataSet={{ sagakI18nIgnore: 'true' }}
+        onPress={() => setOpen((value) => !value)}
+        style={(state) => [
+          styles.languageTrigger,
+          state.hovered && styles.languageTriggerHover,
+          ...interactiveStateStyles(state)
+        ]}
+        title={selectorLabel}
+      >
+        <Text style={styles.languageTriggerTitle}>Language</Text>
+        <View style={styles.languageCurrentValue}>
+          <Text style={styles.languageCurrentText}>{currentLabel}</Text>
+          {currentBeta ? (
+            <View style={styles.languageBetaBadge}>
+              <Text style={styles.languageBetaText}>{betaLabel}</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={[styles.chevron, open && styles.chevronOpen]} />
+      </Pressable>
+      {open ? (
+        <View accessibilityRole="menu" style={styles.languageMenu}>
+          {supportedLanguages.map((option) => {
+            const active = option.code === currentLanguage;
+            const beta = isLanguageBeta(option.code);
 
-        return (
-          <Pressable
-            accessibilityLabel={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: active }}
-            dataSet={{ sagakI18nIgnore: 'true' }}
-            key={option.code}
-            onPress={() => onChangeLanguage(option.code)}
-            style={(state) => [
-              styles.languageOption,
-              active && styles.languageOptionActive,
-              state.hovered && !active && styles.languageOptionHover,
-              ...interactiveStateStyles(state)
-            ]}
-            title={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
-          >
-            <Text style={[styles.languageOptionText, active && styles.languageOptionTextActive]}>
-              {getLanguageLabel(option.code)}
-            </Text>
-            {beta ? (
-              <View style={[styles.languageBetaBadge, active && styles.languageBetaBadgeActive]}>
-                <Text style={[styles.languageBetaText, active && styles.languageBetaTextActive]}>
-                  {betaLabel}
+            return (
+              <Pressable
+                accessibilityLabel={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
+                accessibilityRole="menuitemradio"
+                accessibilityState={{ checked: active }}
+                dataSet={{ sagakI18nIgnore: 'true' }}
+                key={option.code}
+                onPress={() => {
+                  onChangeLanguage(option.code);
+                  setOpen(false);
+                }}
+                style={(state) => [
+                  styles.languageOption,
+                  active && styles.languageOptionActive,
+                  state.hovered && !active && styles.languageOptionHover,
+                  ...interactiveStateStyles(state)
+                ]}
+                title={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
+              >
+                <Text style={[styles.languageOptionText, active && styles.languageOptionTextActive]}>
+                  {getLanguageLabel(option.code)}
                 </Text>
-              </View>
-            ) : null}
-          </Pressable>
-        );
-      })}
+                {beta ? (
+                  <View style={[styles.languageBetaBadge, active && styles.languageBetaBadgeActive]}>
+                    <Text style={[styles.languageBetaText, active && styles.languageBetaTextActive]}>
+                      {betaLabel}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -211,7 +355,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    alignItems: 'center'
+    alignItems: 'center',
+    zIndex: 20
   },
   header: {
     width: '100%',
@@ -223,7 +368,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10
+    gap: 10,
+    overflow: 'visible'
   },
   brand: {
     flexDirection: 'row',
@@ -273,7 +419,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'transparent'
+    borderColor: 'transparent',
+    ...interactions.transition
   },
   navItemActive: {
     backgroundColor: colors.mintSoft,
@@ -293,38 +440,143 @@ const styles = StyleSheet.create({
   navTextActive: {
     color: colors.mintDeep
   },
+  navMenuWrap: {
+    position: 'relative',
+    zIndex: 30
+  },
+  navMenuButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  navSubmenu: {
+    position: 'absolute',
+    top: 46,
+    left: 0,
+    minWidth: 156,
+    padding: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
+    gap: 4,
+    zIndex: 40
+  },
+  navSubmenuItem: {
+    minHeight: 36,
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...interactions.transition
+  },
+  navSubmenuItemHover: {
+    backgroundColor: colors.surfaceWarm
+  },
+  navSubmenuItemActive: {
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint
+  },
+  navSubmenuText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  navSubmenuTextActive: {
+    color: colors.mintDeep
+  },
+  chevron: {
+    width: 8,
+    height: 8,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: colors.blueDeep,
+    transform: [{ rotate: '45deg' }],
+    marginTop: -3
+  },
+  chevronOpen: {
+    transform: [{ rotate: '225deg' }],
+    marginTop: 4
+  },
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     justifyContent: 'center',
-    minWidth: 0
+    minWidth: 0,
+    overflow: 'visible',
+    zIndex: 50
   },
-  languageSelector: {
+  languageDropdown: {
+    position: 'relative',
+    zIndex: 70
+  },
+  languageTrigger: {
     minHeight: 38,
-    maxWidth: 360,
-    padding: 3,
+    paddingHorizontal: 11,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3
+    gap: 7,
+    ...interactions.transition
+  },
+  languageTriggerHover: {
+    backgroundColor: colors.surface
+  },
+  languageTriggerTitle: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  languageCurrentValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  languageCurrentText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  languageMenu: {
+    position: 'absolute',
+    top: 44,
+    right: 0,
+    width: 188,
+    padding: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
+    gap: 4,
+    zIndex: 80
   },
   languageOption: {
-    minHeight: 30,
-    paddingHorizontal: 9,
-    borderRadius: 999,
+    minHeight: 36,
+    paddingHorizontal: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'transparent',
     backgroundColor: 'transparent',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     gap: 4,
     ...interactions.transition
   },
@@ -442,6 +694,29 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontWeight: '700',
     fontSize: 14
+  },
+  myPageButton: {
+    minHeight: 38,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  myPageButtonActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  myPageText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  myPageTextActive: {
+    color: colors.mintDeep
   },
   primaryButton: {
     minHeight: 42,

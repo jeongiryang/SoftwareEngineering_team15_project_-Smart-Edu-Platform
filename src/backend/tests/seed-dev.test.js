@@ -1,5 +1,7 @@
 const {
   DEV_SEED_PASSWORD,
+  DEV_SHOP_ITEMS,
+  DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl
@@ -10,7 +12,7 @@ describe('development seed script', () => {
     expect(DEV_SEED_USERS).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          email: 'dev.user@example.com',
+          loginId: 'dev_user',
           role: 'USER',
           status: 'ACTIVE',
           profile: expect.objectContaining({
@@ -19,7 +21,7 @@ describe('development seed script', () => {
           })
         }),
         expect.objectContaining({
-          email: 'dev.admin@example.com',
+          loginId: 'admin_user',
           role: 'ADMIN',
           status: 'ACTIVE',
           profile: expect.objectContaining({
@@ -30,6 +32,43 @@ describe('development seed script', () => {
       ])
     );
     expect(DEV_SEED_PASSWORD).toEqual(expect.any(String));
+  });
+
+  it('defines default shop seed items for profile customization', () => {
+    expect(DEV_SHOP_ITEMS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'PROFILE_AVATAR_SKY',
+          type: 'PROFILE_IMAGE',
+          price: expect.any(Number)
+        }),
+        expect.objectContaining({
+          code: 'PROFILE_BACKGROUND_DAWN',
+          type: 'PROFILE_BACKGROUND',
+          price: expect.any(Number)
+        }),
+        expect.objectContaining({
+          code: 'TITLE_EARLY_BIRD',
+          type: 'TITLE',
+          price: expect.any(Number)
+        })
+      ])
+    );
+  });
+
+  it('defines demo shop purchases for profile shop screens', () => {
+    expect(DEV_SHOP_PURCHASES).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          loginId: 'dev_user',
+          itemCodes: expect.arrayContaining(['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'])
+        }),
+        expect.objectContaining({
+          loginId: 'reward_user',
+          itemCodes: expect.arrayContaining(['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'])
+        })
+      ])
+    );
   });
 
   it('requires database environment keys before running seed', () => {

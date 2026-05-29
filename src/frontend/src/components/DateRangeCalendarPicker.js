@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAY_LABELS = {
+  ko: ['일', '월', '화', '수', '목', '금', '토'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  ja: ['日', '月', '火', '水', '木', '金', '土'],
+  zh: ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+};
 
 function parseDateString(value) {
   if (!value) {
@@ -67,6 +73,7 @@ export default function DateRangeCalendarPicker({
   setSelectedTarget,
   startDate
 }) {
+  const { currentLanguage, translateText } = useLanguage();
   const referenceDate = parseDateString(startDate) || parseDateString(endDate);
   const [visibleMonth, setVisibleMonth] = useState(
     referenceDate || new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))
@@ -84,7 +91,12 @@ export default function DateRangeCalendarPicker({
     () => buildCalendarDays(visibleMonth, startDate, endDate),
     [visibleMonth, startDate, endDate]
   );
-  const monthLabel = `${visibleMonth.getUTCFullYear()}년 ${visibleMonth.getUTCMonth() + 1}월`;
+  const monthLabel = new Intl.DateTimeFormat(languageIntlLocale(currentLanguage), {
+    month: 'long',
+    timeZone: 'UTC',
+    year: 'numeric'
+  }).format(visibleMonth);
+  const weekdayLabels = WEEKDAY_LABELS[currentLanguage] || WEEKDAY_LABELS.ko;
 
   function handleSelect(dateString) {
     if (selectedTarget === 'start') {
@@ -111,10 +123,10 @@ export default function DateRangeCalendarPicker({
         <Text style={styles.monthLabel}>{monthLabel}</Text>
         <View style={styles.actionRow}>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, -1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>이전</Text>
+            <Text style={styles.navButtonText}>{translateText('이전')}</Text>
           </Pressable>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, 1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>다음</Text>
+            <Text style={styles.navButtonText}>{translateText('다음')}</Text>
           </Pressable>
         </View>
       </View>
@@ -124,7 +136,7 @@ export default function DateRangeCalendarPicker({
           onPress={() => setSelectedTarget('start')}
           style={[styles.targetCard, selectedTarget === 'start' && styles.targetCardActive]}
         >
-          <Text style={styles.targetLabel}>시작 날짜</Text>
+          <Text style={styles.targetLabel}>{translateText('시작 날짜')}</Text>
           <Text style={styles.targetValue}>{startDate}</Text>
         </Pressable>
         <Text style={styles.arrow}>-></Text>
@@ -132,13 +144,13 @@ export default function DateRangeCalendarPicker({
           onPress={() => setSelectedTarget('end')}
           style={[styles.targetCard, selectedTarget === 'end' && styles.targetCardActive]}
         >
-          <Text style={styles.targetLabel}>종료 날짜</Text>
+          <Text style={styles.targetLabel}>{translateText('종료 날짜')}</Text>
           <Text style={styles.targetValue}>{endDate}</Text>
         </Pressable>
       </View>
 
       <View style={styles.weekdayRow}>
-        {WEEKDAY_LABELS.map((weekday) => (
+        {weekdayLabels.map((weekday) => (
           <View key={weekday} style={styles.weekdayCell}>
             <Text style={styles.weekdayText}>{weekday}</Text>
           </View>
@@ -168,13 +180,13 @@ export default function DateRangeCalendarPicker({
             >
               {day.dayNumber}
             </Text>
-            {day.isStart ? <Text style={styles.markerText}>시작</Text> : null}
-            {day.isEnd ? <Text style={styles.markerText}>종료</Text> : null}
+            {day.isStart ? <Text style={styles.markerText}>{translateText('시작')}</Text> : null}
+            {day.isEnd ? <Text style={styles.markerText}>{translateText('종료')}</Text> : null}
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.caption}>시작 날짜를 먼저 고르고, 종료 날짜를 이어서 선택하는 방식입니다.</Text>
+      <Text style={styles.caption}>{translateText('시작 날짜를 먼저 고르고, 종료 날짜를 이어서 선택하는 방식입니다.')}</Text>
     </View>
   );
 }

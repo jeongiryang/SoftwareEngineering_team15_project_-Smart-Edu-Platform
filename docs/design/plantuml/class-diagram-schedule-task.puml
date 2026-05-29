@@ -10,7 +10,7 @@ hide circle
 package "학습 일정/태스크 도메인" #E8F5E9 {
   class User <<사용자>> {
     - userId: Long
-    - email: String
+    - loginId: String
   }
 
   class StudySchedule <<학습 일정>> {

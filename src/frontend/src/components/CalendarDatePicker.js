@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAY_LABELS = {
+  ko: ['일', '월', '화', '수', '목', '금', '토'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  ja: ['日', '月', '火', '水', '木', '金', '土'],
+  zh: ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+};
 
 function parseDateString(value) {
   if (!value) {
@@ -53,6 +59,7 @@ function buildCalendarDays(visibleMonth, selectedValue) {
 }
 
 export default function CalendarDatePicker({ label, value, onChange, accent = 'mint' }) {
+  const { currentLanguage, translateText } = useLanguage();
   const parsedValue = parseDateString(value);
   const [visibleMonth, setVisibleMonth] = useState(
     parsedValue || new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))
@@ -65,17 +72,22 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
   }, [value]);
 
   const days = useMemo(() => buildCalendarDays(visibleMonth, value), [visibleMonth, value]);
-  const monthLabel = `${visibleMonth.getUTCFullYear()}년 ${visibleMonth.getUTCMonth() + 1}월`;
+  const monthLabel = new Intl.DateTimeFormat(languageIntlLocale(currentLanguage), {
+    month: 'long',
+    timeZone: 'UTC',
+    year: 'numeric'
+  }).format(visibleMonth);
+  const weekdayLabels = WEEKDAY_LABELS[currentLanguage] || WEEKDAY_LABELS.ko;
   const accentStyle = accent === 'blue' ? styles.selectedDayBlue : styles.selectedDayMint;
   const accentTextStyle = accent === 'blue' ? styles.selectedDayTextBlue : styles.selectedDayTextMint;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>{translateText(label)}</Text>
         <View style={styles.quickRow}>
           <Pressable onPress={() => onChange(formatDateString(new Date()))} style={styles.quickButton}>
-            <Text style={styles.quickButtonText}>오늘</Text>
+            <Text style={styles.quickButtonText}>{translateText('오늘')}</Text>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -85,7 +97,7 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
             }}
             style={styles.quickButton}
           >
-            <Text style={styles.quickButtonText}>내일</Text>
+            <Text style={styles.quickButtonText}>{translateText('내일')}</Text>
           </Pressable>
         </View>
       </View>
@@ -93,16 +105,16 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
       <View style={styles.calendarCard}>
         <View style={styles.monthRow}>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, -1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>이전</Text>
+            <Text style={styles.navButtonText}>{translateText('이전')}</Text>
           </Pressable>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, 1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>다음</Text>
+            <Text style={styles.navButtonText}>{translateText('다음')}</Text>
           </Pressable>
         </View>
 
         <View style={styles.weekdayRow}>
-          {WEEKDAY_LABELS.map((weekday) => (
+          {weekdayLabels.map((weekday) => (
             <View key={weekday} style={styles.weekdayCell}>
               <Text style={styles.weekdayText}>{weekday}</Text>
             </View>
@@ -136,8 +148,8 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
         </View>
 
         <View style={styles.selectedFooter}>
-          <Text style={styles.selectedFooterLabel}>선택한 날짜</Text>
-          <Text style={styles.selectedFooterValue}>{value || '날짜를 선택하세요'}</Text>
+          <Text style={styles.selectedFooterLabel}>{translateText('선택한 날짜')}</Text>
+          <Text style={styles.selectedFooterValue}>{value || translateText('날짜를 선택하세요')}</Text>
         </View>
       </View>
     </View>

@@ -87,15 +87,8 @@ function formatShortDate(value) {
   }).format(date);
 }
 
-function maskEmail(email = '') {
-  const [localPart, domain] = email.split('@');
-
-  if (!localPart || !domain) {
-    return email || '이메일 없음';
-  }
-
-  const visible = localPart.slice(0, Math.min(3, localPart.length));
-  return `${visible}${localPart.length > 3 ? '***' : ''}@${domain}`;
+function formatLoginId(loginId = '') {
+  return loginId || '아이디 없음';
 }
 
 function getProfileNameFeedback(name, currentName) {
@@ -245,6 +238,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     newPassword: '',
     confirmPassword: ''
   });
+  const [accountSection, setAccountSection] = useState('nickname');
 
   useEffect(() => {
     setNameForm(user?.name || '');
@@ -437,7 +431,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
             <View style={styles.identityChip}>
               <Text style={styles.identityChipText}>{isAdmin ? 'ADMIN' : 'LEARNER'}</Text>
             </View>
-            <Text style={styles.emailText}>{maskEmail(user?.email)}</Text>
+            <Text style={styles.loginIdText}>{formatLoginId(user?.loginId)}</Text>
           </View>
         </View>
         <Pressable
@@ -675,7 +669,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
               </View>
             </SectionCard>
 
-            <SectionCard title="계정 설정" subtitle="닉네임과 비밀번호를 본인 계정 기준으로 관리합니다.">
+            <SectionCard title="계정 설정" subtitle="필요한 항목만 열어서 관리합니다. 닉네임과 비밀번호 변경은 본인 계정 기준으로 처리됩니다.">
               {accountMessage ? (
                 <View style={styles.accountSuccess}>
                   <Text style={styles.accountSuccessText}>{accountMessage}</Text>
@@ -687,76 +681,121 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                 </View>
               ) : null}
 
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>닉네임</Text>
-                <View style={styles.inlineForm}>
-                  <AccessibleTextInput
-                    containerStyle={styles.inlineTextInputContainer}
-                    onChangeText={setNameForm}
-                    placeholder="닉네임을 입력하세요"
-                    placeholderTextColor={colors.muted}
-                    style={styles.textInput}
-                    value={nameForm}
-                  />
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={savingName}
-                    onPress={handleNameSubmit}
-                    style={(state) => [
-                      styles.formButton,
-                      savingName && styles.disabledButton,
-                      ...interactiveStateStyles(state, { disabled: savingName })
-                    ]}
-                  >
-                    <Text style={styles.formButtonText}>{savingName ? '저장 중' : '저장'}</Text>
-                  </Pressable>
+              <View style={styles.accountOverview}>
+                <View style={styles.accountOverviewItem}>
+                  <Text style={styles.accountOverviewLabel}>현재 닉네임</Text>
+                  <Text style={styles.accountOverviewValue}>{userName}</Text>
                 </View>
-                <FieldFeedback {...getProfileNameFeedback(nameForm, user?.name)} />
+                <View style={styles.accountOverviewItem}>
+                  <Text style={styles.accountOverviewLabel}>로그인 아이디</Text>
+                  <Text style={styles.accountOverviewValue}>{formatLoginId(user?.loginId)}</Text>
+                </View>
+                <View style={styles.accountOverviewItem}>
+                  <Text style={styles.accountOverviewLabel}>계정 유형</Text>
+                  <Text style={styles.accountOverviewValue}>{isAdmin ? '관리자' : '일반 학습자'}</Text>
+                </View>
               </View>
 
-              <View style={styles.passwordBox}>
-                <Text style={styles.formLabel}>비밀번호 변경</Text>
-                <AccessibleTextInput
-                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
-                  placeholder="현재 비밀번호"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
-                  style={styles.textInput}
-                  value={passwordForm.currentPassword}
-                />
-                <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
-                <AccessibleTextInput
-                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
-                  placeholder="새 비밀번호"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
-                  style={styles.textInput}
-                  value={passwordForm.newPassword}
-                />
-                <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
-                <AccessibleTextInput
-                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
-                  placeholder="새 비밀번호 확인"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
-                  style={styles.textInput}
-                  value={passwordForm.confirmPassword}
-                />
-                <FieldFeedback {...getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword)} />
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={changingPassword}
-                  onPress={handlePasswordSubmit}
-                  style={(state) => [
-                    styles.passwordButton,
-                    changingPassword && styles.disabledButton,
-                    ...interactiveStateStyles(state, { disabled: changingPassword })
-                  ]}
-                >
-                  <Text style={styles.passwordButtonText}>{changingPassword ? '변경 중' : '비밀번호 변경'}</Text>
-                </Pressable>
-                <Text style={styles.formHelper}>비밀번호는 8자 이상이어야 하며, 응답에 비밀번호 원문이나 hash를 표시하지 않습니다.</Text>
+              <View style={styles.accountTabRow}>
+                {[
+                  { key: 'nickname', label: '닉네임 변경' },
+                  { key: 'password', label: '비밀번호 변경' }
+                ].map((item) => {
+                  const active = accountSection === item.key;
+
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      key={item.key}
+                      onPress={() => setAccountSection(item.key)}
+                      style={(state) => [
+                        styles.accountTab,
+                        active && styles.accountTabActive,
+                        ...interactiveStateStyles(state)
+                      ]}
+                    >
+                      <Text style={[styles.accountTabText, active && styles.accountTabTextActive]}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
+
+              {accountSection === 'nickname' ? (
+                <View style={styles.accountPanel}>
+                  <Text style={styles.formLabel}>닉네임</Text>
+                  <Text style={styles.formHelper}>커뮤니티와 프로필에 표시되는 이름입니다. 실제 중복 확인은 저장 시 서버 응답 기준으로 처리합니다.</Text>
+                  <View style={styles.inlineForm}>
+                    <AccessibleTextInput
+                      containerStyle={styles.inlineTextInputContainer}
+                      onChangeText={setNameForm}
+                      placeholder="닉네임을 입력하세요"
+                      placeholderTextColor={colors.muted}
+                      style={styles.textInput}
+                      value={nameForm}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={savingName}
+                      onPress={handleNameSubmit}
+                      style={(state) => [
+                        styles.formButton,
+                        savingName && styles.disabledButton,
+                        ...interactiveStateStyles(state, { disabled: savingName })
+                      ]}
+                    >
+                      <Text style={styles.formButtonText}>{savingName ? '저장 중' : '저장'}</Text>
+                    </Pressable>
+                  </View>
+                  <FieldFeedback {...getProfileNameFeedback(nameForm, user?.name)} />
+                </View>
+              ) : (
+                <View style={styles.accountPanel}>
+                  <Text style={styles.formLabel}>비밀번호 변경</Text>
+                  <Text style={styles.formHelper}>현재 비밀번호 확인 후 새 비밀번호를 저장합니다. 비밀번호 원문이나 hash는 화면에 표시하지 않습니다.</Text>
+                  <AccessibleTextInput
+                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
+                    placeholder="현재 비밀번호"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={passwordForm.currentPassword}
+                  />
+                  <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
+                  <AccessibleTextInput
+                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
+                    placeholder="새 비밀번호"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={passwordForm.newPassword}
+                  />
+                  <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
+                  <AccessibleTextInput
+                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
+                    placeholder="새 비밀번호 확인"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={passwordForm.confirmPassword}
+                  />
+                  <FieldFeedback {...getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword)} />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={changingPassword}
+                    onPress={handlePasswordSubmit}
+                    style={(state) => [
+                      styles.passwordButton,
+                      changingPassword && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: changingPassword })
+                    ]}
+                  >
+                    <Text style={styles.passwordButtonText}>{changingPassword ? '변경 중' : '비밀번호 변경'}</Text>
+                  </Pressable>
+                </View>
+              )}
             </SectionCard>
           </View>
         </>
@@ -839,7 +878,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900'
   },
-  emailText: {
+  loginIdText: {
     color: colors.muted,
     fontSize: 13,
     fontWeight: '700'
@@ -1182,6 +1221,66 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18
+  },
+  accountOverview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  accountOverviewItem: {
+    flex: 1,
+    minWidth: 150,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
+    gap: 6
+  },
+  accountOverviewLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  accountOverviewValue: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  accountTabRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  accountTab: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    ...interactions.transition
+  },
+  accountTabActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  accountTabText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  accountTabTextActive: {
+    color: colors.mintDeep
+  },
+  accountPanel: {
+    gap: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16
   },
   formGroup: {
     gap: 9
