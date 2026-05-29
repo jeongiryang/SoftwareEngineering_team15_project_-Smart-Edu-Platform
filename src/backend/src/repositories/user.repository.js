@@ -45,10 +45,26 @@ function upsertUserProfile(userId, data) {
   });
 }
 
+function updateUser(userId, data) {
+  return prisma.user.update({
+    where: { id: userId },
+    data
+  });
+}
+
+function updateUserPassword(userId, passwordHash) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash }
+  });
+}
+
 module.exports = {
   createUser,
   findUserByEmail,
   findUserById,
   findUserWithProfileById,
+  updateUser,
+  updateUserPassword,
   upsertUserProfile
 };

@@ -16,14 +16,10 @@ async function parseResponse(response) {
 
 export async function request(path, options = {}) {
   const method = options.method || 'GET';
-  const isGet = method.toUpperCase() === 'GET';
-  const url = isGet
-    ? `${API_BASE_URL}${path}${path.includes('?') ? '&' : '?'}_t=${Date.now()}`
-    : `${API_BASE_URL}${path}`;
 
   const { headers: customHeaders, ...restOptions } = options;
 
-  const response = await fetch(url, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
@@ -36,7 +32,10 @@ export async function request(path, options = {}) {
   const data = await parseResponse(response);
 
   if (!response.ok) {
-    throw new Error(data.message || `API request failed: ${response.status}`);
+    const error = new Error(data.message || `API request failed: ${response.status}`);
+    error.status = response.status;
+    error.code = data.code;
+    throw error;
   }
 
   return data;
@@ -48,6 +47,82 @@ function buildQueryString(params = {}) {
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
 
   return pairs.length ? `?${pairs.join('&')}` : '';
+}
+
+const FOCUS_SESSION_QUEUE_KEY = 'smartEdu.pendingFocusSessionQueue';
+const FOCUS_SESSION_QUEUE_LIMIT = 20;
+const FOCUS_SESSION_FIELDS = ['taskId', 'startedAt', 'endedAt', 'durationMs', 'memo'];
+
+function getStorage() {
+  if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
+    return null;
+  }
+
+  return globalThis.localStorage;
+}
+
+function readFocusSessionQueue() {
+  const storage = getStorage();
+
+  if (!storage) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(storage.getItem(FOCUS_SESSION_QUEUE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeFocusSessionQueue(queue) {
+  const storage = getStorage();
+
+  if (!storage) {
+    return false;
+  }
+
+  try {
+    storage.setItem(FOCUS_SESSION_QUEUE_KEY, JSON.stringify(queue.slice(0, FOCUS_SESSION_QUEUE_LIMIT)));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function sanitizeFocusSessionPayload(payload = {}) {
+  return FOCUS_SESSION_FIELDS.reduce((nextPayload, field) => {
+    if (Object.prototype.hasOwnProperty.call(payload, field)) {
+      nextPayload[field] = payload[field];
+    }
+
+    return nextPayload;
+  }, {});
+}
+
+function createQueueItem(payload, reason = 'network') {
+  return {
+    localId: `focus-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    payload: sanitizeFocusSessionPayload(payload),
+    reason,
+    queuedAt: new Date().toISOString()
+  };
+}
+
+function shouldQueueFocusSessionError(error) {
+  return !error.status || error.status >= 500;
+}
+
+export function getPendingFocusSessionQueue() {
+  return readFocusSessionQueue();
+}
+
+export function enqueueFocusSession(payload, reason = 'manual') {
+  const queue = readFocusSessionQueue();
+  const nextQueue = [createQueueItem(payload, reason), ...queue].slice(0, FOCUS_SESSION_QUEUE_LIMIT);
+
+  return writeFocusSessionQueue(nextQueue);
 }
 
 export function registerUser({ email, password, name }) {
@@ -69,6 +144,79 @@ export function getCurrentUser(token) {
     headers: {
       Authorization: `Bearer ${token}`
     }
+  });
+}
+
+export function updateCurrentUser(token, payload) {
+  return request('/users/me', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function searchUsers(token, keyword) {
+  return request(`/users/search${buildQueryString({ keyword })}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getFriends(token) {
+  return request('/friends', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getFriendRequests(token) {
+  return request('/friends/requests', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function sendFriendRequest(token, userId) {
+  return request('/friends/requests', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ userId })
+  });
+}
+
+export function respondToFriendRequest(token, requestId, action) {
+  return request(`/friends/requests/${requestId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ action })
+  });
+}
+
+export function deleteFriend(token, friendId) {
+  return request(`/friends/${friendId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function changeCurrentUserPassword(token, payload) {
+  return request('/users/me/password', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
   });
 }
 
@@ -191,6 +339,89 @@ export function getTasks(token, scheduleId) {
   });
 }
 
+export function getFocusSessions(token, params = {}) {
+  return request(`/focus-sessions${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export async function recordFocusSession(token, payload, options = {}) {
+  const { queueOnFailure = true } = options;
+  const safePayload = sanitizeFocusSessionPayload(payload);
+
+  try {
+    return await request('/focus-sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(safePayload)
+    });
+  } catch (error) {
+    if (queueOnFailure && shouldQueueFocusSessionError(error)) {
+      const queued = enqueueFocusSession(safePayload, error.status ? `http-${error.status}` : 'network');
+      error.queued = queued;
+      error.message = queued
+        ? '네트워크 문제로 집중 기록을 임시 저장했습니다. 연결이 회복되면 다시 전송해 주세요.'
+        : '집중 기록 저장에 실패했고, 현재 브라우저에서 임시 저장도 사용할 수 없습니다.';
+    }
+
+    throw error;
+  }
+}
+
+export async function retryPendingFocusSessions(token) {
+  const queue = readFocusSessionQueue();
+  const remaining = [];
+  const submitted = [];
+
+  for (const item of queue) {
+    try {
+      const result = await request('/focus-sessions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(item.payload)
+      });
+
+      submitted.push(result.focusSession);
+    } catch (error) {
+      remaining.push({
+        ...item,
+        lastTriedAt: new Date().toISOString(),
+        lastError: error.status ? `http-${error.status}` : 'network'
+      });
+    }
+  }
+
+  writeFocusSessionQueue(remaining);
+
+  return {
+    submitted,
+    failed: remaining.length,
+    remaining
+  };
+}
+
+export function getStatisticsSummary(token, params = {}) {
+  return request(`/statistics/summary${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getStatisticsHeatmap(token, params = {}) {
+  return request(`/statistics/heatmap${buildQueryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function createTask(token, payload) {
   return request('/tasks', {
     method: 'POST',
@@ -266,6 +497,62 @@ export function analyzeWrongAnswer(token, { problem, userAnswer, noteId, allowTr
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({ problem, userAnswer, noteId, allowTruncate })
+  });
+}
+
+export function getAccessibilityPreferences(token) {
+  return request('/accessibility/preferences', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function updateAccessibilityPreferences(token, preferences) {
+  return request('/accessibility/preferences', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(preferences)
+  });
+}
+
+export function requestTextToSpeech(token, { text, voiceType }) {
+  return request('/accessibility/tts', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ text, voiceType })
+  });
+}
+
+export function saveSpeechTranscript(token, { transcript }) {
+  return request('/accessibility/stt', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ transcript })
+  });
+}
+
+export function createReviewReminder(token, { title, task, message, scheduledAt }) {
+  return request('/accessibility/review-reminders', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ title, task, message, scheduledAt })
+  });
+}
+
+export function getReviewReminders(token) {
+  return request('/accessibility/review-reminders', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   });
 }
 

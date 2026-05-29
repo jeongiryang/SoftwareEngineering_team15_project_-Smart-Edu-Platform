@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AccessibleTextInput from './AccessibleTextInput';
 import { colors } from '../styles/theme';
 
 const ITEM_HEIGHT = 54;
@@ -266,7 +267,7 @@ export default function TimeWheelPicker({
           <View style={styles.preciseInputRow}>
             <View style={styles.preciseInputBox}>
               <Text style={styles.preciseInputLabel}>시</Text>
-              <TextInput
+              <AccessibleTextInput
                 keyboardType="number-pad"
                 maxLength={2}
                 onChangeText={handleDraftHourChange}
@@ -277,7 +278,7 @@ export default function TimeWheelPicker({
             <Text style={styles.preciseSeparator}>:</Text>
             <View style={styles.preciseInputBox}>
               <Text style={styles.preciseInputLabel}>분</Text>
-              <TextInput
+              <AccessibleTextInput
                 keyboardType="number-pad"
                 maxLength={2}
                 onChangeText={handleDraftMinuteChange}
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   timeText: {
-    color: '#D7DCE0',
+    color: colors.line,
     fontSize: 32,
     fontWeight: '300'
   },

@@ -1,10 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
+import { SkeletonBlock } from '../components/Skeleton';
 import { claimRewardQuest, getMyRewards } from '../services/api';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const AI_GUIDE_STORAGE_KEY = 'sagaksagakAiGuideDismissed';
+const QUICK_QUIZ_DISMISS_KEY = 'sagaksagakQuickQuizDismissedDate';
+
+const quickQuizBank = [
+  {
+    question: '짧은 집중 루틴을 시작할 때 가장 부담이 적은 목표는 무엇일까요?',
+    options: ['25분 집중 1회', '하루 종일 쉬지 않기', '모든 과목 끝내기'],
+    answerIndex: 0,
+    explanation: '작은 집중 기록을 먼저 남기면 다음 태스크로 이어가기 쉽습니다.'
+  },
+  {
+    question: '오늘 일정이 비어 있을 때 가장 먼저 할 일은 무엇일까요?',
+    options: ['큰 시험 계획부터 완성하기', '오늘 목표 1개 등록하기', '기록을 전부 미루기'],
+    answerIndex: 1,
+    explanation: '일정 하나만 등록해도 대시보드와 보상 흐름을 시작할 수 있습니다.'
+  },
+  {
+    question: '복습 흐름을 만들기 좋은 방법은 무엇일까요?',
+    options: ['틀린 문제를 바로 지우기', '오답 이유를 한 줄로 남기기', '모든 알림 끄기'],
+    answerIndex: 1,
+    explanation: '짧은 오답 기록은 다음 복습 시점을 잡는 기준이 됩니다.'
+  }
+];
 
 const featureCards = [
   {
@@ -14,6 +37,13 @@ const featureCards = [
     screen: 'aiLearning',
     tone: 'featured',
     requiresAIGuide: true
+  },
+  {
+    label: '음성/접근성',
+    summary: '큰 글씨, 고대비, 읽어주기, 음성 입력, 복습 알림을 한곳에서 설정할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'accessibility',
+    tone: 'mint'
   },
   {
     label: '학습 일정',
@@ -38,13 +68,15 @@ const featureCards = [
   },
   {
     label: '집중 시간',
-    summary: '집중 세션 기록과 타이머 화면은 후속 프론트 연결 범위에서 이어집니다.',
-    status: '후속 연결'
+    summary: '집중 세션 기록과 타이머 화면은 준비 중입니다. 연결되면 대시보드에서 바로 이동할 수 있습니다.',
+    status: '준비 중'
   },
   {
     label: '학습 통계',
-    summary: '주간 학습량과 히트맵 시각화 화면은 후속 프론트 연결 범위에서 이어집니다.',
-    status: '후속 연결'
+    summary: '주간 집중 시간 막대와 최근 4주 히트맵으로 학습 흐름을 확인할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'statistics',
+    tone: 'mint'
   }
 ];
 
@@ -163,6 +195,119 @@ function buildClaimMessage(result) {
   return `${points}포인트를 받았습니다.`;
 }
 
+function buildRewardInsight(rewardData, activeQuests) {
+  const availableQuestCount = activeQuests.filter((quest) => quest.status === 'ACHIEVED').length;
+  const progressQuestCount = activeQuests.filter((quest) => quest.status === 'IN_PROGRESS').length;
+  const badgeCount = rewardData.badges?.length || 0;
+
+  if (availableQuestCount > 0) {
+    return `수령 가능한 보상이 ${availableQuestCount}개 있습니다. 오늘은 퀘스트 보상을 먼저 확인해 보세요.`;
+  }
+
+  if (progressQuestCount > 0) {
+    return `진행 중인 퀘스트 ${progressQuestCount}개가 있습니다. 일정과 칸반을 채우면 보상 진행률이 함께 올라갑니다.`;
+  }
+
+  if (badgeCount > 0) {
+    return `현재 ${badgeCount}개의 배지를 모았습니다. 다음 퀘스트가 열리면 이어서 보상을 쌓을 수 있습니다.`;
+  }
+
+  return '아직 보상 기록이 많지 않습니다. 오늘의 일정과 태스크를 먼저 채워 보상 흐름을 시작해 보세요.';
+}
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getDailyQuickQuiz() {
+  const day = new Date().getDate();
+  return quickQuizBank[day % quickQuizBank.length];
+}
+
+function buildMotivationInsight(rewardData, activeQuests) {
+  const totalStudyMinutes = Number(rewardData.metrics?.totalStudyMinutes || 0);
+  const completedTaskCount = Number(rewardData.metrics?.completedTaskCount || 0);
+  const availableQuestCount = activeQuests.filter((quest) => quest.status === 'ACHIEVED').length;
+  const progressQuestCount = activeQuests.filter((quest) => quest.status === 'IN_PROGRESS').length;
+
+  if (availableQuestCount > 0) {
+    return `수령 가능한 보상이 ${availableQuestCount}개 있어요. 먼저 보상을 받고 오늘 흐름을 가볍게 이어가 보세요.`;
+  }
+
+  if (totalStudyMinutes === 0 && completedTaskCount === 0) {
+    return '아직 오늘의 기록이 비어 있어요. 25분 집중 1회나 작은 태스크 하나부터 시작해도 충분합니다.';
+  }
+
+  if (completedTaskCount > 0) {
+    return `완료한 태스크가 ${completedTaskCount}개 쌓였어요. 다음 태스크는 더 작게 쪼개서 이어가 보세요.`;
+  }
+
+  if (progressQuestCount > 0) {
+    return `진행 중인 퀘스트가 ${progressQuestCount}개 있어요. 일정과 칸반을 하나씩 채우면 진행률이 올라갑니다.`;
+  }
+
+  return '오늘은 작은 기록을 남기기 좋은 날이에요. 부담 없이 한 가지 학습 행동만 고르면 됩니다.';
+}
+
+function buildMotivationAction(rewardData, activeQuests) {
+  const availableQuest = activeQuests.find((quest) => quest.status === 'ACHIEVED');
+
+  if (availableQuest) {
+    return {
+      label: '보상 확인하기',
+      action: 'reward'
+    };
+  }
+
+  if (Number(rewardData.metrics?.completedTaskCount || 0) === 0) {
+    return {
+      label: '태스크 만들기',
+      screen: 'taskBoard'
+    };
+  }
+
+  return {
+    label: '오늘 일정 보기',
+    screen: 'schedule'
+  };
+}
+
+function RewardPanelSkeleton() {
+  return (
+    <View style={styles.rewardSkeletonShell}>
+      <View style={styles.rewardSkeletonHeader}>
+        <SkeletonBlock height={18} width="28%" />
+        <SkeletonBlock height={38} style={styles.rewardSkeletonButton} width={110} />
+      </View>
+      <View style={styles.rewardSkeletonStats}>
+        <View style={styles.rewardSkeletonPointCard}>
+          <SkeletonBlock height={12} width="42%" />
+          <SkeletonBlock height={34} width="58%" />
+          <SkeletonBlock height={12} width="78%" />
+        </View>
+        {[0, 1, 2].map((item) => (
+          <View key={item} style={styles.rewardSkeletonMetricCard}>
+            <SkeletonBlock height={12} width="54%" />
+            <SkeletonBlock height={28} width="44%" />
+          </View>
+        ))}
+      </View>
+      <View style={styles.rewardSkeletonGrid}>
+        <View style={styles.rewardSkeletonPanel}>
+          <SkeletonBlock height={16} width="36%" />
+          <SkeletonBlock height={74} />
+          <SkeletonBlock height={74} />
+        </View>
+        <View style={styles.rewardSkeletonPanel}>
+          <SkeletonBlock height={16} width="46%" />
+          <SkeletonBlock height={54} />
+          <SkeletonBlock height={54} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const hasAdminRole = user?.role === 'ADMIN';
   const [showAIGuide, setShowAIGuide] = useState(false);
@@ -175,6 +320,14 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const [rewardError, setRewardError] = useState('');
   const [claimingQuestId, setClaimingQuestId] = useState(null);
   const [claimMessage, setClaimMessage] = useState('');
+  const [selectedQuizOption, setSelectedQuizOption] = useState(null);
+  const [isQuickQuizHiddenToday, setIsQuickQuizHiddenToday] = useState(() => {
+    try {
+      return globalThis.localStorage?.getItem(QUICK_QUIZ_DISMISS_KEY) === getTodayKey();
+    } catch (error) {
+      return false;
+    }
+  });
   const [rewardData, setRewardData] = useState({
     account: null,
     metrics: { totalStudyMinutes: 0, completedTaskCount: 0 },
@@ -209,6 +362,21 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         : (rewardData.recentPointTransactions || []).slice(0, 5),
     [rewardData.recentPointTransactions, showAllTransactions]
   );
+  const rewardInsight = useMemo(
+    () => buildRewardInsight(rewardData, activeQuests),
+    [activeQuests, rewardData]
+  );
+  const motivationInsight = useMemo(
+    () => buildMotivationInsight(rewardData, activeQuests),
+    [activeQuests, rewardData]
+  );
+  const motivationAction = useMemo(
+    () => buildMotivationAction(rewardData, activeQuests),
+    [activeQuests, rewardData]
+  );
+  const quickQuiz = useMemo(() => getDailyQuickQuiz(), []);
+  const isQuizAnswered = selectedQuizOption !== null;
+  const isQuizCorrect = selectedQuizOption === quickQuiz.answerIndex;
 
   function isGuideDismissed() {
     try {
@@ -321,6 +489,27 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     });
   }
 
+  function handleMotivationAction() {
+    if (motivationAction.action === 'reward') {
+      loadRewards({ silent: true });
+      return;
+    }
+
+    if (motivationAction.screen) {
+      onNavigate(motivationAction.screen);
+    }
+  }
+
+  function hideQuickQuizToday() {
+    setIsQuickQuizHiddenToday(true);
+
+    try {
+      globalThis.localStorage?.setItem(QUICK_QUIZ_DISMISS_KEY, getTodayKey());
+    } catch (error) {
+      // Disabled storage should not block the non-forced quiz flow.
+    }
+  }
+
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -332,20 +521,20 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               AI 학습, 커뮤니티, 일정, 칸반 화면을 한곳에서 오가며 오늘의 학습 흐름을 정리할 수 있습니다.
             </Text>
             <View style={styles.heroButtonRow}>
-              <Pressable accessibilityRole="button" onPress={openAILearning} style={styles.primaryButton}>
+              <Pressable accessibilityRole="button" onPress={openAILearning} style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}>
                 <Text style={styles.primaryButtonText}>AI 학습 시작하기</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => onNavigate('community')}
-                style={styles.secondaryButton}
+                style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
               >
                 <Text style={styles.secondaryButtonText}>커뮤니티 보기</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => onNavigate('schedule')}
-                style={styles.secondaryButton}
+                style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
               >
                 <Text style={styles.secondaryButtonText}>일정 보기</Text>
               </Pressable>
@@ -361,9 +550,112 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <View style={styles.memberBadge}>
               <Text style={styles.memberBadgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
             </View>
-            <Pressable accessibilityRole="button" onPress={onLogout} style={styles.logoutButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onNavigate('profile')}
+              style={(state) => [styles.profileLinkButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.profileLinkText}>마이페이지</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onLogout} style={(state) => [styles.logoutButton, ...interactiveStateStyles(state)]}>
               <Text style={styles.logoutButtonText}>로그아웃</Text>
             </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.motivationGrid}>
+          <View style={[styles.motivationCard, shadows.card]}>
+            <View style={styles.motivationHeader}>
+              <View>
+                <Text style={styles.motivationEyebrow}>TODAY BOOST</Text>
+                <Text style={styles.motivationTitle}>오늘의 학습 자극</Text>
+              </View>
+              <View style={styles.optInChip}>
+                <Text style={styles.optInChipText}>선택형</Text>
+              </View>
+            </View>
+            <Text style={styles.motivationText}>{motivationInsight}</Text>
+            <View style={styles.motivationActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleMotivationAction}
+                style={(state) => [styles.motivationButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.motivationButtonText}>{motivationAction.label}</Text>
+              </Pressable>
+              <Text style={styles.motivationNote}>웹 1차 구현이며 OS 잠금화면 개입은 하지 않습니다.</Text>
+            </View>
+          </View>
+
+          <View style={[styles.quickQuizCard, shadows.card]}>
+            <View style={styles.motivationHeader}>
+              <View>
+                <Text style={styles.motivationEyebrow}>1 SECOND REVIEW</Text>
+                <Text style={styles.motivationTitle}>1초 복습 퀴즈</Text>
+              </View>
+              {!isQuickQuizHiddenToday ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={hideQuickQuizToday}
+                  style={(state) => [styles.skipQuizButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.skipQuizText}>오늘 숨김</Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            {isQuickQuizHiddenToday ? (
+              <View style={styles.quizHiddenBox}>
+                <Text style={styles.emptyTitle}>오늘의 1초 퀴즈를 숨겼어요.</Text>
+                <Text style={styles.emptyText}>강제 퀴즈가 아니라 원할 때만 확인하는 빠른 복습 카드입니다.</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.quickQuizQuestion}>{quickQuiz.question}</Text>
+                <View style={styles.quickQuizOptions}>
+                  {quickQuiz.options.map((option, index) => {
+                    const isSelected = selectedQuizOption === index;
+                    const isCorrectOption = quickQuiz.answerIndex === index;
+
+                    return (
+                      <Pressable
+                        accessibilityLabel={`1초 복습 퀴즈 선택지: ${option}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                        key={option}
+                        onPress={() => setSelectedQuizOption(index)}
+                        style={(state) => [
+                          styles.quickQuizOption,
+                          isSelected && styles.quickQuizOptionSelected,
+                          isQuizAnswered && isCorrectOption && styles.quickQuizOptionCorrect,
+                          ...interactiveStateStyles(state, { kind: 'card' })
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.quickQuizOptionText,
+                            isSelected && styles.quickQuizOptionTextSelected,
+                            isQuizAnswered && isCorrectOption && styles.quickQuizOptionTextCorrect
+                          ]}
+                        >
+                          {option}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {isQuizAnswered ? (
+                  <View style={isQuizCorrect ? styles.quizResultSuccess : styles.quizResultInfo}>
+                    <Text style={isQuizCorrect ? styles.quizResultSuccessText : styles.quizResultInfoText}>
+                      {isQuizCorrect ? '정답이에요. 짧게 시작하는 흐름이 좋습니다.' : '괜찮아요. 핵심은 작게 시작하는 습관입니다.'}
+                    </Text>
+                    <Text style={styles.quizExplanation}>{quickQuiz.explanation}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.quickQuizHint}>데모형 빠른 복습 카드입니다. 잠금화면을 막거나 강제하지 않습니다.</Text>
+                )}
+              </>
+            )}
           </View>
         </View>
 
@@ -377,17 +669,18 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               accessibilityRole="button"
               disabled={rewardLoading || rewardRefreshing}
               onPress={() => loadRewards({ silent: true })}
-              style={[styles.refreshButton, (rewardLoading || rewardRefreshing) && styles.refreshButtonDisabled]}
+              style={(state) => [
+                styles.refreshButton,
+                (rewardLoading || rewardRefreshing) && styles.refreshButtonDisabled,
+                ...interactiveStateStyles(state, { disabled: rewardLoading || rewardRefreshing })
+              ]}
             >
               <Text style={styles.refreshButtonText}>{rewardRefreshing ? '새로고침 중' : '새로고침'}</Text>
             </Pressable>
           </View>
 
           {rewardLoading ? (
-            <View style={styles.rewardLoading}>
-              <ActivityIndicator color={colors.blue} />
-              <Text style={styles.loadingText}>보상 정보를 불러오는 중입니다.</Text>
-            </View>
+            <RewardPanelSkeleton />
           ) : (
             <>
               <View style={styles.rewardStats}>
@@ -405,6 +698,11 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 <View style={styles.metricCard}>
                   <Text style={styles.metricLabel}>완료한 태스크</Text>
                   <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.completedTaskCount)}개</Text>
+                </View>
+
+                <View style={styles.storyCard}>
+                  <Text style={styles.storyLabel}>오늘의 보상 흐름</Text>
+                  <Text style={styles.storyText}>{rewardInsight}</Text>
                 </View>
               </View>
 
@@ -431,6 +729,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 등록된 퀘스트가 없습니다.</Text>
                       <Text style={styles.emptyText}>관리자 화면에서 보상 퀘스트를 추가하면 이곳에 표시됩니다.</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => onNavigate('schedule')}
+                        style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
+                      >
+                        <Text style={styles.emptyActionText}>오늘 일정부터 채우기</Text>
+                      </Pressable>
                     </View>
                   ) : (
                     activeQuests.map((quest) => (
@@ -458,18 +763,19 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                         <View style={styles.questFooter}>
                           <View>
-                            <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
-                            <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
-                          </View>
+                              <Text style={styles.questProgress}>{getQuestProgressLabel(quest)}</Text>
+                              <Text style={styles.questReward}>보상 {formatNumber(quest.rewardPoints)}P</Text>
+                            </View>
 
                           {quest.status === 'ACHIEVED' ? (
                             <Pressable
                               accessibilityRole="button"
                               disabled={claimingQuestId === quest.id}
                               onPress={() => handleClaimQuest(quest.id)}
-                              style={[
+                              style={(state) => [
                                 styles.claimButton,
-                                claimingQuestId === quest.id && styles.claimButtonDisabled
+                                claimingQuestId === quest.id && styles.claimButtonDisabled,
+                                ...interactiveStateStyles(state, { disabled: claimingQuestId === quest.id })
                               ]}
                             >
                               <Text style={styles.claimButtonText}>
@@ -493,7 +799,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       <Pressable
                         accessibilityRole="button"
                         onPress={() => setShowClaimedQuests((current) => !current)}
-                        style={styles.collapsibleToggle}
+                        style={(state) => [styles.collapsibleToggle, ...interactiveStateStyles(state)]}
                       >
                         <Text style={styles.collapsibleTitle}>수령 완료한 퀘스트</Text>
                         <Text style={styles.collapsibleMeta}>
@@ -583,7 +889,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         <Pressable
                           accessibilityRole="button"
                           onPress={() => setShowAllBadges((current) => !current)}
-                          style={styles.moreButton}
+                          style={(state) => [styles.moreButton, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllBadges ? '배지 접기' : `배지 더보기 (${rewardData.badges.length - 4}개 더)`}
@@ -595,6 +901,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 획득한 배지가 없습니다.</Text>
                       <Text style={styles.emptyText}>퀘스트를 달성하고 보상을 수령하면 배지가 여기에 표시됩니다.</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => onNavigate('taskBoard')}
+                        style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
+                      >
+                        <Text style={styles.emptyActionText}>태스크 완료하러 가기</Text>
+                      </Pressable>
                     </View>
                   )}
 
@@ -618,7 +931,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         <Pressable
                           accessibilityRole="button"
                           onPress={() => setShowAllTransactions((current) => !current)}
-                          style={styles.moreButton}
+                          style={(state) => [styles.moreButton, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllTransactions
@@ -632,6 +945,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 포인트 적립 내역이 없습니다.</Text>
                       <Text style={styles.emptyText}>보상을 수령하면 최근 적립 내역을 이곳에서 볼 수 있습니다.</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => loadRewards({ silent: true })}
+                        style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
+                      >
+                        <Text style={styles.emptyActionText}>보상 다시 확인하기</Text>
+                      </Pressable>
                     </View>
                   )}
                 </View>
@@ -643,7 +963,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
-            <Text style={styles.sectionSub}>사용 가능한 화면과 후속 연결 대상을 구분해서 보여줍니다.</Text>
+            <Text style={styles.sectionSub}>지금 사용할 수 있는 화면과 준비 중인 화면을 한눈에 보여줍니다.</Text>
           </View>
         </View>
 
@@ -657,7 +977,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 key={card.label}
                 disabled={!card.screen}
                 onPress={() => handleCardPress(card)}
-                style={[styles.card, cardStyle.container, shadows.card]}
+                style={(state) => [
+                  styles.card,
+                  cardStyle.container,
+                  shadows.card,
+                  ...(card.screen ? interactiveStateStyles(state, { kind: 'card' }) : []),
+                  !card.screen && styles.cardDisabled
+                ]}
               >
                 <View style={[styles.statusChip, cardStyle.status]}>
                   <Text style={[styles.statusChipText, cardStyle.statusText]}>{card.status}</Text>
@@ -665,7 +991,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 <Text style={[styles.cardTitle, cardStyle.title]}>{card.label}</Text>
                 <Text style={[styles.cardSummary, cardStyle.summary]}>{card.summary}</Text>
                 <Text style={[styles.cardLink, cardStyle.link]}>
-                  {card.screen ? '화면으로 이동 ->' : '연결 준비 중'}
+                  {card.screen ? '화면으로 이동 ->' : '화면 준비 중'}
                 </Text>
               </Pressable>
             );
@@ -675,7 +1001,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <Pressable
               accessibilityRole="button"
               onPress={() => onNavigate('admin')}
-              style={[styles.card, styles.adminCard, shadows.card]}
+              style={(state) => [styles.card, styles.adminCard, shadows.card, ...interactiveStateStyles(state, { kind: 'card' })]}
             >
               <View style={[styles.statusChip, styles.adminStatus]}>
                 <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
@@ -692,10 +1018,10 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         <View style={styles.noticeCard}>
           <Text style={styles.noticeTitle}>현재 연결 상태</Text>
           <Text style={styles.noticeText}>
-            일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
-            댓글 흐름을 확인할 수 있습니다. 집중 시간과 통계 화면은 후속 프론트 연결 범위로 남아 있습니다.
-          </Text>
-        </View>
+              일정 화면에서는 날짜와 시간 입력, 칸반 화면에서는 태스크 상태 변경과 일정 연결, 커뮤니티 화면에서는 게시글과
+              댓글 흐름을 확인할 수 있습니다. 학습 통계 화면에서는 집중 시간과 완료율 흐름을 그래프로 확인할 수 있습니다.
+            </Text>
+          </View>
       </ScrollView>
       <FeatureGuideModal
         onClose={() => setShowAIGuide(false)}
@@ -763,7 +1089,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blue,
     paddingHorizontal: 20,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   primaryButtonText: {
     color: colors.surface,
@@ -777,7 +1106,8 @@ const styles = StyleSheet.create({
     borderColor: colors.blue,
     backgroundColor: colors.surface,
     paddingHorizontal: 20,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   secondaryButtonText: {
     color: colors.blueDeep,
@@ -832,20 +1162,218 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5
   },
+  profileLinkButton: {
+    marginTop: 18,
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  profileLinkText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800'
+  },
   logoutButton: {
-    marginTop: 20,
+    marginTop: 10,
     minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   logoutButtonText: {
     color: colors.ink,
     fontSize: 13,
     fontWeight: '800'
+  },
+  motivationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18
+  },
+  motivationCard: {
+    flex: 1,
+    minWidth: 300,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 22,
+    gap: 16
+  },
+  quickQuizCard: {
+    flex: 1,
+    minWidth: 300,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    padding: 22,
+    gap: 16
+  },
+  motivationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  motivationEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8
+  },
+  motivationTitle: {
+    color: colors.ink,
+    fontSize: 21,
+    fontWeight: '900',
+    marginTop: 6
+  },
+  optInChip: {
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  optInChipText: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  motivationText: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 24
+  },
+  motivationActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12
+  },
+  motivationButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  motivationButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  motivationNote: {
+    flex: 1,
+    minWidth: 180,
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
+  skipQuizButton: {
+    minHeight: 36,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  skipQuizText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  quickQuizQuestion: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 25,
+    fontWeight: '800'
+  },
+  quickQuizOptions: {
+    gap: 10
+  },
+  quickQuizOption: {
+    minHeight: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  quickQuizOptionSelected: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  quickQuizOptionCorrect: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.successSoft
+  },
+  quickQuizOptionText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  quickQuizOptionTextSelected: {
+    color: colors.blueDeep
+  },
+  quickQuizOptionTextCorrect: {
+    color: colors.success
+  },
+  quizResultSuccess: {
+    borderRadius: 16,
+    backgroundColor: colors.successSoft,
+    padding: 14,
+    gap: 6
+  },
+  quizResultInfo: {
+    borderRadius: 16,
+    backgroundColor: colors.blueSoft,
+    padding: 14,
+    gap: 6
+  },
+  quizResultSuccessText: {
+    color: colors.success,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  quizResultInfoText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  quizExplanation: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 19
+  },
+  quickQuizHint: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 19
+  },
+  quizHiddenBox: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 16,
+    gap: 6
   },
   rewardPanel: {
     borderRadius: 28,
@@ -879,7 +1407,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 16,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   refreshButtonDisabled: {
     opacity: 0.6
@@ -889,17 +1418,57 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800'
   },
-  rewardLoading: {
-    minHeight: 120,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceWarm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10
+  rewardSkeletonShell: {
+    gap: 18
   },
-  loadingText: {
-    color: colors.muted,
-    fontSize: 13
+  rewardSkeletonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 14
+  },
+  rewardSkeletonButton: {
+    borderRadius: 999
+  },
+  rewardSkeletonStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14
+  },
+  rewardSkeletonPointCard: {
+    flexGrow: 1,
+    minWidth: 220,
+    minHeight: 144,
+    borderRadius: 24,
+    padding: 20,
+    gap: 18,
+    backgroundColor: colors.blueSoft
+  },
+  rewardSkeletonMetricCard: {
+    flexGrow: 1,
+    minWidth: 180,
+    minHeight: 118,
+    borderRadius: 24,
+    padding: 20,
+    gap: 18,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  rewardSkeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18
+  },
+  rewardSkeletonPanel: {
+    flex: 1,
+    minWidth: 280,
+    borderRadius: 22,
+    padding: 18,
+    gap: 14,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line
   },
   rewardStats: {
     flexDirection: 'row',
@@ -917,7 +1486,7 @@ const styles = StyleSheet.create({
     minHeight: 144
   },
   statLabel: {
-    color: '#D8E6F6',
+    color: colors.blueSoft,
     fontSize: 13,
     fontWeight: '700'
   },
@@ -928,7 +1497,7 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   statHint: {
-    color: '#D8E6F6',
+    color: colors.blueSoft,
     fontSize: 12,
     lineHeight: 20,
     marginTop: 8
@@ -950,6 +1519,26 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '900',
     marginTop: 16
+  },
+  storyCard: {
+    flexGrow: 1,
+    minWidth: 240,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm
+  },
+  storyLabel: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  storyText: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 12
   },
   errorBanner: {
     borderRadius: 16,
@@ -1015,11 +1604,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm
   },
   achievedQuest: {
-    borderColor: '#B6E3CF',
+    borderColor: colors.mint,
     backgroundColor: colors.successSoft
   },
   claimedQuest: {
-    borderColor: '#D4E0EE',
+    borderColor: colors.blueSoft,
     backgroundColor: colors.blueSoft
   },
   questHeader: {
@@ -1087,7 +1676,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blue,
     paddingHorizontal: 16,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   claimButtonDisabled: {
     opacity: 0.65
@@ -1185,6 +1777,23 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 6
   },
+  emptyActionButton: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
+    ...interactions.transition
+  },
+  emptyActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
   emptyTitle: {
     color: colors.ink,
     fontSize: 14,
@@ -1207,7 +1816,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
-    paddingVertical: 14
+    paddingVertical: 14,
+    ...interactions.transition
   },
   collapsibleTitle: {
     color: colors.ink,
@@ -1227,7 +1837,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 16,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    ...interactions.transition
   },
   moreButtonText: {
     color: colors.blueDeep,
@@ -1262,7 +1873,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.line
+    borderColor: colors.line,
+    ...interactions.transition
+  },
+  cardDisabled: {
+    opacity: 0.78
   },
   defaultCard: {
     backgroundColor: colors.surface
@@ -1279,7 +1894,7 @@ const styles = StyleSheet.create({
   },
   greenCard: {
     backgroundColor: colors.successSoft,
-    borderColor: '#B6E3CF'
+    borderColor: colors.mint
   },
   adminCard: {
     backgroundColor: colors.blueSoft
@@ -1348,7 +1963,7 @@ const styles = StyleSheet.create({
     color: colors.muted
   },
   featuredSummary: {
-    color: '#D8E6F6'
+    color: colors.blueSoft
   },
   cardLink: {
     marginTop: 16,

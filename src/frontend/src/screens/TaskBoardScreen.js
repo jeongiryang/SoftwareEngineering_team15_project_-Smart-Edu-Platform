@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from 'react-native';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 import CalendarDatePicker from '../components/CalendarDatePicker';
+import FieldFeedback from '../components/FieldFeedback';
+import { PanelSkeleton } from '../components/Skeleton';
 import TimeWheelPicker from '../components/TimeWheelPicker';
 import {
   createTask,
@@ -19,11 +20,12 @@ import {
   updateTask,
   updateTaskStatus
 } from '../services/api';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
 const STATUS_OPTIONS = ['TODO', 'IN_PROGRESS', 'DONE'];
 const QUICK_TIME_OPTIONS = ['09:00', '13:00', '18:00', '21:00'];
+const DEFAULT_DDAY_UNITS = '8';
 
 function formatDatePart(value) {
   if (!value) {
@@ -67,6 +69,22 @@ function createInitialForm() {
   };
 }
 
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function createInitialDdayForm() {
+  return {
+    goalTitle: '',
+    deadline: formatDatePart(addDays(new Date(), 14)),
+    scope: '',
+    units: DEFAULT_DDAY_UNITS,
+    priority: 'HIGH'
+  };
+}
+
 function buildTaskPayload(form) {
   return {
     title: form.title.trim(),
@@ -99,6 +117,109 @@ function validateTaskForm(form) {
   }
 
   return '';
+}
+
+function parseDateOnly(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTodayDateOnly() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function buildDdayPlan(form) {
+  const title = form.goalTitle.trim();
+  const scope = form.scope.trim();
+  const deadline = parseDateOnly(form.deadline.trim());
+  const totalUnits = Number.parseInt(form.units, 10);
+
+  if (!title) {
+    return { error: '목표명을 입력해 주세요.', items: [] };
+  }
+
+  if (!deadline) {
+    return { error: '마감일을 확인해 주세요.', items: [] };
+  }
+
+  if (!Number.isInteger(totalUnits) || totalUnits < 1 || totalUnits > 60) {
+    return { error: '분량은 1개부터 60개 사이로 입력해 주세요.', items: [] };
+  }
+
+  const today = getTodayDateOnly();
+
+  if (deadline < today) {
+    return { error: '마감일은 오늘 이후로 선택해 주세요.', items: [] };
+  }
+
+  const dayCount = Math.max(1, Math.floor((deadline.getTime() - today.getTime()) / 86400000) + 1);
+  const taskCount = Math.min(totalUnits, dayCount);
+  const chunkSize = Math.ceil(totalUnits / taskCount);
+
+  const items = Array.from({ length: taskCount }, (_, index) => {
+    const startUnit = index * chunkSize + 1;
+    const endUnit = Math.min(totalUnits, (index + 1) * chunkSize);
+    const dayOffset = taskCount === 1 ? 0 : Math.round((index * (dayCount - 1)) / (taskCount - 1));
+    const dueDate = formatDatePart(addDays(today, dayOffset));
+    const rangeLabel = startUnit === endUnit ? `${startUnit}회차` : `${startUnit}-${endUnit}회차`;
+
+    return {
+      dueDate,
+      title: `${title} ${rangeLabel}`,
+      memo: [
+        `D-Day 자동 계획: 전체 ${totalUnits}개 분량 중 ${rangeLabel}`,
+        scope ? `학습 범위: ${scope}` : '',
+        `마감일: ${form.deadline}`
+      ].filter(Boolean).join('\n')
+    };
+  });
+
+  return { error: '', items };
+}
+
+function getTaskTitleFeedback(title) {
+  const trimmedTitle = title.trim();
+
+  if (!trimmedTitle) {
+    return { tone: 'info', message: '태스크 제목을 입력하면 칸반에 바로 추가할 수 있어요.' };
+  }
+
+  if (trimmedTitle.length < 2) {
+    return { tone: 'warning', message: '조금 더 구체적인 태스크 이름이 좋아요.' };
+  }
+
+  return { tone: 'success', message: '태스크 제목이 준비됐어요.' };
+}
+
+function getDdayGoalFeedback(form, plan) {
+  if (!form.goalTitle.trim()) {
+    return { tone: 'info', message: '목표명을 입력하면 D-Day 계획을 미리 볼 수 있어요.' };
+  }
+
+  if (plan.error) {
+    return { tone: 'warning', message: plan.error };
+  }
+
+  return { tone: 'success', message: `${plan.items.length}개 태스크로 나눠서 생성할 수 있어요.` };
+}
+
+function getDdayUnitsFeedback(units) {
+  const totalUnits = Number.parseInt(units, 10);
+
+  if (!units) {
+    return { tone: 'info', message: '총 분량을 숫자로 입력해 주세요.' };
+  }
+
+  if (!Number.isInteger(totalUnits) || totalUnits < 1 || totalUnits > 60) {
+    return { tone: 'error', message: '분량은 1개부터 60개 사이로 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '분량 입력이 좋아요.' };
 }
 
 function confirmAction(title, message) {
@@ -180,6 +301,18 @@ function getColumnTone(status) {
   return styles.doneColumn;
 }
 
+function getEmptyColumnText(status) {
+  if (status === 'TODO') {
+    return '오늘의 학습 목표를 하나 추가하면 이곳에서 시작할 수 있습니다.';
+  }
+
+  if (status === 'IN_PROGRESS') {
+    return 'TODO 태스크를 진행 중으로 옮기면 현재 집중할 일이 모입니다.';
+  }
+
+  return '완료한 태스크가 쌓이면 오늘의 성취를 바로 확인할 수 있습니다.';
+}
+
 export default function TaskBoardScreen({ onNavigate, token }) {
   const [tasks, setTasks] = useState([]);
   const [schedules, setSchedules] = useState([]);
@@ -189,6 +322,8 @@ export default function TaskBoardScreen({ onNavigate, token }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [form, setForm] = useState(createInitialForm());
+  const [ddayForm, setDdayForm] = useState(createInitialDdayForm());
+  const [generatingPlan, setGeneratingPlan] = useState(false);
 
   async function loadData(keepMessage = false) {
     setLoading(true);
@@ -225,9 +360,17 @@ export default function TaskBoardScreen({ onNavigate, token }) {
       })),
     [tasks]
   );
+  const ddayPlan = useMemo(() => buildDdayPlan(ddayForm), [ddayForm]);
 
   function handleChange(field, value) {
     setForm((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function handleDdayChange(field, value) {
+    setDdayForm((current) => ({
       ...current,
       [field]: value
     }));
@@ -327,6 +470,40 @@ export default function TaskBoardScreen({ onNavigate, token }) {
     }
   }
 
+  async function handleCreateDdayPlan() {
+    if (ddayPlan.error) {
+      setErrorMsg(ddayPlan.error);
+      setSuccessMsg('');
+      return;
+    }
+
+    setGeneratingPlan(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      await Promise.all(
+        ddayPlan.items.map((item) =>
+          createTask(token, {
+            title: item.title,
+            scheduleId: null,
+            dueDate: combineDateTime(item.dueDate, '18:00'),
+            priority: ddayForm.priority,
+            memo: item.memo
+          })
+        )
+      );
+
+      setSuccessMsg(`D-Day 계획으로 ${ddayPlan.items.length}개의 TODO 태스크를 만들었습니다.`);
+      setDdayForm(createInitialDdayForm());
+      await loadData(true);
+    } catch (error) {
+      setErrorMsg(error.message || 'D-Day 계획 생성에 실패했습니다.');
+    } finally {
+      setGeneratingPlan(false);
+    }
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.hero}>
@@ -337,12 +514,149 @@ export default function TaskBoardScreen({ onNavigate, token }) {
             TODO, IN PROGRESS, DONE 컬럼에서 태스크를 확인하고 필요한 상태 변경을 바로 적용할 수 있습니다.
           </Text>
         </View>
-        <Pressable onPress={() => onNavigate('dashboard')} style={styles.backButton}>
+        <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.backButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.backButtonText}>대시보드로 돌아가기</Text>
         </Pressable>
       </View>
 
       <TaskSummary tasks={tasks} />
+
+      <View style={[styles.panel, styles.ddayPanel, shadows.card]}>
+        <View style={styles.ddayHeader}>
+          <View style={styles.ddayHeaderCopy}>
+            <Text style={styles.panelEyebrow}>D-DAY PLANNER</Text>
+            <Text style={styles.panelTitle}>마감일까지 학습 분량 자동 쪼개기</Text>
+            <Text style={styles.ddayDescription}>
+              시험일과 전체 분량을 넣으면 남은 기간에 맞춰 TODO 태스크를 균등하게 만들어 줍니다.
+            </Text>
+          </View>
+          <View style={styles.ddayBadge}>
+            <Text style={styles.ddayBadgeText}>frontend batch</Text>
+          </View>
+        </View>
+
+        <View style={styles.ddayFormGrid}>
+          <View style={[styles.fieldGroup, styles.ddayField]}>
+            <Text style={styles.label}>목표명</Text>
+            <AccessibleTextInput
+              onChangeText={(value) => handleDdayChange('goalTitle', value)}
+              placeholder="중간고사 수학 대비"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={ddayForm.goalTitle}
+            />
+            <FieldFeedback {...getDdayGoalFeedback(ddayForm, ddayPlan)} />
+          </View>
+          <View style={[styles.fieldGroup, styles.ddayField]}>
+            <Text style={styles.label}>마감일</Text>
+            <AccessibleTextInput
+              onChangeText={(value) => handleDdayChange('deadline', value)}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={ddayForm.deadline}
+            />
+          </View>
+          <View style={[styles.fieldGroup, styles.ddayField]}>
+            <Text style={styles.label}>전체 분량</Text>
+            <AccessibleTextInput
+              keyboardType="number-pad"
+              onChangeText={(value) => handleDdayChange('units', value.replace(/[^0-9]/g, ''))}
+              placeholder="8"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={ddayForm.units}
+            />
+            <FieldFeedback {...getDdayUnitsFeedback(ddayForm.units)} />
+          </View>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>학습 범위</Text>
+          <AccessibleTextInput
+            multiline
+            numberOfLines={3}
+            onChangeText={(value) => handleDdayChange('scope', value)}
+            placeholder="교과서 3~5단원, 기출 20문항"
+            placeholderTextColor={colors.muted}
+            style={[styles.input, styles.ddayScopeInput]}
+            value={ddayForm.scope}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>생성 우선순위</Text>
+          <View style={styles.optionRow}>
+            {PRIORITY_OPTIONS.map((option) => (
+              <Pressable
+                accessibilityRole="button"
+                key={option}
+                onPress={() => handleDdayChange('priority', option)}
+                style={(state) => [
+                  styles.pillButton,
+                  ddayForm.priority === option && styles.pillButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text style={[styles.pillButtonText, ddayForm.priority === option && styles.pillButtonTextActive]}>
+                  {option}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.ddayPreview}>
+          <View style={styles.ddayPreviewHeader}>
+            <Text style={styles.selectionTitle}>생성 미리보기</Text>
+            <Text style={styles.selectionText}>
+              {ddayPlan.error ? ddayPlan.error : `${ddayPlan.items.length}개 태스크가 TODO로 생성됩니다.`}
+            </Text>
+          </View>
+          {ddayPlan.error ? null : (
+            <View style={styles.ddayPreviewList}>
+              {ddayPlan.items.slice(0, 4).map((item) => (
+                <View key={`${item.dueDate}-${item.title}`} style={styles.ddayPreviewItem}>
+                  <Text style={styles.ddayPreviewDate}>{item.dueDate}</Text>
+                  <Text style={styles.ddayPreviewTitle}>{item.title}</Text>
+                </View>
+              ))}
+              {ddayPlan.items.length > 4 ? (
+                <Text style={styles.ddayMoreText}>외 {ddayPlan.items.length - 4}개 태스크</Text>
+              ) : null}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.actionRow}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={generatingPlan || Boolean(ddayPlan.error)}
+            onPress={handleCreateDdayPlan}
+            style={(state) => [
+              styles.primaryButton,
+              (generatingPlan || Boolean(ddayPlan.error)) && styles.disabledButton,
+              ...interactiveStateStyles(state, { disabled: generatingPlan || Boolean(ddayPlan.error) })
+            ]}
+          >
+            <Text style={styles.primaryButtonText}>
+              {generatingPlan ? '계획 생성 중...' : 'D-Day 태스크 생성'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={generatingPlan}
+            onPress={() => setDdayForm(createInitialDdayForm())}
+            style={(state) => [
+              styles.secondaryButton,
+              generatingPlan && styles.disabledButton,
+              ...interactiveStateStyles(state, { disabled: generatingPlan })
+            ]}
+          >
+            <Text style={styles.secondaryButtonText}>입력 초기화</Text>
+          </Pressable>
+        </View>
+      </View>
 
       <View style={[styles.panel, styles.formPanel, shadows.card]}>
         <Text style={styles.panelEyebrow}>{editingTaskId ? 'EDIT MODE' : 'NEW TASK'}</Text>
@@ -350,13 +664,14 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>제목</Text>
-          <TextInput
+          <AccessibleTextInput
             onChangeText={(value) => handleChange('title', value)}
             placeholder="예: 자료구조 문제풀이"
             placeholderTextColor={colors.muted}
             style={styles.input}
             value={form.title}
           />
+          <FieldFeedback {...getTaskTitleFeedback(form.title)} />
         </View>
 
         <View style={styles.fieldGroup}>
@@ -364,7 +679,11 @@ export default function TaskBoardScreen({ onNavigate, token }) {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scheduleSelector}>
             <Pressable
               onPress={() => handleChange('scheduleId', null)}
-              style={[styles.scheduleChip, form.scheduleId === null && styles.scheduleChipActive]}
+              style={(state) => [
+                styles.scheduleChip,
+                form.scheduleId === null && styles.scheduleChipActive,
+                ...interactiveStateStyles(state)
+              ]}
             >
               <Text style={[styles.scheduleChipText, form.scheduleId === null && styles.scheduleChipTextActive]}>
                 미연결
@@ -374,7 +693,11 @@ export default function TaskBoardScreen({ onNavigate, token }) {
               <Pressable
                 key={schedule.id}
                 onPress={() => handleChange('scheduleId', schedule.id)}
-                style={[styles.scheduleChip, form.scheduleId === schedule.id && styles.scheduleChipActive]}
+                style={(state) => [
+                  styles.scheduleChip,
+                  form.scheduleId === schedule.id && styles.scheduleChipActive,
+                  ...interactiveStateStyles(state)
+                ]}
               >
                 <Text style={[styles.scheduleChipText, form.scheduleId === schedule.id && styles.scheduleChipTextActive]}>
                   {schedule.title}
@@ -410,7 +733,11 @@ export default function TaskBoardScreen({ onNavigate, token }) {
               <Pressable
                 key={option}
                 onPress={() => handleChange('priority', option)}
-                style={[styles.pillButton, form.priority === option && styles.pillButtonActive]}
+                style={(state) => [
+                  styles.pillButton,
+                  form.priority === option && styles.pillButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
               >
                 <Text style={[styles.pillButtonText, form.priority === option && styles.pillButtonTextActive]}>
                   {option}
@@ -422,7 +749,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>메모</Text>
-          <TextInput
+          <AccessibleTextInput
             multiline
             numberOfLines={4}
             onChangeText={(value) => handleChange('memo', value)}
@@ -443,12 +770,20 @@ export default function TaskBoardScreen({ onNavigate, token }) {
         {successMsg ? <Text style={styles.successText}>{successMsg}</Text> : null}
 
         <View style={styles.actionRow}>
-          <Pressable disabled={submitting} onPress={handleSubmit} style={styles.primaryButton}>
+          <Pressable
+            disabled={submitting}
+            onPress={handleSubmit}
+            style={(state) => [styles.primaryButton, submitting && styles.disabledButton, ...interactiveStateStyles(state, { disabled: submitting })]}
+          >
             <Text style={styles.primaryButtonText}>
               {submitting ? '저장 중...' : editingTaskId ? '태스크 수정' : '태스크 생성'}
             </Text>
           </Pressable>
-          <Pressable disabled={submitting} onPress={resetForm} style={styles.secondaryButton}>
+          <Pressable
+            disabled={submitting}
+            onPress={resetForm}
+            style={(state) => [styles.secondaryButton, submitting && styles.disabledButton, ...interactiveStateStyles(state, { disabled: submitting })]}
+          >
             <Text style={styles.secondaryButtonText}>입력 초기화</Text>
           </Pressable>
         </View>
@@ -456,8 +791,8 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
       {loading ? (
         <View style={[styles.panel, styles.loadingPanel, shadows.card]}>
-          <ActivityIndicator color={colors.blue} size="small" />
           <Text style={styles.loadingText}>태스크 목록 불러오는 중</Text>
+          <PanelSkeleton rows={3} />
         </View>
       ) : (
         <ScrollView
@@ -480,7 +815,17 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
               {group.tasks.length === 0 ? (
                 <View style={styles.emptyColumn}>
-                  <Text style={styles.emptyText}>해당 상태의 태스크가 없습니다.</Text>
+                  <Text style={styles.emptyTitle}>
+                    {group.status === 'TODO' ? '첫 태스크를 추가해 보세요.' : '아직 이동된 태스크가 없습니다.'}
+                  </Text>
+                  <Text style={styles.emptyText}>{getEmptyColumnText(group.status)}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={resetForm}
+                    style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
+                  >
+                    <Text style={styles.emptyActionText}>입력 폼 확인하기</Text>
+                  </Pressable>
                 </View>
               ) : (
                 group.tasks.map((task) => (
@@ -491,13 +836,18 @@ export default function TaskBoardScreen({ onNavigate, token }) {
                         <Text style={styles.itemMeta}>{getScheduleTitle(task.scheduleId, schedules)} · {task.priority}</Text>
                       </View>
                       <View style={styles.inlineActions}>
-                        <Pressable onPress={() => handleEdit(task)} style={styles.inlineButton}>
+                        <Pressable onPress={() => handleEdit(task)} style={(state) => [styles.inlineButton, ...interactiveStateStyles(state)]}>
                           <Text style={styles.inlineButtonText}>수정</Text>
                         </Pressable>
                         <Pressable
                           disabled={submitting}
                           onPress={() => handleDelete(task.id)}
-                          style={[styles.inlineButton, styles.deleteButton]}
+                          style={(state) => [
+                            styles.inlineButton,
+                            styles.deleteButton,
+                            submitting && styles.disabledButton,
+                            ...interactiveStateStyles(state, { disabled: submitting })
+                          ]}
                         >
                           <Text style={styles.deleteButtonText}>삭제</Text>
                         </Pressable>
@@ -515,7 +865,12 @@ export default function TaskBoardScreen({ onNavigate, token }) {
                           key={option}
                           disabled={submitting || task.status === option}
                           onPress={() => handleStatusChange(task.id, option)}
-                          style={[styles.statusButton, task.status === option && styles.statusButtonActive]}
+                          style={(state) => [
+                            styles.statusButton,
+                            task.status === option && styles.statusButtonActive,
+                            (submitting || task.status === option) && styles.disabledButton,
+                            ...interactiveStateStyles(state, { disabled: submitting || task.status === option })
+                          ]}
                         >
                           <Text style={[styles.statusButtonText, task.status === option && styles.statusButtonTextActive]}>
                             {option}
@@ -586,7 +941,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   backButtonText: {
     color: colors.blueDeep,
@@ -602,7 +958,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 220,
     borderRadius: 22,
-    padding: 20
+    padding: 20,
+    ...interactions.transition
   },
   summaryBlue: {
     backgroundColor: colors.blue
@@ -620,7 +977,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1
   },
   summaryEyebrowLight: {
-    color: '#D6E3F3'
+    color: colors.blueSoft
   },
   summaryValue: {
     marginTop: 14,
@@ -638,7 +995,7 @@ const styles = StyleSheet.create({
   },
   summaryLabelLight: {
     marginTop: 6,
-    color: '#D6E3F3',
+    color: colors.blueSoft,
     fontSize: 13
   },
   panel: {
@@ -662,6 +1019,97 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 23,
     fontWeight: '800'
+  },
+  ddayPanel: {
+    gap: 16,
+    backgroundColor: colors.surface
+  },
+  ddayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    flexWrap: 'wrap'
+  },
+  ddayHeaderCopy: {
+    flex: 1,
+    minWidth: 240,
+    gap: 6
+  },
+  ddayDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 21
+  },
+  ddayBadge: {
+    minHeight: 34,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    paddingHorizontal: 12,
+    justifyContent: 'center'
+  },
+  ddayBadgeText: {
+    color: colors.mintDeep,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase'
+  },
+  ddayFormGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+  ddayField: {
+    flex: 1,
+    minWidth: 190
+  },
+  ddayScopeInput: {
+    minHeight: 88,
+    textAlignVertical: 'top'
+  },
+  ddayPreview: {
+    borderRadius: 18,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    gap: 12
+  },
+  ddayPreviewHeader: {
+    gap: 4
+  },
+  ddayPreviewList: {
+    gap: 8
+  },
+  ddayPreviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  ddayPreviewDate: {
+    minWidth: 92,
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  ddayPreviewTitle: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  ddayMoreText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
   },
   fieldGroup: {
     gap: 8
@@ -698,7 +1146,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    gap: 3
+    gap: 3,
+    ...interactions.transition
   },
   scheduleChipActive: {
     borderColor: colors.blue,
@@ -734,7 +1183,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   pillButtonActive: {
     borderColor: colors.blue,
@@ -775,7 +1225,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blue,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
   },
   primaryButtonText: {
     color: colors.surface,
@@ -789,7 +1242,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 18,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  disabledButton: {
+    opacity: 0.55
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -806,8 +1263,6 @@ const styles = StyleSheet.create({
   },
   loadingPanel: {
     minHeight: 160,
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: 10
   },
   loadingText: {
@@ -832,13 +1287,13 @@ const styles = StyleSheet.create({
     gap: 14
   },
   todoColumn: {
-    backgroundColor: '#FFEACC'
+    backgroundColor: colors.cream
   },
   progressColumn: {
-    backgroundColor: '#E4F0FF'
+    backgroundColor: colors.blueSoft
   },
   doneColumn: {
-    backgroundColor: '#E4F7F1'
+    backgroundColor: colors.mintSoft
   },
   columnHeader: {
     flexDirection: 'row',
@@ -871,18 +1326,42 @@ const styles = StyleSheet.create({
   emptyColumn: {
     borderRadius: 20,
     backgroundColor: colors.surface,
-    padding: 18
+    padding: 18,
+    gap: 8
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800'
   },
   emptyText: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 20
   },
+  emptyActionButton: {
+    alignSelf: 'flex-start',
+    minHeight: 36,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    paddingHorizontal: 13,
+    justifyContent: 'center',
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: colors.blueSoft,
+    ...interactions.transition
+  },
+  emptyActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
   itemCard: {
     borderRadius: 22,
     backgroundColor: colors.surface,
     padding: 14,
-    gap: 10
+    gap: 10,
+    ...interactions.transition
   },
   itemHeader: {
     flexDirection: 'row',
@@ -913,7 +1392,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   inlineButtonText: {
     color: colors.blueDeep,
@@ -922,7 +1402,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: colors.dangerSoft,
-    borderColor: '#F1C7C4'
+    borderColor: colors.danger
   },
   deleteButtonText: {
     color: colors.danger,
@@ -949,7 +1429,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   statusButtonActive: {
     borderColor: colors.mintDeep,

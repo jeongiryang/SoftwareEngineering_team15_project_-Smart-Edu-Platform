@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 export default function FeatureGuideModal({ onClose, onContinue, visible }) {
   const [doNotShowAgain, setDoNotShowAgain] = useState(false);
@@ -29,17 +29,30 @@ export default function FeatureGuideModal({ onClose, onContinue, visible }) {
             <Text style={styles.featureText}>본문 요약으로 빠른 복습</Text>
             <Text style={styles.featureText}>오답 입력 후 취약 원인 분석</Text>
           </View>
-          <Pressable onPress={() => setDoNotShowAgain((selected) => !selected)} style={styles.preference}>
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: doNotShowAgain }}
+            onPress={() => setDoNotShowAgain((selected) => !selected)}
+            style={(state) => [styles.preference, state.hovered && styles.preferenceHover, ...interactiveStateStyles(state)]}
+          >
             <View style={[styles.checkbox, doNotShowAgain && styles.checkboxSelected]}>
               {doNotShowAgain ? <Text style={styles.checkmark}>✓</Text> : null}
             </View>
             <Text style={styles.preferenceText}>다음부터 이 안내 보지 않기</Text>
           </Pressable>
           <View style={styles.actions}>
-            <Pressable onPress={handleClose} style={styles.cancelButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleClose}
+              style={(state) => [styles.cancelButton, ...interactiveStateStyles(state)]}
+            >
               <Text style={styles.cancelText}>닫기</Text>
             </Pressable>
-            <Pressable onPress={handleContinue} style={styles.confirmButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleContinue}
+              style={(state) => [styles.confirmButton, ...interactiveStateStyles(state)]}
+            >
               <Text style={styles.confirmText}>AI 학습 시작</Text>
             </Pressable>
           </View>
@@ -105,7 +118,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 24
+    marginBottom: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    padding: 4,
+    ...interactions.transition
+  },
+  preferenceHover: {
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line
   },
   checkbox: {
     width: 21,
@@ -142,7 +164,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     borderRadius: 13,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   cancelText: {
     color: colors.ink,
@@ -153,8 +176,11 @@ const styles = StyleSheet.create({
     minHeight: 48,
     backgroundColor: colors.blue,
     borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.blue,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...interactions.transition
   },
   confirmText: {
     color: colors.surface,

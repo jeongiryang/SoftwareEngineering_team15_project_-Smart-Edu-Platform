@@ -10,8 +10,10 @@ const noteRoutes = require('./note.routes');
 const focusRoutes = require('./focus.routes');
 const statisticsRoutes = require('./statistics.routes');
 const communityRoutes = require('./community.routes');
+const accessibilityRoutes = require('./accessibility.routes');
 const rewardRoutes = require('./reward.routes');
 const shopRoutes = require('./shop.routes');
+const friendRoutes = require('./friend.routes');
 
 const router = express.Router();
 
@@ -26,7 +28,10 @@ router.use('/notes', noteRoutes);
 router.use('/focus-sessions', focusRoutes);
 router.use('/statistics', statisticsRoutes);
 router.use('/community', communityRoutes);
+router.use('/accessibility', accessibilityRoutes);
 router.use('/rewards', rewardRoutes);
+router.use('/friends', friendRoutes);
 router.use('/shop', shopRoutes);
+router.use('/friends', friendRoutes);
 
 module.exports = router;

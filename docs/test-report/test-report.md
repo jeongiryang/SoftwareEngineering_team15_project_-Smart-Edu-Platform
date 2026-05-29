@@ -244,7 +244,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-002 | API 통합 테스트 | 인증 API | 회원가입, 로그인, JWT 발급 흐름 검증 | `npm test` | 정상 계정 생성 및 인증 처리 | 통과 |
 | TC-INT-006 | API 통합 테스트 | 현재 사용자 조회 API | JWT 없이 접근 실패, 유효한 JWT 접근 성공 검증 | `npm test` | 401/200 응답 및 현재 사용자 정보 반환 | 통과 |
 | TC-INT-007 | 보안 검증 | 인증 API 응답 | 회원가입, 로그인, 현재 사용자 조회 응답의 `passwordHash` 미노출 확인 | `npm test` | 응답에 비밀번호 해시가 포함되지 않음 | 통과 |
-| TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/200 응답, 프로필 수정 반영, `passwordHash` 미노출 | 통과 |
+| TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 계정 이름 수정, 비밀번호 변경, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/200 응답, 계정/프로필 수정 반영, 현재 비밀번호 확인, `passwordHash` 미노출 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 다른 사용자 데이터 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 사용자별 데이터 접근 제한 | 통과 |
 | TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석, fallback, noteId 소유권, 400/401/404/429 예외 검증 | `npm test` | mock/fallback 중심으로 실제 외부 AI API 호출 없이 검증 | 통과 |
 | TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
@@ -255,6 +255,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-013 | API 통합 테스트 | 커뮤니티 북마크 API | 게시글 북마크 생성, 중복 북마크 요청, 북마크 취소, invalid postId, userId spoofing 차단, 다른 사용자 북마크 영향 없음 검증 | `npm test` | 400/401/201/200/404 응답 및 현재 사용자 기준 북마크 변경 제한 | 통과 |
 | TC-INT-014 | API 통합 테스트 | 커뮤니티 사용자 신고 API | 게시글/댓글 신고 생성, reason validation, 중복 신고 409, 신고 대상 reported flag 갱신, spoofing 차단, 다른 사용자 동일 대상 신고 허용 검증 | `npm test` | 400/401/201/404/409 응답 및 현재 사용자 기준 신고 이력 저장 | 통과 |
 | TC-INT-015 | API 통합 테스트 | 커뮤니티 관리자 신고 처리 API | 관리자 신고 목록 조회, status/targetType filter, 신고 기각/처리, 재처리 409, reported flag 동기화, 일반 사용자 접근 차단 검증 | `npm test` | 400/401/403/404/409/200 응답 및 ADMIN 기준 신고 처리 | 통과 |
+| TC-INT-016 | API 통합 테스트 | 친구 추가 및 친구 목록 API | 사용자 검색, 친구 요청 생성, 받은/보낸 요청 조회, 수락/거절, 친구 목록, 친구 삭제, 중복 요청/권한/민감정보 미노출 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 400/401/403/404/409/200/201 응답 및 현재 사용자 기준 친구 관계 처리 | 통과 |
 
 ### 4.3 환경 검증 테스트 케이스
 
@@ -286,12 +287,12 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(20 suites / 363 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(22 suites / 402 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
 | Error Middleware focused test | `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js` | 통과 | Prisma 런타임 오류 사용자 친화적 처리 단일 테스트 기준 1 suite / 6 tests passed |
-| User profile API test | `GET /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트 |
+| User profile API test | `GET /api/users/me`, `PATCH /api/users/me`, `PATCH /api/users/me/password`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트. 계정 이름 수정, 현재 비밀번호 확인 후 비밀번호 변경, unsupported field 차단, 민감정보 미노출 검증 포함 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
 | AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers` | 통과 | `src/backend/tests/ai.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429 검증 포함 |
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
@@ -305,6 +306,10 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Focus/Statistics focused test | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 통과 | 집중 시간/통계 API 단일 테스트 기준 1 suite / 18 tests passed |
 | Reward API test | `GET /api/rewards/me`, `POST /api/rewards/quests/:questId/claim` | 통과 | `src/backend/tests/reward.test.js`의 repository mock 기반 API 테스트. 미인증 401, 보상 현황 조회, 달성 퀘스트 보상 수령, invalid questId 400, 미달성 퀘스트 수령 409, 민감정보 미노출 검증 포함 |
 | Reward focused test | `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js` | 통과 | 보상 API 단일 테스트 기준 1 suite / 6 tests passed |
+| Accessibility API test | `GET/PUT /api/accessibility/preferences`, `POST /api/accessibility/tts`, `POST /api/accessibility/stt`, `GET/POST /api/accessibility/review-reminders` | 통과 | `src/backend/tests/accessibility.test.js`의 repository mock 기반 API 테스트. 미인증 401, 접근성 기본 설정 조회, 설정 저장, textScale validation, TTS voiceType validation, STT transcript 저장, 복습 알림 생성/목록 조회 검증 포함 |
+| Accessibility focused test | `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 통과 | 음성/접근성 API 단일 테스트 기준 1 suite / 10 tests passed |
+| Friend API test | `GET /api/users/search`, `GET /api/friends`, `GET/POST/PATCH /api/friends/requests`, `DELETE /api/friends/:friendId` | 통과 | `src/backend/tests/friend.test.js`의 repository mock 기반 API 테스트. 미인증 401, 사용자 검색 자기 자신 제외, 친구 요청 생성/중복 차단, 반대 방향 pending 안내, 수락/거절 권한, 재처리 409, 친구 목록/삭제, 민감정보 미노출 검증 포함 |
+| Friend focused test | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 통과 | 친구 추가 및 친구 목록 API 단일 테스트 기준 1 suite / 20 tests passed |
 | Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category/search/sort validation, 반응/북마크 count/status 응답, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
 | Community Post focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 통과 | 커뮤니티 게시글 API 단일 테스트 파일과 repository query option 및 삭제 안전성 테스트 기준 1 suite / 48 tests passed |
 | Community Comment API test | `GET/POST/PATCH/DELETE /api/community/posts/:postId/comments`, `PATCH/DELETE /api/community/comments/:commentId` | 통과 | `src/backend/tests/community-comment.test.js`의 repository mock 기반 API 테스트. 미인증 401, pagination validation, invalid postId/commentId 400, 존재하지 않는 게시글/댓글 404, 타인 댓글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
@@ -333,6 +338,9 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
+| User/Profile account settings 검증 | 사용자 계정 설정 API 검증 | 통과 | `npm test`(21 suites / 382 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 19 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(21 suites / 382 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 10 tests passed) 통과 |
+| Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(22 suites / 402 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -350,6 +358,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 - `src/backend/tests/note.test.js`
 - `src/backend/tests/focus-statistics.test.js`
 - `src/backend/tests/reward.test.js`
+- `src/backend/tests/accessibility.test.js`
+- `src/backend/tests/friend.test.js`
 - `src/backend/tests/community-post.test.js`
 - `src/backend/tests/community-comment.test.js`
 - `src/backend/tests/community-reaction.test.js`
@@ -364,7 +374,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 Error middleware 테스트는 Prisma 런타임 오류가 사용자 응답에 raw SQL/Prisma/table/로컬 경로 정보를 노출하지 않고 사용자 친화적 500 메시지로 변환되는지 확인함. table missing에 해당하는 Prisma known request error와 initialization error를 masking하고, 기존 validation/notFound/conflict AppError 응답은 기존 status/code/details를 유지하는지 검증함.
 
-사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 프로필 필드 검증, `passwordHash` 미노출을 확인함. 프론트엔드 화면 연동은 후속 작업으로 둠.
+사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 계정 이름 수정, 현재 비밀번호 확인 후 비밀번호 변경, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 계정/프로필 필드 검증, 약한 새 비밀번호 차단, `passwordHash` 미노출을 확인함. 프로필 대시보드의 계정 설정 화면 연동도 함께 반영함.
 
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
 
@@ -539,6 +549,7 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
   - `src/backend/tests/note.test.js`
   - `src/backend/tests/focus-statistics.test.js`
   - `src/backend/tests/reward.test.js`
+  - `src/backend/tests/friend.test.js`
   - `src/backend/tests/community-post.test.js`
   - `src/backend/tests/community-comment.test.js`
   - `src/backend/tests/community-reaction.test.js`

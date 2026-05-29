@@ -1,4 +1,4 @@
-# Smart Edu Platform API 명세서
+﻿# Smart Edu Platform API 명세서
 
 ## 목차
 
@@ -366,7 +366,118 @@ Response 예시:
 | `401` | `UNAUTHORIZED` | 인증 실패 |
 | `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
 
-### 6.2 내 프로필 수정
+### 6.2 내 계정 기본 정보 수정
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/users/me` |
+| 인증 | 필요 |
+| 설명 | 로그인한 사용자의 표시명/닉네임을 수정함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+수정 허용 필드:
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `name` | string | 사용자 표시명 또는 닉네임 |
+
+Request 예시:
+
+```json
+{
+  "name": "사각 학습자"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "사각 학습자",
+    "role": "USER",
+    "status": "ACTIVE"
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 빈 이름, 허용되지 않은 필드, 잘못된 필드 타입 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안 주의사항:
+
+- `role`, `status`, `email`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
+- 응답에 `passwordHash`를 포함하지 않음.
+
+### 6.3 내 비밀번호 변경
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/users/me/password` |
+| 인증 | 필요 |
+| 설명 | 현재 비밀번호 확인 후 새 비밀번호로 변경함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `currentPassword` | string | 예 | 현재 비밀번호 |
+| `newPassword` | string | 예 | 새 비밀번호. 최소 8자 |
+
+Request 예시:
+
+```json
+{
+  "currentPassword": "current-password",
+  "newPassword": "new-password-1234"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "message": "Password changed successfully"
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 새 비밀번호 길이 부족, 허용되지 않은 필드 |
+| `401` | `UNAUTHORIZED` | 인증 실패 또는 현재 비밀번호 불일치 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안 주의사항:
+
+- 현재 사용자 본인(`req.user.id`) 기준으로만 변경함.
+- 응답에 기존/신규 비밀번호, `passwordHash`, token 원문을 포함하지 않음.
+- 비밀번호는 bcrypt hash로 저장함.
+
+### 6.4 내 프로필 수정
 
 | 항목 | 내용 |
 |---|---|
@@ -428,6 +539,242 @@ Response 예시:
 
 - `role`, `status`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
+
+### 6.5 친구 추가 및 친구 목록 API
+
+친구 기능은 인증된 사용자끼리 친구 요청을 보내고, 수락/거절하고, 친구 목록을 조회하는 1차 MVP 범위로 구현함. DM, 실시간 채팅, 차단, 그룹 기능은 후속 범위임.
+
+공통 보안 기준:
+
+- 모든 친구 API는 인증이 필요함.
+- 현재 사용자는 request body의 `userId`가 아니라 `req.user.id` 기준으로 처리함.
+- 자기 자신에게 친구 요청을 보낼 수 없음.
+- A→B와 B→A 중복 pending/accepted 관계를 service 계층에서 차단함.
+- 친구 요청 수락/거절은 요청 수신자만 가능함.
+- 응답에는 `passwordHash`, plain password, token/JWT 원문을 포함하지 않음.
+- 사용자 검색 결과의 이메일은 원문 전체를 노출하지 않고 최소 식별 힌트만 제공함.
+
+#### 6.5.1 친구 추가 대상 검색
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/users/search?keyword=...` |
+| 인증 | 필요 |
+| 설명 | 이름 또는 이메일 일부로 친구 추가 대상을 검색함 |
+
+Query:
+
+| 이름 | 필수 | 설명 |
+|---|---|---|
+| `keyword` | 예 | 2~40자 검색어 |
+
+Response `200`:
+
+```json
+{
+  "users": [
+    {
+      "id": 2,
+      "name": "학습 친구",
+      "role": "USER",
+      "status": "ACTIVE",
+      "emailMasked": "lea***",
+      "profileImageUrl": null,
+      "learningGoal": "매일 30분 복습",
+      "preferredSubject": "영어",
+      "relationshipStatus": "NONE",
+      "friendshipId": null
+    }
+  ]
+}
+```
+
+`relationshipStatus` 값:
+
+| 값 | 의미 |
+|---|---|
+| `NONE` | 친구 관계 없음 |
+| `FRIENDS` | 이미 친구 |
+| `REQUEST_SENT` | 내가 보낸 요청 대기 중 |
+| `REQUEST_RECEIVED` | 상대가 보낸 요청 대기 중 |
+| `REQUEST_REJECTED` | 이전 요청이 거절됨. 다시 요청 가능 |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 검색어 누락, 2자 미만, 40자 초과 |
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+
+#### 6.5.2 친구 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/friends` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자의 accepted 친구 목록을 조회함 |
+
+Response `200`:
+
+```json
+{
+  "friends": [
+    {
+      "id": 1,
+      "status": "ACCEPTED",
+      "direction": "SENT",
+      "createdAt": "2026-05-29T00:00:00.000Z",
+      "updatedAt": "2026-05-29T01:00:00.000Z",
+      "user": {
+        "id": 2,
+        "name": "학습 친구",
+        "role": "USER",
+        "status": "ACTIVE",
+        "emailMasked": "lea***",
+        "profileImageUrl": null,
+        "learningGoal": "매일 30분 복습",
+        "preferredSubject": "영어"
+      }
+    }
+  ]
+}
+```
+
+#### 6.5.3 친구 요청 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/friends/requests` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자의 받은/보낸 pending 친구 요청을 조회함 |
+
+Response `200`:
+
+```json
+{
+  "requests": {
+    "received": [],
+    "sent": [
+      {
+        "id": 3,
+        "status": "PENDING",
+        "direction": "SENT",
+        "user": {
+          "id": 4,
+          "name": "보상 데모 사용자",
+          "role": "USER",
+          "status": "ACTIVE",
+          "emailMasked": "rew***"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### 6.5.4 친구 요청 보내기
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/friends/requests` |
+| 인증 | 필요 |
+| 설명 | 다른 사용자에게 친구 요청을 보냄 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `userId` | number | 예 | 친구 요청 대상 사용자 ID |
+
+Response `201`:
+
+```json
+{
+  "request": {
+    "id": 10,
+    "status": "PENDING",
+    "direction": "SENT",
+    "user": {
+      "id": 2,
+      "name": "학습 친구"
+    }
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `userId` 누락/형식 오류, 자기 자신에게 요청 |
+| `404` | `NOT_FOUND` | 대상 사용자 없음 또는 비활성 사용자 |
+| `409` | `CONFLICT` | 이미 친구, 이미 pending 요청 존재, 반대 방향 pending 요청 존재 |
+
+#### 6.5.5 친구 요청 수락/거절
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `PATCH` |
+| Endpoint | `/api/friends/requests/:requestId` |
+| 인증 | 필요 |
+| 설명 | 받은 친구 요청을 수락하거나 거절함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `ACCEPT` 또는 `REJECT` |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | action 누락/허용값 아님 |
+| `403` | `FORBIDDEN` | 요청 수신자가 아닌 사용자가 처리 시도 |
+| `404` | `NOT_FOUND` | 요청 없음 |
+| `409` | `CONFLICT` | 이미 처리된 요청 |
+
+#### 6.5.6 친구 삭제
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/friends/:friendId` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자와 `friendId` 사이의 accepted 친구 관계만 삭제함 |
+
+Response `200`:
+
+```json
+{
+  "message": "Friend removed successfully",
+  "friendship": {
+    "id": 1,
+    "status": "ACCEPTED",
+    "user": {
+      "id": 2,
+      "name": "학습 친구"
+    }
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `friendId` 형식 오류 |
+| `404` | `NOT_FOUND` | accepted 친구 관계 없음 |
 
 ---
 
@@ -2794,7 +3141,148 @@ Response 예시:
 | 404 | `NOT_FOUND` | 퀘스트가 존재하지 않음 |
 | 409 | `CONFLICT` | 아직 달성하지 않았거나 이미 수령한 퀘스트 |
 
-### 9.7 포인트 상점 API
+### 9.7 음성/접근성 API
+
+음성/접근성 API는 `FR-18`, `FR-20`, `FR-21`, `FR-25`, `FR-26`을 기준으로 구현된 사용자 접근성 설정, 브라우저 음성 기능 요청 이력, 복습 알림 등록 기능을 다룬다. 모든 endpoint는 로그인한 사용자 기준으로 동작하며 다른 사용자의 설정이나 음성 요청 이력에 접근할 수 없다.
+
+공통 인증:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+공통 오류:
+
+| HTTP | code | 상황 |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | 필수 필드 누락, 타입 오류, 길이 제한 초과, 잘못된 날짜/시간 형식 |
+| 401 | `UNAUTHORIZED` | 인증 token 없음 또는 유효하지 않음 |
+| 500 | `INTERNAL_SERVER_ERROR` | 서버 내부 오류 |
+
+#### 9.7.1 접근성 설정 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/accessibility/preferences` | 현재 사용자의 큰 글씨, 고대비, 초등학생 친화 UI, TTS/STT, 복습 알림 설정 조회 |
+
+Response 예시:
+
+```json
+{
+  "preference": {
+    "textScale": 1.2,
+    "highContrast": true,
+    "elementaryFriendlyUi": false,
+    "voiceInputEnabled": true,
+    "voiceOutputEnabled": true,
+    "reviewReminderEnabled": false,
+    "reminderTime": "20:30"
+  }
+}
+```
+
+저장된 설정이 없으면 기본값을 반환한다.
+
+#### 9.7.2 접근성 설정 저장
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PUT` | `/api/accessibility/preferences` | 큰 글씨, 고대비, 초등학생 친화 UI, 음성 입력/출력, 복습 알림 기본 설정 저장 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `textScale` | number | 아니오 | 글자 크기 배율. `1.0`~`1.6` |
+| `highContrast` | boolean | 아니오 | 고대비 모드 사용 여부 |
+| `elementaryFriendlyUi` | boolean | 아니오 | 초등학생 친화 UI 사용 여부 |
+| `voiceInputEnabled` | boolean | 아니오 | STT 음성 입력 사용 여부 |
+| `voiceOutputEnabled` | boolean | 아니오 | TTS 읽어주기 사용 여부 |
+| `reviewReminderEnabled` | boolean | 아니오 | 복습 알림 사용 여부 |
+| `reminderTime` | string/null | 아니오 | 기본 알림 시간. `HH:mm` 형식 |
+
+#### 9.7.3 TTS 읽어주기 요청 저장
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/tts` | 읽어주기 요청 텍스트와 선택한 음성 톤 값을 저장 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `text` | string | 예 | 읽어줄 텍스트. 최대 1000자 |
+| `voiceType` | string | 아니오 | 음성 톤 선택값. `ADULT_MALE`, `ADULT_FEMALE`, `CHILD_BOY`, `CHILD_GIRL` 중 하나 |
+
+Response 예시:
+
+```json
+{
+  "speech": {
+    "id": 1,
+    "mode": "TTS",
+    "voiceType": "ADULT_FEMALE",
+    "text": "오늘 배운 내용을 천천히 읽어 주세요.",
+    "status": "READY",
+    "createdAt": "2026-05-28T03:00:00.000Z"
+  }
+}
+```
+
+서버는 TTS provider를 호출하지 않고 요청 이력과 선택값을 저장한다. 실제 음성 출력은 프론트엔드에서 브라우저 Web Speech API 지원 여부에 따라 처리한다.
+
+#### 9.7.4 STT 음성 입력 결과 저장
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/stt` | 브라우저 음성 인식 결과 transcript 저장 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `transcript` | string | 예 | 음성 인식 결과 텍스트. 최대 1000자 |
+
+#### 9.7.5 복습 알림 등록
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/accessibility/review-reminders` | 기존 `Notification` 모델에 `REVIEW` 타입 복습 알림 등록 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 아니오 | 복습 알림 제목. 최대 200자 |
+| `task` | string | 아니오 | 복습할 내용. 최대 500자 |
+| `message` | string | 아니오 | 하위 호환용 복습 알림 메시지. 최대 200자 |
+| `scheduledAt` | string | 예 | 알림 예정 시각. ISO datetime |
+
+#### 9.7.6 복습 알림 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/accessibility/review-reminders` | 현재 로그인한 사용자의 읽지 않은 복습 알림 목록 조회 |
+
+Response 예시:
+
+```json
+{
+  "reminders": [
+    {
+      "id": 1,
+      "userId": 3,
+      "type": "REVIEW",
+      "message": "영어 단어 복습 - Day 3 단어 20개 다시 보기",
+      "scheduledAt": "2026-05-29T11:00:00.000Z",
+      "readAt": null,
+      "createdAt": "2026-05-28T03:15:00.000Z"
+    }
+  ]
+}
+```
+
+### 9.8 포인트 상점 API
 
 포인트 상점은 보상 시스템에서 획득한 포인트를 사용해 프로필 꾸미기용 아이템을 구매/적용하는 기능임.
 현재 MVP 범위에서는 아래 3가지 아이템 타입을 지원함.
@@ -2805,170 +3293,25 @@ Response 예시:
 
 개발용 기본 상점 아이템은 `npm run seed:dev` 실행 시 함께 생성됨.
 
-#### 9.7.1 상점 아이템 목록 조회
+#### 9.8.1 상점 아이템 목록 조회
 
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `GET` | `/api/shop/items` | 로그인한 사용자 기준 상점 아이템 목록 조회 |
 
-Response 예시:
-
-```json
-{
-  "items": [
-    {
-      "id": 1,
-      "code": "PROFILE_AVATAR_SKY",
-      "name": "하늘 연필 아바타",
-      "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
-      "type": "PROFILE_IMAGE",
-      "price": 15,
-      "assetUrl": "/assets/shop/avatar-sky.png",
-      "isActive": true,
-      "createdAt": "2026-05-28T00:00:00.000Z",
-      "updatedAt": "2026-05-28T00:00:00.000Z",
-      "owned": false,
-      "equipped": false
-    }
-  ]
-}
-```
-
-Error:
-
-- `401`: 인증 token 없음 또는 유효하지 않음
-
----
-
-#### 9.7.2 내 상점 상태 조회
+#### 9.8.2 내 상점 상태 조회
 
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `GET` | `/api/shop/me` | 로그인한 사용자 기준 포인트 잔액, 구매 내역, 현재 적용 상태 조회 |
 
-Response 예시:
-
-```json
-{
-  "shop": {
-    "account": {
-      "id": 1,
-      "userId": 3,
-      "pointBalance": 35,
-      "createdAt": "2026-05-28T00:00:00.000Z",
-      "updatedAt": "2026-05-28T00:00:00.000Z"
-    },
-    "profile": {
-      "id": 3,
-      "userId": 3,
-      "learningGoal": "토익 850점",
-      "preferredSubject": "영어",
-      "profileImageUrl": "/assets/shop/avatar-sky.png",
-      "profileBackgroundUrl": "/assets/shop/background-dawn.png",
-      "titleText": "아침형 학습러",
-      "createdAt": "2026-05-28T00:00:00.000Z",
-      "updatedAt": "2026-05-28T00:00:00.000Z"
-    },
-    "equippedItems": {
-      "profileImage": {
-        "id": 1,
-        "code": "PROFILE_AVATAR_SKY",
-        "name": "하늘 연필 아바타",
-        "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
-        "type": "PROFILE_IMAGE",
-        "price": 15,
-        "assetUrl": "/assets/shop/avatar-sky.png",
-        "isActive": true,
-        "createdAt": "2026-05-28T00:00:00.000Z",
-        "updatedAt": "2026-05-28T00:00:00.000Z",
-        "owned": true,
-        "equipped": true
-      },
-      "profileBackground": null,
-      "title": null
-    },
-    "purchases": [
-      {
-        "id": 1,
-        "userId": 3,
-        "purchasedAt": "2026-05-28T01:00:00.000Z",
-        "item": {
-          "id": 1,
-          "code": "PROFILE_AVATAR_SKY",
-          "name": "하늘 연필 아바타",
-          "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
-          "type": "PROFILE_IMAGE",
-          "price": 15,
-          "assetUrl": "/assets/shop/avatar-sky.png",
-          "isActive": true,
-          "createdAt": "2026-05-28T00:00:00.000Z",
-          "updatedAt": "2026-05-28T00:00:00.000Z",
-          "owned": true,
-          "equipped": true
-        }
-      }
-    ]
-  }
-}
-```
-
-Error:
-
-- `401`: 인증 token 없음 또는 유효하지 않음
-
----
-
-#### 9.7.3 상점 아이템 구매
+#### 9.8.3 상점 아이템 구매
 
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `POST` | `/api/shop/items/:itemId/purchase` | 포인트를 차감하고 상점 아이템 구매 |
 
-Response 예시:
-
-```json
-{
-  "purchase": {
-    "account": {
-      "id": 1,
-      "userId": 3,
-      "pointBalance": 20,
-      "createdAt": "2026-05-28T00:00:00.000Z",
-      "updatedAt": "2026-05-28T01:00:00.000Z"
-    },
-    "purchase": {
-      "id": 1,
-      "userId": 3,
-      "purchasedAt": "2026-05-28T01:00:00.000Z",
-      "item": {
-        "id": 1,
-        "code": "PROFILE_AVATAR_SKY",
-        "name": "하늘 연필 아바타",
-        "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
-        "type": "PROFILE_IMAGE",
-        "price": 15,
-        "assetUrl": "/assets/shop/avatar-sky.png",
-        "isActive": true,
-        "createdAt": "2026-05-28T00:00:00.000Z",
-        "updatedAt": "2026-05-28T00:00:00.000Z",
-        "owned": true,
-        "equipped": false
-      }
-    },
-    "pointTransaction": {
-      "id": 10,
-      "type": "SPEND",
-      "amount": 15,
-      "reason": "하늘 연필 아바타",
-      "sourceType": "SHOP_ITEM",
-      "sourceId": 1,
-      "createdAt": "2026-05-28T01:00:00.000Z"
-    }
-  }
-}
-```
-
-Error:
+주요 에러:
 
 - `400`: invalid `itemId`
 - `401`: 인증 token 없음 또는 유효하지 않음
@@ -2981,54 +3324,11 @@ Error:
 - 구매 시 `RewardAccount.pointBalance`를 차감함.
 - 차감 내역은 `PointTransaction.type = SPEND`, `sourceType = SHOP_ITEM`으로 기록함.
 
----
-
-#### 9.7.4 구매 아이템 적용
+#### 9.8.4 구매 아이템 적용
 
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `POST` | `/api/shop/items/:itemId/equip` | 구매한 아이템을 현재 프로필 꾸미기 상태에 적용 |
-
-Response 예시:
-
-```json
-{
-  "equip": {
-    "profile": {
-      "id": 3,
-      "userId": 3,
-      "learningGoal": "토익 850점",
-      "preferredSubject": "영어",
-      "profileImageUrl": "/assets/shop/avatar-sky.png",
-      "profileBackgroundUrl": null,
-      "titleText": null,
-      "createdAt": "2026-05-28T00:00:00.000Z",
-      "updatedAt": "2026-05-28T02:00:00.000Z"
-    },
-    "equippedItem": {
-      "id": 1,
-      "code": "PROFILE_AVATAR_SKY",
-      "name": "하늘 연필 아바타",
-      "description": "밝은 하늘색 톤의 프로필 이미지를 적용합니다.",
-      "type": "PROFILE_IMAGE",
-      "price": 15,
-      "assetUrl": "/assets/shop/avatar-sky.png",
-      "isActive": true,
-      "createdAt": "2026-05-28T00:00:00.000Z",
-      "updatedAt": "2026-05-28T00:00:00.000Z",
-      "owned": true,
-      "equipped": true
-    }
-  }
-}
-```
-
-Error:
-
-- `400`: invalid `itemId`
-- `401`: 인증 token 없음 또는 유효하지 않음
-- `404`: 아이템 없음 또는 비활성 아이템
-- `409`: 아직 구매하지 않은 아이템
 
 적용 규칙:
 
@@ -3036,9 +3336,19 @@ Error:
 - `PROFILE_BACKGROUND`는 `UserProfile.profileBackgroundUrl`에 `assetUrl`을 반영함.
 - `TITLE`은 `UserProfile.titleText`에 아이템 `name`을 반영함.
 
----
+#### 9.8.5 기본 꾸미기 상태로 되돌리기
 
-### 9.8 docs 기준 기능 구현 상태 재점검
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/unequip` | 타입별로 기본 프로필 이미지/배경/칭호 상태로 되돌림 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `type` | string | 예 | `PROFILE_IMAGE`, `PROFILE_BACKGROUND`, `TITLE` 중 하나 |
+
+### 9.9 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -3061,6 +3371,7 @@ Error:
 | TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
 | 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, `/api/admin/rewards/badges`, `/api/admin/rewards/quests`, 보상 schema/migration 및 관리자 CRUD API 추가 | 알림 API와 보상 정책 고도화, 프론트 보상 화면 연결 |
+| 포인트 상점/프로필 꾸미기 | FR-24 확장 | 부분 구현 | `/api/shop/items`, `/api/shop/me`, `/api/shop/items/:itemId/purchase`, `/api/shop/items/:itemId/equip`, `/api/shop/unequip`, 포인트 상점 프론트 화면 및 seed 아이템 추가 | 실제 자산 고도화, 마이페이지 연동 범위 확정 |
 | 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
 
 ---
@@ -3071,7 +3382,7 @@ Error:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report 포함. 최신 확인 기준 19 suites / 357 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 22 suites / 402 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
@@ -3082,6 +3393,7 @@ Error:
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -3114,3 +3426,5 @@ Error:
 | 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.15~§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-29 | 친구 추가 및 친구 목록 API(§6.5) 구현 완료 내역과 테스트 결과 반영 |
+

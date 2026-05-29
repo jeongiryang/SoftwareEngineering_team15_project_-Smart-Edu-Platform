@@ -36,7 +36,7 @@ export function PanelSkeleton({ rows = 3 }) {
 const styles = StyleSheet.create({
   block: {
     borderRadius: 7,
-    backgroundColor: '#E4ECE8'
+    backgroundColor: colors.mintSoft
   },
   panel: {
     backgroundColor: colors.surface,
