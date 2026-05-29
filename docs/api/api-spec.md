@@ -148,6 +148,37 @@ Response 예시:
 }
 ```
 
+### 4.2 System Status / Maintenance
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/system/status` |
+| 인증 | 불필요 |
+| 설명 | 서비스 점검/업데이트 모드 상태를 공개 조회함 |
+
+Response 예시:
+
+```json
+{
+  "maintenance": {
+    "enabled": false,
+    "title": "사각사각 업데이트 중",
+    "message": "더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.",
+    "estimatedEndAt": null,
+    "updatedAt": "2026-05-29T12:00:00.000Z"
+  }
+}
+```
+
+정책:
+
+- 공개 조회 API이므로 DB URL, secret, 관리자 정보 등 민감정보를 반환하지 않음.
+- `enabled`가 `true`이면 프론트엔드는 일반 사용자에게 점검 화면을 표시함.
+- 관리자 로그인과 관리자 화면 접근은 프론트엔드에서 별도 우회 정책으로 처리함.
+- status API 조회 실패 시 프론트엔드는 fail-open 방식으로 일반 화면을 유지함.
+
 ---
 
 ## 5. Auth API
@@ -2585,6 +2616,49 @@ Error:
 
 ---
 
+#### 9.5.0 서비스 점검 모드 관리
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/system/maintenance` | 현재 점검 모드 설정 조회 |
+| `PATCH` | `/api/admin/system/maintenance` | 점검 모드 ON/OFF 및 안내 문구 수정 |
+
+Request Body:
+
+```json
+{
+  "enabled": true,
+  "title": "사각사각 업데이트 중",
+  "message": "더 좋은 기능으로 찾아오겠습니다. 조금만 기다려주세요.",
+  "estimatedEndAt": null
+}
+```
+
+Response 예시:
+
+```json
+{
+  "maintenance": {
+    "enabled": true,
+    "title": "사각사각 업데이트 중",
+    "message": "더 좋은 기능으로 찾아오겠습니다. 조금만 기다려주세요.",
+    "estimatedEndAt": null,
+    "updatedAt": "2026-05-29T12:00:00.000Z"
+  }
+}
+```
+
+정책:
+
+- `authMiddleware`와 `adminMiddleware`를 모두 적용하므로 `ADMIN`만 조회/수정할 수 있음.
+- 일반 사용자는 `PATCH` 요청 시 `403 FORBIDDEN`을 반환함.
+- `enabled`는 boolean만 허용함.
+- `title`과 `message`는 빈 문자열을 허용하지 않으며 각각 길이 제한을 적용함.
+- `estimatedEndAt`은 ISO date string 또는 `null`만 허용함.
+- 응답에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
+- 점검 모드가 켜져도 관리자 로그인과 관리자 화면 접근은 프론트엔드에서 우회 허용함.
+
+---
 #### 9.5.1 사용자 목록 조회
 
 | Method | Endpoint | 설명 |
@@ -3601,7 +3675,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid 포함. 최신 확인 기준 24 suites / 435 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid 포함. 최신 확인 기준 25 suites / 442 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
@@ -3614,6 +3688,7 @@ Request Body:
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 스터디 보스 레이드 API 단일 테스트 | 1 suite / 8 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 서비스 점검 모드 API 단일 테스트 | 1 suite / 7 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |

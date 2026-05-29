@@ -19,7 +19,8 @@ import ScheduleScreen from './src/screens/ScheduleScreen';
 import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import PointShopScreen from './src/screens/PointShopScreen';
 import BossRaidScreen from './src/screens/BossRaidScreen';
-import { getCurrentUser } from './src/services/api';
+import MaintenanceScreen from './src/screens/MaintenanceScreen';
+import { getCurrentUser, getSystemStatus } from './src/services/api';
 import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
 import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
 import { LanguageProvider, useLanguage, useWebTextLocalization } from './src/i18n';
@@ -232,9 +233,15 @@ function AppRoot() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [maintenanceStatus, setMaintenanceStatus] = useState(null);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(true);
+  const [maintenanceError, setMaintenanceError] = useState('');
 
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LandingScreen;
+  const maintenanceEnabled = Boolean(maintenanceStatus?.enabled);
+  const adminBypass = user?.role === 'ADMIN';
+  const showMaintenanceScreen = maintenanceEnabled && !adminBypass && currentScreen !== 'login';
 
   const navigateTo = useCallback((screen, options = {}) => {
     const nextScreen = normalizeScreen(screen);
@@ -272,6 +279,25 @@ function AppRoot() {
       navigateTo('dashboard', { replace: true });
     }
   }, [currentScreen, user, initializing, navigateTo]);
+
+  const refreshMaintenanceStatus = useCallback(async () => {
+    setMaintenanceLoading(true);
+    setMaintenanceError('');
+
+    try {
+      const result = await getSystemStatus();
+      setMaintenanceStatus(result.maintenance || { enabled: false });
+    } catch (error) {
+      setMaintenanceStatus({ enabled: false });
+      setMaintenanceError(error.message || 'Maintenance status check failed');
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshMaintenanceStatus();
+  }, [refreshMaintenanceStatus]);
 
   useEffect(() => {
     let isMounted = true;
@@ -320,6 +346,13 @@ function AppRoot() {
     navigateTo('dashboard', { replace: true });
   }
 
+  function handleMaintenanceAdminLogin() {
+    removeStoredToken();
+    setToken(null);
+    setUser(null);
+    navigateTo('login', { replace: true });
+  }
+
   function handleLogout() {
     removeStoredToken();
     setShowLogoutModal(false);
@@ -328,7 +361,7 @@ function AppRoot() {
     navigateTo('home', { replace: true });
   }
 
-  if (initializing) {
+  if (initializing || maintenanceLoading) {
     return (
       <AccessibilityProvider token={token}>
         <AppChrome
@@ -340,6 +373,30 @@ function AppRoot() {
           <View style={styles.loadingShell}>
             <PanelSkeleton rows={4} />
             <PanelSkeleton rows={3} />
+          </View>
+        </AppChrome>
+      </AccessibilityProvider>
+    );
+  }
+
+  if (showMaintenanceScreen) {
+    return (
+      <AccessibilityProvider token={token}>
+        <AppChrome
+          activeScreenName="home"
+          navigateTo={navigateTo}
+          showHeader={false}
+          showLogoutModal={false}
+          user={user}
+        >
+          <View nativeID="sagak-screen-content" style={styles.container}>
+            <MaintenanceScreen
+              errorMessage={maintenanceError}
+              maintenance={maintenanceStatus}
+              onAdminLogin={handleMaintenanceAdminLogin}
+              onRefresh={refreshMaintenanceStatus}
+              refreshing={maintenanceLoading}
+            />
           </View>
         </AppChrome>
       </AccessibilityProvider>
@@ -377,6 +434,7 @@ function AppChrome({
   handleLogout,
   navigateTo,
   setShowLogoutModal,
+  showHeader = true,
   showLogoutModal,
   user
 }) {
@@ -444,12 +502,14 @@ function AppChrome({
         barStyle={isDarkSurface ? 'light-content' : 'dark-content'}
         backgroundColor={palette.surface}
       />
-      <AppHeader
-        activeScreen={activeScreenName}
-        onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
-        onNavigate={navigateTo}
-        user={user}
-      />
+      {showHeader ? (
+        <AppHeader
+          activeScreen={activeScreenName}
+          onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
+          onNavigate={navigateTo}
+          user={user}
+        />
+      ) : null}
       {children}
       {user && preference.voiceOutputEnabled ? (
         <Pressable
