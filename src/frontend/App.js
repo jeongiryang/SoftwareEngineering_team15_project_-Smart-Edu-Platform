@@ -240,6 +240,7 @@ function AppRoot() {
   const [maintenanceError, setMaintenanceError] = useState('');
   const [, setRealtimeStatus] = useState('disconnected');
   const [adminNotice, setAdminNotice] = useState(null);
+  const [latestRealtimeEvent, setLatestRealtimeEvent] = useState(null);
 
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LandingScreen;
@@ -304,6 +305,8 @@ function AppRoot() {
   }, [refreshMaintenanceStatus]);
 
   const handleRealtimeMessage = useCallback((event) => {
+    setLatestRealtimeEvent(event);
+
     if (event.type === 'maintenance.updated') {
       setMaintenanceStatus(event.payload?.maintenance || { enabled: false });
       setMaintenanceError('');
@@ -467,6 +470,7 @@ function AppRoot() {
             onLogout={() => setShowLogoutModal(true)}
             onNavigate={navigateTo}
             onUserUpdate={setUser}
+            realtimeEvent={latestRealtimeEvent}
             token={token}
             user={user}
           />
