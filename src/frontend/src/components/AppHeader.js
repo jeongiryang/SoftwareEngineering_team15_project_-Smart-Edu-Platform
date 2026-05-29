@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useThemeMode } from '../contexts/ThemeContext';
+import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
@@ -8,11 +9,20 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
   const authenticated = Boolean(user);
   const hasAdminRole = user?.role === 'ADMIN';
   const { effectiveMode, mode, toggleThemeMode } = useThemeMode();
-  const targetThemeLabel = mode === 'dark' ? '라이트 모드' : '다크 모드';
-  const currentThemeLabel = effectiveMode === 'highContrast'
+  const {
+    currentLanguage,
+    isBetaLanguage: isLanguageBeta,
+    languageLabel: getLanguageLabel,
+    setLanguage,
+    supportedLanguages,
+    t,
+    translateText
+  } = useLanguage();
+  const targetThemeLabel = translateText(mode === 'dark' ? '라이트 모드' : '다크 모드');
+  const currentThemeLabel = translateText(effectiveMode === 'highContrast'
     ? '고대비'
-    : mode === 'dark' ? '다크' : '라이트';
-  const displayName = user?.nickname || user?.name || user?.displayName || '사용자';
+    : mode === 'dark' ? '다크' : '라이트');
+  const displayName = user?.nickname || user?.name || user?.displayName || translateText('사용자');
 
   function NavItem({ label, screen }) {
     const active = activeScreen === screen;
@@ -29,7 +39,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
           active && state.focused && styles.navItemActiveFocus
         ]}
       >
-        <Text style={[styles.navText, active && styles.navTextActive]}>{label}</Text>
+        <Text style={[styles.navText, active && styles.navTextActive]}>{translateText(label)}</Text>
       </Pressable>
     );
   }
@@ -73,6 +83,14 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
         </View>
 
         <View style={styles.actions}>
+          <LanguageSelector
+            currentLanguage={currentLanguage}
+            getLanguageLabel={getLanguageLabel}
+            isLanguageBeta={isLanguageBeta}
+            onChangeLanguage={setLanguage}
+            supportedLanguages={supportedLanguages}
+            t={t}
+          />
           <Pressable
             accessibilityLabel={targetThemeLabel}
             accessibilityRole="button"
@@ -111,6 +129,60 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
           )}
         </View>
       </View>
+    </View>
+  );
+}
+
+function LanguageSelector({
+  currentLanguage,
+  getLanguageLabel,
+  isLanguageBeta,
+  onChangeLanguage,
+  supportedLanguages,
+  t
+}) {
+  const betaLabel = t('language.betaBadge', 'Beta');
+
+  return (
+    <View
+      accessibilityLabel={t('language.selectorLabel', '언어 선택')}
+      accessibilityRole="radiogroup"
+      dataSet={{ sagakI18nIgnore: 'true' }}
+      style={styles.languageSelector}
+    >
+      {supportedLanguages.map((option) => {
+        const active = option.code === currentLanguage;
+        const beta = isLanguageBeta(option.code);
+
+        return (
+          <Pressable
+            accessibilityLabel={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: active }}
+            dataSet={{ sagakI18nIgnore: 'true' }}
+            key={option.code}
+            onPress={() => onChangeLanguage(option.code)}
+            style={(state) => [
+              styles.languageOption,
+              active && styles.languageOptionActive,
+              state.hovered && !active && styles.languageOptionHover,
+              ...interactiveStateStyles(state)
+            ]}
+            title={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
+          >
+            <Text style={[styles.languageOptionText, active && styles.languageOptionTextActive]}>
+              {getLanguageLabel(option.code)}
+            </Text>
+            {beta ? (
+              <View style={[styles.languageBetaBadge, active && styles.languageBetaBadgeActive]}>
+                <Text style={[styles.languageBetaText, active && styles.languageBetaTextActive]}>
+                  {betaLabel}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -228,6 +300,68 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'center',
     minWidth: 0
+  },
+  languageSelector: {
+    minHeight: 38,
+    maxWidth: 360,
+    padding: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3
+  },
+  languageOption: {
+    minHeight: 30,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    ...interactions.transition
+  },
+  languageOptionHover: {
+    backgroundColor: colors.surface
+  },
+  languageOptionActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  languageOptionText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  languageOptionTextActive: {
+    color: colors.mintDeep
+  },
+  languageBetaBadge: {
+    minHeight: 15,
+    paddingHorizontal: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  languageBetaBadgeActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.surface
+  },
+  languageBetaText: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: '700'
+  },
+  languageBetaTextActive: {
+    color: colors.mintDeep
   },
   themeToggle: {
     minHeight: 38,
