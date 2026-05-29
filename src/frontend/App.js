@@ -381,6 +381,7 @@ function AppChrome({
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
   const { currentLanguage, translateText } = useLanguage();
   const [readTextError, setReadTextError] = useState('');
+  const [introPassed, setIntroPassed] = useState(activeScreenName !== 'home');
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
 
   useWebTextLocalization(currentLanguage, translateText);
@@ -415,10 +416,29 @@ function AppChrome({
 
     documentRef.addEventListener('click', handleReadableTextClick);
 
+    function handleIntroPassedEvent() {
+      setIntroPassed(true);
+    }
+
+    if (globalThis.window) {
+      globalThis.window.addEventListener('sagak:intro-passed', handleIntroPassedEvent);
+    }
+
     return () => {
       documentRef.removeEventListener('click', handleReadableTextClick);
+      if (globalThis.window) {
+        globalThis.window.removeEventListener('sagak:intro-passed', handleIntroPassedEvent);
+      }
     };
   }, [preference.voiceOutputEnabled, speakText, user]);
+
+  useEffect(() => {
+    if (activeScreenName !== 'home') {
+      setIntroPassed(true);
+    } else {
+      setIntroPassed(false);
+    }
+  }, [activeScreenName]);
 
   const handleReadCurrentPage = useCallback(async () => {
     const screenText = getCurrentScreenText();
@@ -446,6 +466,7 @@ function AppChrome({
         onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
         onNavigate={navigateTo}
         user={user}
+        introPassed={introPassed}
       />
       {children}
       {user && preference.voiceOutputEnabled ? (
