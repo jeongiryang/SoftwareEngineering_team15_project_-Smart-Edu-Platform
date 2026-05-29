@@ -206,6 +206,8 @@ Response 예시:
 | `friends.presence.snapshot` | `{ "onlineFriendIds": [2, 3] }` | 인증된 사용자에게 현재 온라인 상태인 친구 ID 목록을 전달 |
 | `friends.presence.updated` | `{ "userId": 2, "online": true, "updatedAt": "..." }` | 친구가 온라인/오프라인 상태로 바뀌었을 때 해당 친구 관계 사용자에게만 전달 |
 | `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
+| `bossRaid.progress.updated` | `{ "party": { "id": 10, "raid": { "id": 1, ... }, "totalDamage": 140, "remainingHp": 160, "progressRate": 0.46, "participantCount": 2, "completed": false } }` | 보스 레이드 파티 생성/참가/상세 갱신 후 진행률이 변경될 수 있을 때 파티 멤버에게만 전달 |
+| `bossRaid.completed` | `{ "party": { "id": 10, "status": "CLEARED", "completed": true, ... } }` | 보스 레이드가 처치 완료 상태로 계산되거나 보상 수령 흐름에서 완료 상태가 확인될 때 파티 멤버에게만 전달 |
 
 WebSocket URL 기준:
 
@@ -218,6 +220,7 @@ WebSocket URL 기준:
 - 클라이언트가 임의 관리자 이벤트를 보낼 수 없도록 관리자 공지나 점검 상태 변경 메시지는 클라이언트 입력으로 처리하지 않음.
 - WebSocket 연결 실패 시 기존 `GET /api/system/status` 기반 HTTP fallback을 유지함.
 - 친구 접속 상태는 친구 관계가 있는 사용자에게만 표시하며, 정확한 위치나 상세 활동 내역은 전달하지 않음.
+- 보스 레이드 진행률 event는 해당 파티 멤버에게만 전달하며, 보상 지급은 기존 HTTP API transaction과 중복 수령 방지 로직을 그대로 사용함.
 - Vercel은 WebSocket 서버를 실행하지 않고, 브라우저가 Render backend의 `/ws` endpoint에 직접 연결함.
 - 서버 발행 WebSocket payload에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
 

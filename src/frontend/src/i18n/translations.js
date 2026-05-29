@@ -883,7 +883,9 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.description': '참여자 전원 기본 {basePoints}P + 기여도 비율 기반 보너스 풀 {bonusPoints}P',
     'bossRaid.reward.badge': '한정 배지: {badgeName}',
     'bossRaid.reward.claimButton': '보상 받기',
-    'bossRaid.reward.lockedButton': '처치 후 수령 가능'
+    'bossRaid.reward.lockedButton': '처치 후 수령 가능',
+    'bossRaid.realtime.progressUpdated': '파티 진행률이 실시간으로 갱신되었습니다.',
+    'bossRaid.realtime.completed': '보스 레이드가 실시간으로 처치 완료 처리되었습니다.'
   },
   en: {
     'landing.hero.pill': 'Personalized learning management platform',
@@ -990,7 +992,9 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.description': 'Base {basePoints}P for every member + {bonusPoints}P contribution bonus pool',
     'bossRaid.reward.badge': 'Limited badge: {badgeName}',
     'bossRaid.reward.claimButton': 'Claim reward',
-    'bossRaid.reward.lockedButton': 'Available after clear'
+    'bossRaid.reward.lockedButton': 'Available after clear',
+    'bossRaid.realtime.progressUpdated': 'Party progress was updated in real time.',
+    'bossRaid.realtime.completed': 'The boss raid was cleared in real time.'
   },
   ja: {
     'landing.hero.pill': 'パーソナライズ学習管理プラットフォーム',
@@ -1097,7 +1101,9 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.description': '参加者全員に基本 {basePoints}P + 貢献度比率のボーナスプール {bonusPoints}P',
     'bossRaid.reward.badge': '限定バッジ: {badgeName}',
     'bossRaid.reward.claimButton': '報酬を受け取る',
-    'bossRaid.reward.lockedButton': '討伐後に受け取り可能'
+    'bossRaid.reward.lockedButton': '討伐後に受け取り可能',
+    'bossRaid.realtime.progressUpdated': 'パーティの進行状況がリアルタイムで更新されました。',
+    'bossRaid.realtime.completed': 'ボスレイドがリアルタイムで討伐完了になりました。'
   },
   zh: {
     'landing.hero.pill': '个性化学习管理平台',
@@ -1204,7 +1210,9 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.description': '全员基础 {basePoints}P + 按贡献比例分配的加成池 {bonusPoints}P',
     'bossRaid.reward.badge': '限定徽章：{badgeName}',
     'bossRaid.reward.claimButton': '领取奖励',
-    'bossRaid.reward.lockedButton': '击败后可领取'
+    'bossRaid.reward.lockedButton': '击败后可领取',
+    'bossRaid.realtime.progressUpdated': '队伍进度已实时更新。',
+    'bossRaid.realtime.completed': 'Boss Raid 已实时标记为击败完成。'
   }
 };
 
