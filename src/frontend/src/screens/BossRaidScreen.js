@@ -94,7 +94,7 @@ function SummaryCard({ label, value, description, emphasis }) {
   );
 }
 
-export default function BossRaidScreen({ token, user }) {
+export default function BossRaidScreen({ realtimeEvent, token, user }) {
   const { currentLanguage, t } = useLanguage();
   const locale = languageIntlLocale(currentLanguage);
   const [raids, setRaids] = useState([]);
@@ -108,6 +108,7 @@ export default function BossRaidScreen({ token, user }) {
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [realtimeMessage, setRealtimeMessage] = useState('');
 
   const selectedRaid = useMemo(
     () => raids.find((raid) => raid.id === selectedRaidId) || raids[0] || null,
@@ -184,6 +185,39 @@ export default function BossRaidScreen({ token, user }) {
       active = false;
     };
   }, [selectedPartyId, t, token]);
+
+  useEffect(() => {
+    if (!realtimeEvent?.type?.startsWith('bossRaid.')) {
+      return;
+    }
+
+    const realtimeParty = realtimeEvent.payload?.party;
+
+    if (!realtimeParty?.id) {
+      return;
+    }
+
+    setParties((currentParties) => {
+      const exists = currentParties.some((party) => party.id === realtimeParty.id);
+
+      if (!exists) {
+        return [realtimeParty, ...currentParties];
+      }
+
+      return currentParties.map((party) => (
+        party.id === realtimeParty.id ? { ...party, ...realtimeParty } : party
+      ));
+    });
+
+    if (selectedPartyId === realtimeParty.id) {
+      setSelectedParty((currentParty) => ({ ...(currentParty || {}), ...realtimeParty }));
+      setRealtimeMessage(
+        realtimeEvent.type === 'bossRaid.completed'
+          ? t('bossRaid.realtime.completed', '보스 레이드가 실시간으로 처치 완료 처리되었습니다.')
+          : t('bossRaid.realtime.progressUpdated', '파티 진행률이 실시간으로 갱신되었습니다.')
+      );
+    }
+  }, [realtimeEvent, selectedPartyId, t]);
 
   async function refreshParties(nextSelectedPartyId = selectedPartyId) {
     const partyResponse = await getMyBossRaidParties(token);
@@ -327,6 +361,11 @@ export default function BossRaidScreen({ token, user }) {
       {error ? (
         <View style={[styles.notice, styles.noticeError]}>
           <Text style={styles.noticeText}>{error}</Text>
+        </View>
+      ) : null}
+      {realtimeMessage ? (
+        <View style={[styles.notice, styles.noticeRealtime]}>
+          <Text style={styles.noticeText}>{realtimeMessage}</Text>
         </View>
       ) : null}
 
@@ -656,6 +695,10 @@ const styles = StyleSheet.create({
   noticeError: {
     backgroundColor: colors.dangerSoft,
     borderColor: colors.danger
+  },
+  noticeRealtime: {
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint
   },
   noticeText: {
     color: colors.ink,

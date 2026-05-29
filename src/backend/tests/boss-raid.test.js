@@ -1,5 +1,6 @@
 const mockUsers = [];
 let mockNextUserId = 1;
+const mockBroadcastRealtimeEventToUsers = jest.fn();
 
 const mockBossBadge = {
   id: 99,
@@ -220,6 +221,12 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
   )
 }));
 
+jest.mock('../src/realtime/websocket.server', () => ({
+  broadcastRealtimeEvent: jest.fn(),
+  broadcastRealtimeEventToUsers: (...args) => mockBroadcastRealtimeEventToUsers(...args),
+  getOnlineUserIds: jest.fn(() => [])
+}));
+
 const request = require('supertest');
 const app = require('../src/app');
 const bossRaidRepository = require('../src/repositories/bossRaid.repository');
@@ -241,6 +248,7 @@ async function registerTestUser(overrides = {}) {
 beforeEach(() => {
   mockUsers.length = 0;
   mockNextUserId = 1;
+  mockBroadcastRealtimeEventToUsers.mockClear();
   jest.clearAllMocks();
 });
 
@@ -289,6 +297,21 @@ describe('Boss Raid API', () => {
       })
     );
     expect(response.body.party.joinCode).toHaveLength(6);
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([1, 2]),
+      'bossRaid.progress.updated',
+      {
+        party: expect.objectContaining({
+          id: 10,
+          partyId: 10,
+          raidId: 1,
+          raid: expect.objectContaining({ id: 1 }),
+          progressRate: expect.any(Number),
+          participantCount: 2,
+          completed: false
+        })
+      }
+    );
   });
 
   it('joins a boss raid party by join code', async () => {
@@ -303,6 +326,17 @@ describe('Boss Raid API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.party.joinCode).toBe('ABC123');
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([1, 2]),
+      'bossRaid.progress.updated',
+      expect.objectContaining({
+        party: expect.objectContaining({
+          id: 10,
+          participantCount: 2,
+          completed: false
+        })
+      })
+    );
   });
 
   it('returns a joined party detail with contribution data', async () => {
@@ -319,6 +353,17 @@ describe('Boss Raid API', () => {
         totalMembers: 2,
         raid: expect.objectContaining({
           code: 'DAWN_PENCIL_BOSS'
+        })
+      })
+    );
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([1, 2]),
+      'bossRaid.progress.updated',
+      expect.objectContaining({
+        party: expect.objectContaining({
+          id: 10,
+          raid: expect.objectContaining({ id: 1 }),
+          completed: false
         })
       })
     );
@@ -355,5 +400,16 @@ describe('Boss Raid API', () => {
       })
     );
     expect(response.body.reward.badge.code).toBe('BOSS_DAWN_SLAYER');
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([1, 2]),
+      'bossRaid.completed',
+      expect.objectContaining({
+        party: expect.objectContaining({
+          id: 10,
+          status: 'CLEARED',
+          completed: true
+        })
+      })
+    );
   });
 });
