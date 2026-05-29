@@ -17,6 +17,11 @@ const LanguageContext = createContext(null);
 const originalTextNodes = new WeakMap();
 const originalAttributes = new WeakMap();
 const TRANSLATABLE_ATTRIBUTES = ['placeholder', 'title', 'aria-label', 'alt'];
+const KOREAN_TEXT_PATTERN = /[ㄱ-ㅎㅏ-ㅣ가-힣]/;
+
+function isKoreanSourceText(value) {
+  return KOREAN_TEXT_PATTERN.test(String(value || ''));
+}
 
 function getStorage() {
   try {
@@ -84,9 +89,12 @@ function translateElementAttributes(element, language, translateText) {
       return;
     }
 
-    const nextValue = language === DEFAULT_LANGUAGE ? original : translateText(original);
+    const currentValue = element.getAttribute(attributeName);
+    const nextValue = language === DEFAULT_LANGUAGE
+      ? (isKoreanSourceText(original) ? original : currentValue)
+      : translateText(original);
 
-    if (element.getAttribute(attributeName) !== nextValue) {
+    if (currentValue !== nextValue) {
       element.setAttribute(attributeName, nextValue);
     }
   });
@@ -125,7 +133,9 @@ function translateNodeTree(root, language, translateText) {
       }
 
       const original = originalTextNodes.get(node) || '';
-      const nextValue = language === DEFAULT_LANGUAGE ? original : translateText(original);
+      const nextValue = language === DEFAULT_LANGUAGE
+        ? (isKoreanSourceText(original) ? original : node.nodeValue)
+        : translateText(original);
 
       if (node.nodeValue !== nextValue) {
         node.nodeValue = nextValue;

@@ -276,6 +276,213 @@ const UI_TRANSLATIONS = {
   }
 };
 
+const KEY_TRANSLATIONS = {
+  ko: {
+    'landing.hero.pill': '개인화 학습 관리 플랫폼',
+    'landing.hero.prefix': '공부의 흔적을',
+    'landing.hero.writingWord': '사각사각',
+    'landing.hero.suffix': '쌓아가세요',
+    'landing.hero.fullLabel': '공부의 흔적을 사각사각 쌓아가세요',
+    'landing.hero.description': '질문하고, 요약하고, 틀린 이유를 되짚는 흐름을 한곳에서 관리하는 학습 파트너입니다. AI 학습, 일정, 칸반, 커뮤니티로 오늘의 공부를 시작하세요.',
+    'landing.cta.primary': '무료로 시작하기',
+    'landing.cta.secondary': '로그인',
+    'landing.feature.ai.label': 'AI 학습',
+    'landing.feature.ai.title': '질문부터 오답 분석까지',
+    'landing.feature.ai.description': '질문, 추천, 요약, 오답 분석 흐름을 한 화면에서 이어갑니다.',
+    'landing.feature.plan.label': '일정/칸반',
+    'landing.feature.plan.title': '계획과 태스크를 함께 관리',
+    'landing.feature.plan.description': '학습 일정과 칸반 보드로 오늘 해야 할 일을 정리합니다.',
+    'landing.feature.community.label': '커뮤니티',
+    'landing.feature.community.title': '게시글과 댓글로 학습 공유',
+    'landing.feature.community.description': '질문과 기록을 나누고 반응, 북마크, 신고 흐름을 사용할 수 있습니다.',
+    'landing.section.available.title': '지금 연결된 학습 도구',
+    'landing.section.available.description': '현재 구현된 API와 연결된 기능만 안내합니다.',
+    'landing.flow.title': '계획에서 복습까지,\n가볍게 시작하는 학습',
+    'landing.flow.description': '사각사각은 다양한 학습자의 기록과 반복 학습을 돕는 서비스로 설계되었습니다. 이번 화면에서는 현재 연결된 학습 도구와 시작 흐름을 함께 제공합니다.',
+    'landing.flow.step1': '회원가입으로 내 학습 공간을 만듭니다.',
+    'landing.flow.step2': 'AI, 일정, 칸반, 커뮤니티 중 필요한 도구를 선택합니다.',
+    'landing.flow.step3': '기록과 피드백을 모아 오늘의 학습 방향을 다듬습니다.',
+    'landing.mini.title': '오늘의 학습 지원',
+    'landing.mini.description': '계획과 복습을 한 번에 이어가세요',
+    'login.message.1': '작은 기록이 쌓여 나만의 학습 루틴이 됩니다.',
+    'login.message.2': '오늘의 25분 집중이 내일의 자신감을 만듭니다.',
+    'login.message.3': '오답을 다시 보는 시간, 약점이 방향이 됩니다.',
+    'login.message.4': '복습할 내용을 남겨두면 내일의 공부가 가벼워집니다.',
+    'login.message.5': '일정을 작게 쪼개면 시작하기 쉬워집니다.',
+    'login.message.6': '꾸준한 기록은 나에게 맞는 공부 리듬을 알려줍니다.',
+    'login.message.7': '질문을 적어보면 막힌 부분이 선명해집니다.',
+    'login.message.8': '오늘 배운 한 줄이 다음 퀴즈의 힌트가 됩니다.',
+    'login.message.9': '칸반에 할 일을 옮기며 공부 흐름을 정리해 보세요.',
+    'login.message.10': '사각사각 쌓인 기록이 나만의 학습 지도가 됩니다.',
+    'login.side.titleLine1': '오늘의 공부를',
+    'login.side.titleLine2': '이어 적어볼까요?',
+    'login.side.description': 'AI 질문, 학습 요약, 오답 분석을 통해 이전보다 선명한 학습 기록을 만들어 보세요.',
+    'login.quote.ariaLabel': '학습 루틴 안내 문구',
+    'login.title': '로그인',
+    'login.subtitle': '사각사각 계정으로 학습 공간에 접속하세요.',
+    'login.email': '이메일',
+    'login.password': '비밀번호',
+    'login.passwordPlaceholder': '비밀번호를 입력하세요',
+    'login.submit': '로그인',
+    'login.noAccount': '아직 계정이 없으신가요?',
+    'login.signup': '회원가입',
+    'login.errorFallback': '로그인에 실패함'
+  },
+  en: {
+    'landing.hero.pill': 'Personalized learning management platform',
+    'landing.hero.prefix': 'Build your learning traces',
+    'landing.hero.writingWord': 'one note at a time',
+    'landing.hero.suffix': '',
+    'landing.hero.fullLabel': 'Build your learning traces one note at a time',
+    'landing.hero.description': 'Ask questions, summarize concepts, and organize your learning flow with AI study, schedules, boards, and community features.',
+    'landing.cta.primary': 'Start for free',
+    'landing.cta.secondary': 'Log in',
+    'landing.feature.ai.label': 'AI Study',
+    'landing.feature.ai.title': 'From questions to wrong-answer review',
+    'landing.feature.ai.description': 'Continue questions, recommendations, summaries, and wrong-answer review in one screen.',
+    'landing.feature.plan.label': 'Schedule/Board',
+    'landing.feature.plan.title': 'Manage plans and tasks together',
+    'landing.feature.plan.description': 'Organize what to study today with schedules and a Kanban board.',
+    'landing.feature.community.label': 'Community',
+    'landing.feature.community.title': 'Share learning through posts and comments',
+    'landing.feature.community.description': 'Share questions and records with reactions, bookmarks, and report flows.',
+    'landing.section.available.title': 'Learning tools connected now',
+    'landing.section.available.description': 'Only features connected to currently implemented APIs are shown.',
+    'landing.flow.title': 'From planning to review,\na lighter way to start studying',
+    'landing.flow.description': 'Sagak Sagak is designed to help learners record and repeat their study flow. This screen presents connected study tools and a simple start path.',
+    'landing.flow.step1': 'Create your study space with an account.',
+    'landing.flow.step2': 'Choose the tools you need: AI, schedule, board, or community.',
+    'landing.flow.step3': 'Gather records and feedback to refine today’s study direction.',
+    'landing.mini.title': 'Study support for today',
+    'landing.mini.description': 'Connect planning and review in one flow',
+    'login.message.1': 'Small records grow into your own study routine.',
+    'login.message.2': 'Today’s 25-minute focus builds tomorrow’s confidence.',
+    'login.message.3': 'Time spent reviewing mistakes turns weak points into direction.',
+    'login.message.4': 'Leaving review notes today makes tomorrow’s study lighter.',
+    'login.message.5': 'Breaking schedules into smaller pieces makes starting easier.',
+    'login.message.6': 'Steady records reveal the rhythm that fits you.',
+    'login.message.7': 'Writing down a question makes the stuck point clearer.',
+    'login.message.8': 'One line learned today becomes a hint for the next quiz.',
+    'login.message.9': 'Move tasks on the board to organize your study flow.',
+    'login.message.10': 'Records stacked in Sagak Sagak become your study map.',
+    'login.side.titleLine1': 'Shall we continue',
+    'login.side.titleLine2': 'today’s study notes?',
+    'login.side.description': 'Use AI questions, study summaries, and wrong-answer review to create clearer study records.',
+    'login.quote.ariaLabel': 'Study routine guidance message',
+    'login.title': 'Log in',
+    'login.subtitle': 'Sign in to your Sagak Sagak study space.',
+    'login.email': 'Email',
+    'login.password': 'Password',
+    'login.passwordPlaceholder': 'Enter your password',
+    'login.submit': 'Log in',
+    'login.noAccount': 'No account yet?',
+    'login.signup': 'Create account',
+    'login.errorFallback': 'Login failed'
+  },
+  ja: {
+    'landing.hero.pill': 'パーソナライズ学習管理プラットフォーム',
+    'landing.hero.prefix': '学びの足跡を',
+    'landing.hero.writingWord': '少しずつ',
+    'landing.hero.suffix': '積み上げよう',
+    'landing.hero.fullLabel': '学びの足跡を少しずつ積み上げよう',
+    'landing.hero.description': '質問、要約、学習の流れをAI学習・予定・カンバン・コミュニティで整理します。',
+    'landing.cta.primary': '無料で始める',
+    'landing.cta.secondary': 'ログイン',
+    'landing.feature.ai.label': 'AI学習',
+    'landing.feature.ai.title': '質問から誤答分析まで',
+    'landing.feature.ai.description': '質問、推薦、要約、誤答分析の流れを一つの画面で続けられます。',
+    'landing.feature.plan.label': '予定/カンバン',
+    'landing.feature.plan.title': '計画とタスクをまとめて管理',
+    'landing.feature.plan.description': '学習予定とカンバンボードで今日やることを整理します。',
+    'landing.feature.community.label': 'コミュニティ',
+    'landing.feature.community.title': '投稿とコメントで学習を共有',
+    'landing.feature.community.description': '質問や記録を共有し、リアクション、ブックマーク、通報の流れを使えます。',
+    'landing.section.available.title': '現在つながっている学習ツール',
+    'landing.section.available.description': '現在実装済みのAPIと連携した機能だけを案内します。',
+    'landing.flow.title': '計画から復習まで、\n軽く始める学習',
+    'landing.flow.description': 'サガクサガクは、多様な学習者の記録と反復学習を支えるサービスとして設計されています。この画面では現在つながっている学習ツールと開始の流れを案内します。',
+    'landing.flow.step1': '会員登録で自分の学習スペースを作ります。',
+    'landing.flow.step2': 'AI、予定、カンバン、コミュニティから必要なツールを選びます。',
+    'landing.flow.step3': '記録とフィードバックを集めて今日の学習方針を整えます。',
+    'landing.mini.title': '今日の学習サポート',
+    'landing.mini.description': '計画と復習を一つの流れでつなげます',
+    'login.message.1': '小さな記録が自分だけの学習ルーティンになります。',
+    'login.message.2': '今日の25分集中が明日の自信を作ります。',
+    'login.message.3': '誤答を見直す時間が、弱点を方向に変えます。',
+    'login.message.4': '復習内容を残すと、明日の学習が軽くなります。',
+    'login.message.5': '予定を小さく分けると、始めやすくなります。',
+    'login.message.6': '継続した記録が、自分に合う学習リズムを教えてくれます。',
+    'login.message.7': '質問を書いてみると、つまずいた部分がはっきりします。',
+    'login.message.8': '今日学んだ一行が、次のクイズのヒントになります。',
+    'login.message.9': 'カンバンでタスクを動かしながら学習の流れを整えましょう。',
+    'login.message.10': 'サガクサガクに積み上げた記録が、自分だけの学習地図になります。',
+    'login.side.titleLine1': '今日の学習を',
+    'login.side.titleLine2': '続けて記録しませんか？',
+    'login.side.description': 'AI質問、学習要約、誤答分析を通じて、よりはっきりした学習記録を作りましょう。',
+    'login.quote.ariaLabel': '学習ルーティン案内文',
+    'login.title': 'ログイン',
+    'login.subtitle': 'サガクサガクのアカウントで学習スペースに接続しましょう。',
+    'login.email': 'メール',
+    'login.password': 'パスワード',
+    'login.passwordPlaceholder': 'パスワードを入力してください',
+    'login.submit': 'ログイン',
+    'login.noAccount': 'まだアカウントがありませんか？',
+    'login.signup': '新規登録',
+    'login.errorFallback': 'ログインに失敗しました'
+  },
+  zh: {
+    'landing.hero.pill': '个性化学习管理平台',
+    'landing.hero.prefix': '把学习的痕迹',
+    'landing.hero.writingWord': '一点点',
+    'landing.hero.suffix': '积累起来',
+    'landing.hero.fullLabel': '把学习的痕迹一点点积累起来',
+    'landing.hero.description': '通过 AI 学习、日程、看板和社区，把提问、总结和学习流程整理起来。',
+    'landing.cta.primary': '免费开始',
+    'landing.cta.secondary': '登录',
+    'landing.feature.ai.label': 'AI 学习',
+    'landing.feature.ai.title': '从提问到错题分析',
+    'landing.feature.ai.description': '在一个页面中衔接提问、推荐、总结和错题分析流程。',
+    'landing.feature.plan.label': '日程/看板',
+    'landing.feature.plan.title': '一起管理计划和任务',
+    'landing.feature.plan.description': '用学习日程和看板整理今天要做的事。',
+    'landing.feature.community.label': '社区',
+    'landing.feature.community.title': '用帖子和评论分享学习',
+    'landing.feature.community.description': '分享问题和记录，并使用反应、收藏和举报流程。',
+    'landing.section.available.title': '当前已连接的学习工具',
+    'landing.section.available.description': '仅展示已与当前实现 API 连接的功能。',
+    'landing.flow.title': '从计划到复习，\n轻松开始学习',
+    'landing.flow.description': '沙沙学习被设计为帮助不同学习者记录并重复学习流程的服务。本页展示当前已连接的学习工具和开始路径。',
+    'landing.flow.step1': '通过注册创建自己的学习空间。',
+    'landing.flow.step2': '从 AI、日程、看板和社区中选择需要的工具。',
+    'landing.flow.step3': '汇总记录和反馈，调整今天的学习方向。',
+    'landing.mini.title': '今日学习支持',
+    'landing.mini.description': '把计划和复习连接成一个流程',
+    'login.message.1': '小小记录会积累成属于你的学习节奏。',
+    'login.message.2': '今天 25 分钟的专注，会带来明天的自信。',
+    'login.message.3': '回看错题的时间，会把弱点变成方向。',
+    'login.message.4': '留下复习内容，明天学习会更轻松。',
+    'login.message.5': '把日程拆小，开始就会更容易。',
+    'login.message.6': '持续记录会告诉你适合自己的学习节奏。',
+    'login.message.7': '写下问题后，卡住的地方会更清楚。',
+    'login.message.8': '今天学到的一句话，会成为下一道测验的提示。',
+    'login.message.9': '在看板中移动任务，整理学习流程。',
+    'login.message.10': '在沙沙学习中积累的记录，会成为你的学习地图。',
+    'login.side.titleLine1': '要继续写下',
+    'login.side.titleLine2': '今天的学习吗？',
+    'login.side.description': '通过 AI 提问、学习总结和错题分析，创建更清晰的学习记录。',
+    'login.quote.ariaLabel': '学习节奏提示文案',
+    'login.title': '登录',
+    'login.subtitle': '登录沙沙学习账号，进入你的学习空间。',
+    'login.email': '邮箱',
+    'login.password': '密码',
+    'login.passwordPlaceholder': '请输入密码',
+    'login.submit': '登录',
+    'login.noAccount': '还没有账号吗？',
+    'login.signup': '注册',
+    'login.errorFallback': '登录失败'
+  }
+};
+
 function buildTextTranslations() {
   return TRANSLATION_ENTRIES.reduce((acc, [ko, en, ja, zh]) => {
     acc.en[ko] = en;
@@ -310,7 +517,12 @@ export function languageBetaLabel(language) {
 
 export function translateKey(key, language, fallback = key) {
   const normalized = normalizeLanguage(language);
-  return UI_TRANSLATIONS[normalized]?.[key] || UI_TRANSLATIONS.ko[key] || fallback || key;
+  return KEY_TRANSLATIONS[normalized]?.[key] ||
+    UI_TRANSLATIONS[normalized]?.[key] ||
+    KEY_TRANSLATIONS.ko[key] ||
+    UI_TRANSLATIONS.ko[key] ||
+    fallback ||
+    key;
 }
 
 export function translateTextValue(value, language) {
@@ -332,13 +544,5 @@ export function translateTextValue(value, language) {
     return value.replace(trimmed, exact);
   }
 
-  return Object.keys(dictionary)
-    .sort((a, b) => b.length - a.length)
-    .reduce((nextValue, source) => {
-      if (!source || !nextValue.includes(source)) {
-        return nextValue;
-      }
-
-      return nextValue.split(source).join(dictionary[source]);
-    }, value);
+  return value;
 }

@@ -1,52 +1,58 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AccessibleTextInput from '../components/AccessibleTextInput';
+import { useLanguage } from '../i18n';
 import { loginUser } from '../services/api';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 
-const learningMessages = [
-  '작은 기록이 쌓여 나만의 학습 루틴이 됩니다.',
-  '오늘의 25분 집중이 내일의 자신감을 만듭니다.',
-  '오답을 다시 보는 순간, 약점이 방향이 됩니다.',
-  '복습할 내용을 남겨두면 내일의 공부가 가벼워집니다.',
-  '일정을 작게 쪼개면 시작하기 쉬워집니다.',
-  '꾸준한 기록은 나에게 맞는 공부 리듬을 알려줍니다.',
-  '질문을 적어두면 막힌 부분이 선명해집니다.',
-  '오늘 배운 한 줄이 다음 퀴즈의 힌트가 됩니다.',
-  '칸반에 할 일을 옮기며 공부 흐름을 정리해 보세요.',
-  '사각사각 쌓인 기록이 나만의 학습 지도가 됩니다.'
+const learningMessageKeys = [
+  'login.message.1',
+  'login.message.2',
+  'login.message.3',
+  'login.message.4',
+  'login.message.5',
+  'login.message.6',
+  'login.message.7',
+  'login.message.8',
+  'login.message.9',
+  'login.message.10'
 ];
 
 export default function LoginScreen({ onAuthenticated, onNavigate }) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
   const [typedMessage, setTypedMessage] = useState('');
+  const learningMessages = useMemo(
+    () => learningMessageKeys.map((key) => t(key)),
+    [t]
+  );
+  const currentMessage = learningMessages[messageIndex] || learningMessages[0] || '';
 
   useEffect(() => {
     const timers = [];
-    const message = learningMessages[messageIndex];
 
     setTypedMessage('');
 
-    Array.from(message).forEach((_, index) => {
+    Array.from(currentMessage).forEach((_, index) => {
       timers.push(setTimeout(() => {
-        setTypedMessage(message.slice(0, index + 1));
+        setTypedMessage(currentMessage.slice(0, index + 1));
       }, 45 * (index + 1)));
     });
 
     timers.push(setTimeout(() => {
       setMessageIndex((current) => (current + 1) % learningMessages.length);
-    }, message.length * 45 + 1900));
+    }, currentMessage.length * 45 + 1900));
 
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [messageIndex]);
+  }, [currentMessage, learningMessages.length]);
 
   async function handleLogin() {
     setErrorMessage('');
@@ -60,32 +66,32 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
 
       onAuthenticated(result);
     } catch (error) {
-      setErrorMessage(error.message || '로그인에 실패함');
+      setErrorMessage(error.message || t('login.errorFallback', '로그인에 실패함'));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView dataSet={{ sagakI18nIgnore: 'true' }} style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.sideCopy}>
         <Text style={styles.eyebrow}>WELCOME BACK</Text>
-        <Text style={styles.sideTitle}>오늘의 공부를{'\n'}이어 적어볼까요?</Text>
+        <Text style={styles.sideTitle}>{t('login.side.titleLine1', '오늘의 공부를')}{'\n'}{t('login.side.titleLine2', '이어 적어볼까요?')}</Text>
         <Text style={styles.sideDescription}>
-          AI 질문, 학습 요약, 오답 분석을 통해 어제보다 선명한 학습 기록을 만들어 보세요.
+          {t('login.side.description', 'AI 질문, 학습 요약, 오답 분석을 통해 어제보다 선명한 학습 기록을 만들어 보세요.')}
         </Text>
-        <View accessibilityLabel="학습 루틴 안내 문구" accessibilityLiveRegion="none" style={styles.quoteCard}>
+        <View accessibilityLabel={t('login.quote.ariaLabel', '학습 루틴 안내 문구')} accessibilityLiveRegion="none" style={styles.quoteCard}>
           <Image source={icon} style={styles.icon} />
           <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.quoteText}>
             {typedMessage}
-            <Text style={styles.cursor}>{typedMessage.length < learningMessages[messageIndex].length ? '|' : ''}</Text>
+            <Text style={styles.cursor}>{typedMessage.length < currentMessage.length ? '|' : ''}</Text>
           </Text>
         </View>
       </View>
       <View style={[styles.formCard, shadows.card]}>
-        <Text style={styles.title}>로그인</Text>
-        <Text style={styles.subtitle}>사각사각 계정으로 학습 공간에 접속하세요.</Text>
-        <Text style={styles.label}>이메일</Text>
+        <Text style={styles.title}>{t('login.title', '로그인')}</Text>
+        <Text style={styles.subtitle}>{t('login.subtitle', '사각사각 계정으로 학습 공간에 접속하세요.')}</Text>
+        <Text style={styles.label}>{t('login.email', '이메일')}</Text>
         <AccessibleTextInput
           autoCapitalize="none"
           forceVoiceInput
@@ -96,10 +102,10 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
           style={styles.input}
           value={email}
         />
-        <Text style={styles.label}>비밀번호</Text>
+        <Text style={styles.label}>{t('login.password', '비밀번호')}</Text>
         <AccessibleTextInput
           onChangeText={setPassword}
-          placeholder="비밀번호를 입력하세요"
+          placeholder={t('login.passwordPlaceholder', '비밀번호를 입력하세요')}
           placeholderTextColor={colors.muted}
           enableVoiceInput={false}
           secureTextEntry
@@ -117,17 +123,17 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
             loading && styles.disabledButton
           ]}
         >
-          {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>로그인</Text>}
+          {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>{t('login.submit', '로그인')}</Text>}
         </Pressable>
         <View style={styles.signupRow}>
-          <Text style={styles.signupHint}>아직 계정이 없으신가요?</Text>
+          <Text style={styles.signupHint}>{t('login.noAccount', '아직 계정이 없으신가요?')}</Text>
           <Pressable
             accessibilityRole="button"
             disabled={loading}
             onPress={() => onNavigate('register')}
             style={(state) => [styles.signupAction, ...interactiveStateStyles(state, { disabled: loading })]}
           >
-            <Text style={styles.signupLink}>회원가입</Text>
+            <Text style={styles.signupLink}>{t('login.signup', '회원가입')}</Text>
           </Pressable>
         </View>
       </View>
