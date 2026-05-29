@@ -257,6 +257,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-015 | API 통합 테스트 | 커뮤니티 관리자 신고 처리 API | 관리자 신고 목록 조회, status/targetType filter, 신고 기각/처리, 재처리 409, reported flag 동기화, 일반 사용자 접근 차단 검증 | `npm test` | 400/401/403/404/409/200 응답 및 ADMIN 기준 신고 처리 | 통과 |
 | TC-INT-016 | API 통합 테스트 | 친구 추가 및 친구 목록 API | 사용자 검색, 친구 요청 생성, 받은/보낸 요청 조회, 수락/거절, 친구 목록, 친구 삭제, 중복 요청/권한/민감정보 미노출 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 400/401/403/404/409/200/201 응답 및 현재 사용자 기준 친구 관계 처리 | 통과 |
 | TC-INT-017 | API 통합 테스트 | 포인트 상점 API | 상점 목록, 내 상점 상태, 구매, 중복 구매 차단, 포인트 부족, 구매 전 적용 차단, 적용/해제, 민감정보 미노출 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js` | 400/401/409/200/201 응답 및 현재 사용자 기준 포인트 상점 처리 | 통과 |
+| TC-INT-018 | API 통합 테스트 | 서비스 점검/관리자 공지 API | 공개 점검 상태 조회, 관리자 점검 모드 조회/수정, 관리자 공지 전송, 미인증/일반 사용자 접근 차단, invalid payload 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 400/401/403/200 응답 및 ADMIN 기준 점검 모드/공지 broadcast 처리 | 통과 |
+| TC-INT-019 | 유닛 테스트 | WebSocket helper | WebSocket accept key 생성, 서버 text frame encoding, masked client frame decoding 검증 | `npm test`, `npm --prefix src/backend test -- --runTestsByPath tests/realtime-websocket.test.js` | WebSocket handshake/frame helper가 표준 흐름에 맞게 동작 | 통과 |
 
 ### 4.3 환경 검증 테스트 케이스
 
@@ -288,7 +290,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(25 suites / 442 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(26 suites / 448 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
@@ -311,8 +313,9 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Point Shop focused test | `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js` | 통과 | 포인트 상점 API 단일 테스트 기준 1 suite / 9 tests passed |
 | Boss Raid API test | `GET /api/boss-raids`, `GET /api/boss-raids/parties/me`, `POST /api/boss-raids/parties`, `POST /api/boss-raids/parties/join`, `GET /api/boss-raids/parties/:partyId`, `POST /api/boss-raids/parties/:partyId/claim` | 통과 | `src/backend/tests/boss-raid.test.js`의 repository mock 기반 API 테스트. 미인증 401, 보스 목록, 파티 생성/참가, 파티 상세, 보상 1회 수령 검증 포함 |
 | Boss Raid focused test | `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 통과 | 스터디 보스 레이드 API 단일 테스트 기준 1 suite / 8 tests passed |
-| System Maintenance API test | `GET /api/system/status`, `GET/PATCH /api/admin/system/maintenance` | 통과 | `src/backend/tests/system-maintenance.test.js`의 repository mock 기반 API 테스트. 공개 점검 상태 조회, 관리자 조회/수정, 미인증 401, 일반 USER 403, invalid payload 400, 민감정보 미노출 검증 포함 |
-| System Maintenance focused test | `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 통과 | 서비스 점검 모드 API 단일 테스트 기준 1 suite / 7 tests passed |
+| System Maintenance API test | `GET /api/system/status`, `GET/PATCH /api/admin/system/maintenance`, `POST /api/admin/system/notice` | 통과 | `src/backend/tests/system-maintenance.test.js`의 repository mock 기반 API 테스트. 공개 점검 상태 조회, 관리자 조회/수정, 점검 모드 broadcast, 관리자 공지 broadcast, 미인증 401, 일반 USER 403, invalid payload 400, 민감정보 미노출 검증 포함 |
+| System Maintenance focused test | `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 통과 | 서비스 점검 모드 및 관리자 공지 API 단일 테스트 기준 1 suite / 10 tests passed |
+| Realtime WebSocket helper test | `npm --prefix src/backend test -- --runTestsByPath tests/realtime-websocket.test.js` | 통과 | WebSocket accept key, server text frame encoding, masked client text frame decoding 기준 1 suite / 3 tests passed |
 | Accessibility API test | `GET/PUT /api/accessibility/preferences`, `POST /api/accessibility/tts`, `POST /api/accessibility/stt`, `GET/POST /api/accessibility/review-reminders` | 통과 | `src/backend/tests/accessibility.test.js`의 repository mock 기반 API 테스트. 미인증 401, 접근성 기본 설정 조회, 설정 저장, textScale validation, TTS voiceType validation, STT transcript 저장, 복습 알림 생성/목록 조회 검증 포함 |
 | Accessibility focused test | `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 통과 | 음성/접근성 API 단일 테스트 기준 1 suite / 10 tests passed |
 | Friend API test | `GET /api/users/search`, `GET /api/friends`, `GET/POST/PATCH /api/friends/requests`, `DELETE /api/friends/:friendId` | 통과 | `src/backend/tests/friend.test.js`의 repository mock 기반 API 테스트. 미인증 401, 사용자 검색 자기 자신 제외, 친구 요청 생성/중복 차단, 반대 방향 pending 안내, 수락/거절 권한, 재처리 409, 친구 목록/삭제, 민감정보 미노출 검증 포함 |

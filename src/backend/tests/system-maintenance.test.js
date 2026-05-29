@@ -45,10 +45,20 @@ jest.mock('../src/repositories/system.repository', () => ({
   })
 }));
 
+jest.mock('../src/realtime/websocket.server', () => ({
+  broadcastRealtimeEvent: jest.fn(() => ({
+    clientCount: 0,
+    event: {
+      sentAt: '2026-05-29T13:00:00.000Z'
+    }
+  }))
+}));
+
 const request = require('supertest');
 const app = require('../src/app');
 const { signToken } = require('../src/utils/jwt');
 const { createAuthHeader } = require('./helpers/auth.helper');
+const { broadcastRealtimeEvent } = require('../src/realtime/websocket.server');
 
 describe('System maintenance APIs', () => {
   let userToken;
@@ -61,6 +71,7 @@ describe('System maintenance APIs', () => {
 
   beforeEach(() => {
     mockMaintenanceSetting = { ...defaultMaintenanceSetting };
+    broadcastRealtimeEvent.mockClear();
   });
 
   describe('GET /api/system/status', () => {
@@ -121,6 +132,15 @@ describe('System maintenance APIs', () => {
       expect(response.body.maintenance.title).toBe('점검 안내');
       expect(response.body.maintenance.message).toBe('새 기능 반영을 위해 잠시 점검합니다.');
       expect(new Date(response.body.maintenance.estimatedEndAt).toISOString()).toBe('2026-05-29T15:00:00.000Z');
+      expect(broadcastRealtimeEvent).toHaveBeenCalledWith(
+        'maintenance.updated',
+        expect.objectContaining({
+          maintenance: expect.objectContaining({
+            enabled: true,
+            title: response.body.maintenance.title
+          })
+        })
+      );
     });
 
     it('rejects invalid maintenance payloads', async () => {
@@ -146,6 +166,54 @@ describe('System maintenance APIs', () => {
         });
 
       expect(response.status).toBe(400);
+    });
+
+    it('broadcasts administrator notices to realtime clients', async () => {
+      const response = await request(app)
+        .post('/api/admin/system/notice')
+        .set(createAuthHeader(adminToken))
+        .send({
+          level: 'warning',
+          title: 'Service notice',
+          message: 'Maintenance starts soon.'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.notice).toMatchObject({
+        level: 'warning',
+        title: 'Service notice',
+        message: 'Maintenance starts soon.'
+      });
+      expect(broadcastRealtimeEvent).toHaveBeenCalledWith('admin.notice', {
+        notice: response.body.notice
+      });
+    });
+
+    it('rejects invalid administrator notice payloads', async () => {
+      const response = await request(app)
+        .post('/api/admin/system/notice')
+        .set(createAuthHeader(adminToken))
+        .send({
+          level: 'critical',
+          title: 'Notice',
+          message: 'Invalid level.'
+        });
+
+      expect(response.status).toBe(400);
+      expect(broadcastRealtimeEvent).not.toHaveBeenCalled();
+    });
+
+    it('rejects non-admin administrator notice broadcasts', async () => {
+      const response = await request(app)
+        .post('/api/admin/system/notice')
+        .set(createAuthHeader(userToken))
+        .send({
+          title: 'Notice',
+          message: 'User cannot broadcast.'
+        });
+
+      expect(response.status).toBe(403);
+      expect(broadcastRealtimeEvent).not.toHaveBeenCalled();
     });
   });
 });

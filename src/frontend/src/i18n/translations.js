@@ -689,6 +689,85 @@ const MAINTENANCE_TRANSLATIONS = {
   }
 };
 
+const REALTIME_TRANSLATIONS = {
+  ko: {
+    'admin.notice.eyebrow': '실시간 broadcast',
+    'admin.notice.title': '관리자 실시간 공지',
+    'admin.notice.description': '접속 중인 사용자에게 WebSocket으로 즉시 표시되는 공지를 보냅니다. 공지 내용은 자동 번역하지 않습니다.',
+    'admin.notice.status': '즉시 전송',
+    'admin.notice.level.info': 'info',
+    'admin.notice.level.success': 'success',
+    'admin.notice.level.warning': 'warning',
+    'admin.notice.level.danger': 'danger',
+    'admin.notice.form.title': '공지 제목',
+    'admin.notice.form.titlePlaceholder': '공지',
+    'admin.notice.form.message': '공지 메시지',
+    'admin.notice.form.messagePlaceholder': '잠시 후 서비스 업데이트가 시작됩니다.',
+    'admin.notice.send': '공지 보내기',
+    'admin.notice.messages.sent': '실시간 공지를 전송했습니다.',
+    'admin.notice.errors.send': '실시간 공지 전송에 실패했습니다.',
+    'realtime.notice.title': '실시간 공지',
+    'realtime.notice.close': '공지 닫기'
+  },
+  en: {
+    'admin.notice.eyebrow': 'Realtime broadcast',
+    'admin.notice.title': 'Admin realtime notice',
+    'admin.notice.description': 'Send a WebSocket notice that appears immediately for connected users. The message is shown exactly as entered.',
+    'admin.notice.status': 'Send now',
+    'admin.notice.level.info': 'info',
+    'admin.notice.level.success': 'success',
+    'admin.notice.level.warning': 'warning',
+    'admin.notice.level.danger': 'danger',
+    'admin.notice.form.title': 'Notice title',
+    'admin.notice.form.titlePlaceholder': 'Notice',
+    'admin.notice.form.message': 'Notice message',
+    'admin.notice.form.messagePlaceholder': 'A service update will start soon.',
+    'admin.notice.send': 'Send notice',
+    'admin.notice.messages.sent': 'Realtime notice sent.',
+    'admin.notice.errors.send': 'Failed to send realtime notice.',
+    'realtime.notice.title': 'Realtime notice',
+    'realtime.notice.close': 'Close notice'
+  },
+  ja: {
+    'admin.notice.eyebrow': 'リアルタイム broadcast',
+    'admin.notice.title': '管理者リアルタイム告知',
+    'admin.notice.description': '接続中のユーザーにWebSocketで即時表示される告知を送信します。入力した内容は自動翻訳しません。',
+    'admin.notice.status': 'すぐ送信',
+    'admin.notice.level.info': 'info',
+    'admin.notice.level.success': 'success',
+    'admin.notice.level.warning': 'warning',
+    'admin.notice.level.danger': 'danger',
+    'admin.notice.form.title': '告知タイトル',
+    'admin.notice.form.titlePlaceholder': '告知',
+    'admin.notice.form.message': '告知メッセージ',
+    'admin.notice.form.messagePlaceholder': 'まもなくサービス更新を開始します。',
+    'admin.notice.send': '告知を送信',
+    'admin.notice.messages.sent': 'リアルタイム告知を送信しました。',
+    'admin.notice.errors.send': 'リアルタイム告知の送信に失敗しました。',
+    'realtime.notice.title': 'リアルタイム告知',
+    'realtime.notice.close': '告知を閉じる'
+  },
+  zh: {
+    'admin.notice.eyebrow': '实时 broadcast',
+    'admin.notice.title': '管理员实时公告',
+    'admin.notice.description': '向在线用户发送会立即显示的 WebSocket 公告。公告内容按管理员输入原样显示。',
+    'admin.notice.status': '立即发送',
+    'admin.notice.level.info': 'info',
+    'admin.notice.level.success': 'success',
+    'admin.notice.level.warning': 'warning',
+    'admin.notice.level.danger': 'danger',
+    'admin.notice.form.title': '公告标题',
+    'admin.notice.form.titlePlaceholder': '公告',
+    'admin.notice.form.message': '公告内容',
+    'admin.notice.form.messagePlaceholder': '服务更新即将开始。',
+    'admin.notice.send': '发送公告',
+    'admin.notice.messages.sent': '实时公告已发送。',
+    'admin.notice.errors.send': '实时公告发送失败。',
+    'realtime.notice.title': '实时公告',
+    'realtime.notice.close': '关闭公告'
+  }
+};
+
 const KEY_TRANSLATIONS = {
   ko: {
     'landing.hero.pill': '개인화 학습 관리 플랫폼',
@@ -1159,9 +1238,11 @@ export function languageIntlLocale(language) {
 export function translateKey(key, language, fallback = key) {
   const normalized = normalizeLanguage(language);
   return MAINTENANCE_TRANSLATIONS[normalized]?.[key] ||
+    REALTIME_TRANSLATIONS[normalized]?.[key] ||
     KEY_TRANSLATIONS[normalized]?.[key] ||
     UI_TRANSLATIONS[normalized]?.[key] ||
     MAINTENANCE_TRANSLATIONS.ko[key] ||
+    REALTIME_TRANSLATIONS.ko[key] ||
     KEY_TRANSLATIONS.ko[key] ||
     UI_TRANSLATIONS.ko[key] ||
     fallback ||

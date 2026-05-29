@@ -14,6 +14,7 @@ import {
   moderateAdminPost,
   moderateAdminComment,
   getAdminMaintenance,
+  sendAdminNotice,
   updateAdminMaintenance
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
@@ -62,6 +63,14 @@ export default function AdminScreen({ onNavigate, token, user }) {
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
   const [maintenanceFeedback, setMaintenanceFeedback] = useState('');
   const [maintenanceError, setMaintenanceError] = useState('');
+  const [noticeDraft, setNoticeDraft] = useState({
+    level: 'info',
+    message: '',
+    title: ''
+  });
+  const [noticeSending, setNoticeSending] = useState(false);
+  const [noticeFeedback, setNoticeFeedback] = useState('');
+  const [noticeError, setNoticeError] = useState('');
 
   // Load Data
   async function loadData(keepMessage = false) {
@@ -141,6 +150,30 @@ export default function AdminScreen({ onNavigate, token, user }) {
       setMaintenanceError(err.message || t('admin.maintenance.errors.save', '점검 모드 설정 저장에 실패했습니다.'));
     } finally {
       setMaintenanceSaving(false);
+    }
+  }
+
+  async function handleSendNotice() {
+    setNoticeSending(true);
+    setNoticeFeedback('');
+    setNoticeError('');
+
+    try {
+      await sendAdminNotice(token, {
+        level: noticeDraft.level,
+        title: noticeDraft.title.trim(),
+        message: noticeDraft.message.trim()
+      });
+      setNoticeFeedback(t('admin.notice.messages.sent', '실시간 공지를 전송했습니다.'));
+      setNoticeDraft((draft) => ({
+        ...draft,
+        message: '',
+        title: ''
+      }));
+    } catch (err) {
+      setNoticeError(err.message || t('admin.notice.errors.send', '실시간 공지 전송에 실패했습니다.'));
+    } finally {
+      setNoticeSending(false);
     }
   }
 
@@ -455,6 +488,112 @@ export default function AdminScreen({ onNavigate, token, user }) {
             </View>
           </>
         )}
+      </View>
+
+      <View style={styles.maintenancePanel}>
+        <View style={styles.maintenanceHeader}>
+          <View>
+            <Text style={styles.maintenanceEyebrow}>
+              {t('admin.notice.eyebrow', '실시간 broadcast')}
+            </Text>
+            <Text style={styles.maintenanceTitle}>
+              {t('admin.notice.title', '관리자 실시간 공지')}
+            </Text>
+            <Text style={styles.maintenanceDescription}>
+              {t(
+                'admin.notice.description',
+                '접속 중인 사용자에게 WebSocket으로 즉시 표시되는 공지를 보냅니다. 공지 내용은 자동 번역하지 않습니다.'
+              )}
+            </Text>
+          </View>
+          <View style={[styles.maintenanceStatusBadge, styles.maintenanceStatusOff]}>
+            <Text style={[styles.maintenanceStatusText, styles.maintenanceStatusTextOff]}>
+              {t('admin.notice.status', '즉시 전송')}
+            </Text>
+          </View>
+        </View>
+
+        {noticeError ? (
+          <View style={styles.maintenanceErrorBox}>
+            <Text style={styles.alertText}>{noticeError}</Text>
+          </View>
+        ) : null}
+        {noticeFeedback ? (
+          <View style={styles.maintenanceSuccessBox}>
+            <Text style={styles.alertText}>{noticeFeedback}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.noticeLevelRow}>
+          {['info', 'success', 'warning', 'danger'].map((level) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: noticeDraft.level === level }}
+              key={level}
+              onPress={() => setNoticeDraft((draft) => ({ ...draft, level }))}
+              style={(state) => [
+                styles.noticeLevelButton,
+                noticeDraft.level === level && styles.noticeLevelButtonActive,
+                ...interactiveStateStyles(state)
+              ]}
+            >
+              <Text style={[
+                styles.noticeLevelText,
+                noticeDraft.level === level && styles.noticeLevelTextActive
+              ]}>
+                {t(`admin.notice.level.${level}`, level)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.maintenanceFormGrid}>
+          <View style={styles.maintenanceField}>
+            <Text style={styles.inputLabel}>{t('admin.notice.form.title', '공지 제목')}</Text>
+            <AccessibleTextInput
+              accessibilityLabel={t('admin.notice.form.title', '공지 제목')}
+              onChangeText={(value) => setNoticeDraft((draft) => ({ ...draft, title: value }))}
+              placeholder={t('admin.notice.form.titlePlaceholder', '공지')}
+              style={styles.maintenanceInput}
+              value={noticeDraft.title}
+            />
+          </View>
+          <View style={styles.maintenanceField}>
+            <Text style={styles.inputLabel}>{t('admin.notice.form.message', '공지 메시지')}</Text>
+            <AccessibleTextInput
+              accessibilityLabel={t('admin.notice.form.message', '공지 메시지')}
+              multiline
+              numberOfLines={3}
+              onChangeText={(value) => setNoticeDraft((draft) => ({ ...draft, message: value }))}
+              placeholder={t('admin.notice.form.messagePlaceholder', '잠시 후 서비스 업데이트가 시작됩니다.')}
+              style={[styles.maintenanceInput, styles.maintenanceMessageInput]}
+              value={noticeDraft.message}
+            />
+          </View>
+        </View>
+
+        <View style={styles.maintenanceActions}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={noticeSending || !noticeDraft.title.trim() || !noticeDraft.message.trim()}
+            onPress={handleSendNotice}
+            style={(state) => [
+              styles.maintenanceSaveButton,
+              (noticeSending || !noticeDraft.title.trim() || !noticeDraft.message.trim()) && styles.disabledBtn,
+              ...interactiveStateStyles(state, {
+                disabled: noticeSending || !noticeDraft.title.trim() || !noticeDraft.message.trim()
+              })
+            ]}
+          >
+            {noticeSending ? (
+              <ActivityIndicator color={colors.surface} size="small" />
+            ) : (
+              <Text style={styles.maintenanceSaveText}>
+                {t('admin.notice.send', '공지 보내기')}
+              </Text>
+            )}
+          </Pressable>
+        </View>
       </View>
 
       {/* Action / Input Form Panel (Dynamic Modal) */}
@@ -948,6 +1087,34 @@ const styles = StyleSheet.create({
   },
   maintenanceToggleTextActive: {
     color: colors.warning
+  },
+  noticeLevelRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  noticeLevelButton: {
+    minHeight: 36,
+    justifyContent: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 13,
+    ...interactions.transition
+  },
+  noticeLevelButtonActive: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  noticeLevelText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  noticeLevelTextActive: {
+    color: colors.blueDeep,
+    fontWeight: '900'
   },
   maintenanceFormGrid: {
     flexDirection: 'row',

@@ -666,6 +666,16 @@ export function updateAdminMaintenance(token, payload) {
   });
 }
 
+export function sendAdminNotice(token, payload) {
+  return request('/admin/system/notice', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
 export function moderateAdminPost(token, postId, action, reason) {
   return request(`/admin/posts/${postId}/moderation`, {
     method: 'PATCH',
