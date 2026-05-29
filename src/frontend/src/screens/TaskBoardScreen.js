@@ -5,9 +5,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from 'react-native';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 import CalendarDatePicker from '../components/CalendarDatePicker';
 import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
@@ -538,7 +538,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
         <View style={styles.ddayFormGrid}>
           <View style={[styles.fieldGroup, styles.ddayField]}>
             <Text style={styles.label}>목표명</Text>
-            <TextInput
+            <AccessibleTextInput
               onChangeText={(value) => handleDdayChange('goalTitle', value)}
               placeholder="중간고사 수학 대비"
               placeholderTextColor={colors.muted}
@@ -549,7 +549,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
           </View>
           <View style={[styles.fieldGroup, styles.ddayField]}>
             <Text style={styles.label}>마감일</Text>
-            <TextInput
+            <AccessibleTextInput
               onChangeText={(value) => handleDdayChange('deadline', value)}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={colors.muted}
@@ -559,7 +559,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
           </View>
           <View style={[styles.fieldGroup, styles.ddayField]}>
             <Text style={styles.label}>전체 분량</Text>
-            <TextInput
+            <AccessibleTextInput
               keyboardType="number-pad"
               onChangeText={(value) => handleDdayChange('units', value.replace(/[^0-9]/g, ''))}
               placeholder="8"
@@ -573,7 +573,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>학습 범위</Text>
-          <TextInput
+          <AccessibleTextInput
             multiline
             numberOfLines={3}
             onChangeText={(value) => handleDdayChange('scope', value)}
@@ -664,7 +664,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>제목</Text>
-          <TextInput
+          <AccessibleTextInput
             onChangeText={(value) => handleChange('title', value)}
             placeholder="예: 자료구조 문제풀이"
             placeholderTextColor={colors.muted}
@@ -749,7 +749,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>메모</Text>
-          <TextInput
+          <AccessibleTextInput
             multiline
             numberOfLines={4}
             onChangeText={(value) => handleChange('memo', value)}

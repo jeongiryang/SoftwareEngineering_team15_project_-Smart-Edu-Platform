@@ -4,9 +4,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from 'react-native';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 import {
   createCommunityBookmark,
   createCommunityComment,
@@ -726,7 +726,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
         <Text style={styles.modalTargetText} numberOfLines={2}>
           대상: {reportTarget?.label || ''}
         </Text>
-        <TextInput
+        <AccessibleTextInput
           multiline
           onChangeText={setReportReason}
           placeholder="신고 사유를 입력해 주세요. 500자까지 입력할 수 있습니다."
@@ -743,7 +743,8 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     return (
       <View style={styles.filterPanel}>
         <View style={styles.searchRow}>
-          <TextInput
+          <AccessibleTextInput
+            containerStyle={styles.searchInputContainer}
             onChangeText={setSearchDraft}
             onSubmitEditing={handleSearchSubmit}
             placeholder="제목 또는 내용 검색"
@@ -837,13 +838,13 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             </Pressable>
           ))}
         </View>
-        <TextInput
+        <AccessibleTextInput
           onChangeText={(title) => setPostForm((current) => ({ ...current, title }))}
           placeholder="제목"
           style={styles.input}
           value={postForm.title}
         />
-        <TextInput
+        <AccessibleTextInput
           multiline
           onChangeText={(content) => setPostForm((current) => ({ ...current, content }))}
           placeholder="내용"
@@ -1106,7 +1107,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       <View style={styles.commentSection}>
         <Text style={styles.sectionTitle}>댓글</Text>
         <View style={styles.commentForm}>
-          <TextInput
+          <AccessibleTextInput
             multiline
             onChangeText={setCommentContent}
             placeholder="댓글을 입력해 주세요."
@@ -1149,7 +1150,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
         </View>
         {isEditing ? (
           <View style={styles.editCommentBox}>
-            <TextInput
+            <AccessibleTextInput
               multiline
               onChangeText={setEditingCommentContent}
               style={[styles.input, styles.commentInput]}
@@ -1355,6 +1356,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     flexWrap: 'wrap'
+  },
+  searchInputContainer: {
+    flex: 1,
+    minWidth: 220
   },
   searchInput: {
     flex: 1,

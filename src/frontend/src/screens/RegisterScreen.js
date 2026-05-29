@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
 import { registerUser } from '../services/api';
 import { colors, shadows } from '../styles/theme';
@@ -90,13 +91,13 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.title}>회원가입</Text>
         <Text style={styles.subtitle}>사각사각에서 나만의 학습 공간을 만드세요.</Text>
         <Text style={styles.label}>이름</Text>
-        <TextInput onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
+        <AccessibleTextInput forceVoiceInput onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
         <FieldFeedback {...getNameFeedback(name)} />
         <Text style={styles.label}>이메일</Text>
-        <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor={colors.muted} style={styles.input} value={email} />
+        <AccessibleTextInput autoCapitalize="none" forceVoiceInput keyboardType="email-address" onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor={colors.muted} style={styles.input} value={email} />
         <FieldFeedback {...getEmailFeedback(email)} />
         <Text style={styles.label}>비밀번호</Text>
-        <TextInput onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
+        <AccessibleTextInput onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
         <FieldFeedback {...getPasswordFeedback(password)} />
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         <Pressable accessibilityRole="button" disabled={loading} onPress={handleRegister} style={[styles.primaryButton, loading && styles.disabledButton]}>

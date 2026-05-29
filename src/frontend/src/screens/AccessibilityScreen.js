@@ -6,16 +6,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from 'react-native';
 import {
   createReviewReminder,
   getAccessibilityPreferences,
-  saveSpeechTranscript,
   updateAccessibilityPreferences
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
+import ConfirmModal from '../components/ConfirmModal';
 import ReadableText from '../components/ReadableText';
 import { useAccessibility, voiceOptions } from '../contexts/AccessibilityContext';
 import { colors, interactions, interactiveStateStyles, radii, shadows } from '../styles/theme';
@@ -33,7 +32,7 @@ const DRAFT_STORAGE_KEY = 'smartEduAccessibilityDraft';
 const voiceGuideSteps = [
   {
     title: '읽어주기 목소리 선택',
-    body: '학습자에게 편한 목소리를 고를 수 있습니다. 선택한 목소리는 읽어주기 버튼을 누를 때 사용됩니다.'
+    body: '학습자에게 편한 목소리를 고를 수 있습니다. 선택한 목소리는 텍스트를 누르거나 전체 읽기를 사용할 때 적용됩니다.'
   },
   {
     title: '기본 학습 톤',
@@ -51,7 +50,7 @@ const voiceGuideSteps = [
 const kidVoiceGuideSteps = [
   {
     title: '🗣️ 목소리 선택하기',
-    body: '책을 읽어줄 사람의 목소리를 직접 고를 수 있어요. 소리 내어 듣기 버튼을 누르면 이 목소리로 읽어줘요!'
+    body: '책을 읽어줄 사람의 목소리를 직접 고를 수 있어요. 글자를 누르거나 전체 읽기를 누르면 이 목소리로 읽어줘요!'
   },
   {
     title: '🎧 차분한 소리',
@@ -215,8 +214,6 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const {
     setPreference: setGlobalPreference,
     setVoiceType: setGlobalVoiceType,
-    speakText,
-    speechError,
     scheduleAlarm
   } = useAccessibility();
   const draft = useMemo(() => readDraft(), []);
@@ -225,7 +222,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const [preference, setPreference] = useState(defaultPreference);
   const [ttsText, setTtsText] = useState(draft.ttsText || '');
   const [voiceType, setVoiceType] = useState(draft.voiceType || 'ADULT_FEMALE');
-  const [transcript, setTranscript] = useState(draft.transcript || '');
+  const [transcript, setTranscript] = useState('');
   const [reminderTitle, setReminderTitle] = useState(draft.reminderTitle || '');
   const [reminderTask, setReminderTask] = useState(draft.reminderTask || '');
   const [reminderDate, setReminderDate] = useState(defaultReminderDateTime.date);
@@ -235,6 +232,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorModalMessage, setErrorModalMessage] = useState('');
   const [voiceGuideVisible, setVoiceGuideVisible] = useState(false);
   const [voiceGuideStep, setVoiceGuideStep] = useState(0);
   const [calendarVisible, setCalendarVisible] = useState(false);
@@ -256,14 +254,13 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     getStorage()?.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
       ttsText,
       voiceType,
-      transcript,
       reminderTitle,
       reminderTask,
       reminderDate,
       reminderHour,
       reminderMinute
     }));
-  }, [ttsText, voiceType, transcript, reminderTitle, reminderTask, reminderDate, reminderHour, reminderMinute]);
+  }, [ttsText, voiceType, reminderTitle, reminderTask, reminderDate, reminderHour, reminderMinute]);
 
   useEffect(() => {
     setGlobalVoiceType(voiceType);
@@ -309,6 +306,8 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   function resetFeedback() {
     setMessage('');
     setErrorMessage('');
+    setErrorModalMessage('');
+    setShowSpeechError(false);
   }
 
   async function savePreference(nextPreference) {
@@ -322,10 +321,9 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
         ...result.preference,
         reminderTime: result.preference?.reminderTime || ''
       });
-      const isCurrentlyKid = result.preference?.elementaryFriendlyUi ?? preference.elementaryFriendlyUi;
-      setMessage(isCurrentlyKid ? '설정이 안전하게 저장 되었어요! 👍' : '접근성 설정이 저장되었습니다.');
+      setMessage('');
     } catch (error) {
-      setErrorMessage(error.message || (preference.elementaryFriendlyUi ? '설정을 저장하지 못했어요. 다시 해볼까요?' : '접근성 설정 저장에 실패했습니다.'));
+      setErrorModalMessage(error.message || (preference.elementaryFriendlyUi ? '설정을 저장하지 못했어요. 다시 해볼까요?' : '접근성 설정 저장에 실패했습니다.'));
     } finally {
       setSaving(false);
     }
@@ -339,40 +337,6 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     setPreference(nextPreference);
     setGlobalPreference(nextPreference);
     savePreference(partial);
-  }
-
-  async function handleSpeak() {
-    const trimmedText = ttsText.trim();
-    if (!trimmedText) return;
-
-    setSaving(true);
-    resetFeedback();
-
-    try {
-      await speakText(trimmedText, { saveRequest: true, readingId: 'manual-tts-input' });
-      setMessage('읽어주기 요청을 실행했습니다. 읽는 중인 글자는 파란색으로 표시됩니다.');
-    } catch (error) {
-      setErrorMessage(error.message || '읽어주기 요청 저장에 실패했습니다.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveTranscript() {
-    const text = transcript.trim();
-    if (!text) return;
-
-    setSaving(true);
-    resetFeedback();
-
-    try {
-      await saveSpeechTranscript(token, { transcript: text });
-      setMessage(preference.elementaryFriendlyUi ? '말로 쓴 메모가 안전하게 저장되었어요! 💾' : '음성 입력 결과가 저장되었습니다.');
-    } catch (error) {
-      setErrorMessage(error.message || (preference.elementaryFriendlyUi ? '메모를 저장하지 못했어요. 다시 해볼까요?' : '음성 입력 저장에 실패했습니다.'));
-    } finally {
-      setSaving(false);
-    }
   }
 
   async function handleReminder() {
@@ -441,11 +405,10 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const reminderHour12 = toHour12(reminderHour);
   const calendarCells = getCalendarCells(calendarMonth);
   const isKidMode = preference.elementaryFriendlyUi;
-
   const kidTexts = {
     title: '🎒 초등학생 도움 센터',
     subtitle: '글자 크기를 키우거나, 목소리로 쓰고 귀로 편하게 들어보세요!',
-    readAloudParagraph: '🔊 글 읽어주기 기능이 켜져 있으면, 글자 옆에 재생 버튼이 생겨요.',
+    readAloudParagraph: '🔊 글 읽어주기 기능이 켜져 있으면, 글자를 누르거나 전체 읽기로 들을 수 있어요.',
     section1Title: '👀 화면 꾸미기',
     labelHighContrast: '🕶️ 눈 아플 때 (검은 화면)',
     labelElementaryUi: '🎒 초등학생 모드 (쉬운 말)',
@@ -459,8 +422,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     voiceAdultFemale: '🎙️ 부드러운 기본 톤',
     voiceChildBoy: '✨ 밝은 낮은 톤',
     voiceChildGirl: '🔆 밝은 높은 톤',
-    section3Title: '📝 말로 쓰는 메모장',
-    buttonSave: '💾 글 저장하기',
+    section3Title: '📝 말로 쓰기 연습',
     textSttPlaceholder: '마이크로 말한 글이 여기에 적혀요. 직접 고칠 수도 있어요!',
     section4Title: '⏰ 다시 공부할 시간 약속',
     textReminderTitlePlaceholder: '예시: 수학 덧셈 연습하기',
@@ -487,11 +449,11 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
           <Text style={[styles.subtitle, preference.highContrast && styles.highContrastSubText]}>
             {isKidMode ? kidTexts.subtitle : '큰 글씨, 고대비, 음성 입력과 복습 알림을 한 곳에서 설정합니다.'}
           </Text>
-          <ReadableParagraph
-            enabled={preference.voiceOutputEnabled}
-            style={styles.helperText}
-            text={isKidMode ? kidTexts.readAloudParagraph : '읽어주기 설정을 켜면 화면의 안내 문단 옆에 읽어주기 버튼이 표시됩니다.'}
-          />
+            <ReadableParagraph
+              enabled={preference.voiceOutputEnabled}
+              style={styles.helperText}
+              text={isKidMode ? kidTexts.readAloudParagraph : '읽어주기 설정을 켜면 일반 텍스트를 클릭하거나 전체 읽기로 화면 내용을 들을 수 있습니다.'}
+            />
         </View>
         <Pressable onPress={() => onNavigate('dashboard')} style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}>
           <Text style={styles.secondaryButtonText}>
@@ -607,28 +569,28 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                   ? (option.value.startsWith('CHILD') ? '🎒 친구 추천' : '👨 어른 추천')
                   : option.tag;
                 return (
-                  <View key={option.value} style={[styles.voiceButton, voiceType === option.value && styles.activeButton]}>
-                    <Pressable
-                      disabled={saving}
-                      onPress={() => {
-                        setVoiceType(option.value);
-                        setGlobalVoiceType(option.value);
-                      }}
-                      style={(state) => [
-                        styles.voiceSelectArea,
-                        saving && styles.disabledButton,
-                        ...interactiveStateStyles(state, { disabled: saving })
-                      ]}
-                    >
-                      <Text style={[
-                        styles.voiceButtonText,
-                        voiceType === option.value && styles.activeButtonText
-                      ]}>{label}</Text>
-                      {voiceType !== option.value && (
-                        <Text style={styles.voiceTagText}>{tag}</Text>
-                      )}
-                    </Pressable>
-                  </View>
+                  <Pressable
+                    key={option.value}
+                    disabled={saving}
+                    onPress={() => {
+                      setVoiceType(option.value);
+                      setGlobalVoiceType(option.value);
+                    }}
+                    style={(state) => [
+                      styles.voiceButton,
+                      voiceType === option.value && styles.activeButton,
+                      saving && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: saving })
+                    ]}
+                  >
+                    <Text style={[
+                      styles.voiceButtonText,
+                      voiceType === option.value && styles.activeButtonText
+                    ]}>{label}</Text>
+                    {voiceType !== option.value && (
+                      <Text style={styles.voiceTagText}>{tag}</Text>
+                    )}
+                  </Pressable>
                 );
               })}
             </View>
@@ -637,29 +599,34 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               style={styles.helperText}
               text={isKidMode ? kidTexts.section2Helper : '현재는 브라우저가 제공하는 목소리를 바탕으로 톤과 속도를 조정합니다. 실제 목소리 느낌은 사용 중인 브라우저와 운영체제에 따라 달라질 수 있습니다.'}
             />
-            <AccessibleTextInput
-              multiline
-              onChangeText={setTtsText}
-              placeholder={isKidMode ? kidTexts.textTtsPlaceholder : '예: 오늘 배운 내용을 천천히 읽어 주세요.'}
-              placeholderTextColor={colors.muted}
-              style={[styles.textarea, scaledStyles]}
-              value={ttsText}
-            />
-            <Pressable disabled={saving} onPress={handleSpeak} style={(state) => [styles.primaryButton, saving && styles.disabledButton, ...interactiveStateStyles(state, { disabled: saving })]}>
-              <Text style={styles.primaryButtonText}>{isKidMode ? '🔊 소리 내어 듣기' : '읽어주기'}</Text>
-            </Pressable>
+            <View style={styles.ttsInputWrapper}>
+              <AccessibleTextInput
+                multiline
+                onChangeText={setTtsText}
+                placeholder={isKidMode ? kidTexts.textTtsPlaceholder : '예: 오늘 배운 내용을 천천히 읽어 주세요.'}
+                placeholderTextColor={colors.muted}
+                style={[
+                  styles.textarea,
+                  scaledStyles
+                ]}
+                value={ttsText}
+              />
+            </View>
           </View>
 
           <View style={[styles.panel, friendlyStyle]}>
             <Text style={[styles.sectionTitle, scaledStyles]}>
-              {isKidMode ? kidTexts.section3Title : '음성 입력 메모'}
+              {isKidMode ? kidTexts.section3Title : '음성 입력 메모 테스트'}
             </Text>
-            <View style={styles.inlineButtons}>
-              <Pressable disabled={saving} onPress={handleSaveTranscript} style={(state) => [styles.primaryButtonSmall, saving && styles.disabledButton, ...interactiveStateStyles(state, { disabled: saving })]}>
-                <Text style={styles.primaryButtonText}>{isKidMode ? kidTexts.buttonSave : '저장'}</Text>
-              </Pressable>
-            </View>
+            <ReadableParagraph
+              enabled={preference.voiceOutputEnabled}
+              style={styles.helperText}
+              text={isKidMode
+                ? '음성 입력 설정을 켜지 않아도 여기서는 마이크로 말하기를 바로 연습할 수 있어요.'
+                : '음성 입력 설정과 관계없이 브라우저 마이크 인식이 되는지 테스트할 수 있습니다. 이 내용은 서버에 저장되지 않습니다.'}
+            />
             <AccessibleTextInput
+              forceVoiceInput
               multiline
               onChangeText={setTranscript}
               placeholder={isKidMode ? kidTexts.textSttPlaceholder : '예: 음성 인식 결과를 수정할 수 있습니다.'}
@@ -669,72 +636,20 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
             />
           </View>
 
-          <View style={[styles.panel, friendlyStyle]}>
-            <Text style={[styles.sectionTitle, scaledStyles]}>
-              {isKidMode ? kidTexts.section4Title : '복습 알림'}
-            </Text>
-            <AccessibleTextInput
-              onChangeText={setReminderTitle}
-              placeholder={isKidMode ? kidTexts.textReminderTitlePlaceholder : '예: 오늘 복습'}
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-              value={reminderTitle}
-            />
-            <AccessibleTextInput
-              multiline
-              onChangeText={setReminderTask}
-              placeholder={isKidMode ? kidTexts.textReminderTaskPlaceholder : '예: 오늘 배운 내용을 10분만 복습해 보세요.'}
-              placeholderTextColor={colors.muted}
-              style={[styles.textarea, styles.reminderTaskInput]}
-              value={reminderTask}
-            />
-            <View style={styles.alarmPickerPanel}>
-              <View style={styles.alarmTimeRow}>
-                <PeriodWheel
-                  onChange={(nextPeriod) => setReminderHour(toHour24(nextPeriod, reminderHour12.hour))}
-                  value={reminderHour12.period}
-                />
-                <TimeWheelColumn
-                  label="시"
-                  max={12}
-                  min={1}
-                  onChange={(nextHour) => setReminderHour(toHour24(reminderHour12.period, nextHour))}
-                  value={reminderHour12.hour}
-                />
-                <Text style={styles.alarmColon}>:</Text>
-                <TimeWheelColumn
-                  label="분"
-                  max={59}
-                  min={0}
-                  onChange={setReminderMinute}
-                  value={reminderMinute}
-                />
-              </View>
-              <View style={styles.alarmDateCard}>
-                <View>
-                  <Text style={styles.dateCardLabel}>{isKidMode ? kidTexts.labelDate : '날짜'}</Text>
-                  <Text style={styles.dateValueText}>{reminderDate || '날짜 선택'}</Text>
-                </View>
-                <Pressable onPress={openDatePicker} style={(state) => [styles.calendarButton, ...interactiveStateStyles(state)]}>
-                  <CalendarIcon />
-                </Pressable>
-              </View>
-            </View>
-            <Text style={styles.helperText}>
-              {isKidMode ? kidTexts.labelScheduled : '알림 예정'}: {reminderDate || '날짜 고르기'} {clampTimePart(reminderHour, 23)}:{clampTimePart(reminderMinute, 59)}
-            </Text>
-            <Pressable disabled={saving} onPress={handleReminder} style={(state) => [styles.primaryButton, saving && styles.disabledButton, ...interactiveStateStyles(state, { disabled: saving })]}>
-              <Text style={styles.primaryButtonText}>
-                {isKidMode ? kidTexts.buttonReminderSubmit : '복습 알림 등록'}
-              </Text>
-            </Pressable>
-          </View>
         </>
       )}
 
       {message ? <Text style={styles.successText}>{message}</Text> : null}
-      {speechError ? <Text style={styles.errorText}>{speechError}</Text> : null}
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      <ConfirmModal
+        confirmLabel="확인"
+        description={errorModalMessage}
+        onCancel={() => setErrorModalMessage('')}
+        onConfirm={() => setErrorModalMessage('')}
+        showCancel={false}
+        title="접근성 설정을 저장하지 못했습니다"
+        visible={Boolean(errorModalMessage)}
+      />
       {voiceGuideVisible && (
         <Modal
           animationType="fade"
@@ -938,7 +853,7 @@ function TimeWheelColumn({ label, max, min, onChange, value }) {
       <Pressable onPress={() => handleChange(previousValue)} style={(state) => [styles.wheelSideButton, ...interactiveStateStyles(state)]}>
         <Text style={styles.wheelMutedText}>{previousValue}</Text>
       </Pressable>
-      <TextInput
+      <AccessibleTextInput
         keyboardType="number-pad"
         maxLength={2}
         onBlur={handleInputBlur}
@@ -1086,14 +1001,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     ...interactions.transition
   },
-  voiceSelectArea: {
-    alignItems: 'center',
-    gap: 4,
-    justifyContent: 'center',
-    width: '100%',
-    borderRadius: radii.control,
-    ...interactions.transition
-  },
   voiceButtonText: {
     color: colors.ink,
     fontSize: 14,
@@ -1174,6 +1081,9 @@ const styles = StyleSheet.create({
     minHeight: 96,
     padding: 12,
     textAlignVertical: 'top'
+  },
+  ttsInputWrapper: {
+    position: 'relative'
   },
   input: {
     backgroundColor: colors.surface,
@@ -1332,11 +1242,6 @@ const styles = StyleSheet.create({
     height: 4,
     width: 4
   },
-  inlineButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
-  },
   primaryButton: {
     alignItems: 'center',
     backgroundColor: colors.blue,
@@ -1346,17 +1251,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 44,
     paddingHorizontal: 16,
-    ...interactions.transition
-  },
-  primaryButtonSmall: {
-    alignItems: 'center',
-    backgroundColor: colors.blue,
-    borderWidth: 1,
-    borderColor: colors.blue,
-    borderRadius: radii.control,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: 20,
     ...interactions.transition
   },
   primaryButtonText: {

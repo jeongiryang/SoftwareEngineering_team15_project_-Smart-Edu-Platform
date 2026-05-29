@@ -10,6 +10,7 @@ export default function ConfirmModal({
   destructive = false,
   onCancel,
   onConfirm,
+  showCancel = true,
   title,
   visible
 }) {
@@ -22,14 +23,16 @@ export default function ConfirmModal({
           {description ? <Text style={styles.description}>{description}</Text> : null}
           {children ? <View style={styles.body}>{children}</View> : null}
           <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${cancelLabel} 버튼`}
-              onPress={onCancel}
-              style={(state) => [styles.cancelButton, ...interactiveStateStyles(state)]}
-            >
-              <Text style={styles.cancelText}>{cancelLabel}</Text>
-            </Pressable>
+            {showCancel ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${cancelLabel} 버튼`}
+                onPress={onCancel}
+                style={(state) => [styles.cancelButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.cancelText}>{cancelLabel}</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${confirmLabel} 버튼`}

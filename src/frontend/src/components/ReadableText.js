@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { useAccessibility } from '../contexts/AccessibilityContext';
-import { colors, radii } from '../styles/theme';
+import { colors } from '../styles/theme';
 
 function createReadingId(text) {
   return `readable-${text.slice(0, 20)}-${text.length}`;
@@ -53,57 +53,24 @@ export default function ReadableText({ children, style }) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={[style, styles.text]}>
-        {displayCharIndex >= 0 ? (
-          <>
-            <Text>{text.slice(0, displayCharIndex)}</Text>
-            <Text style={styles.readingChar}>{text.charAt(displayCharIndex)}</Text>
-            <Text>{text.slice(displayCharIndex + 1)}</Text>
-          </>
-        ) : text}
-      </Text>
-      <Pressable
-        onPress={() => speakText(text, { readingId })}
-        style={[styles.button, isReading && styles.buttonActive]}
-      >
-        <Text style={[styles.buttonText, isReading && styles.buttonTextActive]}>
-          {isReading ? '읽는 중' : '읽어주기'}
-        </Text>
-      </Pressable>
-    </View>
+    <Text onPress={() => speakText(text, { readingId })} style={[style, styles.text]}>
+      {displayCharIndex >= 0 ? (
+        <>
+          <Text>{text.slice(0, displayCharIndex)}</Text>
+          <Text style={styles.readingChar}>{text.charAt(displayCharIndex)}</Text>
+          <Text>{text.slice(displayCharIndex + 1)}</Text>
+        </>
+      ) : text}
+    </Text>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
-  },
   text: {
     flexShrink: 1
   },
   readingChar: {
     color: colors.blue,
     fontWeight: '900'
-  },
-  button: {
-    backgroundColor: colors.blueSoft,
-    borderRadius: radii.control,
-    paddingHorizontal: 8,
-    paddingVertical: 5
-  },
-  buttonActive: {
-    backgroundColor: colors.blue
-  },
-  buttonText: {
-    color: colors.blue,
-    fontSize: 12,
-    fontWeight: '800'
-  },
-  buttonTextActive: {
-    color: colors.surface
   }
 });

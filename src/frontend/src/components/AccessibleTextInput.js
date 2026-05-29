@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAccessibility } from '../contexts/AccessibilityContext';
+import ConfirmModal from './ConfirmModal';
 import { colors, radii } from '../styles/theme';
 
 function getRecognition() {
@@ -14,6 +15,7 @@ function getRecognition() {
 export default function AccessibleTextInput({
   containerStyle,
   enableVoiceInput = true,
+  forceVoiceInput = false,
   onChangeText,
   secureTextEntry,
   value,
@@ -21,13 +23,22 @@ export default function AccessibleTextInput({
 }) {
   const { preference } = useAccessibility();
   const [listening, setListening] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState('');
-  const [voiceError, setVoiceError] = useState('');
+  const [hasVoiceInputResult, setHasVoiceInputResult] = useState(false);
+  const [voiceAlert, setVoiceAlert] = useState('');
   const recognitionRef = useRef(null);
   const baseTranscriptRef = useRef('');
-  const shouldShowVoiceButton = preference.voiceInputEnabled && enableVoiceInput && !secureTextEntry;
+  const manualStopRef = useRef(false);
+  const voiceHighlightTimerRef = useRef(null);
+  const shouldShowVoiceButton = (forceVoiceInput || preference.voiceInputEnabled) && enableVoiceInput && !secureTextEntry;
+
+  useEffect(() => () => {
+    if (voiceHighlightTimerRef.current) {
+      clearTimeout(voiceHighlightTimerRef.current);
+    }
+  }, []);
 
   function stopListening() {
+    manualStopRef.current = true;
     recognitionRef.current?.stop?.();
     recognitionRef.current = null;
     setListening(false);
@@ -37,11 +48,13 @@ export default function AccessibleTextInput({
     const Recognition = getRecognition();
 
     if (!Recognition) {
-      setVoiceError('현재 브라우저는 음성 입력을 지원하지 않습니다.');
+      setVoiceAlert('현재 브라우저는 음성 입력을 지원하지 않습니다. Chrome 또는 Edge에서 다시 시도해 주세요.');
       return;
     }
 
-    setVoiceError('');
+    setVoiceAlert('');
+    setHasVoiceInputResult(false);
+    manualStopRef.current = false;
     baseTranscriptRef.current = String(value || '').trim();
     const recognition = new Recognition();
     recognition.lang = 'ko-KR';
@@ -68,16 +81,42 @@ export default function AccessibleTextInput({
         }
       }
 
-      setInterimTranscript(interimText.trim());
-      onChangeText?.(`${finalText}${interimText ? ` ${interimText.trim()}` : ''}`.trim());
+      const nextValue = `${finalText}${interimText ? ` ${interimText.trim()}` : ''}`.trim();
+      if (nextValue) {
+        setHasVoiceInputResult(true);
+        if (voiceHighlightTimerRef.current) {
+          clearTimeout(voiceHighlightTimerRef.current);
+        }
+        voiceHighlightTimerRef.current = setTimeout(() => {
+          setHasVoiceInputResult(false);
+          voiceHighlightTimerRef.current = null;
+        }, 900);
+      }
+      onChangeText?.(nextValue);
     };
-    recognition.onerror = () => {
-      setVoiceError('음성 입력을 인식하지 못했습니다. 다시 시도해 주세요.');
+    recognition.onerror = (event) => {
+      const errorType = event?.error || '';
+
+      if (manualStopRef.current || errorType === 'aborted' || errorType === 'no-speech') {
+        setVoiceAlert('');
+        setListening(false);
+        return;
+      }
+
+      if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
+        setVoiceAlert('마이크 권한이 필요합니다. 브라우저 사이트 설정에서 마이크를 허용해 주세요.');
+      } else if (errorType === 'audio-capture') {
+        setVoiceAlert('마이크를 찾지 못했습니다. 기기 마이크 연결을 확인해 주세요.');
+      } else if (errorType === 'network') {
+        setVoiceAlert('음성 입력 연결이 불안정합니다. 잠시 후 다시 시도해 주세요.');
+      } else {
+        setVoiceAlert('음성 입력을 시작하지 못했습니다. 브라우저와 마이크 상태를 확인해 주세요.');
+      }
       setListening(false);
     };
     recognition.onend = () => {
       setListening(false);
-      setInterimTranscript('');
+      manualStopRef.current = false;
       recognitionRef.current = null;
     };
     recognition.start();
@@ -91,7 +130,11 @@ export default function AccessibleTextInput({
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           value={value}
-          style={[props.style, styles.flexInput]}
+          style={[
+            props.style,
+            styles.flexInput,
+            hasVoiceInputResult && styles.voiceInputResult
+          ]}
         />
         {shouldShowVoiceButton ? (
           <Pressable
@@ -106,17 +149,15 @@ export default function AccessibleTextInput({
           </Pressable>
         ) : null}
       </View>
-      {listening && value ? (
-        <View style={styles.previewBox}>
-          <Text style={styles.previewText}>
-            <Text>{String(value).slice(0, Math.max(String(value).length - interimTranscript.length, 0))}</Text>
-            {interimTranscript ? (
-              <Text style={styles.previewActiveText}>{String(value).slice(-interimTranscript.length)}</Text>
-            ) : null}
-          </Text>
-        </View>
-      ) : null}
-      {voiceError ? <Text style={styles.errorText}>{voiceError}</Text> : null}
+      <ConfirmModal
+        confirmLabel="확인"
+        description={voiceAlert}
+        onCancel={() => setVoiceAlert('')}
+        onConfirm={() => setVoiceAlert('')}
+        showCancel={false}
+        title="음성 입력을 사용할 수 없습니다"
+        visible={Boolean(voiceAlert)}
+      />
     </View>
   );
 }
@@ -134,6 +175,10 @@ const styles = StyleSheet.create({
   },
   flexInput: {
     flex: 1
+  },
+  voiceInputResult: {
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint
   },
   voiceButton: {
     backgroundColor: colors.blueSoft,
@@ -157,26 +202,4 @@ const styles = StyleSheet.create({
   voiceButtonTextActive: {
     color: colors.surface
   },
-  previewBox: {
-    backgroundColor: colors.mintSoft,
-    borderColor: colors.mint,
-    borderRadius: radii.control,
-    borderWidth: 1,
-    padding: 8
-  },
-  previewText: {
-    color: colors.ink,
-    fontSize: 13,
-    fontWeight: '700'
-  },
-  previewActiveText: {
-    backgroundColor: colors.blueSoft,
-    color: colors.blue,
-    fontWeight: '900'
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 12,
-    fontWeight: '700'
-  }
 });
