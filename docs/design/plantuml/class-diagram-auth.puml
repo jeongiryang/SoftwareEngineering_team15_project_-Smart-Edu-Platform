@@ -10,15 +10,15 @@ hide circle
 package "사용자/인증 도메인" #E3F2FD {
   class User <<사용자 계정>> {
     - userId: Long
-    - email: String
+    - loginId: String
     - passwordHash: String
     - name: String
     - userType: UserType
     - status: AccountStatus
     - reported: Boolean
     - createdAt: DateTime
-    + signUp(email, password, name): void
-    + login(email, password): AuthSession
+    + signUp(loginId, password, name): void
+    + login(loginId, password): AuthSession
     + updatePassword(oldPassword, newPassword): void
     + deactivate(): void
   }

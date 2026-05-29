@@ -10,7 +10,7 @@ hide circle
 package "Learning Domain\n학습 노트/퀴즈 도메인" #FFF3E0 {
   class User <<사용자>> {
     - userId: Long
-    - email: String
+    - loginId: String
   }
 
   class StudyNote <<학습 노트>> {

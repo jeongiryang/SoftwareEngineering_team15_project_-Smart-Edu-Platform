@@ -873,7 +873,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               <Text style={styles.avatarText}>{user?.name?.slice(0, 1) || '학'}</Text>
             </View>
             <Text style={styles.userName}>{user?.name || '학습자'}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
+            <Text style={styles.userLoginId}>{user?.loginId}</Text>
             <View style={styles.memberBadge}>
               <Text style={styles.memberBadgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
             </View>
@@ -1473,7 +1473,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800'
   },
-  userEmail: {
+  userLoginId: {
     color: colors.muted,
     fontSize: 13,
     marginTop: 6

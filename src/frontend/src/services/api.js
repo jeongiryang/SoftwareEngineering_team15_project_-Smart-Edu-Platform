@@ -125,17 +125,17 @@ export function enqueueFocusSession(payload, reason = 'manual') {
   return writeFocusSessionQueue(nextQueue);
 }
 
-export function registerUser({ email, password, name }) {
+export function registerUser({ loginId, password, name }) {
   return request('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name })
+    body: JSON.stringify({ loginId, password, name })
   });
 }
 
-export function loginUser({ email, password }) {
+export function loginUser({ loginId, password }) {
   return request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ loginId, password })
   });
 }
 

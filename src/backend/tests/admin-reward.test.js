@@ -1,7 +1,7 @@
 const mockUsers = [
   {
     id: 1,
-    email: 'dev.user@example.com',
+    loginId: 'dev_user',
     name: 'Regular User',
     passwordHash: 'hashed-user-password',
     role: 'USER',
@@ -9,7 +9,7 @@ const mockUsers = [
   },
   {
     id: 2,
-    email: 'dev.admin@example.com',
+    loginId: 'admin_user',
     name: 'Admin User',
     passwordHash: 'hashed-admin-password',
     role: 'ADMIN',
@@ -61,7 +61,7 @@ function mockBuildQuest(data = {}) {
 
 jest.mock('../src/repositories/user.repository', () => ({
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null)
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null)
 }));
 
 jest.mock('../src/repositories/admin.repository', () => ({

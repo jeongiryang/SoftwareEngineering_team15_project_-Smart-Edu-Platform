@@ -18,15 +18,15 @@ package "User Domain\n사용자/인증 도메인" #E3F2FD {
       회원가입, 로그인, 계정 상태 관리
     end note
     - userId: Long
-    - email: String
+    - loginId: String
     - passwordHash: String
     - name: String
     - userType: UserType
     - status: AccountStatus
     - reported: Boolean
     - createdAt: DateTime
-    + signUp(email, password, name): void // 회원가입 처리
-    + login(email, password): AuthSession // 로그인 및 토큰 발급
+    + signUp(loginId, password, name): void // 회원가입 처리
+    + login(loginId, password): AuthSession // 로그인 및 토큰 발급
     + updatePassword(oldPassword, newPassword): void // 비밀번호 변경
     + deactivate(): void // 계정 비활성화
   }

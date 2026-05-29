@@ -78,7 +78,7 @@ Authorization: Bearer <JWT_TOKEN>
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -122,7 +122,7 @@ Authorization: Bearer <JWT_TOKEN>
 | `401 Unauthorized` | 인증 실패 | 토큰 없음, 토큰 오류, 로그인 실패 |
 | `403 Forbidden` | 권한 없음 | 비활성 사용자, 관리자 권한 부족 |
 | `404 Not Found` | 리소스 없음 | 사용자 또는 대상 데이터 없음 |
-| `409 Conflict` | 충돌 | 중복 이메일 등 |
+| `409 Conflict` | 충돌 | 중복 아이디 등 |
 | `500 Internal Server Error` | 서버 오류 | 예상하지 못한 서버 오류 |
 
 ---
@@ -168,13 +168,13 @@ Response 예시:
 | Method | `POST` |
 | Endpoint | `/api/auth/register` |
 | 인증 | 불필요 |
-| 설명 | 이메일, 비밀번호, 이름을 받아 사용자를 생성하고 JWT를 발급함 |
+| 설명 | 아이디, 비밀번호, 이름을 받아 사용자를 생성하고 JWT를 발급함 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `email` | string | 예 | 사용자 이메일 |
+| `loginId` | string | 예 | 사용자 아이디 |
 | `password` | string | 예 | 사용자 비밀번호 |
 | `name` | string | 예 | 사용자 이름 |
 
@@ -182,7 +182,7 @@ Request 예시:
 
 ```json
 {
-  "email": "user@example.com",
+  "loginId": "user_id",
   "password": "<PASSWORD>",
   "name": "홍길동"
 }
@@ -194,7 +194,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -207,8 +207,8 @@ Response 예시:
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `400` | `VALIDATION_ERROR` | 필수값 누락, 이메일 형식 오류, 비밀번호 길이 부족 |
-| `409` | `CONFLICT` | 이미 가입된 이메일 |
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 아이디 형식 오류, 비밀번호 길이 부족 |
+| `409` | `CONFLICT` | 이미 가입된 아이디 |
 
 보안 주의사항:
 
@@ -224,20 +224,20 @@ Response 예시:
 | Method | `POST` |
 | Endpoint | `/api/auth/login` |
 | 인증 | 불필요 |
-| 설명 | 이메일과 비밀번호를 검증하고 JWT를 발급함 |
+| 설명 | 아이디와 비밀번호를 검증하고 JWT를 발급함 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `email` | string | 예 | 사용자 이메일 |
+| `loginId` | string | 예 | 사용자 아이디 |
 | `password` | string | 예 | 사용자 비밀번호 |
 
 Request 예시:
 
 ```json
 {
-  "email": "user@example.com",
+  "loginId": "user_id",
   "password": "<PASSWORD>"
 }
 ```
@@ -248,7 +248,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -292,7 +292,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -337,7 +337,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE",
@@ -402,7 +402,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "사각 학습자",
     "role": "USER",
     "status": "ACTIVE"
@@ -420,7 +420,7 @@ Response 예시:
 
 보안 주의사항:
 
-- `role`, `status`, `email`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
+- `role`, `status`, `loginId`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
 
 ### 6.3 내 비밀번호 변경
@@ -552,7 +552,7 @@ Response 예시:
 - A→B와 B→A 중복 pending/accepted 관계를 service 계층에서 차단함.
 - 친구 요청 수락/거절은 요청 수신자만 가능함.
 - 응답에는 `passwordHash`, plain password, token/JWT 원문을 포함하지 않음.
-- 사용자 검색 결과의 이메일은 원문 전체를 노출하지 않고 최소 식별 힌트만 제공함.
+- 사용자 검색 결과에는 공개 식별자인 `loginId`를 포함하되 password, token/JWT, `passwordHash`는 포함하지 않음.
 
 #### 6.5.1 친구 추가 대상 검색
 
@@ -562,7 +562,7 @@ Response 예시:
 | Method | `GET` |
 | Endpoint | `/api/users/search?keyword=...` |
 | 인증 | 필요 |
-| 설명 | 이름 또는 이메일 일부로 친구 추가 대상을 검색함 |
+| 설명 | 이름 또는 아이디 일부로 친구 추가 대상을 검색함 |
 
 Query:
 
@@ -580,7 +580,7 @@ Response `200`:
       "name": "학습 친구",
       "role": "USER",
       "status": "ACTIVE",
-      "emailMasked": "lea***",
+      "loginId": "study_peer",
       "profileImageUrl": null,
       "learningGoal": "매일 30분 복습",
       "preferredSubject": "영어",
@@ -634,7 +634,7 @@ Response `200`:
         "name": "학습 친구",
         "role": "USER",
         "status": "ACTIVE",
-        "emailMasked": "lea***",
+        "loginId": "study_peer",
         "profileImageUrl": null,
         "learningGoal": "매일 30분 복습",
         "preferredSubject": "영어"
@@ -670,7 +670,7 @@ Response `200`:
           "name": "보상 데모 사용자",
           "role": "USER",
           "status": "ACTIVE",
-          "emailMasked": "rew***"
+          "loginId": "reward_user"
         }
       }
     ]
@@ -1181,10 +1181,10 @@ npm run seed:dev
 
 생성 또는 갱신되는 개발용 데이터:
 
-| 구분 | Email | Role | UserProfile |
+| 구분 | Login ID | Role | UserProfile |
 |---|---|---|---|
-| 일반 사용자 | `dev.user@example.com` | `USER` | 생성 또는 갱신 |
-| 관리자 사용자 | `dev.admin@example.com` | `ADMIN` | 생성 또는 갱신 |
+| 일반 사용자 | `dev_user` | `USER` | 생성 또는 갱신 |
+| 관리자 사용자 | `admin_user` | `ADMIN` | 생성 또는 갱신 |
 
 주의:
 
@@ -1634,7 +1634,7 @@ Response 예시:
 - 히트맵의 날짜 key는 서버에서 `startedAt`의 UTC 날짜(`YYYY-MM-DD`) 기준으로 그룹핑함.
 - KST 등 사용자 현지 시간대 기준 시각화는 프론트 또는 후속 통계 고도화에서 별도 보정이 필요함.
 - `taskId`를 전달하면 현재 사용자 소유 `StudyTask`인지 확인하며, 없거나 타 사용자 소유이면 404로 처리함.
-- 응답에는 `passwordHash`, password, token/JWT, email 등 민감정보를 포함하지 않음.
+- 응답에는 `passwordHash`, password, token/JWT 등 민감정보를 포함하지 않음.
 
 #### 9.3.1 집중 세션 기록
 
@@ -1828,7 +1828,7 @@ Response `200`:
 - 게시글/댓글 신고는 `CommunityReport`에 `PENDING` 상태로 저장하며, 신고자는 `req.user.id` 기준으로 처리함.
 - 같은 사용자가 같은 게시글 또는 댓글을 다시 신고하면 `409 CONFLICT`로 처리함.
 - 신고 생성 시 기존 관리자 호환을 위해 대상 `BoardPost.reported` 또는 `Comment.reported`를 `true`로 갱신함.
-- 응답에는 `passwordHash`, password, token, email 등 불필요한 민감정보를 포함하지 않음.
+- 응답에는 `passwordHash`, password, token 등 불필요한 민감정보를 포함하지 않음.
 - 게시글 삭제 시 현재 schema의 `Comment` relation에 cascade가 없으므로, 작성자 소유 게시글 확인 후 연결 댓글을 먼저 삭제하고 게시글을 삭제함.
 
 #### 9.4.1 게시글 목록 조회
@@ -2452,14 +2452,14 @@ Response 예시:
   "users": [
     {
       "id": 1,
-      "email": "user@example.com",
+      "loginId": "user_id",
       "name": "홍길동",
       "role": "USER",
       "status": "ACTIVE"
     },
     {
       "id": 2,
-      "email": "dev.admin@example.com",
+      "loginId": "admin_user",
       "name": "관리자",
       "role": "ADMIN",
       "status": "ACTIVE"
@@ -2498,7 +2498,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "SUSPENDED"
@@ -2543,7 +2543,7 @@ Response 예시:
       "reported": true,
       "user": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "홍길동"
       }
     }
@@ -2557,7 +2557,7 @@ Response 예시:
       "reported": true,
       "user": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "홍길동"
       },
       "post": {
@@ -2577,7 +2577,7 @@ Response 예시:
       "createdAt": "2026-05-24T20:30:00.000Z",
       "admin": {
         "id": 2,
-        "email": "dev.admin@example.com",
+        "loginId": "admin_user",
         "name": "관리자"
       }
     }
@@ -2622,7 +2622,7 @@ Response 예시:
       "updatedAt": "2026-05-28T00:00:00.000Z",
       "reporter": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "사용자",
         "role": "USER",
         "status": "ACTIVE"
@@ -2635,7 +2635,7 @@ Response 예시:
         "reported": true,
         "author": {
           "id": 3,
-          "email": "author@example.com",
+          "loginId": "author_user",
           "name": "작성자",
           "role": "USER",
           "status": "ACTIVE"
@@ -2663,7 +2663,7 @@ Error:
 
 - `ADMIN` 사용자만 조회할 수 있음.
 - 신고자, 처리자, 대상 게시글/댓글의 최소 정보만 반환함.
-- 관리자 API 특성상 사용자 email은 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
+- 관리자 API 특성상 사용자 `loginId`는 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
 
 ---
 

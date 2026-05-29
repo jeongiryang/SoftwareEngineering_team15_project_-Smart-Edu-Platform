@@ -10,7 +10,7 @@ hide circle
 package "커뮤니티/챌린지/관리자 도메인" #F3E5F5 {
   class User <<사용자>> {
     - userId: Long
-    - email: String
+    - loginId: String
     - name: String
   }
 
