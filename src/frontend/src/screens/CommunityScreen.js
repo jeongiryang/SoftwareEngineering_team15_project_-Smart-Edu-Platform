@@ -33,21 +33,79 @@ import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const CATEGORIES = [
-  { value: 'QUESTION', label: '질문' },
-  { value: 'FREE', label: '자유' },
-  { value: 'STUDY_PROOF', label: '학습 인증' }
+  { value: 'QUESTION', labelKey: '질문' },
+  { value: 'FREE', labelKey: '자유' },
+  { value: 'STUDY_PROOF', labelKey: '학습 인증' }
 ];
 
-const CATEGORY_FILTERS = [{ value: 'ALL', label: '전체' }, ...CATEGORIES];
+const CATEGORY_FILTERS = [{ value: 'ALL', labelKey: '전체' }, ...CATEGORIES];
 const SORT_OPTIONS = [
-  { value: 'latest', label: '최신순' },
-  { value: 'oldest', label: '오래된순' }
+  { value: 'latest', labelKey: '최신순' },
+  { value: 'likes', labelKey: '좋아요순' },
+  { value: 'views', labelKey: '조회수순' },
+  { value: 'comments', labelKey: '댓글순' },
+  { value: 'oldest', labelKey: '오래된순' }
 ];
 
 const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
+const VIEW_MODE_STORAGE_KEY = 'sagaksagak.community.viewMode';
+const RECENT_SEARCHES_STORAGE_KEY = 'sagaksagak.community.recentSearches';
 
-function getCategoryLabel(category) {
-  return CATEGORIES.find((item) => item.value === category)?.label || category;
+function readStorageValue(key, fallback) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return fallback;
+  }
+
+  try {
+    return window.localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readStorageList(key) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return [];
+  }
+
+  try {
+    const value = JSON.parse(window.localStorage.getItem(key) || '[]');
+
+    return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStorageList(key, value) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Local storage is best-effort for recent searches.
+  }
+}
+
+function writeStorageValue(key, value) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Local storage is best-effort for view preferences.
+  }
+}
+
+function getCategoryLabel(category, translateText) {
+  const categoryItem = CATEGORIES.find((item) => item.value === category);
+
+  return categoryItem ? translateText(categoryItem.labelKey) : category;
 }
 
 function formatDate(value, language = 'ko') {
@@ -96,9 +154,18 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   });
   const [page, setPage] = useState(1);
   const [bookmarkPage, setBookmarkPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [category, setCategory] = useState('ALL');
   const [sort, setSort] = useState('latest');
   const [bookmarkSort, setBookmarkSort] = useState('latest');
+  const [viewMode, setViewMode] = useState(() => {
+    const savedMode = readStorageValue(VIEW_MODE_STORAGE_KEY, 'card');
+
+    return savedMode === 'table' ? 'table' : 'card';
+  });
+  const [recentSearches, setRecentSearches] = useState(() =>
+    readStorageList(RECENT_SEARCHES_STORAGE_KEY)
+  );
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
   const [selectedPost, setSelectedPost] = useState(null);
@@ -137,7 +204,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     }
 
     loadBookmarks();
-  }, [activeTab, page, bookmarkPage, category, sort, bookmarkSort, search]);
+  }, [activeTab, page, bookmarkPage, pageSize, category, sort, bookmarkSort, search]);
 
   async function loadPosts() {
     setLoading(true);
@@ -146,14 +213,14 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     try {
       const result = await getCommunityPosts(token, {
         page,
-        pageSize: PAGE_SIZE,
+        pageSize,
         category: category === 'ALL' ? undefined : category,
         search,
         sort
       });
 
       setPosts(result.posts || []);
-      setPagination(result.pagination || { page, pageSize: PAGE_SIZE, total: 0, totalPages: 1 });
+      setPagination(result.pagination || { page, pageSize, total: 0, totalPages: 1 });
     } catch (error) {
       setErrorMessage(error.message || '게시글 목록을 불러오지 못했습니다.');
     } finally {
@@ -219,10 +286,42 @@ export default function CommunityScreen({ onNavigate, token, user }) {
   }
 
   function handleSearchSubmit() {
-    setSearch(searchDraft.trim());
+    const keyword = searchDraft.trim();
+
+    setSearch(keyword);
+    if (keyword) {
+      const nextSearches = [keyword, ...recentSearches.filter((item) => item !== keyword)].slice(0, 6);
+
+      setRecentSearches(nextSearches);
+      writeStorageList(RECENT_SEARCHES_STORAGE_KEY, nextSearches);
+    }
     setPage(1);
     setSelectedPost(null);
     setPostFormMode(null);
+  }
+
+  function applyRecentSearch(keyword) {
+    setSearchDraft(keyword);
+    setSearch(keyword);
+    setPage(1);
+    setSelectedPost(null);
+    setPostFormMode(null);
+  }
+
+  function clearRecentSearches() {
+    setRecentSearches([]);
+    writeStorageList(RECENT_SEARCHES_STORAGE_KEY, []);
+  }
+
+  function changeViewMode(nextMode) {
+    setViewMode(nextMode);
+    writeStorageValue(VIEW_MODE_STORAGE_KEY, nextMode);
+  }
+
+  function changePageSize(nextPageSize) {
+    setPageSize(nextPageSize);
+    setPage(1);
+    setSelectedPost(null);
   }
 
   function openCreateForm() {
@@ -872,7 +971,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             containerStyle={styles.searchInputContainer}
             onChangeText={setSearchDraft}
             onSubmitEditing={handleSearchSubmit}
-            placeholder="제목 또는 내용 검색"
+            placeholder={translateText('제목, 내용, 작성자 검색')}
             returnKeyType="search"
             style={styles.searchInput}
             value={searchDraft}
@@ -885,6 +984,32 @@ export default function CommunityScreen({ onNavigate, token, user }) {
             <Text style={styles.primaryButtonText}>검색</Text>
           </Pressable>
         </View>
+        {recentSearches.length > 0 ? (
+          <View style={styles.recentSearchPanel}>
+            <View style={styles.recentSearchHeader}>
+              <Text style={styles.helperLabel}>{translateText('최근 검색어')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={clearRecentSearches}
+                style={(state) => [styles.textButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.textButtonLabel}>{translateText('전체 삭제')}</Text>
+              </Pressable>
+            </View>
+            <View style={styles.optionRow}>
+              {recentSearches.map((keyword) => (
+                <Pressable
+                  key={keyword}
+                  accessibilityRole="button"
+                  onPress={() => applyRecentSearch(keyword)}
+                  style={(state) => [styles.recentSearchChip, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.recentSearchText}>{keyword}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
         <View style={styles.optionRow}>
           {CATEGORY_FILTERS.map((item) => (
             <Pressable
@@ -897,7 +1022,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
               style={(state) => [styles.chip, category === item.value && styles.chipActive, ...interactiveStateStyles(state)]}
             >
               <Text style={[styles.chipText, category === item.value && styles.chipTextActive]}>
-                {item.label}
+                {translateText(item.labelKey)}
               </Text>
             </Pressable>
           ))}
@@ -913,10 +1038,57 @@ export default function CommunityScreen({ onNavigate, token, user }) {
               style={(state) => [styles.chip, sort === item.value && styles.chipActive, ...interactiveStateStyles(state)]}
             >
               <Text style={[styles.chipText, sort === item.value && styles.chipTextActive]}>
-                {item.label}
+                {translateText(item.labelKey)}
               </Text>
             </Pressable>
           ))}
+        </View>
+        <View style={styles.controlRow}>
+          <View style={styles.controlGroup}>
+            <Text style={styles.helperLabel}>{translateText('몇 개씩 보기')}</Text>
+            <View style={styles.optionRowCompact}>
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <Pressable
+                  key={size}
+                  accessibilityRole="button"
+                  onPress={() => changePageSize(size)}
+                  style={(state) => [
+                    styles.compactChip,
+                    pageSize === size && styles.chipActive,
+                    ...interactiveStateStyles(state)
+                  ]}
+                >
+                  <Text style={[styles.chipText, pageSize === size && styles.chipTextActive]}>
+                    {size}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <View style={styles.controlGroup}>
+            <Text style={styles.helperLabel}>{translateText('보기 방식')}</Text>
+            <View style={styles.optionRowCompact}>
+              {[
+                { value: 'card', label: '카드보기' },
+                { value: 'table', label: '표보기' }
+              ].map((item) => (
+                <Pressable
+                  key={item.value}
+                  accessibilityRole="button"
+                  onPress={() => changeViewMode(item.value)}
+                  style={(state) => [
+                    styles.compactChip,
+                    viewMode === item.value && styles.chipActive,
+                    ...interactiveStateStyles(state)
+                  ]}
+                >
+                  <Text style={[styles.chipText, viewMode === item.value && styles.chipTextActive]}>
+                    {translateText(item.label)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -927,7 +1099,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       <View style={styles.filterPanel}>
         <Text style={styles.sectionTitle}>내가 저장한 게시글</Text>
         <View style={styles.optionRow}>
-          {SORT_OPTIONS.map((item) => (
+          {SORT_OPTIONS.filter((item) => ['latest', 'oldest'].includes(item.value)).map((item) => (
             <Pressable
               key={item.value}
               onPress={() => {
@@ -937,7 +1109,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
               style={(state) => [styles.chip, bookmarkSort === item.value && styles.chipActive, ...interactiveStateStyles(state)]}
             >
               <Text style={[styles.chipText, bookmarkSort === item.value && styles.chipTextActive]}>
-                {item.label}
+                {translateText(item.labelKey)}
               </Text>
             </Pressable>
           ))}
@@ -958,7 +1130,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
               style={[styles.chip, postForm.category === item.value && styles.chipActive]}
             >
               <Text style={[styles.chipText, postForm.category === item.value && styles.chipTextActive]}>
-                {item.label}
+                {translateText(item.labelKey)}
               </Text>
             </Pressable>
           ))}
@@ -1017,7 +1189,67 @@ export default function CommunityScreen({ onNavigate, token, user }) {
       );
     }
 
+    if (viewMode === 'table') {
+      return renderPostTable();
+    }
+
     return posts.map((post) => renderPostCard(post));
+  }
+
+  function renderPostTable() {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tableScroller}>
+        <View style={styles.boardTable}>
+          <View style={[styles.tableRow, styles.tableHeaderRow]}>
+            <Text style={[styles.tableCell, styles.tableCategoryCell]}>{translateText('분류')}</Text>
+            <Text style={[styles.tableCell, styles.tableTitleCell]}>{translateText('제목')}</Text>
+            <Text style={[styles.tableCell, styles.tableAuthorCell]}>{translateText('작성자')}</Text>
+            <Text style={[styles.tableCell, styles.tableMetricCell]}>{translateText('댓글')}</Text>
+            <Text style={[styles.tableCell, styles.tableMetricCell]}>{translateText('좋아요')}</Text>
+            <Text style={[styles.tableCell, styles.tableMetricCell]}>{translateText('조회수')}</Text>
+            <Text style={[styles.tableCell, styles.tableDateCell]}>{translateText('등록일')}</Text>
+            <Text style={[styles.tableCell, styles.tableDateCell]}>{translateText('수정일')}</Text>
+            <Text style={[styles.tableCell, styles.tableActionCell]}>{translateText('관리')}</Text>
+          </View>
+          {posts.map((post) => (
+            <View key={post.id} style={styles.tableRow}>
+              <Text style={[styles.tableCell, styles.tableCategoryCell]}>
+                {getCategoryLabel(post.category, translateText)}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => openDetail(post)}
+                style={(state) => [styles.tableTitleButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.tableTitleText} numberOfLines={1}>{post.title}</Text>
+                <Text style={styles.tablePreviewText} numberOfLines={1}>{getPreview(post.content)}</Text>
+              </Pressable>
+              <Text style={[styles.tableCell, styles.tableAuthorCell]} numberOfLines={1}>
+                {post.author?.name || translateText('알 수 없음')}
+              </Text>
+              <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.commentCount ?? 0}</Text>
+              <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.likeCount ?? 0}</Text>
+              <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.viewCount ?? 0}</Text>
+              <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>
+                {formatDate(post.createdAt, currentLanguage)}
+              </Text>
+              <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>
+                {formatDate(post.updatedAt, currentLanguage)}
+              </Text>
+              <View style={[styles.tableCell, styles.tableActionCell]}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => copyPostLink(post)}
+                  style={(state) => [styles.tableActionButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.tableActionText}>{translateText('공유')}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    );
   }
 
   function renderBookmarkList() {
@@ -1069,8 +1301,11 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     return (
       <View key={post.id} style={[styles.card, shadows.card, selectedPost?.id === post.id && styles.cardActive]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.categoryBadge}>{getCategoryLabel(post.category)}</Text>
-          <Text style={styles.dateText}>{formatDate(post.createdAt, currentLanguage)}</Text>
+          <Text style={styles.categoryBadge}>{getCategoryLabel(post.category, translateText)}</Text>
+          <View style={styles.dateStack}>
+            <Text style={styles.dateText}>{translateText('등록')} {formatDate(post.createdAt, currentLanguage)}</Text>
+            <Text style={styles.dateSubText}>{translateText('수정')} {formatDate(post.updatedAt, currentLanguage)}</Text>
+          </View>
         </View>
         <Text style={styles.cardTitle}>{post.title}</Text>
         <Text style={styles.cardContent}>{getPreview(post.content)}</Text>
@@ -1137,6 +1372,7 @@ export default function CommunityScreen({ onNavigate, token, user }) {
         <Text style={styles.metricText}>댓글 {post.commentCount ?? 0}</Text>
         <Text style={styles.metricText}>좋아요 {post.likeCount ?? 0}</Text>
         <Text style={styles.metricText}>싫어요 {post.dislikeCount ?? 0}</Text>
+        <Text style={styles.metricText}>조회수 {post.viewCount ?? 0}</Text>
         <Text style={styles.metricText}>북마크 {post.bookmarkCount ?? 0}</Text>
       </View>
     );
@@ -1148,8 +1384,11 @@ export default function CommunityScreen({ onNavigate, token, user }) {
     return (
       <View style={[styles.detailCard, shadows.card]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.categoryBadge}>{getCategoryLabel(selectedPost.category)}</Text>
-          <Text style={styles.dateText}>{formatDate(selectedPost.createdAt, currentLanguage)}</Text>
+          <Text style={styles.categoryBadge}>{getCategoryLabel(selectedPost.category, translateText)}</Text>
+          <View style={styles.dateStack}>
+            <Text style={styles.dateText}>{translateText('등록')} {formatDate(selectedPost.createdAt, currentLanguage)}</Text>
+            <Text style={styles.dateSubText}>{translateText('수정')} {formatDate(selectedPost.updatedAt, currentLanguage)}</Text>
+          </View>
         </View>
         <Text style={styles.detailTitle}>{selectedPost.title}</Text>
         <Text style={styles.authorText}>작성자: {selectedPost.author?.name || '알 수 없음'}</Text>
@@ -1595,14 +1834,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap'
   },
   boardMainPane: {
-    flex: 1.45,
-    minWidth: 360,
+    flex: 1.8,
+    minWidth: 420,
     gap: 12
   },
   boardDetailPane: {
-    flex: 0.9,
+    flex: 0.8,
     minWidth: 320,
-    maxWidth: 460
+    maxWidth: 420
   },
   searchRow: {
     flexDirection: 'row',
@@ -1628,6 +1867,80 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     flexWrap: 'wrap'
+  },
+  optionRowCompact: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap'
+  },
+  controlRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: 10
+  },
+  controlGroup: {
+    gap: 6,
+    minWidth: 170
+  },
+  helperLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  compactChip: {
+    minHeight: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    ...interactions.transition
+  },
+  recentSearchPanel: {
+    borderRadius: 12,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 10,
+    gap: 8
+  },
+  recentSearchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10
+  },
+  recentSearchChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    ...interactions.transition
+  },
+  recentSearchText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  textButton: {
+    minHeight: 28,
+    justifyContent: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    ...interactions.transition
+  },
+  textButtonLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
   },
   chip: {
     borderRadius: 8,
@@ -1729,6 +2042,99 @@ const styles = StyleSheet.create({
   dateText: {
     color: colors.muted,
     fontSize: 12
+  },
+  dateStack: {
+    alignItems: 'flex-end',
+    gap: 2
+  },
+  dateSubText: {
+    color: colors.muted,
+    fontSize: 11
+  },
+  tableScroller: {
+    width: '100%'
+  },
+  boardTable: {
+    minWidth: 980,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    ...shadows.card
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line
+  },
+  tableHeaderRow: {
+    backgroundColor: colors.surfaceWarm
+  },
+  tableCell: {
+    justifyContent: 'center',
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRightWidth: 1,
+    borderRightColor: colors.line
+  },
+  tableCategoryCell: {
+    width: 92
+  },
+  tableTitleCell: {
+    width: 240
+  },
+  tableAuthorCell: {
+    width: 110
+  },
+  tableMetricCell: {
+    width: 70,
+    textAlign: 'center'
+  },
+  tableDateCell: {
+    width: 150
+  },
+  tableActionCell: {
+    width: 90,
+    alignItems: 'center'
+  },
+  tableTitleButton: {
+    width: 240,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRightWidth: 1,
+    borderRightColor: colors.line,
+    ...interactions.transition
+  },
+  tableTitleText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  tablePreviewText: {
+    color: colors.muted,
+    fontSize: 11,
+    marginTop: 2
+  },
+  tableActionButton: {
+    minHeight: 30,
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 8,
+    ...interactions.transition
+  },
+  tableActionText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '800'
   },
   cardTitle: {
     color: colors.ink,

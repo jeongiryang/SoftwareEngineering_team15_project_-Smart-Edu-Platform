@@ -99,6 +99,14 @@ function buildPostWhere(filters = {}) {
           contains: filters.search,
           mode: 'insensitive'
         }
+      },
+      {
+        user: {
+          name: {
+            contains: filters.search,
+            mode: 'insensitive'
+          }
+        }
       }
     ];
   }
@@ -107,6 +115,24 @@ function buildPostWhere(filters = {}) {
 }
 
 function buildPostOrderBy(sort = 'latest') {
+  if (sort === 'views') {
+    return [
+      { viewCount: 'desc' },
+      { createdAt: 'desc' }
+    ];
+  }
+
+  if (sort === 'comments') {
+    return [
+      {
+        comments: {
+          _count: 'desc'
+        }
+      },
+      { createdAt: 'desc' }
+    ];
+  }
+
   return {
     createdAt: sort === 'oldest' ? 'asc' : 'desc'
   };
@@ -114,8 +140,43 @@ function buildPostOrderBy(sort = 'latest') {
 
 async function findPosts({ page, pageSize, category, search, sort }) {
   const where = buildPostWhere({ category, search });
-  const orderBy = buildPostOrderBy(sort);
   const skip = (page - 1) * pageSize;
+
+  if (sort === 'likes') {
+    const [allPosts, total, likeCounts] = await Promise.all([
+      prisma.boardPost.findMany({
+        where,
+        include: POST_INCLUDE
+      }),
+      prisma.boardPost.count({ where }),
+      prisma.communityReaction.groupBy({
+        by: ['postId'],
+        where: {
+          type: 'LIKE',
+          post: where
+        },
+        _count: {
+          id: true
+        }
+      })
+    ]);
+    const likeCountMap = new Map(likeCounts.map((row) => [row.postId, row._count.id]));
+    const posts = allPosts
+      .sort((a, b) => {
+        const likeDelta = (likeCountMap.get(b.id) || 0) - (likeCountMap.get(a.id) || 0);
+
+        if (likeDelta !== 0) {
+          return likeDelta;
+        }
+
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      })
+      .slice(skip, skip + pageSize);
+
+    return { posts, total };
+  }
+
+  const orderBy = buildPostOrderBy(sort);
 
   const [posts, total] = await Promise.all([
     prisma.boardPost.findMany({
@@ -256,6 +317,18 @@ function createPost(userId, data) {
 function findPostById(postId) {
   return prisma.boardPost.findUnique({
     where: { id: postId },
+    include: POST_INCLUDE
+  });
+}
+
+function incrementPostViewCount(postId) {
+  return prisma.boardPost.update({
+    where: { id: postId },
+    data: {
+      viewCount: {
+        increment: 1
+      }
+    },
     include: POST_INCLUDE
   });
 }
@@ -663,6 +736,7 @@ module.exports = {
   findPostEngagementSummaries,
   findPostReportByReporterAndPostId,
   findPosts,
+  incrementPostViewCount,
   upsertBookmark,
   upsertCommentReaction,
   upsertReaction,
