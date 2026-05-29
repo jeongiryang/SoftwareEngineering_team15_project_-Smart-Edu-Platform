@@ -31,7 +31,8 @@ const authenticatedNavGroups = [
     label: '보상',
     items: [
       { label: '상점', screen: 'pointShop' },
-      { label: '레이드', screen: 'bossRaid' }
+      { label: '레이드', screen: 'bossRaid' },
+      { label: '협동 퀘스트', screen: 'collaborativeQuest' }
     ]
   },
   {

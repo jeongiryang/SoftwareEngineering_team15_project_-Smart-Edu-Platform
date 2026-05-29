@@ -120,6 +120,12 @@ enum BossRaidPartyStatus {
   CLOSED
 }
 
+enum CollaborativeQuestStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
 model User {
   id                      Int                         @id @default(autoincrement())
   loginId                 String                      @unique @map("login_id")
@@ -165,6 +171,10 @@ model User {
   bossRaidPartyMembers    BossRaidPartyMember[]
   bossRaidContributions   BossRaidContribution[]
   bossRaidRewardClaims    BossRaidRewardClaim[]
+  createdCollaborativeQuests CollaborativeQuest[]      @relation("CollaborativeQuestCreator")
+  collaborativeQuestParticipants CollaborativeQuestParticipant[]
+  collaborativeQuestContributions CollaborativeQuestContribution[]
+  collaborativeQuestRewardClaims CollaborativeQuestRewardClaim[]
 
   @@map("users")
 }
@@ -802,6 +812,74 @@ model BossRaidRewardClaim {
   @@index([partyId])
   @@index([userId])
   @@map("boss_raid_reward_claims")
+}
+
+model CollaborativeQuest {
+  id             Int                               @id @default(autoincrement())
+  title          String
+  description    String?
+  goalValue      Int                               @map("goal_value")
+  currentValue   Int                               @default(0) @map("current_value")
+  status         CollaborativeQuestStatus          @default(ACTIVE)
+  rewardPoints   Int                               @default(0) @map("reward_points")
+  createdById    Int                               @map("created_by_id")
+  startsAt       DateTime                          @default(now()) @map("starts_at")
+  endsAt         DateTime?                         @map("ends_at")
+  completedAt    DateTime?                         @map("completed_at")
+  createdAt      DateTime                          @default(now()) @map("created_at")
+  updatedAt      DateTime                          @updatedAt @map("updated_at")
+  createdBy      User                              @relation("CollaborativeQuestCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants   CollaborativeQuestParticipant[]
+  contributions  CollaborativeQuestContribution[]
+  rewardClaims   CollaborativeQuestRewardClaim[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([endsAt])
+  @@map("collaborative_quests")
+}
+
+model CollaborativeQuestParticipant {
+  id                Int                @id @default(autoincrement())
+  questId           Int                @map("quest_id")
+  userId            Int                @map("user_id")
+  contributionValue Int                @default(0) @map("contribution_value")
+  joinedAt          DateTime           @default(now()) @map("joined_at")
+  quest             CollaborativeQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, userId])
+  @@index([userId])
+  @@map("collaborative_quest_participants")
+}
+
+model CollaborativeQuestContribution {
+  id        Int                @id @default(autoincrement())
+  questId   Int                @map("quest_id")
+  userId    Int                @map("user_id")
+  amount    Int
+  memo      String?
+  createdAt DateTime           @default(now()) @map("created_at")
+  quest     CollaborativeQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([questId])
+  @@index([userId])
+  @@map("collaborative_quest_contributions")
+}
+
+model CollaborativeQuestRewardClaim {
+  id           Int                @id @default(autoincrement())
+  questId      Int                @map("quest_id")
+  userId       Int                @map("user_id")
+  rewardPoints Int                @default(0) @map("reward_points")
+  claimedAt    DateTime           @default(now()) @map("claimed_at")
+  quest        CollaborativeQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, userId])
+  @@index([userId])
+  @@map("collaborative_quest_reward_claims")
 }
 
 model MaintenanceSetting {

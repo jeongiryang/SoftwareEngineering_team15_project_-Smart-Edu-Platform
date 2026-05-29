@@ -208,6 +208,8 @@ Response 예시:
 | `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
 | `bossRaid.progress.updated` | `{ "party": { "id": 10, "raid": { "id": 1, ... }, "totalDamage": 140, "remainingHp": 160, "progressRate": 0.46, "participantCount": 2, "completed": false } }` | 보스 레이드 파티 생성/참가/상세 갱신 후 진행률이 변경될 수 있을 때 파티 멤버에게만 전달 |
 | `bossRaid.completed` | `{ "party": { "id": 10, "status": "CLEARED", "completed": true, ... } }` | 보스 레이드가 처치 완료 상태로 계산되거나 보상 수령 흐름에서 완료 상태가 확인될 때 파티 멤버에게만 전달 |
+| `collabQuest.progress.updated` | `{ "quest": { "questId": 1, "currentValue": 55, "goalValue": 100, "progressPercent": 55, "participantCount": 2, "completed": false } }` | 협동 퀘스트 생성/참여/기여도 추가 후 진행률이 바뀌었을 때 참여자에게만 전달 |
+| `collabQuest.completed` | `{ "quest": { "questId": 1, "status": "COMPLETED", "completed": true, ... } }` | 협동 퀘스트 목표 달성 또는 보상 수령 흐름에서 완료 상태가 확인될 때 참여자에게만 전달 |
 
 WebSocket URL 기준:
 
@@ -3724,7 +3726,95 @@ Request Body:
 - 개인 기여도 기반 보너스 포인트
 - 한정 배지 지급 여부
 
-### 9.10 docs 기준 기능 구현 상태 재점검
+### 9.10 협동 퀘스트 API
+
+협동 퀘스트는 기존 개인 보상 퀘스트(`RewardQuest`/`UserQuest`)와 분리된 공동 목표 기반 학습 기능이다. 참여자는 같은 퀘스트에 참여하고 기여도를 추가하며, 목표 수치 달성 후 각자 한 번만 보상을 수령한다.
+
+공통 정책:
+
+- 모든 API는 로그인 사용자만 접근 가능함.
+- 1차 MVP는 친구 그룹 강제 제한 없이 참여 가능한 협동 퀘스트로 시작함. 친구/그룹 기반 제한은 후속 고도화 범위임.
+- 기여도 추가와 보상 수령은 현재 로그인 사용자 기준으로 처리하며, `userId`를 body로 받아 신뢰하지 않음.
+- 완료 전 보상 수령, 미참여자 기여/보상 수령, 중복 보상 수령은 차단함.
+- 진행률 변경 성공 시 WebSocket `collabQuest.progress.updated`, 완료 시 `collabQuest.completed` event를 참여자에게 전달함.
+
+#### 9.10.1 협동 퀘스트 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/collaborative-quests` | 협동 퀘스트 목록과 내 참여/보상 수령 상태 조회 |
+
+Response 주요 필드:
+
+- `id`, `title`, `description`
+- `goalValue`, `currentValue`, `progressRate`, `progressPercent`
+- `status`: `ACTIVE`, `COMPLETED`, `EXPIRED`
+- `rewardPoints`
+- `participantCount`, `participants`
+- `hasJoined`, `hasClaimed`, `canJoin`, `canContribute`, `canClaim`
+
+#### 9.10.2 협동 퀘스트 상세 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/collaborative-quests/:questId` | 협동 퀘스트 상세, 참여자, 최근 기여도, 보상 상태 조회 |
+
+#### 9.10.3 협동 퀘스트 생성
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests` | 새 협동 퀘스트 생성. 생성자는 자동 참여자로 등록 |
+
+Request Body:
+
+```json
+{
+  "title": "100분 집중 릴레이",
+  "description": "함께 집중 시간을 모아 목표를 달성합니다.",
+  "goalValue": 100,
+  "rewardPoints": 30,
+  "endsAt": null
+}
+```
+
+#### 9.10.4 협동 퀘스트 참여
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests/:questId/join` | 진행 중인 협동 퀘스트에 참여 |
+
+중복 참여는 `409 Conflict`로 차단함.
+
+#### 9.10.5 협동 퀘스트 기여도 추가
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests/:questId/contributions` | 참여 중인 협동 퀘스트에 기여도 추가 |
+
+Request Body:
+
+```json
+{
+  "amount": 15,
+  "memo": "25분 집중 완료"
+}
+```
+
+기여도 추가 성공 시 현재 진행률을 갱신한다. `currentValue >= goalValue`가 되면 상태를 `COMPLETED`로 전환하고 `completedAt`을 기록한다.
+
+#### 9.10.6 협동 퀘스트 보상 수령
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests/:questId/claim` | 완료된 협동 퀘스트 보상을 현재 사용자 기준으로 수령 |
+
+보상 정책:
+
+- 완료된 퀘스트의 참여자만 수령 가능함.
+- `CollaborativeQuestRewardClaim`의 `questId + userId` unique 제약으로 중복 수령을 방지함.
+- 포인트 보상은 `RewardAccount`와 `PointTransaction`에 `sourceType: "COLLABORATIVE_QUEST"`로 기록함.
+
+### 9.11 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -3758,7 +3848,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid 포함. 최신 확인 기준 26 suites / 448 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest 포함. 최신 확인 기준 27 suites / 461 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
@@ -3771,6 +3861,7 @@ Request Body:
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 스터디 보스 레이드 API 단일 테스트 | 1 suite / 8 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js` | 협동 퀘스트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 서비스 점검 모드 및 관리자 공지 API 단일 테스트 | 1 suite / 10 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/realtime-websocket.test.js` | WebSocket frame/helper 단일 테스트 | 1 suite / 3 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |

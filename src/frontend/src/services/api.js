@@ -350,6 +350,62 @@ export function claimBossRaidReward(token, partyId) {
   });
 }
 
+export function getCollaborativeQuests(token) {
+  return request('/collaborative-quests', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getCollaborativeQuestDetail(token, questId) {
+  return request(`/collaborative-quests/${questId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCollaborativeQuest(token, payload) {
+  return request('/collaborative-quests', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function joinCollaborativeQuest(token, questId) {
+  return request(`/collaborative-quests/${questId}/join`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function addCollaborativeQuestContribution(token, questId, payload) {
+  return request(`/collaborative-quests/${questId}/contributions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function claimCollaborativeQuestReward(token, questId) {
+  return request(`/collaborative-quests/${questId}/claim`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
 export function getSchedules(token) {
   return request('/schedules', {
     headers: {
