@@ -20,6 +20,7 @@ import ScheduleScreen from './src/screens/ScheduleScreen';
 import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import PointShopScreen from './src/screens/PointShopScreen';
 import BossRaidScreen from './src/screens/BossRaidScreen';
+import CollaborativeQuestScreen from './src/screens/CollaborativeQuestScreen';
 import MaintenanceScreen from './src/screens/MaintenanceScreen';
 import { getCurrentUser, getSystemStatus } from './src/services/api';
 import { createRealtimeClient } from './src/services/realtime';
@@ -41,12 +42,13 @@ const screens = {
   taskBoard: TaskBoardScreen,
   pointShop: PointShopScreen,
   bossRaid: BossRaidScreen,
+  collaborativeQuest: CollaborativeQuestScreen,
   accessibility: AccessibilityScreen,
   admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid'];
+const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest'];
 
 const screenPaths = {
   home: '/',
@@ -62,6 +64,7 @@ const screenPaths = {
   taskBoard: '/task-board',
   pointShop: '/shop',
   bossRaid: '/boss-raids',
+  collaborativeQuest: '/collaborative-quests',
   accessibility: '/accessibility',
   admin: '/admin'
 };

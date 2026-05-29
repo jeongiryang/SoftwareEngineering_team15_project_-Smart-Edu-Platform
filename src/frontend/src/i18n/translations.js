@@ -179,6 +179,7 @@ const TRANSLATION_ENTRIES = [
   ['선택지', 'option', '選択肢', '选项'],
   ['상점', 'Shop', 'ショップ', '商店'],
   ['레이드', 'Raid', 'レイド', '突袭'],
+  ['협동 퀘스트', 'Collaborative Quests', '協同クエスト', '协作任务'],
   ['포인트 상점', 'Point Shop', 'ポイントショップ', '积分商店'],
   ['보상으로 모은 포인트로 프로필 이미지, 배경, 칭호를 구매하고 적용할 수 있어요.', 'Use reward points to buy and apply profile images, backgrounds, and titles.', '報酬で集めたポイントでプロフィール画像、背景、称号を購入して適用できます。', '可使用奖励积分购买并应用头像、背景和称号。'],
   ['불러오는 중', 'Loading', '読み込み中', '加载中'],
