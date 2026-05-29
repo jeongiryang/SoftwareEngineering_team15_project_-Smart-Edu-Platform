@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -212,14 +212,16 @@ function getCalendarCells(monthValue) {
 
 export default function AccessibilityScreen({ onNavigate, token, user }) {
   const {
+    preference: globalPreference,
     setPreference: setGlobalPreference,
     setVoiceType: setGlobalVoiceType,
     scheduleAlarm
   } = useAccessibility();
+  const saveTimeoutRef = useRef(null);
   const draft = useMemo(() => readDraft(), []);
   const defaultReminderDateTime = useMemo(() => getDefaultReminderDateTime(), []);
   const todayDate = useMemo(() => getDefaultReminderDateTime().date, []);
-  const [preference, setPreference] = useState(defaultPreference);
+  const [preference, setPreference] = useState(globalPreference || defaultPreference);
   const [ttsText, setTtsText] = useState(draft.ttsText || '');
   const [voiceType, setVoiceType] = useState(draft.voiceType || 'ADULT_FEMALE');
   const [transcript, setTranscript] = useState('');
@@ -228,7 +230,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const [reminderDate, setReminderDate] = useState(defaultReminderDateTime.date);
   const [reminderHour, setReminderHour] = useState(defaultReminderDateTime.time.split(':')[0]);
   const [reminderMinute, setReminderMinute] = useState(defaultReminderDateTime.time.split(':')[1]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -266,42 +268,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     setGlobalVoiceType(voiceType);
   }, [setGlobalVoiceType, voiceType]);
 
-  useEffect(() => {
-    let isMounted = true;
 
-    async function loadPreference() {
-      try {
-        const result = await getAccessibilityPreferences(token);
-
-        if (isMounted) {
-          setPreference({
-            ...defaultPreference,
-            ...result.preference,
-            reminderTime: result.preference?.reminderTime || ''
-          });
-          setGlobalPreference({
-            ...defaultPreference,
-            ...result.preference,
-            reminderTime: result.preference?.reminderTime || ''
-          });
-        }
-      } catch (error) {
-        if (isMounted) {
-          setErrorMessage(error.message || (preference.elementaryFriendlyUi ? '설정을 가져오지 못했어요. 다시 시도해볼까요?' : '접근성 설정을 불러오지 못했습니다.'));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadPreference();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
 
   function resetFeedback() {
     setMessage('');
@@ -335,8 +302,19 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
       ...partial
     };
     setPreference(nextPreference);
-    setGlobalPreference(nextPreference);
-    savePreference(partial);
+    
+    // UI 레이아웃(zoom)이 즉시 변경되면서 버튼 터치 이벤트가 씹히거나 굳는 RN Web 버그 방지
+    setTimeout(() => {
+      setGlobalPreference(nextPreference);
+    }, 50);
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      savePreference(nextPreference);
+    }, 500);
   }
 
   async function handleReminder() {
@@ -406,7 +384,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const calendarCells = getCalendarCells(calendarMonth);
   const isKidMode = preference.elementaryFriendlyUi;
   const kidTexts = {
-    title: '🎒 초등학생 도움 센터',
+    title: '🎒 접근성 설정',
     subtitle: '글자 크기를 키우거나, 목소리로 쓰고 귀로 편하게 들어보세요!',
     readAloudParagraph: '🔊 글 읽어주기 기능이 켜져 있으면, 글자를 누르거나 전체 읽기로 들을 수 있어요.',
     section1Title: '👀 화면 꾸미기',
@@ -444,10 +422,10 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, scaledStyles, preference.highContrast && styles.highContrastText]}>
-            {isKidMode ? kidTexts.title : '음성/접근성 센터'}
+            {isKidMode ? kidTexts.title : '접근성 설정'}
           </Text>
           <Text style={[styles.subtitle, preference.highContrast && styles.highContrastSubText]}>
-            {isKidMode ? kidTexts.subtitle : '큰 글씨, 고대비, 음성 입력과 복습 알림을 한 곳에서 설정합니다.'}
+            {isKidMode ? kidTexts.subtitle : '큰 글씨, 고대비, 음성 입력 등 나에게 맞는 화면과 소리 환경을 설정합니다.'}
           </Text>
             <ReadableParagraph
               enabled={preference.voiceOutputEnabled}
@@ -475,8 +453,8 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
           <Text style={styles.patternInfoTitle}>{isKidMode ? '내가 고를 수 있어요' : '선택형 접근성'}</Text>
           <Text style={styles.patternInfoText}>
             {isKidMode
-              ? '큰 글씨, 고대비, 쉬운 말, 알림은 필요할 때 직접 켜고 끌 수 있어요.'
-              : '큰 글씨, 고대비, 쉬운 용어, 복습 알림은 사용자가 직접 켜고 끄는 선택형 설정입니다.'}
+              ? '큰 글씨, 고대비, 쉬운 말, 음성 기능은 필요할 때 직접 켜고 끌 수 있어요.'
+              : '큰 글씨, 고대비, 쉬운 용어, 음성 기능 등은 사용자가 직접 켜고 끄는 선택형 설정입니다.'}
           </Text>
         </View>
       </View>
@@ -503,13 +481,13 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               {[1, 1.2, 1.4, 1.6].map((scale) => (
                 <Pressable
                   key={scale}
-                  disabled={saving}
-                  onPress={() => updateLocalPreference({ textScale: scale })}
+                  onPress={() => {
+                    updateLocalPreference({ textScale: scale });
+                  }}
                   style={(state) => [
                     styles.scaleButton,
                     preference.textScale === scale && styles.activeButton,
-                    saving && styles.disabledButton,
-                    ...interactiveStateStyles(state, { disabled: saving })
+                    ...interactiveStateStyles(state)
                   ]}
                 >
                   <Text style={[styles.scaleButtonText, preference.textScale === scale && styles.activeButtonText]}>
@@ -571,8 +549,8 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 return (
                   <Pressable
                     key={option.value}
-                    disabled={saving}
                     onPress={() => {
+                      if (saving) return;
                       setVoiceType(option.value);
                       setGlobalVoiceType(option.value);
                     }}

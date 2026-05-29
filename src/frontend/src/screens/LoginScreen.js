@@ -88,7 +88,7 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.label}>이메일</Text>
         <AccessibleTextInput
           autoCapitalize="none"
-          forceVoiceInput
+          enableVoiceInput={false}
           keyboardType="email-address"
           onChangeText={setEmail}
           placeholder="example@email.com"
@@ -101,6 +101,7 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
           onChangeText={setPassword}
           placeholder="비밀번호를 입력하세요"
           placeholderTextColor={colors.muted}
+          enableVoiceInput={false}
           secureTextEntry
           style={styles.input}
           value={password}
