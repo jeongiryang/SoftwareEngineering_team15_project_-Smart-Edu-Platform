@@ -3494,7 +3494,80 @@ Request Body:
 |---|---|---|---|
 | `type` | string | 예 | `PROFILE_IMAGE`, `PROFILE_BACKGROUND`, `TITLE` 중 하나 |
 
-### 9.9 docs 기준 기능 구현 상태 재점검
+### 9.9 스터디 보스 레이드 API
+
+스터디 보스 레이드는 원하는 사람끼리 파티를 만들거나 참여 코드로 합류해서,
+그룹 누적 집중 시간과 완료 태스크 수로 보스 HP를 깎는 협동 퀘스트입니다.
+
+핵심 규칙:
+
+- 파티 단위로 진행
+- 참여 코드로 원하는 사람끼리 합류 가능
+- 데미지 계산:
+  - `1 집중분 = 1 데미지`
+  - `완료 태스크 1개 = 15 데미지`
+- 진행도는 최근 계산 시점 기준 5분 간격으로 갱신
+- 보상은 보스당 사용자 1회만 수령 가능
+- 보상 구조:
+  - 공통 포인트
+  - 개인 기여도 보너스
+  - 한정 배지
+
+#### 9.9.1 보스 레이드 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids` | 현재 활성 보스 레이드 목록과 내 파티 참여 여부 조회 |
+
+#### 9.9.2 보스 레이드 파티 생성
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties` | 특정 보스 레이드에 새 파티 생성 |
+
+Request Body:
+
+```json
+{
+  "raidId": 1,
+  "name": "아침 집중팟"
+}
+```
+
+#### 9.9.3 참여 코드로 파티 참가
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties/join` | 참여 코드로 기존 파티에 합류 |
+
+Request Body:
+
+```json
+{
+  "joinCode": "DAWN01"
+}
+```
+
+#### 9.9.4 내 파티 목록 / 파티 상세 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids/parties/me` | 내가 참여 중인 보스 레이드 파티 목록 조회 |
+| `GET` | `/api/boss-raids/parties/:partyId` | 파티 상세, 멤버, 기여도, 남은 HP, 클리어 여부 조회 |
+
+#### 9.9.5 보스 레이드 보상 수령
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties/:partyId/claim` | 클리어한 보스 레이드 보상 수령 |
+
+응답에는 아래 내용이 포함될 수 있음:
+
+- 공통 포인트 지급 내역
+- 개인 기여도 기반 보너스 포인트
+- 한정 배지 지급 여부
+
+### 9.10 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -3528,7 +3601,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 23 suites / 427 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid 포함. 최신 확인 기준 24 suites / 435 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
@@ -3540,6 +3613,7 @@ Request Body:
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 스터디 보스 레이드 API 단일 테스트 | 1 suite / 8 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |

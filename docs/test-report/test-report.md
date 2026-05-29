@@ -288,7 +288,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(23 suites / 427 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(24 suites / 435 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
@@ -309,6 +309,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward focused test | `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js` | 통과 | 보상 API 단일 테스트 기준 1 suite / 6 tests passed |
 | Point Shop API test | `GET /api/shop/items`, `GET /api/shop/me`, `POST /api/shop/items/:itemId/purchase`, `POST /api/shop/items/:itemId/equip`, `POST /api/shop/unequip` | 통과 | `src/backend/tests/shop.test.js`의 repository mock 기반 API 테스트. 미인증 401, 상점 목록, 구매/중복 구매/포인트 부족, 구매 전 적용 차단, 적용/해제, 민감정보 미노출 검증 포함 |
 | Point Shop focused test | `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js` | 통과 | 포인트 상점 API 단일 테스트 기준 1 suite / 9 tests passed |
+| Boss Raid API test | `GET /api/boss-raids`, `GET /api/boss-raids/parties/me`, `POST /api/boss-raids/parties`, `POST /api/boss-raids/parties/join`, `GET /api/boss-raids/parties/:partyId`, `POST /api/boss-raids/parties/:partyId/claim` | 통과 | `src/backend/tests/boss-raid.test.js`의 repository mock 기반 API 테스트. 미인증 401, 보스 목록, 파티 생성/참가, 파티 상세, 보상 1회 수령 검증 포함 |
+| Boss Raid focused test | `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 통과 | 스터디 보스 레이드 API 단일 테스트 기준 1 suite / 8 tests passed |
 | Accessibility API test | `GET/PUT /api/accessibility/preferences`, `POST /api/accessibility/tts`, `POST /api/accessibility/stt`, `GET/POST /api/accessibility/review-reminders` | 통과 | `src/backend/tests/accessibility.test.js`의 repository mock 기반 API 테스트. 미인증 401, 접근성 기본 설정 조회, 설정 저장, textScale validation, TTS voiceType validation, STT transcript 저장, 복습 알림 생성/목록 조회 검증 포함 |
 | Accessibility focused test | `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 통과 | 음성/접근성 API 단일 테스트 기준 1 suite / 10 tests passed |
 | Friend API test | `GET /api/users/search`, `GET /api/friends`, `GET/POST/PATCH /api/friends/requests`, `DELETE /api/friends/:friendId` | 통과 | `src/backend/tests/friend.test.js`의 repository mock 기반 API 테스트. 미인증 401, 사용자 검색 자기 자신 제외, 친구 요청 생성/중복 차단, 반대 방향 pending 안내, 수락/거절 권한, 재처리 409, 친구 목록/삭제, 민감정보 미노출 검증 포함 |
@@ -345,6 +347,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(21 suites / 382 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 10 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
+| Boss Raid API 검증 | 스터디 보스 레이드 MVP API 검증 | 통과 | `npm test`(24 suites / 435 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 8 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 

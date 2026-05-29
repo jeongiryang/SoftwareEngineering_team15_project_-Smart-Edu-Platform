@@ -14,6 +14,7 @@ const accessibilityRoutes = require('./accessibility.routes');
 const rewardRoutes = require('./reward.routes');
 const shopRoutes = require('./shop.routes');
 const friendRoutes = require('./friend.routes');
+const bossRaidRoutes = require('./bossRaid.routes');
 
 const router = express.Router();
 
@@ -32,5 +33,6 @@ router.use('/accessibility', accessibilityRoutes);
 router.use('/rewards', rewardRoutes);
 router.use('/friends', friendRoutes);
 router.use('/shop', shopRoutes);
+router.use('/boss-raids', bossRaidRoutes);
 
 module.exports = router;

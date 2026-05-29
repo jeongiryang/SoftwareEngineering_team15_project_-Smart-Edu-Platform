@@ -30,7 +30,8 @@ const authenticatedNavGroups = [
     key: 'reward',
     label: '보상',
     items: [
-      { label: '상점', screen: 'pointShop' }
+      { label: '상점', screen: 'pointShop' },
+      { label: '레이드', screen: 'bossRaid' }
     ]
   },
   {

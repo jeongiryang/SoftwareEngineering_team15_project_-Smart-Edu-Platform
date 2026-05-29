@@ -292,6 +292,60 @@ export function unequipShopItem(token, type) {
   });
 }
 
+export function getBossRaids(token) {
+  return request('/boss-raids', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getMyBossRaidParties(token) {
+  return request('/boss-raids/parties/me', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createBossRaidParty(token, payload) {
+  return request('/boss-raids/parties', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function joinBossRaidParty(token, payload) {
+  return request('/boss-raids/parties/join', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function getBossRaidPartyDetail(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function claimBossRaidReward(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/claim`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
 export function getSchedules(token) {
   return request('/schedules', {
     headers: {
