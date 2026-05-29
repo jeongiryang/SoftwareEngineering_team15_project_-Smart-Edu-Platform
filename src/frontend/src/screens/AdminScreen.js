@@ -12,13 +12,18 @@ import {
   updateAdminUserStatus,
   getAdminReports,
   moderateAdminPost,
-  moderateAdminComment
+  moderateAdminComment,
+  getAdminMaintenance,
+  updateAdminMaintenance
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
+import { useLanguage } from '../i18n';
 import { PanelSkeleton } from '../components/Skeleton';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 export default function AdminScreen({ onNavigate, token, user }) {
+  const { t } = useLanguage();
+
   // Access Guard check inside component
   if (!user || user.role !== 'ADMIN') {
     return (
@@ -46,6 +51,17 @@ export default function AdminScreen({ onNavigate, token, user }) {
   const [actionReason, setActionReason] = useState('');
   const [actionStatus, setActionStatus] = useState('SUSPENDED'); // For user status updates
   const [submitting, setSubmitting] = useState(false);
+  const [maintenance, setMaintenance] = useState(null);
+  const [maintenanceDraft, setMaintenanceDraft] = useState({
+    enabled: false,
+    title: '',
+    message: '',
+    estimatedEndAt: ''
+  });
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
+  const [maintenanceFeedback, setMaintenanceFeedback] = useState('');
+  const [maintenanceError, setMaintenanceError] = useState('');
 
   // Load Data
   async function loadData(keepMessage = false) {
@@ -74,9 +90,67 @@ export default function AdminScreen({ onNavigate, token, user }) {
     }
   }
 
+  function applyMaintenanceDraft(nextMaintenance) {
+    setMaintenance(nextMaintenance);
+    setMaintenanceDraft({
+      enabled: Boolean(nextMaintenance?.enabled),
+      title: nextMaintenance?.title || '',
+      message: nextMaintenance?.message || '',
+      estimatedEndAt: nextMaintenance?.estimatedEndAt
+        ? new Date(nextMaintenance.estimatedEndAt).toISOString().slice(0, 16)
+        : ''
+    });
+  }
+
+  async function loadMaintenance(keepMessage = false) {
+    setMaintenanceLoading(true);
+    if (!keepMessage) {
+      setMaintenanceFeedback('');
+      setMaintenanceError('');
+    }
+
+    try {
+      const result = await getAdminMaintenance(token);
+      applyMaintenanceDraft(result.maintenance);
+    } catch (err) {
+      setMaintenanceError(err.message || t('admin.maintenance.errors.load', '점검 상태를 불러오지 못했습니다.'));
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  }
+
+  async function handleSaveMaintenance() {
+    setMaintenanceSaving(true);
+    setMaintenanceFeedback('');
+    setMaintenanceError('');
+
+    try {
+      const payload = {
+        enabled: Boolean(maintenanceDraft.enabled),
+        title: maintenanceDraft.title.trim(),
+        message: maintenanceDraft.message.trim(),
+        estimatedEndAt: maintenanceDraft.estimatedEndAt
+          ? new Date(maintenanceDraft.estimatedEndAt).toISOString()
+          : null
+      };
+      const result = await updateAdminMaintenance(token, payload);
+
+      applyMaintenanceDraft(result.maintenance);
+      setMaintenanceFeedback(t('admin.maintenance.messages.saved', '점검 모드 설정을 저장했습니다.'));
+    } catch (err) {
+      setMaintenanceError(err.message || t('admin.maintenance.errors.save', '점검 모드 설정 저장에 실패했습니다.'));
+    } finally {
+      setMaintenanceSaving(false);
+    }
+  }
+
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  useEffect(() => {
+    loadMaintenance();
+  }, []);
 
   // Handle User Status Change
   async function handleUserStatusUpdate() {
@@ -236,6 +310,152 @@ export default function AdminScreen({ onNavigate, token, user }) {
           <Text style={styles.alertText}>{successMsg}</Text>
         </View>
       ) : null}
+
+      <View style={styles.maintenancePanel}>
+        <View style={styles.maintenanceHeader}>
+          <View>
+            <Text style={styles.maintenanceEyebrow}>
+              {t('admin.maintenance.eyebrow', '서비스 상태')}
+            </Text>
+            <Text style={styles.maintenanceTitle}>
+              {t('admin.maintenance.title', '점검 모드 제어')}
+            </Text>
+            <Text style={styles.maintenanceDescription}>
+              {t(
+                'admin.maintenance.description',
+                '일반 사용자는 점검 화면을 보지만, ADMIN은 로그인 후 관리자 화면에 접근할 수 있습니다.'
+              )}
+            </Text>
+          </View>
+          <View style={[
+            styles.maintenanceStatusBadge,
+            maintenanceDraft.enabled ? styles.maintenanceStatusOn : styles.maintenanceStatusOff
+          ]}>
+            <Text style={[
+              styles.maintenanceStatusText,
+              maintenanceDraft.enabled ? styles.maintenanceStatusTextOn : styles.maintenanceStatusTextOff
+            ]}>
+              {maintenanceDraft.enabled
+                ? t('admin.maintenance.statusOn', '점검 모드 ON')
+                : t('admin.maintenance.statusOff', '정상 운영 중')}
+            </Text>
+          </View>
+        </View>
+
+        {maintenanceError ? (
+          <View style={styles.maintenanceErrorBox}>
+            <Text style={styles.alertText}>{maintenanceError}</Text>
+          </View>
+        ) : null}
+        {maintenanceFeedback ? (
+          <View style={styles.maintenanceSuccessBox}>
+            <Text style={styles.alertText}>{maintenanceFeedback}</Text>
+          </View>
+        ) : null}
+
+        {maintenanceLoading ? (
+          <PanelSkeleton rows={2} />
+        ) : (
+          <>
+            <View style={styles.maintenanceToggleRow}>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: maintenanceDraft.enabled }}
+                onPress={() => setMaintenanceDraft((draft) => ({ ...draft, enabled: !draft.enabled }))}
+                style={(state) => [
+                  styles.maintenanceToggle,
+                  maintenanceDraft.enabled && styles.maintenanceToggleActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <View style={[
+                  styles.maintenanceToggleKnob,
+                  maintenanceDraft.enabled && styles.maintenanceToggleKnobActive
+                ]} />
+                <Text style={[
+                  styles.maintenanceToggleText,
+                  maintenanceDraft.enabled && styles.maintenanceToggleTextActive
+                ]}>
+                  {maintenanceDraft.enabled
+                    ? t('admin.maintenance.turnOff', '점검 모드 끄기')
+                    : t('admin.maintenance.turnOn', '점검 모드 켜기')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => loadMaintenance(true)}
+                style={(state) => [styles.refreshBtn, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.refreshBtnText}>
+                  {t('admin.maintenance.reload', '상태 다시 불러오기')}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.maintenanceFormGrid}>
+              <View style={styles.maintenanceField}>
+                <Text style={styles.inputLabel}>{t('admin.maintenance.form.title', '점검 제목')}</Text>
+                <AccessibleTextInput
+                  accessibilityLabel={t('admin.maintenance.form.title', '점검 제목')}
+                  onChangeText={(value) => setMaintenanceDraft((draft) => ({ ...draft, title: value }))}
+                  placeholder={t('admin.maintenance.form.titlePlaceholder', '사각사각 업데이트 중')}
+                  style={styles.maintenanceInput}
+                  value={maintenanceDraft.title}
+                />
+              </View>
+              <View style={styles.maintenanceField}>
+                <Text style={styles.inputLabel}>{t('admin.maintenance.form.estimatedEndAt', '예상 종료 시각')}</Text>
+                <AccessibleTextInput
+                  accessibilityLabel={t('admin.maintenance.form.estimatedEndAt', '예상 종료 시각')}
+                  onChangeText={(value) => setMaintenanceDraft((draft) => ({ ...draft, estimatedEndAt: value }))}
+                  placeholder="2026-05-29T22:00"
+                  style={styles.maintenanceInput}
+                  value={maintenanceDraft.estimatedEndAt}
+                />
+              </View>
+            </View>
+
+            <View style={styles.maintenanceField}>
+              <Text style={styles.inputLabel}>{t('admin.maintenance.form.message', '점검 안내 문구')}</Text>
+              <AccessibleTextInput
+                accessibilityLabel={t('admin.maintenance.form.message', '점검 안내 문구')}
+                multiline
+                numberOfLines={3}
+                onChangeText={(value) => setMaintenanceDraft((draft) => ({ ...draft, message: value }))}
+                placeholder={t(
+                  'admin.maintenance.form.messagePlaceholder',
+                  '더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.'
+                )}
+                style={[styles.maintenanceInput, styles.maintenanceMessageInput]}
+                value={maintenanceDraft.message}
+              />
+            </View>
+
+            <View style={styles.maintenanceActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={maintenanceSaving || !maintenanceDraft.title.trim() || !maintenanceDraft.message.trim()}
+                onPress={handleSaveMaintenance}
+                style={(state) => [
+                  styles.maintenanceSaveButton,
+                  (maintenanceSaving || !maintenanceDraft.title.trim() || !maintenanceDraft.message.trim()) && styles.disabledBtn,
+                  ...interactiveStateStyles(state, {
+                    disabled: maintenanceSaving || !maintenanceDraft.title.trim() || !maintenanceDraft.message.trim()
+                  })
+                ]}
+              >
+                {maintenanceSaving ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={styles.maintenanceSaveText}>
+                    {t('admin.maintenance.save', '점검 설정 저장')}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </>
+        )}
+      </View>
 
       {/* Action / Input Form Panel (Dynamic Modal) */}
       {actionTarget && (
@@ -611,6 +831,167 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
     fontWeight: '500'
+  },
+  maintenancePanel: {
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: 22,
+    padding: 22,
+    gap: 14,
+    ...shadows.card
+  },
+  maintenanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 14,
+    flexWrap: 'wrap'
+  },
+  maintenanceEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 4
+  },
+  maintenanceTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900'
+  },
+  maintenanceDescription: {
+    maxWidth: 680,
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginTop: 4
+  },
+  maintenanceStatusBadge: {
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 13
+  },
+  maintenanceStatusOn: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning
+  },
+  maintenanceStatusOff: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.mint
+  },
+  maintenanceStatusText: {
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  maintenanceStatusTextOn: {
+    color: colors.warning
+  },
+  maintenanceStatusTextOff: {
+    color: colors.success
+  },
+  maintenanceErrorBox: {
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 13,
+    padding: 12
+  },
+  maintenanceSuccessBox: {
+    backgroundColor: colors.successSoft,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    borderRadius: 13,
+    padding: 12
+  },
+  maintenanceToggleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10
+  },
+  maintenanceToggle: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingLeft: 6,
+    paddingRight: 14,
+    ...interactions.transition
+  },
+  maintenanceToggleActive: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft
+  },
+  maintenanceToggleKnob: {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  maintenanceToggleKnobActive: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warning
+  },
+  maintenanceToggleText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  maintenanceToggleTextActive: {
+    color: colors.warning
+  },
+  maintenanceFormGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+  maintenanceField: {
+    flex: 1,
+    minWidth: 240,
+    gap: 6
+  },
+  maintenanceInput: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 10,
+    fontSize: 14,
+    backgroundColor: colors.surfaceWarm,
+    color: colors.ink
+  },
+  maintenanceMessageInput: {
+    minHeight: 86,
+    textAlignVertical: 'top'
+  },
+  maintenanceActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
+  },
+  maintenanceSaveButton: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    ...interactions.transition
+  },
+  maintenanceSaveText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
   },
   modalPanel: {
     backgroundColor: colors.surface,

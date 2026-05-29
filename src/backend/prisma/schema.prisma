@@ -803,3 +803,15 @@ model BossRaidRewardClaim {
   @@index([userId])
   @@map("boss_raid_reward_claims")
 }
+
+model MaintenanceSetting {
+  id             Int       @id @default(1)
+  enabled        Boolean   @default(false)
+  title          String
+  message        String
+  estimatedEndAt DateTime? @map("estimated_end_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("maintenance_settings")
+}

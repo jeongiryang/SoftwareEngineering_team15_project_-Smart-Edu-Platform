@@ -147,6 +147,10 @@ export function getCurrentUser(token) {
   });
 }
 
+export function getSystemStatus() {
+  return request('/system/status');
+}
+
 export function updateCurrentUser(token, payload) {
   return request('/users/me', {
     method: 'PATCH',
@@ -641,6 +645,24 @@ export function getAdminReports(token) {
     headers: {
       Authorization: `Bearer ${token}`
     }
+  });
+}
+
+export function getAdminMaintenance(token) {
+  return request('/admin/system/maintenance', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function updateAdminMaintenance(token, payload) {
+  return request('/admin/system/maintenance', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
   });
 }
 
