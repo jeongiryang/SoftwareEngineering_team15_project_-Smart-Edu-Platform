@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import AppHeader from './src/components/AppHeader';
 import ConfirmModal from './src/components/ConfirmModal';
 import { PanelSkeleton } from './src/components/Skeleton';
@@ -103,6 +103,86 @@ function syncBrowserPath(screen, { replace = false } = {}) {
 
   const method = replace ? 'replaceState' : 'pushState';
   globalThis.window.history[method]({ screen }, '', nextPath);
+}
+
+function applyGlobalAccessibilityPreference(preference, user) {
+  const documentRef = globalThis.document;
+
+  if (!documentRef) {
+    return () => {};
+  }
+
+  const root =
+    documentRef.getElementById('root') ||
+    documentRef.getElementById('main') ||
+    documentRef.body?.firstElementChild;
+  const textScale = user ? Math.min(Math.max(Number(preference.textScale) || 1, 1), 1.6) : 1;
+  const elementaryMode = Boolean(user && preference.elementaryFriendlyUi);
+
+  if (root?.style) {
+    root.style.zoom = textScale === 1 ? '' : String(textScale);
+    root.style.transformOrigin = 'top left';
+  }
+
+  if (documentRef.body) {
+    documentRef.body.dataset.sagakTextScale = String(textScale);
+    documentRef.body.dataset.sagakElementaryUi = elementaryMode ? 'true' : 'false';
+  }
+
+  return () => {
+    if (root?.style) {
+      root.style.zoom = '';
+      root.style.transformOrigin = '';
+    }
+
+    if (documentRef.body) {
+      delete documentRef.body.dataset.sagakTextScale;
+      delete documentRef.body.dataset.sagakElementaryUi;
+    }
+  };
+}
+
+function getCurrentScreenText() {
+  const documentRef = globalThis.document;
+  const contentRoot = documentRef?.getElementById('sagak-screen-content');
+  const rawText = contentRoot?.innerText || contentRoot?.textContent || '';
+
+  return rawText
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .filter((line, index, lines) => lines.indexOf(line) === index)
+    .join('. ')
+    .slice(0, 2400);
+}
+
+function getReadableClickedText(event) {
+  const documentRef = globalThis.document;
+  const contentRoot = documentRef?.getElementById('sagak-screen-content');
+  const target = event?.target;
+
+  if (!contentRoot || !target?.closest || !contentRoot.contains(target)) {
+    return '';
+  }
+
+  if (target.closest('[role="button"], button, a, input, textarea, select, [data-testid="sagak-readable-text"]')) {
+    return '';
+  }
+
+  let node = target;
+
+  while (node && node !== contentRoot) {
+    const text = (node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim();
+    const childElementCount = node.children?.length || 0;
+
+    if (text && text.length <= 220 && childElementCount <= 2) {
+      return text;
+    }
+
+    node = node.parentElement;
+  }
+
+  return '';
 }
 
 function normalizeScreen(screen) {
@@ -267,7 +347,7 @@ function AppRoot() {
         showLogoutModal={showLogoutModal}
         user={user}
       >
-        <View style={styles.container}>
+        <View nativeID="sagak-screen-content" style={styles.container}>
           <Screen
             onAuthenticated={handleAuthenticated}
             onLogout={() => setShowLogoutModal(true)}
@@ -291,13 +371,60 @@ function AppChrome({
   showLogoutModal,
   user
 }) {
-  const { preference } = useAccessibility();
+  const { preference, speakText } = useAccessibility();
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
+  const [readTextError, setReadTextError] = useState('');
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
 
   useEffect(() => {
     setHighContrastActive(Boolean(preference.highContrast));
   }, [preference.highContrast, setHighContrastActive]);
+
+  useEffect(
+    () => applyGlobalAccessibilityPreference(preference, user),
+    [preference.elementaryFriendlyUi, preference.textScale, user]
+  );
+
+  useEffect(() => {
+    const documentRef = globalThis.document;
+
+    if (!documentRef || !user || !preference.voiceOutputEnabled) {
+      return undefined;
+    }
+
+    function handleReadableTextClick(event) {
+      const text = getReadableClickedText(event);
+
+      if (text) {
+        speakText(text, { readingId: `clicked-${text.slice(0, 24)}-${text.length}` }).then((started) => {
+          if (!started) {
+            setReadTextError('읽어주기를 시작하지 못했습니다. Chrome 사이트 소리 권한과 기기 볼륨을 확인해 주세요.');
+          }
+        });
+      }
+    }
+
+    documentRef.addEventListener('click', handleReadableTextClick);
+
+    return () => {
+      documentRef.removeEventListener('click', handleReadableTextClick);
+    };
+  }, [preference.voiceOutputEnabled, speakText, user]);
+
+  const handleReadCurrentPage = useCallback(async () => {
+    const screenText = getCurrentScreenText();
+
+    if (!screenText) {
+      setReadTextError('현재 화면에서 읽을 내용을 찾지 못했습니다.');
+      return;
+    }
+
+    const started = await speakText(screenText, { readingId: `screen-${activeScreenName}` });
+
+    if (!started) {
+      setReadTextError('읽어주기를 시작하지 못했습니다. Chrome 사이트 소리 권한과 기기 볼륨을 확인해 주세요.');
+    }
+  }, [activeScreenName, speakText]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -312,6 +439,29 @@ function AppChrome({
         user={user}
       />
       {children}
+      {user && preference.voiceOutputEnabled ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="현재 화면 전체 읽기"
+          onPress={handleReadCurrentPage}
+          style={({ hovered, pressed }) => [
+            styles.readPageButton,
+            hovered && styles.readPageButtonHovered,
+            pressed && styles.readPageButtonPressed
+          ]}
+        >
+          <Text style={styles.readPageButtonText}>🔊 전체 읽기</Text>
+        </Pressable>
+      ) : null}
+      <ConfirmModal
+        confirmLabel="확인"
+        description={readTextError}
+        onCancel={() => setReadTextError('')}
+        onConfirm={() => setReadTextError('')}
+        showCancel={false}
+        title="읽어주기 안내"
+        visible={Boolean(readTextError)}
+      />
       <ConfirmModal
         confirmLabel="로그아웃"
         description="진행 중인 화면을 나가고 사각사각 소개 화면으로 돌아갑니다."
@@ -339,5 +489,34 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     padding: 30,
     gap: 18
+  },
+  readPageButton: {
+    position: 'absolute',
+    right: 24,
+    bottom: 24,
+    zIndex: 40,
+    minHeight: 52,
+    paddingHorizontal: 20,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.mintDark,
+    backgroundColor: colors.blue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20
+  },
+  readPageButtonHovered: {
+    transform: [{ translateY: -2 }]
+  },
+  readPageButtonPressed: {
+    transform: [{ translateY: 1 }]
+  },
+  readPageButtonText: {
+    color: colors.surface,
+    fontWeight: '900',
+    fontSize: 16
   }
 });

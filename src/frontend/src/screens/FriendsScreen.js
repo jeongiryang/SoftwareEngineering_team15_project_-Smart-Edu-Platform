@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
@@ -371,8 +372,9 @@ export default function FriendsScreen({ onNavigate, token }) {
               </View>
             </View>
             <View style={styles.searchRow}>
-              <TextInput
+              <AccessibleTextInput
                 accessibilityLabel="친구 검색어"
+                containerStyle={styles.searchInputContainer}
                 onChangeText={setSearchKeyword}
                 onSubmitEditing={handleSearch}
                 placeholder="친구 이름 또는 이메일"
@@ -596,6 +598,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10
+  },
+  searchInputContainer: {
+    flex: 1,
+    minWidth: 220
   },
   searchInput: {
     flex: 1,

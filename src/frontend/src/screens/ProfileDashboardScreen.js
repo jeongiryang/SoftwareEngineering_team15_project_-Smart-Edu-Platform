@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
@@ -689,7 +690,8 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>닉네임</Text>
                 <View style={styles.inlineForm}>
-                  <TextInput
+                  <AccessibleTextInput
+                    containerStyle={styles.inlineTextInputContainer}
                     onChangeText={setNameForm}
                     placeholder="닉네임을 입력하세요"
                     placeholderTextColor={colors.muted}
@@ -714,7 +716,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
 
               <View style={styles.passwordBox}>
                 <Text style={styles.formLabel}>비밀번호 변경</Text>
-                <TextInput
+                <AccessibleTextInput
                   onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
                   placeholder="현재 비밀번호"
                   placeholderTextColor={colors.muted}
@@ -723,7 +725,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   value={passwordForm.currentPassword}
                 />
                 <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
-                <TextInput
+                <AccessibleTextInput
                   onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
                   placeholder="새 비밀번호"
                   placeholderTextColor={colors.muted}
@@ -732,7 +734,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   value={passwordForm.newPassword}
                 />
                 <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
-                <TextInput
+                <AccessibleTextInput
                   onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
                   placeholder="새 비밀번호 확인"
                   placeholderTextColor={colors.muted}
@@ -1193,6 +1195,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10
+  },
+  inlineTextInputContainer: {
+    flex: 1,
+    minWidth: 210
   },
   textInput: {
     flex: 1,

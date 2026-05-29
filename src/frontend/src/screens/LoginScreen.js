@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AccessibleTextInput from '../components/AccessibleTextInput';
 import { loginUser } from '../services/api';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -85,8 +86,9 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.title}>로그인</Text>
         <Text style={styles.subtitle}>사각사각 계정으로 학습 공간에 접속하세요.</Text>
         <Text style={styles.label}>이메일</Text>
-        <TextInput
+        <AccessibleTextInput
           autoCapitalize="none"
+          forceVoiceInput
           keyboardType="email-address"
           onChangeText={setEmail}
           placeholder="example@email.com"
@@ -95,10 +97,11 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
           value={email}
         />
         <Text style={styles.label}>비밀번호</Text>
-        <TextInput
+        <AccessibleTextInput
           onChangeText={setPassword}
           placeholder="비밀번호를 입력하세요"
           placeholderTextColor={colors.muted}
+          enableVoiceInput={false}
           secureTextEntry
           style={styles.input}
           value={password}
