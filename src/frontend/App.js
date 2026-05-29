@@ -165,7 +165,7 @@ function getReadableClickedText(event) {
     return '';
   }
 
-  if (target.closest('[role="button"], button, a, input, textarea, select')) {
+  if (target.closest('[role="button"], button, a, input, textarea, select, [data-testid="sagak-readable-text"]')) {
     return '';
   }
 

@@ -302,16 +302,16 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
       ...partial
     };
     setPreference(nextPreference);
-    
+
     // UI 레이아웃(zoom)이 즉시 변경되면서 버튼 터치 이벤트가 씹히거나 굳는 RN Web 버그 방지
     setTimeout(() => {
       setGlobalPreference(nextPreference);
     }, 50);
-    
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
-    
+
     saveTimeoutRef.current = setTimeout(() => {
       savePreference(nextPreference);
     }, 500);

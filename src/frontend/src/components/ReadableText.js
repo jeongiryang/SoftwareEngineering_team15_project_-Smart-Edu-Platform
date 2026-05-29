@@ -53,7 +53,7 @@ export default function ReadableText({ children, style }) {
   }
 
   return (
-    <Text onPress={() => speakText(text, { readingId })} style={[style, styles.text]}>
+    <Text onPress={() => speakText(text, { readingId })} style={[style, styles.text]} testID="sagak-readable-text">
       {displayCharIndex >= 0 ? (
         <>
           <Text>{text.slice(0, displayCharIndex)}</Text>

@@ -88,7 +88,7 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.label}>이메일</Text>
         <AccessibleTextInput
           autoCapitalize="none"
-          enableVoiceInput={false}
+          forceVoiceInput
           keyboardType="email-address"
           onChangeText={setEmail}
           placeholder="example@email.com"
