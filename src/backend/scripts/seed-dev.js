@@ -96,6 +96,140 @@ const DEV_SEED_USERS = [
   }
 ];
 
+const DEV_SHOP_ITEMS = [
+  {
+    code: 'PROFILE_AVATAR_SKY',
+    name: '하늘 연필 아바타',
+    description: '밝은 하늘색 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 15,
+    assetUrl: '/assets/shop/avatar-sky.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_FOREST',
+    name: '숲 연필 아바타',
+    description: '차분한 초록 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 20,
+    assetUrl: '/assets/shop/avatar-forest.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_SUNSET',
+    name: '노을 연필 아바타',
+    description: '따뜻한 노을 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 24,
+    assetUrl: '/assets/shop/avatar-sunset.png'
+  },
+  {
+    code: 'PROFILE_AVATAR_NIGHT',
+    name: '야간 집중 아바타',
+    description: '차분한 밤하늘 톤의 프로필 이미지를 적용합니다.',
+    type: 'PROFILE_IMAGE',
+    price: 28,
+    assetUrl: '/assets/shop/avatar-night.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_DAWN',
+    name: '새벽 학습 배경',
+    description: '잔잔한 새벽 톤 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 25,
+    assetUrl: '/assets/shop/background-dawn.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_MINT',
+    name: '민트 노트 배경',
+    description: '민트 톤 노트 스타일 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 30,
+    assetUrl: '/assets/shop/background-mint.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_CORAL',
+    name: '코랄 플래너 배경',
+    description: '따뜻한 코랄 톤의 플래너 스타일 배경을 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 34,
+    assetUrl: '/assets/shop/background-coral.png'
+  },
+  {
+    code: 'PROFILE_BACKGROUND_NIGHT',
+    name: '별밤 집중 배경',
+    description: '밤하늘 별빛 느낌의 배경을 프로필에 적용합니다.',
+    type: 'PROFILE_BACKGROUND',
+    price: 38,
+    assetUrl: '/assets/shop/background-night.png'
+  },
+  {
+    code: 'TITLE_EARLY_BIRD',
+    name: '아침형 학습러',
+    description: '일찍 시작하는 학습자용 칭호입니다.',
+    type: 'TITLE',
+    price: 18,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_TASK_MASTER',
+    name: '할 일 정복자',
+    description: '할 일 관리에 강한 학습자용 칭호입니다.',
+    type: 'TITLE',
+    price: 22,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_DEEP_FOCUS',
+    name: '몰입 장인',
+    description: '긴 집중 세션을 즐기는 학습자를 위한 칭호입니다.',
+    type: 'TITLE',
+    price: 26,
+    assetUrl: null
+  },
+  {
+    code: 'TITLE_COMMUNITY_HELPER',
+    name: '질문 해결사',
+    description: '커뮤니티에서 활발히 돕는 학습자를 위한 칭호입니다.',
+    type: 'TITLE',
+    price: 26,
+    assetUrl: null
+  }
+];
+
+const DEV_SHOP_PURCHASES = [
+  {
+    email: 'dev.user@example.com',
+    itemCodes: ['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_SKY',
+      profileBackground: 'PROFILE_BACKGROUND_DAWN',
+      title: 'TITLE_EARLY_BIRD'
+    }
+  },
+  {
+    email: 'dev.reward@example.com',
+    itemCodes: ['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_FOREST',
+      profileBackground: 'PROFILE_BACKGROUND_MINT',
+      title: 'TITLE_TASK_MASTER'
+    }
+  },
+  {
+    email: 'dev.community@example.com',
+    itemCodes: ['PROFILE_AVATAR_SUNSET', 'TITLE_COMMUNITY_HELPER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_SUNSET',
+      title: 'TITLE_COMMUNITY_HELPER'
+    }
+  },
+  {
+    email: 'dev.access@example.com',
+    itemCodes: ['PROFILE_BACKGROUND_NIGHT'],
+    equipped: {
+      profileBackground: 'PROFILE_BACKGROUND_NIGHT'
+    }
+  }
+];
 const SEED_IDS = {
   posts: {
     question: 900001,
@@ -341,6 +475,11 @@ async function resetSeedData(prisma, seedUsers) {
   await prisma.studyChallenge.deleteMany({
     where: {
       id: { in: Object.values(SEED_IDS.challenges) }
+    }
+  });
+  await prisma.userShopPurchase.deleteMany({
+    where: {
+      userId: { in: userIds }
     }
   });
 
@@ -2103,6 +2242,60 @@ async function seedRewards(prisma, usersByEmail) {
   });
 }
 
+async function seedPointShop(prisma, usersByEmail) {
+  const shopItems = await prisma.shopItem.findMany({
+    where: {
+      code: {
+        in: DEV_SHOP_ITEMS.map((item) => item.code)
+      }
+    }
+  });
+  const shopItemsByCode = Object.fromEntries(shopItems.map((item) => [item.code, item]));
+
+  for (const purchaseSeed of DEV_SHOP_PURCHASES) {
+    const user = usersByEmail[purchaseSeed.email];
+
+    if (!user) {
+      continue;
+    }
+
+    const purchasedItems = purchaseSeed.itemCodes
+      .map((code) => shopItemsByCode[code])
+      .filter(Boolean);
+
+    if (purchasedItems.length) {
+      await prisma.userShopPurchase.createMany({
+        data: purchasedItems.map((item) => ({
+          userId: user.id,
+          itemId: item.id
+        })),
+        skipDuplicates: true
+      });
+    }
+
+    const equippedImage = shopItemsByCode[purchaseSeed.equipped?.profileImage];
+    const equippedBackground = shopItemsByCode[purchaseSeed.equipped?.profileBackground];
+    const equippedTitle = shopItemsByCode[purchaseSeed.equipped?.title];
+
+    await prisma.userProfile.upsert({
+      where: {
+        userId: user.id
+      },
+      update: {
+        profileImageUrl: equippedImage?.assetUrl || null,
+        profileBackgroundUrl: equippedBackground?.assetUrl || null,
+        titleText: equippedTitle?.name || null
+      },
+      create: {
+        userId: user.id,
+        profileImageUrl: equippedImage?.assetUrl || null,
+        profileBackgroundUrl: equippedBackground?.assetUrl || null,
+        titleText: equippedTitle?.name || null
+      }
+    });
+  }
+}
+
 async function seedAccessibility(prisma, usersByEmail) {
   const mainUser = usersByEmail['dev.user@example.com'];
   const peerUser = usersByEmail['dev.peer@example.com'];
@@ -2281,6 +2474,30 @@ async function seedDevelopmentData(prisma) {
   }
 
   const usersByEmail = Object.fromEntries(users.map((user) => [user.email, user]));
+  for (const item of DEV_SHOP_ITEMS) {
+    await prisma.shopItem.upsert({
+      where: {
+        code: item.code
+      },
+      update: {
+        name: item.name,
+        description: item.description,
+        type: item.type,
+        price: item.price,
+        assetUrl: item.assetUrl,
+        isActive: true
+      },
+      create: {
+        code: item.code,
+        name: item.name,
+        description: item.description,
+        type: item.type,
+        price: item.price,
+        assetUrl: item.assetUrl,
+        isActive: true
+      }
+    });
+  }
 
   await resetSeedData(prisma, users);
   await seedFriendships(prisma, usersByEmail);
@@ -2290,6 +2507,7 @@ async function seedDevelopmentData(prisma) {
   await seedChallenge(prisma, usersByEmail);
   await seedLearningAndAi(prisma, usersByEmail);
   await seedRewards(prisma, usersByEmail);
+  await seedPointShop(prisma, usersByEmail);
   await seedAccessibility(prisma, usersByEmail);
 
   return users;
@@ -2321,9 +2539,12 @@ if (require.main === module) {
 
 module.exports = {
   DEV_SEED_PASSWORD,
+  DEV_SHOP_ITEMS,
+  DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl,
   seedDevelopmentData,
+  seedPointShop,
   upsertSeedUser
 };

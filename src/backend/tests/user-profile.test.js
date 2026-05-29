@@ -21,7 +21,9 @@ jest.mock('../src/repositories/user.repository', () => ({
       userId: user.id,
       learningGoal: null,
       preferredSubject: null,
-      profileImageUrl: null
+      profileImageUrl: null,
+      profileBackgroundUrl: null,
+      titleText: null
     });
     mockNextProfileId += 1;
 
@@ -77,6 +79,8 @@ jest.mock('../src/repositories/user.repository', () => ({
       learningGoal: existingProfile?.learningGoal || null,
       preferredSubject: existingProfile?.preferredSubject || null,
       profileImageUrl: existingProfile?.profileImageUrl || null,
+      profileBackgroundUrl: existingProfile?.profileBackgroundUrl || null,
+      titleText: existingProfile?.titleText || null,
       ...data
     };
 
@@ -139,7 +143,9 @@ describe('GET /api/users/me', () => {
         userId: response.body.user.id,
         learningGoal: null,
         preferredSubject: null,
-        profileImageUrl: null
+        profileImageUrl: null,
+        profileBackgroundUrl: null,
+        titleText: null
       })
     );
     expect(JSON.stringify(response.body)).not.toContain('passwordHash');
@@ -347,7 +353,9 @@ describe('PATCH /api/users/me/profile', () => {
       expect.objectContaining({
         learningGoal: 'TOEIC preparation',
         preferredSubject: 'English',
-        profileImageUrl: null
+        profileImageUrl: null,
+        profileBackgroundUrl: null,
+        titleText: null
       })
     );
     expectNoPasswordHash(updateResponse.body.profile);

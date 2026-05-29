@@ -102,6 +102,12 @@ enum PointTransactionType {
   ADJUST
 }
 
+enum ShopItemType {
+  PROFILE_IMAGE
+  PROFILE_BACKGROUND
+  TITLE
+}
+
 enum FriendshipStatus {
   PENDING
   ACCEPTED
@@ -147,6 +153,7 @@ model User {
   pointTransactions       PointTransaction[]
   sentFriendships         Friendship[]                @relation("FriendshipRequester")
   receivedFriendships     Friendship[]                @relation("FriendshipAddressee")
+  shopPurchases           UserShopPurchase[]
 
   @@map("users")
 }
@@ -168,14 +175,16 @@ model Friendship {
 }
 
 model UserProfile {
-  id               Int      @id @default(autoincrement())
-  userId           Int      @unique @map("user_id")
-  learningGoal     String?  @map("learning_goal")
-  preferredSubject String?  @map("preferred_subject")
-  profileImageUrl  String?  @map("profile_image_url")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  user             User     @relation(fields: [userId], references: [id])
+  id                   Int      @id @default(autoincrement())
+  userId               Int      @unique @map("user_id")
+  learningGoal         String?  @map("learning_goal")
+  preferredSubject     String?  @map("preferred_subject")
+  profileImageUrl      String?  @map("profile_image_url")
+  profileBackgroundUrl String?  @map("profile_background_url")
+  titleText            String?  @map("title_text")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  user                 User     @relation(fields: [userId], references: [id])
 
   @@map("user_profiles")
 }
@@ -625,4 +634,35 @@ model PointTransaction {
   @@index([accountId])
   @@index([type])
   @@map("point_transactions")
+}
+
+model ShopItem {
+  id          Int                @id @default(autoincrement())
+  code        String             @unique
+  name        String
+  description String?
+  type        ShopItemType
+  price       Int                @default(0)
+  assetUrl    String?            @map("asset_url")
+  isActive    Boolean            @default(true) @map("is_active")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  purchases   UserShopPurchase[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("shop_items")
+}
+
+model UserShopPurchase {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  itemId      Int      @map("item_id")
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+  user        User     @relation(fields: [userId], references: [id])
+  item        ShopItem @relation(fields: [itemId], references: [id])
+
+  @@unique([userId, itemId])
+  @@index([itemId])
+  @@map("user_shop_purchases")
 }

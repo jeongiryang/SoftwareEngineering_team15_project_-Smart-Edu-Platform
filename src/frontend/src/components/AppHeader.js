@@ -71,6 +71,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
               <NavItem label="커뮤니티" screen="community" />
               <NavItem label="일정" screen="schedule" />
               <NavItem label="칸반" screen="taskBoard" />
+              <NavItem label="상점" screen="pointShop" />
               {hasAdminRole ? <NavItem label="관리자" screen="admin" /> : null}
             </>
           ) : (

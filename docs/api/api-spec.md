@@ -3282,7 +3282,73 @@ Response 예시:
 }
 ```
 
-### 9.8 docs 기준 기능 구현 상태 재점검
+### 9.8 포인트 상점 API
+
+포인트 상점은 보상 시스템에서 획득한 포인트를 사용해 프로필 꾸미기용 아이템을 구매/적용하는 기능임.
+현재 MVP 범위에서는 아래 3가지 아이템 타입을 지원함.
+
+- `PROFILE_IMAGE`
+- `PROFILE_BACKGROUND`
+- `TITLE`
+
+개발용 기본 상점 아이템은 `npm run seed:dev` 실행 시 함께 생성됨.
+
+#### 9.8.1 상점 아이템 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/shop/items` | 로그인한 사용자 기준 상점 아이템 목록 조회 |
+
+#### 9.8.2 내 상점 상태 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/shop/me` | 로그인한 사용자 기준 포인트 잔액, 구매 내역, 현재 적용 상태 조회 |
+
+#### 9.8.3 상점 아이템 구매
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/items/:itemId/purchase` | 포인트를 차감하고 상점 아이템 구매 |
+
+주요 에러:
+
+- `400`: invalid `itemId`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 아이템 없음 또는 비활성 아이템
+- `409`: 이미 구매한 아이템, 또는 포인트 부족
+
+동작:
+
+- 동일 아이템은 사용자당 한 번만 구매 가능함.
+- 구매 시 `RewardAccount.pointBalance`를 차감함.
+- 차감 내역은 `PointTransaction.type = SPEND`, `sourceType = SHOP_ITEM`으로 기록함.
+
+#### 9.8.4 구매 아이템 적용
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/items/:itemId/equip` | 구매한 아이템을 현재 프로필 꾸미기 상태에 적용 |
+
+적용 규칙:
+
+- `PROFILE_IMAGE`는 `UserProfile.profileImageUrl`에 `assetUrl`을 반영함.
+- `PROFILE_BACKGROUND`는 `UserProfile.profileBackgroundUrl`에 `assetUrl`을 반영함.
+- `TITLE`은 `UserProfile.titleText`에 아이템 `name`을 반영함.
+
+#### 9.8.5 기본 꾸미기 상태로 되돌리기
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/shop/unequip` | 타입별로 기본 프로필 이미지/배경/칭호 상태로 되돌림 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `type` | string | 예 | `PROFILE_IMAGE`, `PROFILE_BACKGROUND`, `TITLE` 중 하나 |
+
+### 9.9 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -3305,6 +3371,7 @@ Response 예시:
 | TTS/STT/접근성 UI | FR-18, FR-20, FR-21, FR-23, FR-25 | 미구현 | 요구사항/설계 문서에 계획됨 | 큰 글씨/고대비, 아이콘 UI, TTS/STT 구현 범위 확정 |
 | 외부 캘린더 연동 | FR-22 | 미구현 | 요구사항/설계 문서에 계획됨 | 연동 provider와 인증 방식 확정 |
 | 복습 알림/퀘스트/보상 | FR-24, FR-26 | 부분 구현 | `/api/rewards/me`, `/api/rewards/quests/:questId/claim`, `/api/admin/rewards/badges`, `/api/admin/rewards/quests`, 보상 schema/migration 및 관리자 CRUD API 추가 | 알림 API와 보상 정책 고도화, 프론트 보상 화면 연결 |
+| 포인트 상점/프로필 꾸미기 | FR-24 확장 | 부분 구현 | `/api/shop/items`, `/api/shop/me`, `/api/shop/items/:itemId/purchase`, `/api/shop/items/:itemId/equip`, `/api/shop/unequip`, 포인트 상점 프론트 화면 및 seed 아이템 추가 | 실제 자산 고도화, 마이페이지 연동 범위 확정 |
 | 배포/최종보고서/발표자료/데모 | Phase 3 요구사항 | 미구현 | AGENTS/과제 요구사항 기준 | 배포 URL, 설치/사용 가이드, 영상, 발표자료 작성 |
 
 ---
