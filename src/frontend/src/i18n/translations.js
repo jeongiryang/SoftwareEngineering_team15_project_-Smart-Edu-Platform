@@ -544,7 +544,12 @@ const UI_TRANSLATIONS = {
     'admin.preview.maintenanceTitle': '점검 화면 미리보기',
     'admin.preview.noticeEyebrow': '사용자 공지 배너',
     'admin.preview.noticeTitle': '실시간 공지 미리보기',
-    'admin.preview.noticeNote': '미리보기는 실제 WebSocket broadcast를 호출하지 않습니다.'
+    'admin.preview.noticeNote': '미리보기는 실제 WebSocket broadcast를 호출하지 않습니다.',
+    'admin.userStatus.selectedUser': '선택한 사용자',
+    'admin.userStatus.currentStatus': '현재 상태',
+    'admin.userStatus.description.ACTIVE': '로그인과 서비스 이용이 모두 가능한 정상 운영 상태입니다.',
+    'admin.userStatus.description.SUSPENDED': '운영자가 일시적으로 이용을 제한한 상태입니다. 사유 입력을 권장합니다.',
+    'admin.userStatus.description.DEACTIVATED': '탈퇴 또는 비활성 처리된 계정 상태입니다. 일반 서비스 이용이 제한됩니다.'
   },
   en: {
     'language.selectorLabel': 'Language',
@@ -584,17 +589,32 @@ const UI_TRANSLATIONS = {
     'admin.preview.maintenanceTitle': 'Maintenance screen preview',
     'admin.preview.noticeEyebrow': 'User notice banner',
     'admin.preview.noticeTitle': 'Realtime notice preview',
-    'admin.preview.noticeNote': 'The preview does not call the real WebSocket broadcast.'
+    'admin.preview.noticeNote': 'The preview does not call the real WebSocket broadcast.',
+    'admin.userStatus.selectedUser': 'Selected user',
+    'admin.userStatus.currentStatus': 'Current status',
+    'admin.userStatus.description.ACTIVE': 'The account can sign in and use the service normally.',
+    'admin.userStatus.description.SUSPENDED': 'The account is temporarily restricted by an admin. A reason is recommended.',
+    'admin.userStatus.description.DEACTIVATED': 'The account is withdrawn or deactivated. General service use is restricted.'
   },
   ja: {
     'language.selectorLabel': '言語選択',
     'language.currentLabel': '現在の言語',
-    'language.betaBadge': 'Beta'
+    'language.betaBadge': 'Beta',
+    'admin.userStatus.selectedUser': '選択したユーザー',
+    'admin.userStatus.currentStatus': '現在の状態',
+    'admin.userStatus.description.ACTIVE': 'ログインとサービス利用が可能な通常運用状態です。',
+    'admin.userStatus.description.SUSPENDED': '管理者が一時的に利用を制限した状態です。理由の入力を推奨します。',
+    'admin.userStatus.description.DEACTIVATED': '退会または無効化されたアカウント状態です。通常のサービス利用は制限されます。'
   },
   zh: {
     'language.selectorLabel': '语言选择',
     'language.currentLabel': '当前语言',
-    'language.betaBadge': 'Beta'
+    'language.betaBadge': 'Beta',
+    'admin.userStatus.selectedUser': '已选择用户',
+    'admin.userStatus.currentStatus': '当前状态',
+    'admin.userStatus.description.ACTIVE': '账号可正常登录并使用服务。',
+    'admin.userStatus.description.SUSPENDED': '账号已被管理员临时限制。建议填写处理原因。',
+    'admin.userStatus.description.DEACTIVATED': '账号已注销或停用，普通服务使用将受到限制。'
   }
 };
 
