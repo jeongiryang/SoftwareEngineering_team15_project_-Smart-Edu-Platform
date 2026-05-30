@@ -22,6 +22,43 @@ import { useLanguage } from '../i18n';
 import { PanelSkeleton } from '../components/Skeleton';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
+const noticePreviewLevelStyles = {
+  danger: {
+    borderColor: colors.danger,
+    dotColor: colors.danger,
+    surfaceColor: colors.dangerSoft
+  },
+  info: {
+    borderColor: colors.blue,
+    dotColor: colors.blue,
+    surfaceColor: colors.blueSoft
+  },
+  success: {
+    borderColor: colors.mintDeep,
+    dotColor: colors.mintDeep,
+    surfaceColor: colors.mintSoft
+  },
+  warning: {
+    borderColor: colors.warning,
+    dotColor: colors.warning,
+    surfaceColor: colors.warningSoft
+  }
+};
+
+function formatPreviewEstimatedEnd(value, t) {
+  if (!value) {
+    return t('maintenance.screen.estimatedUnknown', '예상 종료 시간은 아직 확정되지 않았어요.');
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return t('maintenance.screen.estimatedUnknown', '예상 종료 시간은 아직 확정되지 않았어요.');
+  }
+
+  return t('maintenance.screen.estimatedPrefix', '예상 종료') + `: ${date.toLocaleString()}`;
+}
+
 export default function AdminScreen({ onNavigate, token, user }) {
   const { t } = useLanguage();
 
@@ -38,7 +75,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
     );
   }
 
-  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'reports' | 'logs'
+  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'reports' | 'logs' | 'preview'
 
   // Data States
   const [users, setUsers] = useState([]);
@@ -78,6 +115,10 @@ export default function AdminScreen({ onNavigate, token, user }) {
     if (!keepMessage) {
       setErrorMsg('');
       setSuccessMsg('');
+    }
+    if (activeTab === 'preview') {
+      setLoading(false);
+      return;
     }
     try {
       const reportsPromise = getAdminReports(token);
@@ -290,6 +331,98 @@ export default function AdminScreen({ onNavigate, token, user }) {
     );
   }
 
+  function renderPreviewTab() {
+    const maintenanceTitle = maintenanceDraft.title.trim() || t('maintenance.screen.title', '사각사각 업데이트 중');
+    const maintenanceMessage = maintenanceDraft.message.trim()
+      || t('maintenance.screen.message', '더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.');
+    const estimatedText = formatPreviewEstimatedEnd(maintenanceDraft.estimatedEndAt, t);
+    const noticeTitle = noticeDraft.title.trim() || t('realtime.notice.title', '실시간 공지');
+    const noticeMessage = noticeDraft.message.trim()
+      || t('admin.notice.form.messagePlaceholder', '잠시 후 서비스 업데이트가 시작됩니다.');
+    const noticeLevelStyle = noticePreviewLevelStyles[noticeDraft.level] || noticePreviewLevelStyles.info;
+
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>{t('admin.preview.title', '점검·공지 미리보기')}</Text>
+            <Text style={styles.sectionDescription}>
+              {t(
+                'admin.preview.description',
+                '현재 입력한 점검 문구와 공지 내용을 저장 또는 전송 없이 미리 확인합니다.'
+              )}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.previewGrid}>
+          <View style={styles.previewPanel}>
+            <Text style={styles.previewEyebrow}>{t('admin.preview.maintenanceEyebrow', '사용자 점검 화면')}</Text>
+            <Text style={styles.previewPanelTitle}>{t('admin.preview.maintenanceTitle', '점검 화면 미리보기')}</Text>
+            <View style={styles.maintenancePreviewCard}>
+              <View style={styles.previewLogo}>
+                <Text style={styles.previewLogoText}>사</Text>
+              </View>
+              <View style={[
+                styles.previewStatusPill,
+                maintenanceDraft.enabled ? styles.previewStatusPillOn : styles.previewStatusPillOff
+              ]}>
+                <View style={[
+                  styles.previewStatusDot,
+                  maintenanceDraft.enabled ? styles.previewStatusDotOn : styles.previewStatusDotOff
+                ]} />
+                <Text style={[
+                  styles.previewStatusText,
+                  maintenanceDraft.enabled ? styles.previewStatusTextOn : styles.previewStatusTextOff
+                ]}>
+                  {maintenanceDraft.enabled
+                    ? t('admin.maintenance.statusOn', '점검 모드 ON')
+                    : t('admin.maintenance.statusOff', '정상 운영 중')}
+                </Text>
+              </View>
+              <Text style={styles.previewMaintenanceTitle}>{maintenanceTitle}</Text>
+              <Text style={styles.previewMaintenanceMessage}>{maintenanceMessage}</Text>
+              <View style={styles.previewEstimatedBox}>
+                <Text style={styles.previewEstimatedLabel}>{t('maintenance.screen.estimatedLabel', '점검 안내')}</Text>
+                <Text style={styles.previewEstimatedText}>{estimatedText}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.previewPanel}>
+            <Text style={styles.previewEyebrow}>{t('admin.preview.noticeEyebrow', '사용자 공지 배너')}</Text>
+            <Text style={styles.previewPanelTitle}>{t('admin.preview.noticeTitle', '실시간 공지 미리보기')}</Text>
+            <View
+              accessibilityRole="alert"
+              style={[
+                styles.noticePreviewCard,
+                {
+                  backgroundColor: noticeLevelStyle.surfaceColor,
+                  borderColor: noticeLevelStyle.borderColor
+                }
+              ]}
+            >
+              <View style={[styles.noticePreviewDot, { backgroundColor: noticeLevelStyle.dotColor }]} />
+              <View style={styles.noticePreviewCopy}>
+                <Text style={styles.noticePreviewTitle}>{noticeTitle}</Text>
+                <Text style={styles.noticePreviewMessage}>{noticeMessage}</Text>
+              </View>
+              <View style={styles.noticePreviewClose}>
+                <Text style={styles.noticePreviewCloseText}>×</Text>
+              </View>
+            </View>
+            <Text style={styles.previewNote}>
+              {t(
+                'admin.preview.noticeNote',
+                '미리보기는 실제 WebSocket broadcast를 호출하지 않습니다.'
+              )}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
@@ -327,6 +460,14 @@ export default function AdminScreen({ onNavigate, token, user }) {
         >
           <Text style={[styles.tabButtonText, activeTab === 'logs' && styles.tabButtonTextActive]}>
             활동 로그
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => { setActiveTab('preview'); setActionTarget(null); }}
+          style={(state) => [styles.tabButton, activeTab === 'preview' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'preview' && styles.tabButtonTextActive]}>
+            {t('admin.preview.tab', '미리보기')}
           </Text>
         </Pressable>
       </View>
@@ -849,6 +990,8 @@ export default function AdminScreen({ onNavigate, token, user }) {
               )}
             </View>
           )}
+
+          {activeTab === 'preview' && renderPreviewTab()}
         </View>
       )}
     </ScrollView>
@@ -918,6 +1061,7 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 7,
@@ -927,6 +1071,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
+    minWidth: 130,
     minHeight: 47,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1290,6 +1435,188 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.ink
+  },
+  sectionDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 4
+  },
+  previewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14
+  },
+  previewPanel: {
+    flex: 1,
+    minWidth: 280,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    ...shadows.card
+  },
+  previewEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  previewPanelTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  maintenancePreviewCard: {
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingVertical: 24,
+    paddingHorizontal: 18
+  },
+  previewLogo: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  previewLogoText: {
+    color: colors.blueDeep,
+    fontSize: 24,
+    fontWeight: '900'
+  },
+  previewStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    minHeight: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11
+  },
+  previewStatusPillOn: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  previewStatusPillOff: {
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  previewStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999
+  },
+  previewStatusDotOn: {
+    backgroundColor: colors.mintDeep
+  },
+  previewStatusDotOff: {
+    backgroundColor: colors.muted
+  },
+  previewStatusText: {
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  previewStatusTextOn: {
+    color: colors.mintDeep
+  },
+  previewStatusTextOff: {
+    color: colors.muted
+  },
+  previewMaintenanceTitle: {
+    color: colors.ink,
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 32,
+    textAlign: 'center'
+  },
+  previewMaintenanceMessage: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 22,
+    textAlign: 'center'
+  },
+  previewEstimatedBox: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 4
+  },
+  previewEstimatedLabel: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  previewEstimatedText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19
+  },
+  noticePreviewCard: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    ...shadows.card
+  },
+  noticePreviewDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999
+  },
+  noticePreviewCopy: {
+    flex: 1,
+    gap: 4
+  },
+  noticePreviewTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  noticePreviewMessage: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19
+  },
+  noticePreviewClose: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  noticePreviewCloseText: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 22
+  },
+  previewNote: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
   },
   subSectionTitle: {
     fontSize: 15,
