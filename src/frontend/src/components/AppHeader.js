@@ -35,13 +35,6 @@ const authenticatedNavGroups = [
       { label: '레이드', screen: 'bossRaid' },
       { label: '협동 퀘스트', screen: 'collaborativeQuest' }
     ]
-  },
-  {
-    key: 'settings',
-    label: '설정',
-    items: [
-      { label: '접근성', screen: 'accessibility' }
-    ]
   }
 ];
 
@@ -49,7 +42,7 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
   const authenticated = Boolean(user);
   const hasAdminRole = user?.role === 'ADMIN';
   const [openMenu, setOpenMenu] = useState(null);
-  const { effectiveMode, mode, toggleThemeMode } = useThemeMode();
+  const { effectiveMode, mode, setThemeMode } = useThemeMode();
   const {
     currentLanguage,
     isBetaLanguage: isLanguageBeta,
@@ -59,7 +52,6 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
     t,
     translateText
   } = useLanguage();
-  const targetThemeLabel = translateText(mode === 'dark' ? '라이트 모드' : '다크 모드');
   const currentThemeLabel = translateText(effectiveMode === 'highContrast'
     ? '고대비'
     : mode === 'dark' ? '다크' : '라이트');
@@ -178,29 +170,22 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
         </View>
 
         <View style={styles.actions}>
-          <LanguageSelector
+          <HeaderSettingsMenu
+            currentThemeLabel={currentThemeLabel}
             currentLanguage={currentLanguage}
+            effectiveMode={effectiveMode}
             getLanguageLabel={getLanguageLabel}
             isLanguageBeta={isLanguageBeta}
             onChangeLanguage={setLanguage}
+            onNavigate={onNavigate}
+            onOpen={() => setOpenMenu(null)}
+            onSetThemeMode={setThemeMode}
+            mode={mode}
+            showAccessibility={authenticated}
             supportedLanguages={supportedLanguages}
             t={t}
+            translateText={translateText}
           />
-          <Pressable
-            accessibilityLabel={targetThemeLabel}
-            accessibilityRole="button"
-            onPress={toggleThemeMode}
-            style={(state) => [
-              styles.themeToggle,
-              mode === 'dark' && styles.themeToggleDark,
-              effectiveMode === 'highContrast' && styles.themeToggleHighContrast,
-              ...interactiveStateStyles(state)
-            ]}
-            title={targetThemeLabel}
-          >
-            <ThemeIcon mode={mode} />
-            <Text style={styles.themeToggleText}>{currentThemeLabel}</Text>
-          </Pressable>
 
           {authenticated ? (
             <>
@@ -263,89 +248,171 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
   );
 }
 
-function LanguageSelector({
+function HeaderSettingsMenu({
   currentLanguage,
+  currentThemeLabel,
+  effectiveMode,
   getLanguageLabel,
   isLanguageBeta,
   onChangeLanguage,
+  onNavigate,
+  onOpen,
+  onSetThemeMode,
+  mode,
+  showAccessibility,
   supportedLanguages,
-  t
+  t,
+  translateText
 }) {
   const [open, setOpen] = useState(false);
   const betaLabel = t('language.betaBadge', 'Beta');
   const selectorLabel = t('language.selectorLabel', '언어 선택');
+  const currentLanguageLabel = t('language.currentLabel', '현재 언어');
   const currentLabel = getLanguageLabel(currentLanguage);
   const currentBeta = isLanguageBeta(currentLanguage);
+  const currentLanguageSummary = `${currentLabel}${currentBeta ? ` ${betaLabel}` : ''}`;
+  const settingsLabel = translateText('설정');
+  const modeLabel = translateText('화면 모드');
+  const accessibilityLabel = translateText('접근성 설정');
+  const lightLabel = translateText('라이트 모드');
+  const darkLabel = translateText('다크 모드');
+  const highContrastNotice = effectiveMode === 'highContrast'
+    ? translateText('고대비')
+    : currentThemeLabel;
+
+  function handleToggle() {
+    onOpen?.();
+    setOpen((value) => !value);
+  }
+
+  function handleAccessibilityPress() {
+    setOpen(false);
+    onNavigate('accessibility');
+  }
 
   return (
     <View
-      dataSet={{ sagakI18nIgnore: 'true' }}
-      style={styles.languageDropdown}
+      style={styles.settingsDropdown}
     >
       <Pressable
-        accessibilityLabel={`${selectorLabel}: ${currentLabel}${currentBeta ? ` ${betaLabel}` : ''}`}
+        accessibilityLabel={`${settingsLabel}: ${currentLanguageLabel} ${currentLanguageSummary}, ${modeLabel} ${highContrastNotice}`}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        dataSet={{ sagakI18nIgnore: 'true' }}
-        onPress={() => setOpen((value) => !value)}
+        onPress={handleToggle}
         style={(state) => [
-          styles.languageTrigger,
-          state.hovered && styles.languageTriggerHover,
+          styles.settingsTrigger,
+          open && styles.settingsTriggerOpen,
+          state.hovered && styles.settingsTriggerHover,
           ...interactiveStateStyles(state)
         ]}
-        title={selectorLabel}
+        title={settingsLabel}
       >
-        <Text style={styles.languageTriggerTitle}>Language</Text>
-        <View style={styles.languageCurrentValue}>
-          <Text style={styles.languageCurrentText}>{currentLabel}</Text>
-          {currentBeta ? (
-            <View style={styles.languageBetaBadge}>
-              <Text style={styles.languageBetaText}>{betaLabel}</Text>
-            </View>
-          ) : null}
-        </View>
+        <SettingsIcon />
+        <Text style={styles.settingsTriggerText}>{settingsLabel}</Text>
+        <Text style={styles.settingsSummary}>{`${currentLanguageSummary} · ${currentThemeLabel}`}</Text>
         <View style={[styles.chevron, open && styles.chevronOpen]} />
       </Pressable>
       {open ? (
-        <View accessibilityRole="menu" style={styles.languageMenu}>
-          {supportedLanguages.map((option) => {
-            const active = option.code === currentLanguage;
-            const beta = isLanguageBeta(option.code);
+        <View accessibilityRole="menu" style={styles.settingsMenu}>
+          <View style={styles.settingsSection} dataSet={{ sagakI18nIgnore: 'true' }}>
+            <Text style={styles.settingsSectionTitle}>{selectorLabel}</Text>
+            <View style={styles.settingsOptionGrid}>
+              {supportedLanguages.map((option) => {
+                const active = option.code === currentLanguage;
+                const beta = isLanguageBeta(option.code);
 
-            return (
-              <Pressable
-                accessibilityLabel={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
-                accessibilityRole="menuitemradio"
-                accessibilityState={{ checked: active }}
-                dataSet={{ sagakI18nIgnore: 'true' }}
-                key={option.code}
-                onPress={() => {
-                  onChangeLanguage(option.code);
-                  setOpen(false);
-                }}
-                style={(state) => [
-                  styles.languageOption,
-                  active && styles.languageOptionActive,
-                  state.hovered && !active && styles.languageOptionHover,
-                  ...interactiveStateStyles(state)
-                ]}
-                title={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
-              >
-                <Text style={[styles.languageOptionText, active && styles.languageOptionTextActive]}>
-                  {getLanguageLabel(option.code)}
-                </Text>
-                {beta ? (
-                  <View style={[styles.languageBetaBadge, active && styles.languageBetaBadgeActive]}>
-                    <Text style={[styles.languageBetaText, active && styles.languageBetaTextActive]}>
-                      {betaLabel}
+                return (
+                  <Pressable
+                    accessibilityLabel={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
+                    accessibilityRole="menuitemradio"
+                    accessibilityState={{ checked: active }}
+                    dataSet={{ sagakI18nIgnore: 'true' }}
+                    key={option.code}
+                    onPress={() => onChangeLanguage(option.code)}
+                    style={(state) => [
+                      styles.settingsOption,
+                      active && styles.settingsOptionActive,
+                      state.hovered && !active && styles.settingsOptionHover,
+                      ...interactiveStateStyles(state)
+                    ]}
+                    title={`${getLanguageLabel(option.code)}${beta ? ` ${betaLabel}` : ''}`}
+                  >
+                    <Text style={[styles.settingsOptionText, active && styles.settingsOptionTextActive]}>
+                      {getLanguageLabel(option.code)}
                     </Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
+                    {beta ? (
+                      <View style={[styles.languageBetaBadge, active && styles.languageBetaBadgeActive]}>
+                        <Text style={[styles.languageBetaText, active && styles.languageBetaTextActive]}>
+                          {betaLabel}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.settingsSection}>
+            <Text style={styles.settingsSectionTitle}>{modeLabel}</Text>
+            <View style={styles.settingsOptionGrid}>
+              {[
+                { label: lightLabel, value: 'light' },
+                { label: darkLabel, value: 'dark' }
+              ].map((option) => {
+                const active = option.value === mode;
+
+                return (
+                  <Pressable
+                    accessibilityLabel={option.label}
+                    accessibilityRole="menuitemradio"
+                    accessibilityState={{ checked: active }}
+                    key={option.value}
+                    onPress={() => onSetThemeMode(option.value)}
+                    style={(state) => [
+                      styles.settingsOption,
+                      active && styles.settingsOptionActive,
+                      state.hovered && !active && styles.settingsOptionHover,
+                      ...interactiveStateStyles(state)
+                    ]}
+                    title={option.label}
+                  >
+                    <ThemeIcon mode={option.value} />
+                    <Text style={[styles.settingsOptionText, active && styles.settingsOptionTextActive]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {showAccessibility ? (
+            <Pressable
+              accessibilityLabel={accessibilityLabel}
+              accessibilityRole="menuitem"
+              onPress={handleAccessibilityPress}
+              style={(state) => [
+                styles.settingsAccessibilityLink,
+                state.hovered && styles.settingsOptionHover,
+                ...interactiveStateStyles(state)
+              ]}
+              title={accessibilityLabel}
+            >
+              <Text style={styles.settingsAccessibilityText}>{accessibilityLabel}</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
+    </View>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.settingsIcon}>
+      <View style={styles.settingsIconRing} />
+      <View style={styles.settingsIconCore} />
     </View>
   );
 }
@@ -550,6 +617,141 @@ const styles = StyleSheet.create({
     minWidth: 0,
     overflow: 'visible',
     zIndex: 50
+  },
+  settingsDropdown: {
+    position: 'relative',
+    zIndex: 90
+  },
+  settingsTrigger: {
+    minHeight: 38,
+    paddingHorizontal: 11,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    maxWidth: 236,
+    ...interactions.transition
+  },
+  settingsTriggerOpen: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  settingsTriggerHover: {
+    backgroundColor: colors.surface
+  },
+  settingsTriggerText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  settingsSummary: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+    maxWidth: 116
+  },
+  settingsMenu: {
+    position: 'absolute',
+    top: 44,
+    right: 0,
+    width: 276,
+    padding: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
+    gap: 10,
+    zIndex: 100
+  },
+  settingsSection: {
+    gap: 6
+  },
+  settingsSectionTitle: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  settingsOptionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6
+  },
+  settingsOption: {
+    minHeight: 36,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    flexGrow: 1,
+    flexBasis: 116,
+    ...interactions.transition
+  },
+  settingsOptionHover: {
+    backgroundColor: colors.surfaceWarm
+  },
+  settingsOptionActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  settingsOptionText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    flexShrink: 1
+  },
+  settingsOptionTextActive: {
+    color: colors.mintDeep
+  },
+  settingsAccessibilityLink: {
+    minHeight: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  settingsAccessibilityText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  settingsIcon: {
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative'
+  },
+  settingsIconRing: {
+    width: 17,
+    height: 17,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.blueDeep
+  },
+  settingsIconCore: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: colors.blueDeep
   },
   languageDropdown: {
     position: 'relative',
