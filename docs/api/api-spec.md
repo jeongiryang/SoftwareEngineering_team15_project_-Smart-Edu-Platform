@@ -206,6 +206,8 @@ Response 예시:
 | `friends.presence.snapshot` | `{ "onlineFriendIds": [2, 3] }` | 인증된 사용자에게 현재 온라인 상태인 친구 ID 목록을 전달 |
 | `friends.presence.updated` | `{ "userId": 2, "online": true, "updatedAt": "..." }` | 친구가 온라인/오프라인 상태로 바뀌었을 때 해당 친구 관계 사용자에게만 전달 |
 | `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
+| `directMessage.created` | `{ "thread": { "id": 1, "friend": { "id": 2, "name": "학습 친구", "loginId": "study_peer" }, "unreadCount": 1 }, "message": { "id": 10, "threadId": 1, "senderId": 2, "content": "오늘 복습할까요?", "createdAt": "..." } }` | 친구 간 쪽지 작성 성공 후 thread 참여자에게만 전달 |
+| `directMessage.read` | `{ "threadId": 1, "userId": 1, "lastReadAt": "...", "thread": { ... } }` | 사용자가 쪽지 thread를 읽음 처리했을 때 thread 참여자에게만 전달 |
 | `bossRaid.progress.updated` | `{ "party": { "id": 10, "raid": { "id": 1, ... }, "totalDamage": 140, "remainingHp": 160, "progressRate": 0.46, "participantCount": 2, "completed": false } }` | 보스 레이드 파티 생성/참가/상세 갱신 후 진행률이 변경될 수 있을 때 파티 멤버에게만 전달 |
 | `bossRaid.completed` | `{ "party": { "id": 10, "status": "CLEARED", "completed": true, ... } }` | 보스 레이드가 처치 완료 상태로 계산되거나 보상 수령 흐름에서 완료 상태가 확인될 때 파티 멤버에게만 전달 |
 | `collabQuest.progress.updated` | `{ "quest": { "questId": 1, "currentValue": 55, "goalValue": 100, "progressPercent": 55, "participantCount": 2, "completed": false } }` | 협동 퀘스트 생성/참여/기여도 추가 후 진행률이 바뀌었을 때 참여자에게만 전달 |
@@ -911,6 +913,173 @@ Response `200`:
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | `friendId` 형식 오류 |
 | `404` | `NOT_FOUND` | accepted 친구 관계 없음 |
+
+### 6.6 Direct Message API
+
+친구 간 쪽지 API는 인증된 사용자만 사용할 수 있으며, `ACCEPTED` 친구 관계가 있는 사용자끼리만 1:1 thread를 생성하고 메시지를 전송할 수 있음. 모든 응답은 `passwordHash`, JWT token, secret 값을 반환하지 않음.
+
+#### 6.6.1 쪽지 thread 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/messages/threads` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자가 참여 중인 쪽지 thread 목록과 unread count를 조회함 |
+
+Response `200`:
+
+```json
+{
+  "threads": [
+    {
+      "id": 1,
+      "participantIds": [1, 2],
+      "friend": {
+        "id": 2,
+        "name": "학습 친구",
+        "loginId": "study_peer"
+      },
+      "lastMessage": {
+        "id": 10,
+        "threadId": 1,
+        "senderId": 2,
+        "content": "오늘 복습할까요?",
+        "createdAt": "2026-05-30T12:00:00.000Z"
+      },
+      "unreadCount": 1,
+      "lastMessageAt": "2026-05-30T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### 6.6.2 쪽지 thread 상세 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/messages/threads/:threadId` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자가 참여 중인 쪽지 thread의 메시지 목록을 조회함 |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `threadId` 형식 오류 |
+| `403` | `FORBIDDEN` | thread 참여자가 아닌 사용자가 접근 |
+| `404` | `NOT_FOUND` | thread 없음 |
+
+#### 6.6.3 쪽지 thread 생성
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/messages/threads` |
+| 인증 | 필요 |
+| 설명 | accepted 친구와 1:1 쪽지 thread를 생성하거나 기존 thread를 반환함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `friendId` | number | 예 | 대화할 accepted 친구 사용자 ID |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `friendId` 누락/형식 오류, 자기 자신 지정 |
+| `403` | `FORBIDDEN` | accepted 친구 관계가 없음 |
+
+#### 6.6.4 쪽지 전송
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/messages/threads/:threadId/messages` |
+| 인증 | 필요 |
+| 설명 | thread 참여자가 친구에게 쪽지를 전송함. 성공 시 `directMessage.created` WebSocket event를 thread 참여자에게만 발행함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `content` | string | 예 | 1~1000자 쪽지 본문 |
+
+Response `201`:
+
+```json
+{
+  "message": {
+    "id": 10,
+    "threadId": 1,
+    "senderId": 1,
+    "sender": {
+      "id": 1,
+      "name": "나",
+      "loginId": "me"
+    },
+    "content": "오늘 복습할까요?",
+    "createdAt": "2026-05-30T12:00:00.000Z"
+  },
+  "thread": {
+    "id": 1,
+    "friend": {
+      "id": 2,
+      "name": "학습 친구",
+      "loginId": "study_peer"
+    },
+    "unreadCount": 0
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `threadId` 형식 오류, `content` 누락/공백/1000자 초과 |
+| `403` | `FORBIDDEN` | thread 참여자가 아니거나 accepted 친구 관계가 사라짐 |
+| `404` | `NOT_FOUND` | thread 없음 |
+
+#### 6.6.5 쪽지 thread 읽음 처리
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/messages/threads/:threadId/read` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자의 thread 읽음 시각을 저장함. 성공 시 `directMessage.read` WebSocket event를 thread 참여자에게만 발행함 |
+
+Response `200`:
+
+```json
+{
+  "read": {
+    "threadId": 1,
+    "userId": 1,
+    "lastReadAt": "2026-05-30T12:01:00.000Z"
+  },
+  "thread": {
+    "id": 1,
+    "unreadCount": 0
+  }
+}
+```
+
+정책:
+
+- 쪽지 thread는 `participantAId`, `participantBId` 정렬 pair로 unique 처리하여 중복 생성을 방지함.
+- 메시지 전송 API는 body의 `userId`를 신뢰하지 않고 `req.user.id`를 sender로 사용함.
+- WebSocket payload에는 thread ID, friend public profile, message preview 수준 정보만 포함하고 비밀번호 hash, token, secret 값을 포함하지 않음.
+- WebSocket 연결 실패 시 프론트엔드는 `GET /api/messages/threads` 및 `GET /api/messages/threads/:threadId` HTTP fallback으로 다시 조회함.
 
 ---
 
