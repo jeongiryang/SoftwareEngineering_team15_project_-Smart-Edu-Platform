@@ -536,7 +536,15 @@ const UI_TRANSLATIONS = {
     'admin.maintenance.save': '점검 설정 저장',
     'admin.maintenance.messages.saved': '점검 모드 설정을 저장했습니다.',
     'admin.maintenance.errors.load': '점검 상태를 불러오지 못했습니다.',
-    'admin.maintenance.errors.save': '점검 모드 설정 저장에 실패했습니다.'
+    'admin.maintenance.errors.save': '점검 모드 설정 저장에 실패했습니다.',
+    'admin.preview.tab': '미리보기',
+    'admin.preview.title': '점검·공지 미리보기',
+    'admin.preview.description': '현재 입력한 점검 문구와 공지 내용을 저장 또는 전송 없이 미리 확인합니다.',
+    'admin.preview.maintenanceEyebrow': '사용자 점검 화면',
+    'admin.preview.maintenanceTitle': '점검 화면 미리보기',
+    'admin.preview.noticeEyebrow': '사용자 공지 배너',
+    'admin.preview.noticeTitle': '실시간 공지 미리보기',
+    'admin.preview.noticeNote': '미리보기는 실제 WebSocket broadcast를 호출하지 않습니다.'
   },
   en: {
     'language.selectorLabel': 'Language',
@@ -568,7 +576,15 @@ const UI_TRANSLATIONS = {
     'admin.maintenance.save': 'Save maintenance settings',
     'admin.maintenance.messages.saved': 'Maintenance mode settings have been saved.',
     'admin.maintenance.errors.load': 'Failed to load maintenance status.',
-    'admin.maintenance.errors.save': 'Failed to save maintenance settings.'
+    'admin.maintenance.errors.save': 'Failed to save maintenance settings.',
+    'admin.preview.tab': 'Preview',
+    'admin.preview.title': 'Maintenance and notice preview',
+    'admin.preview.description': 'Preview the current maintenance copy and notice content without saving or sending.',
+    'admin.preview.maintenanceEyebrow': 'User maintenance screen',
+    'admin.preview.maintenanceTitle': 'Maintenance screen preview',
+    'admin.preview.noticeEyebrow': 'User notice banner',
+    'admin.preview.noticeTitle': 'Realtime notice preview',
+    'admin.preview.noticeNote': 'The preview does not call the real WebSocket broadcast.'
   },
   ja: {
     'language.selectorLabel': '言語選択',
@@ -668,7 +684,15 @@ const MAINTENANCE_TRANSLATIONS = {
     'admin.maintenance.save': '設定を保存',
     'admin.maintenance.messages.saved': 'メンテナンス設定を保存しました。',
     'admin.maintenance.errors.load': 'メンテナンス状態を読み込めませんでした。',
-    'admin.maintenance.errors.save': 'メンテナンス設定の保存に失敗しました。'
+    'admin.maintenance.errors.save': 'メンテナンス設定の保存に失敗しました。',
+    'admin.preview.tab': 'プレビュー',
+    'admin.preview.title': 'メンテナンス・告知プレビュー',
+    'admin.preview.description': '入力中のメンテナンス文言と告知内容を、保存や送信なしで確認します。',
+    'admin.preview.maintenanceEyebrow': 'ユーザー向けメンテナンス画面',
+    'admin.preview.maintenanceTitle': 'メンテナンス画面プレビュー',
+    'admin.preview.noticeEyebrow': 'ユーザー向け告知バナー',
+    'admin.preview.noticeTitle': 'リアルタイム告知プレビュー',
+    'admin.preview.noticeNote': 'プレビューでは実際のWebSocket broadcastを呼び出しません。'
   },
   zh: {
     'maintenance.screen.badge': '服务更新',
@@ -697,7 +721,15 @@ const MAINTENANCE_TRANSLATIONS = {
     'admin.maintenance.save': '保存维护设置',
     'admin.maintenance.messages.saved': '维护模式设置已保存。',
     'admin.maintenance.errors.load': '无法加载维护状态。',
-    'admin.maintenance.errors.save': '无法保存维护设置。'
+    'admin.maintenance.errors.save': '无法保存维护设置。',
+    'admin.preview.tab': '预览',
+    'admin.preview.title': '维护与公告预览',
+    'admin.preview.description': '无需保存或发送，即可预览当前维护文案和公告内容。',
+    'admin.preview.maintenanceEyebrow': '用户维护页面',
+    'admin.preview.maintenanceTitle': '维护页面预览',
+    'admin.preview.noticeEyebrow': '用户公告横幅',
+    'admin.preview.noticeTitle': '实时公告预览',
+    'admin.preview.noticeNote': '预览不会调用实际的 WebSocket broadcast。'
   }
 };
 
