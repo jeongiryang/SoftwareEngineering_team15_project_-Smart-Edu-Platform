@@ -204,22 +204,18 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
           {authenticated ? (
             <>
               <Pressable
+                accessibilityLabel={translateText('마이페이지')}
                 accessibilityRole="button"
+                accessibilityState={{ selected: activeScreen === 'profile' }}
                 onPress={() => onNavigate('profile')}
                 style={(state) => [
                   styles.myPageButton,
                   activeScreen === 'profile' && styles.myPageButtonActive,
                   ...interactiveStateStyles(state)
                 ]}
+                title={translateText('마이페이지')}
               >
-                <Text
-                  style={[
-                    styles.myPageText,
-                    activeScreen === 'profile' && styles.myPageTextActive
-                  ]}
-                >
-                  {translateText('마이페이지')}
-                </Text>
+                <ProfileIcon active={activeScreen === 'profile'} />
               </Pressable>
               <Text style={styles.userLabel}>{displayName}님</Text>
               <Pressable
@@ -347,6 +343,15 @@ function ThemeIcon({ mode }) {
       <View style={styles.sunCore} />
       <View style={[styles.sunRay, styles.sunRayVertical]} />
       <View style={[styles.sunRay, styles.sunRayHorizontal]} />
+    </View>
+  );
+}
+
+function ProfileIcon({ active }) {
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.profileIcon}>
+      <View style={[styles.profileIconHead, active && styles.profileIconActivePart]} />
+      <View style={[styles.profileIconBody, active && styles.profileIconActivePart]} />
     </View>
   );
 }
@@ -697,9 +702,10 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   myPageButton: {
-    minHeight: 38,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    width: 40,
+    height: 40,
+    minHeight: 40,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
@@ -711,13 +717,31 @@ const styles = StyleSheet.create({
     borderColor: colors.mint,
     backgroundColor: colors.mintSoft
   },
-  myPageText: {
-    color: colors.blueDeep,
-    fontSize: 13,
-    fontWeight: '800'
+  profileIcon: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  myPageTextActive: {
-    color: colors.mintDeep
+  profileIconHead: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.blueDeep,
+    marginBottom: 2
+  },
+  profileIconBody: {
+    width: 16,
+    height: 8,
+    borderTopLeftRadius: 999,
+    borderTopRightRadius: 999,
+    borderWidth: 2,
+    borderBottomWidth: 0,
+    borderColor: colors.blueDeep
+  },
+  profileIconActivePart: {
+    borderColor: colors.mintDeep
   },
   primaryButton: {
     minHeight: 42,
