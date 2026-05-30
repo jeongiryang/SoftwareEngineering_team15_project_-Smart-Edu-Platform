@@ -375,16 +375,6 @@ function AppRoot() {
   }, [handleRealtimeMessage, token]);
 
   useEffect(() => {
-    if (!adminNotice) {
-      return undefined;
-    }
-
-    const timer = setTimeout(() => setAdminNotice(null), 9000);
-
-    return () => clearTimeout(timer);
-  }, [adminNotice]);
-
-  useEffect(() => {
     let isMounted = true;
 
     async function restoreSession() {
