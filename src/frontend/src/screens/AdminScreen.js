@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
+  findNodeHandle,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -76,6 +78,9 @@ export default function AdminScreen({ onNavigate, token, user }) {
   }
 
   const [activeTab, setActiveTab] = useState('users'); // 'users' | 'reports' | 'logs' | 'preview'
+  const scrollViewRef = useRef(null);
+  const actionPanelTitleRef = useRef(null);
+  const [actionPanelY, setActionPanelY] = useState(null);
 
   // Data States
   const [users, setUsers] = useState([]);
@@ -315,6 +320,49 @@ export default function AdminScreen({ onNavigate, token, user }) {
     }
   }
 
+  function getStatusDescription(status) {
+    switch (status) {
+      case 'ACTIVE':
+        return t('admin.userStatus.description.ACTIVE', '로그인과 서비스 이용이 모두 가능한 정상 운영 상태입니다.');
+      case 'SUSPENDED':
+        return t('admin.userStatus.description.SUSPENDED', '운영자가 일시적으로 이용을 제한한 상태입니다. 사유 입력을 권장합니다.');
+      case 'DEACTIVATED':
+        return t('admin.userStatus.description.DEACTIVATED', '탈퇴 또는 비활성 처리된 계정 상태입니다. 일반 서비스 이용이 제한됩니다.');
+      default:
+        return '';
+    }
+  }
+
+  function openUserStatusPanel(item) {
+    setActionTarget({ type: 'user', data: item });
+    setActionStatus(item.status);
+    setActionReason('');
+  }
+
+  useEffect(() => {
+    if (!actionTarget || actionPanelY === null) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollTo?.({
+        y: Math.max(actionPanelY - 18, 0),
+        animated: true
+      });
+
+      try {
+        const targetNode = findNodeHandle(actionPanelTitleRef.current);
+        if (targetNode) {
+          AccessibilityInfo.setAccessibilityFocus(targetNode);
+        }
+      } catch {
+        // Web fallback: scrolling alone keeps the selected panel visible.
+      }
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [actionTarget, actionPanelY]);
+
   function renderEmptyState(title, description) {
     return (
       <View style={styles.emptyState}>
@@ -424,7 +472,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -739,8 +787,11 @@ export default function AdminScreen({ onNavigate, token, user }) {
 
       {/* Action / Input Form Panel (Dynamic Modal) */}
       {actionTarget && (
-        <View style={styles.modalPanel}>
-          <Text style={styles.modalTitle}>
+        <View
+          onLayout={(event) => setActionPanelY(event.nativeEvent.layout.y)}
+          style={styles.modalPanel}
+        >
+          <Text ref={actionPanelTitleRef} accessibilityRole="header" style={styles.modalTitle}>
             {actionTarget.type === 'user' && `${actionTarget.data.name}님 상태 변경`}
             {actionTarget.type === 'post' && `게시글 #${actionTarget.data.id} 관리 조치 (${actionTarget.actionType === 'HIDE' ? '삭제' : '유지'})`}
             {actionTarget.type === 'comment' && `댓글 #${actionTarget.data.id} 관리 조치 (${actionTarget.actionType === 'DELETE' ? '삭제' : '유지'})`}
@@ -748,10 +799,24 @@ export default function AdminScreen({ onNavigate, token, user }) {
 
           {actionTarget.type === 'user' && (
             <View style={styles.modalSelectGroup}>
+              <View style={styles.selectedUserSummary}>
+                <Text style={styles.selectedUserLabel}>
+                  {t('admin.userStatus.selectedUser', '선택한 사용자')}
+                </Text>
+                <Text style={styles.selectedUserName}>
+                  {actionTarget.data.name} · {actionTarget.data.loginId}
+                </Text>
+                <Text style={styles.selectedUserMeta}>
+                  {t('admin.userStatus.currentStatus', '현재 상태')}: {getStatusLabel(actionTarget.data.status)}
+                </Text>
+              </View>
               <Text style={styles.inputLabel}>변경할 상태 선택:</Text>
               <View style={styles.radioRow}>
                 {['ACTIVE', 'SUSPENDED', 'DEACTIVATED'].map((status) => (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: actionStatus === status }}
+                    accessibilityLabel={`${getStatusLabel(status)}. ${getStatusDescription(status)}`}
                     key={status}
                     onPress={() => setActionStatus(status)}
                     style={(state) => [
@@ -766,6 +831,9 @@ export default function AdminScreen({ onNavigate, token, user }) {
                   </Pressable>
                 ))}
               </View>
+              <Text style={styles.statusDescriptionText}>
+                {getStatusDescription(actionStatus)}
+              </Text>
             </View>
           )}
 
@@ -848,11 +916,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       <View style={styles.userCardFooter}>
                         <Text style={styles.roleText}>권한: {item.role}</Text>
                         <Pressable
-                          onPress={() => {
-                            setActionTarget({ type: 'user', data: item });
-                            setActionStatus(item.status);
-                            setActionReason('');
-                          }}
+                          onPress={() => openUserStatusPanel(item)}
                           style={(state) => [styles.actionBtn, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.actionBtnText}>상태 변경</Text>
@@ -1328,7 +1392,32 @@ const styles = StyleSheet.create({
     paddingBottom: 8
   },
   modalSelectGroup: {
-    gap: 6
+    gap: 8
+  },
+  selectedUserSummary: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    backgroundColor: colors.blueSoft,
+    padding: 12,
+    gap: 4
+  },
+  selectedUserLabel: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  selectedUserName: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 21
+  },
+  selectedUserMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
   },
   inputLabel: {
     fontSize: 13,
@@ -1337,11 +1426,13 @@ const styles = StyleSheet.create({
   },
   radioRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 4
   },
   radioButton: {
     flex: 1,
+    minWidth: 116,
     paddingVertical: 8,
     alignItems: 'center',
     borderRadius: 11,
@@ -1362,6 +1453,12 @@ const styles = StyleSheet.create({
   radioTextActive: {
     color: colors.mintDeep,
     fontWeight: '700'
+  },
+  statusDescriptionText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
   },
   reasonInput: {
     borderWidth: 1,
