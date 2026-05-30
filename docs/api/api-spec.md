@@ -241,6 +241,14 @@ WebSocket URL 기준:
 - 성공 시 token은 클라이언트 저장소에 저장하고 이후 인증 요청에 Bearer token으로 사용함.
 - 실제 JWT token 원문은 화면, 로그, 문서에 출력하지 않음.
 
+계정 상태 정책:
+
+| 상태 | 로그인 | 보호 API 호출 | 설명 |
+|---|---|---|---|
+| `ACTIVE` | 허용 | 허용 | 정상 이용 상태 |
+| `SUSPENDED` | 차단 (`403`) | 차단 (`401`) | 관리자 정지 상태. 기존 token도 보호 API에서 유효하지 않게 처리함 |
+| `DEACTIVATED` | 차단 (`403`) | 차단 (`401`) | 회원 탈퇴 또는 비활성 상태. 기존 token도 보호 API에서 유효하지 않게 처리함 |
+
 ### 5.1 회원가입
 
 | 항목 | 내용 |
@@ -344,7 +352,7 @@ Response 예시:
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | 필수값 누락 |
 | `401` | `UNAUTHORIZED` | 존재하지 않는 사용자 또는 잘못된 비밀번호 |
-| `403` | `FORBIDDEN` | 비활성 사용자 |
+| `403` | `FORBIDDEN` | `SUSPENDED` 또는 `DEACTIVATED` 상태 계정 |
 
 보안 주의사항:
 
@@ -385,8 +393,7 @@ Response 예시:
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `401` | `UNAUTHORIZED` | 인증 헤더 없음, Bearer token 없음, token 검증 실패 |
-| `404` | `NOT_FOUND` | token의 사용자를 찾을 수 없음 |
+| `401` | `UNAUTHORIZED` | 인증 헤더 없음, Bearer token 없음, token 검증 실패, token의 사용자를 찾을 수 없음, 계정이 `ACTIVE`가 아님 |
 
 보안 주의사항:
 
