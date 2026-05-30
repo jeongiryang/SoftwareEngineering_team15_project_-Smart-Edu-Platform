@@ -1,4 +1,5 @@
 const {
+  deactivateUser,
   findUserById,
   findUserWithProfileById,
   getUserActivityStats,
@@ -14,6 +15,9 @@ const { sanitizeUser } = require('./auth.service');
 const EDITABLE_PROFILE_FIELDS = ['learningGoal', 'preferredSubject', 'profileImageUrl'];
 const EDITABLE_ACCOUNT_FIELDS = ['name'];
 const PASSWORD_FIELDS = ['currentPassword', 'newPassword'];
+const WITHDRAWAL_FIELDS = ['currentPassword', 'confirmationText'];
+const WITHDRAWAL_CONFIRMATION_TEXT = '탈퇴합니다';
+const WITHDRAWN_USER_NAME = '탈퇴한 사용자';
 
 function sanitizeProfile(profile) {
   if (!profile) {
@@ -136,6 +140,30 @@ function validatePasswordPayload(payload = {}) {
   validatePassword(payload.newPassword);
 }
 
+function validateWithdrawalPayload(payload = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw validationError('Account withdrawal payload must be an object');
+  }
+
+  assertSupportedFields(payload, WITHDRAWAL_FIELDS, 'Account withdrawal payload contains unsupported fields');
+  requireFields(payload, WITHDRAWAL_FIELDS, 'Current password and confirmation text are required');
+
+  if (typeof payload.currentPassword !== 'string') {
+    throw validationError('Current password must be a string', { field: 'currentPassword' });
+  }
+
+  if (typeof payload.confirmationText !== 'string') {
+    throw validationError('Confirmation text must be a string', { field: 'confirmationText' });
+  }
+
+  if (normalizeString(payload.confirmationText) !== WITHDRAWAL_CONFIRMATION_TEXT) {
+    throw validationError('Confirmation text does not match', {
+      field: 'confirmationText',
+      expected: WITHDRAWAL_CONFIRMATION_TEXT
+    });
+  }
+}
+
 async function getMyUser(userId) {
   const user = await findUserWithProfileById(userId);
 
@@ -195,6 +223,29 @@ async function changeMyPassword(userId, payload) {
   return sanitizeUser(updatedUser);
 }
 
+async function withdrawMyAccount(userId, payload) {
+  validateWithdrawalPayload(payload);
+
+  const user = await findUserById(userId);
+
+  if (!user) {
+    throw notFoundError('User not found');
+  }
+
+  const passwordMatches = await comparePassword(payload.currentPassword, user.passwordHash);
+
+  if (!passwordMatches) {
+    throw unauthorizedError('Current password is incorrect');
+  }
+
+  const withdrawnUser = await deactivateUser(userId, {
+    status: 'DEACTIVATED',
+    name: WITHDRAWN_USER_NAME
+  });
+
+  return sanitizeUser(withdrawnUser);
+}
+
 async function updateMyProfile(userId, payload) {
   const user = await findUserWithProfileById(userId);
 
@@ -212,6 +263,8 @@ module.exports = {
   EDITABLE_ACCOUNT_FIELDS,
   EDITABLE_PROFILE_FIELDS,
   PASSWORD_FIELDS,
+  WITHDRAWAL_CONFIRMATION_TEXT,
+  WITHDRAWAL_FIELDS,
   buildProfileUpdateData,
   buildAccountUpdateData,
   changeMyPassword,
@@ -220,5 +273,6 @@ module.exports = {
   sanitizeProfile,
   sanitizeUserWithProfile,
   updateMyAccount,
-  updateMyProfile
+  updateMyProfile,
+  withdrawMyAccount
 };
