@@ -778,6 +778,125 @@ const REALTIME_TRANSLATIONS = {
   }
 };
 
+const MESSAGE_TRANSLATIONS = {
+  ko: {
+    'messages.eyebrow': '실시간 친구 쪽지',
+    'messages.title': '친구와 바로 이어지는 학습 쪽지',
+    'messages.description': '수락된 친구끼리만 쪽지를 주고받습니다. WebSocket이 끊겨도 새로고침으로 다시 확인할 수 있습니다.',
+    'messages.refresh': '새로고침',
+    'messages.threadList': '대화 목록',
+    'messages.noMessagesYet': '아직 메시지가 없습니다.',
+    'messages.unreadCount': '읽지 않음',
+    'messages.startWithFriend': '친구와 대화 시작',
+    'messages.noAvailableFriends': '새로 시작할 수 있는 친구 대화가 없습니다.',
+    'messages.online': '온라인',
+    'messages.offline': '오프라인',
+    'messages.me': '나',
+    'messages.composerLabel': '쪽지 입력',
+    'messages.composerPlaceholder': '친구에게 보낼 쪽지를 입력하세요.',
+    'messages.send': '보내기',
+    'messages.sending': '전송 중',
+    'messages.emptyThreadsTitle': '아직 쪽지가 없습니다.',
+    'messages.emptyThreadsDescription': '친구 목록에서 대화를 시작해 보세요.',
+    'messages.emptyConversationTitle': '대화가 비어 있습니다.',
+    'messages.emptyConversationDescription': '첫 쪽지를 보내면 이곳에 대화가 쌓입니다.',
+    'messages.selectThreadTitle': '대화를 선택해 주세요.',
+    'messages.selectThreadDescription': '왼쪽에서 대화를 선택하거나 친구와 새 대화를 시작하세요.',
+    'messages.realtime.newMessage': '새 쪽지가 도착했습니다.',
+    'messages.errors.load': '쪽지 정보를 불러오지 못했습니다.',
+    'messages.errors.detail': '대화를 불러오지 못했습니다.',
+    'messages.errors.start': '대화를 시작하지 못했습니다.',
+    'messages.errors.send': '쪽지를 보내지 못했습니다.'
+  },
+  en: {
+    'messages.eyebrow': 'Realtime friend messages',
+    'messages.title': 'Study messages that stay connected with friends',
+    'messages.description': 'Only accepted friends can exchange messages. If WebSocket disconnects, refresh to check again.',
+    'messages.refresh': 'Refresh',
+    'messages.threadList': 'Conversations',
+    'messages.noMessagesYet': 'No messages yet.',
+    'messages.unreadCount': 'unread',
+    'messages.startWithFriend': 'Start with a friend',
+    'messages.noAvailableFriends': 'No new friend conversations are available.',
+    'messages.online': 'Online',
+    'messages.offline': 'Offline',
+    'messages.me': 'Me',
+    'messages.composerLabel': 'Message input',
+    'messages.composerPlaceholder': 'Write a message to your friend.',
+    'messages.send': 'Send',
+    'messages.sending': 'Sending',
+    'messages.emptyThreadsTitle': 'No messages yet.',
+    'messages.emptyThreadsDescription': 'Start a conversation from your friend list.',
+    'messages.emptyConversationTitle': 'This conversation is empty.',
+    'messages.emptyConversationDescription': 'Your first message will appear here.',
+    'messages.selectThreadTitle': 'Select a conversation.',
+    'messages.selectThreadDescription': 'Choose a conversation on the left or start a new one with a friend.',
+    'messages.realtime.newMessage': 'A new message arrived.',
+    'messages.errors.load': 'Failed to load messages.',
+    'messages.errors.detail': 'Failed to load the conversation.',
+    'messages.errors.start': 'Failed to start the conversation.',
+    'messages.errors.send': 'Failed to send the message.'
+  },
+  ja: {
+    'messages.eyebrow': 'リアルタイム友だちメッセージ',
+    'messages.title': '友だちとすぐにつながる学習メッセージ',
+    'messages.description': '承認済みの友だち同士だけがメッセージを送受信できます。WebSocket が切れても更新して確認できます。',
+    'messages.refresh': '更新',
+    'messages.threadList': '会話一覧',
+    'messages.noMessagesYet': 'まだメッセージはありません。',
+    'messages.unreadCount': '未読',
+    'messages.startWithFriend': '友だちと会話を開始',
+    'messages.noAvailableFriends': '新しく開始できる友だち会話はありません。',
+    'messages.online': 'オンライン',
+    'messages.offline': 'オフライン',
+    'messages.me': '自分',
+    'messages.composerLabel': 'メッセージ入力',
+    'messages.composerPlaceholder': '友だちに送るメッセージを入力してください。',
+    'messages.send': '送信',
+    'messages.sending': '送信中',
+    'messages.emptyThreadsTitle': 'まだメッセージはありません。',
+    'messages.emptyThreadsDescription': '友だち一覧から会話を始めてください。',
+    'messages.emptyConversationTitle': '会話は空です。',
+    'messages.emptyConversationDescription': '最初のメッセージを送るとここに表示されます。',
+    'messages.selectThreadTitle': '会話を選択してください。',
+    'messages.selectThreadDescription': '左側で会話を選択するか、友だちと新しい会話を始めてください。',
+    'messages.realtime.newMessage': '新しいメッセージが届きました。',
+    'messages.errors.load': 'メッセージを読み込めませんでした。',
+    'messages.errors.detail': '会話を読み込めませんでした。',
+    'messages.errors.start': '会話を開始できませんでした。',
+    'messages.errors.send': 'メッセージを送信できませんでした。'
+  },
+  zh: {
+    'messages.eyebrow': '实时好友消息',
+    'messages.title': '与好友保持连接的学习消息',
+    'messages.description': '只有已接受的好友之间可以收发消息。WebSocket 断开时也可以刷新确认。',
+    'messages.refresh': '刷新',
+    'messages.threadList': '会话列表',
+    'messages.noMessagesYet': '还没有消息。',
+    'messages.unreadCount': '未读',
+    'messages.startWithFriend': '与好友开始会话',
+    'messages.noAvailableFriends': '没有可新建的好友会话。',
+    'messages.online': '在线',
+    'messages.offline': '离线',
+    'messages.me': '我',
+    'messages.composerLabel': '消息输入',
+    'messages.composerPlaceholder': '输入要发送给好友的消息。',
+    'messages.send': '发送',
+    'messages.sending': '发送中',
+    'messages.emptyThreadsTitle': '还没有消息。',
+    'messages.emptyThreadsDescription': '从好友列表开始会话。',
+    'messages.emptyConversationTitle': '会话为空。',
+    'messages.emptyConversationDescription': '发送第一条消息后会显示在这里。',
+    'messages.selectThreadTitle': '请选择会话。',
+    'messages.selectThreadDescription': '在左侧选择会话，或与好友开始新的会话。',
+    'messages.realtime.newMessage': '收到新消息。',
+    'messages.errors.load': '无法加载消息。',
+    'messages.errors.detail': '无法加载会话。',
+    'messages.errors.start': '无法开始会话。',
+    'messages.errors.send': '无法发送消息。'
+  }
+};
+
 const KEY_TRANSLATIONS = {
   ko: {
     'landing.hero.pill': '개인화 학습 관리 플랫폼',
@@ -1257,10 +1376,12 @@ export function translateKey(key, language, fallback = key) {
   const normalized = normalizeLanguage(language);
   return MAINTENANCE_TRANSLATIONS[normalized]?.[key] ||
     REALTIME_TRANSLATIONS[normalized]?.[key] ||
+    MESSAGE_TRANSLATIONS[normalized]?.[key] ||
     KEY_TRANSLATIONS[normalized]?.[key] ||
     UI_TRANSLATIONS[normalized]?.[key] ||
     MAINTENANCE_TRANSLATIONS.ko[key] ||
     REALTIME_TRANSLATIONS.ko[key] ||
+    MESSAGE_TRANSLATIONS.ko[key] ||
     KEY_TRANSLATIONS.ko[key] ||
     UI_TRANSLATIONS.ko[key] ||
     fallback ||

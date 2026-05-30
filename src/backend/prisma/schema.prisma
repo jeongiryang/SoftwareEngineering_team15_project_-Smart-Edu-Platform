@@ -175,6 +175,10 @@ model User {
   collaborativeQuestParticipants CollaborativeQuestParticipant[]
   collaborativeQuestContributions CollaborativeQuestContribution[]
   collaborativeQuestRewardClaims CollaborativeQuestRewardClaim[]
+  directMessageThreadsA   DirectMessageThread[]        @relation("DirectMessageThreadParticipantA")
+  directMessageThreadsB   DirectMessageThread[]        @relation("DirectMessageThreadParticipantB")
+  sentDirectMessages      DirectMessage[]              @relation("DirectMessageSender")
+  directMessageReadStates DirectMessageReadState[]     @relation("DirectMessageReadStateUser")
 
   @@map("users")
 }
@@ -880,6 +884,53 @@ model CollaborativeQuestRewardClaim {
   @@unique([questId, userId])
   @@index([userId])
   @@map("collaborative_quest_reward_claims")
+}
+
+model DirectMessageThread {
+  id             Int                      @id @default(autoincrement())
+  participantAId Int                      @map("participant_a_id")
+  participantBId Int                      @map("participant_b_id")
+  lastMessageAt  DateTime?                @map("last_message_at")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+  participantA   User                     @relation("DirectMessageThreadParticipantA", fields: [participantAId], references: [id], onDelete: Cascade)
+  participantB   User                     @relation("DirectMessageThreadParticipantB", fields: [participantBId], references: [id], onDelete: Cascade)
+  messages       DirectMessage[]
+  readStates     DirectMessageReadState[]
+
+  @@unique([participantAId, participantBId])
+  @@index([participantAId])
+  @@index([participantBId])
+  @@index([lastMessageAt])
+  @@map("direct_message_threads")
+}
+
+model DirectMessage {
+  id        Int                 @id @default(autoincrement())
+  threadId  Int                 @map("thread_id")
+  senderId  Int                 @map("sender_id")
+  content   String
+  createdAt DateTime            @default(now()) @map("created_at")
+  thread    DirectMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender    User                @relation("DirectMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([senderId])
+  @@map("direct_messages")
+}
+
+model DirectMessageReadState {
+  id         Int                 @id @default(autoincrement())
+  threadId   Int                 @map("thread_id")
+  userId     Int                 @map("user_id")
+  lastReadAt DateTime?           @map("last_read_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+  thread     DirectMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user       User                @relation("DirectMessageReadStateUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@index([userId])
+  @@map("direct_message_read_states")
 }
 
 model MaintenanceSetting {

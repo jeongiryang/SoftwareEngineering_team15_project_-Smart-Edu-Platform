@@ -12,6 +12,7 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import ProfileDashboardScreen from './src/screens/ProfileDashboardScreen';
 import StatisticsScreen from './src/screens/StatisticsScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
+import MessagesScreen from './src/screens/MessagesScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import AccessibilityScreen from './src/screens/AccessibilityScreen';
@@ -22,7 +23,7 @@ import PointShopScreen from './src/screens/PointShopScreen';
 import BossRaidScreen from './src/screens/BossRaidScreen';
 import CollaborativeQuestScreen from './src/screens/CollaborativeQuestScreen';
 import MaintenanceScreen from './src/screens/MaintenanceScreen';
-import { getCurrentUser, getSystemStatus } from './src/services/api';
+import { getCurrentUser, getMessageThreads, getSystemStatus } from './src/services/api';
 import { createRealtimeClient } from './src/services/realtime';
 import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
 import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
@@ -36,6 +37,7 @@ const screens = {
   profile: ProfileDashboardScreen,
   statistics: StatisticsScreen,
   friends: FriendsScreen,
+  messages: MessagesScreen,
   aiLearning: AILearningScreen,
   community: CommunityScreen,
   schedule: ScheduleScreen,
@@ -48,7 +50,7 @@ const screens = {
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest'];
+const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'messages', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest'];
 
 const screenPaths = {
   home: '/',
@@ -58,6 +60,7 @@ const screenPaths = {
   profile: '/profile',
   statistics: '/statistics',
   friends: '/friends',
+  messages: '/messages',
   aiLearning: '/ai',
   community: '/community',
   schedule: '/schedule',
@@ -244,6 +247,7 @@ function AppRoot() {
   const [, setRealtimeStatus] = useState('disconnected');
   const [adminNotice, setAdminNotice] = useState(null);
   const [latestRealtimeEvent, setLatestRealtimeEvent] = useState(null);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LandingScreen;
@@ -307,6 +311,33 @@ function AppRoot() {
     refreshMaintenanceStatus();
   }, [refreshMaintenanceStatus]);
 
+  const updateMessageUnreadCount = useCallback((threads = []) => {
+    const nextUnreadCount = threads.reduce(
+      (total, thread) => total + Math.max(Number(thread.unreadCount) || 0, 0),
+      0
+    );
+
+    setMessageUnreadCount(nextUnreadCount);
+  }, []);
+
+  const refreshMessageUnreadCount = useCallback(async () => {
+    if (!token || !user) {
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    try {
+      const result = await getMessageThreads(token);
+      updateMessageUnreadCount(Array.isArray(result?.threads) ? result.threads : []);
+    } catch (error) {
+      // Message badge is non-blocking. The messages screen keeps HTTP fallback controls.
+    }
+  }, [token, updateMessageUnreadCount, user]);
+
+  useEffect(() => {
+    refreshMessageUnreadCount();
+  }, [refreshMessageUnreadCount]);
+
   const handleRealtimeMessage = useCallback((event) => {
     setLatestRealtimeEvent(event);
 
@@ -321,8 +352,13 @@ function AppRoot() {
         ...event.payload.notice,
         receivedAt: event.sentAt || new Date().toISOString()
       });
+      return;
     }
-  }, []);
+
+    if (event.type === 'directMessage.created' || event.type === 'directMessage.read') {
+      refreshMessageUnreadCount();
+    }
+  }, [refreshMessageUnreadCount]);
 
   useEffect(() => {
     const realtimeClient = createRealtimeClient({
@@ -407,6 +443,7 @@ function AppRoot() {
     setShowLogoutModal(false);
     setToken(null);
     setUser(null);
+    setMessageUnreadCount(0);
     navigateTo('home', { replace: true });
   }
 
@@ -416,6 +453,7 @@ function AppRoot() {
         <AppChrome
           activeScreenName="home"
           adminNotice={adminNotice}
+          messageUnreadCount={0}
           navigateTo={navigateTo}
           onCloseAdminNotice={() => setAdminNotice(null)}
           showLogoutModal={false}
@@ -436,6 +474,7 @@ function AppRoot() {
         <AppChrome
           activeScreenName="home"
           adminNotice={adminNotice}
+          messageUnreadCount={messageUnreadCount}
           navigateTo={navigateTo}
           onCloseAdminNotice={() => setAdminNotice(null)}
           showHeader={false}
@@ -462,6 +501,7 @@ function AppRoot() {
         activeScreenName={activeScreenName}
         adminNotice={adminNotice}
         handleLogout={handleLogout}
+        messageUnreadCount={messageUnreadCount}
         navigateTo={navigateTo}
         onCloseAdminNotice={() => setAdminNotice(null)}
         setShowLogoutModal={setShowLogoutModal}
@@ -472,6 +512,7 @@ function AppRoot() {
           <Screen
             onAuthenticated={handleAuthenticated}
             onLogout={() => setShowLogoutModal(true)}
+            onMessagesChanged={updateMessageUnreadCount}
             onNavigate={navigateTo}
             onUserUpdate={setUser}
             realtimeEvent={latestRealtimeEvent}
@@ -489,6 +530,7 @@ function AppChrome({
   adminNotice,
   children,
   handleLogout,
+  messageUnreadCount = 0,
   navigateTo,
   onCloseAdminNotice,
   setShowLogoutModal,
@@ -563,6 +605,7 @@ function AppChrome({
       {showHeader ? (
         <AppHeader
           activeScreen={activeScreenName}
+          messageUnreadCount={messageUnreadCount}
           onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
           onNavigate={navigateTo}
           user={user}

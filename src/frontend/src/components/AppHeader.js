@@ -23,6 +23,7 @@ const authenticatedNavGroups = [
     label: '소셜',
     items: [
       { label: '친구', screen: 'friends' },
+      { label: '쪽지', screen: 'messages' },
       { label: '커뮤니티', screen: 'community' }
     ]
   },
@@ -44,7 +45,7 @@ const authenticatedNavGroups = [
   }
 ];
 
-export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) {
+export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogout, onNavigate, user }) {
   const authenticated = Boolean(user);
   const hasAdminRole = user?.role === 'ADMIN';
   const [openMenu, setOpenMenu] = useState(null);
@@ -204,13 +205,34 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user }) 
           {authenticated ? (
             <>
               <Pressable
+                accessibilityLabel={`${translateText('쪽지')} ${messageUnreadCount > 0 ? `${messageUnreadCount} ${t('messages.unreadCount', '읽지 않음')}` : ''}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: activeScreen === 'messages' }}
+                onPress={() => onNavigate('messages')}
+                style={(state) => [
+                  styles.iconButton,
+                  activeScreen === 'messages' && styles.iconButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
+                title={translateText('쪽지')}
+              >
+                <MessageIcon active={activeScreen === 'messages'} />
+                {messageUnreadCount > 0 ? (
+                  <View style={styles.iconBadge}>
+                    <Text style={styles.iconBadgeText}>
+                      {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+              <Pressable
                 accessibilityLabel={translateText('마이페이지')}
                 accessibilityRole="button"
                 accessibilityState={{ selected: activeScreen === 'profile' }}
                 onPress={() => onNavigate('profile')}
                 style={(state) => [
-                  styles.myPageButton,
-                  activeScreen === 'profile' && styles.myPageButtonActive,
+                  styles.iconButton,
+                  activeScreen === 'profile' && styles.iconButtonActive,
                   ...interactiveStateStyles(state)
                 ]}
                 title={translateText('마이페이지')}
@@ -352,6 +374,15 @@ function ProfileIcon({ active }) {
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.profileIcon}>
       <View style={[styles.profileIconHead, active && styles.profileIconActivePart]} />
       <View style={[styles.profileIconBody, active && styles.profileIconActivePart]} />
+    </View>
+  );
+}
+
+function MessageIcon({ active }) {
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.messageIcon}>
+      <View style={[styles.messageIconBody, active && styles.profileIconActivePart]} />
+      <View style={[styles.messageIconTail, active && styles.messageIconTailActive]} />
     </View>
   );
 }
@@ -701,7 +732,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14
   },
-  myPageButton: {
+  iconButton: {
     width: 40,
     height: 40,
     minHeight: 40,
@@ -713,9 +744,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...interactions.transition
   },
-  myPageButtonActive: {
+  iconButtonActive: {
     borderColor: colors.mint,
     backgroundColor: colors.mintSoft
+  },
+  iconBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 999,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  iconBadgeText: {
+    color: colors.surface,
+    fontSize: 9,
+    fontWeight: '900'
+  },
+  messageIcon: {
+    width: 21,
+    height: 20,
+    position: 'relative'
+  },
+  messageIconBody: {
+    position: 'absolute',
+    top: 2,
+    left: 1,
+    width: 18,
+    height: 13,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.blueDeep
+  },
+  messageIconTail: {
+    position: 'absolute',
+    left: 5,
+    bottom: 1,
+    width: 7,
+    height: 7,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: colors.blueDeep,
+    transform: [{ rotate: '-35deg' }]
+  },
+  messageIconTailActive: {
+    borderColor: colors.mintDeep
   },
   profileIcon: {
     width: 20,

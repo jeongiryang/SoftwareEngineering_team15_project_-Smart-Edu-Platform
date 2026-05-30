@@ -222,6 +222,52 @@ export function deleteFriend(token, friendId) {
   });
 }
 
+export function getMessageThreads(token) {
+  return request('/messages/threads', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getMessageThread(token, threadId) {
+  return request(`/messages/threads/${threadId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function startMessageThread(token, friendId) {
+  return request('/messages/threads', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ friendId })
+  });
+}
+
+export function sendDirectMessage(token, threadId, content) {
+  return request(`/messages/threads/${threadId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ content })
+  });
+}
+
+export function markMessageThreadRead(token, threadId) {
+  return request(`/messages/threads/${threadId}/read`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
 export function changeCurrentUserPassword(token, payload) {
   return request('/users/me/password', {
     method: 'PATCH',
