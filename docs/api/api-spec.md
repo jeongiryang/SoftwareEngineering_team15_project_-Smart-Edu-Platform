@@ -208,6 +208,7 @@ Response 예시:
 | `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
 | `directMessage.created` | `{ "thread": { "id": 1, "friend": { "id": 2, "name": "학습 친구", "loginId": "study_peer" }, "unreadCount": 1 }, "message": { "id": 10, "threadId": 1, "senderId": 2, "content": "오늘 복습할까요?", "createdAt": "..." } }` | 친구 간 쪽지 작성 성공 후 thread 참여자에게만 전달 |
 | `directMessage.read` | `{ "threadId": 1, "userId": 1, "lastReadAt": "...", "thread": { ... } }` | 사용자가 쪽지 thread를 읽음 처리했을 때 thread 참여자에게만 전달 |
+| `account.status.updated` | `{ "status": "DEACTIVATED", "reason": "USER_WITHDRAWAL", "changedAt": "...", "message": "Account has been withdrawn" }` | 회원 탈퇴 처리 성공 후 해당 사용자 연결에 전달 |
 | `bossRaid.progress.updated` | `{ "party": { "id": 10, "raid": { "id": 1, ... }, "totalDamage": 140, "remainingHp": 160, "progressRate": 0.46, "participantCount": 2, "completed": false } }` | 보스 레이드 파티 생성/참가/상세 갱신 후 진행률이 변경될 수 있을 때 파티 멤버에게만 전달 |
 | `bossRaid.completed` | `{ "party": { "id": 10, "status": "CLEARED", "completed": true, ... } }` | 보스 레이드가 처치 완료 상태로 계산되거나 보상 수령 흐름에서 완료 상태가 확인될 때 파티 멤버에게만 전달 |
 | `collabQuest.progress.updated` | `{ "quest": { "questId": 1, "currentValue": 55, "goalValue": 100, "progressPercent": 55, "participantCount": 2, "completed": false } }` | 협동 퀘스트 생성/참여/기여도 추가 후 진행률이 바뀌었을 때 참여자에게만 전달 |
@@ -557,7 +558,70 @@ Response 예시:
 - 응답에 기존/신규 비밀번호, `passwordHash`, token 원문을 포함하지 않음.
 - 비밀번호는 bcrypt hash로 저장함.
 
-### 6.4 내 프로필 수정
+### 6.4 내 계정 탈퇴
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/users/me` |
+| 인증 | 필요 |
+| 설명 | 현재 비밀번호와 확인 문구 검증 후 현재 로그인한 계정을 soft delete 방식으로 비활성화함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `currentPassword` | string | 예 | 현재 비밀번호 |
+| `confirmationText` | string | 예 | 탈퇴 확인 문구. 정확히 `탈퇴합니다` 입력 필요 |
+
+Request 예시:
+
+```json
+{
+  "currentPassword": "current-password",
+  "confirmationText": "탈퇴합니다"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "message": "Account withdrawn successfully",
+  "user": {
+    "id": 1,
+    "loginId": "user_id",
+    "name": "탈퇴한 사용자",
+    "role": "USER",
+    "status": "DEACTIVATED"
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 확인 문구 불일치, 허용되지 않은 필드 |
+| `401` | `UNAUTHORIZED` | 인증 실패 또는 현재 비밀번호 불일치 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안/운영 주의사항:
+
+- hard delete가 아니라 기존 `AccountStatus.DEACTIVATED`를 사용하는 soft delete로 처리함.
+- 탈퇴 후 기존 token은 `authMiddleware`의 status 검증에서 차단됨.
+- 기존 게시글/댓글/보상/쪽지 등 사용자 참조 데이터는 FK 보호를 위해 유지함.
+- 탈퇴 계정의 `loginId`는 재사용하지 않음.
+- 응답에 `passwordHash`, token 원문, 현재 비밀번호를 포함하지 않음.
+
+### 6.5 내 프로필 수정
 
 | 항목 | 내용 |
 |---|---|
@@ -620,7 +684,7 @@ Response 예시:
 - `role`, `status`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
 
-### 6.5 내 커뮤니티 활동 통계 조회
+### 6.6 내 커뮤니티 활동 통계 조회
 
 | 항목 | 내용 |
 |---|---|
@@ -4017,7 +4081,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest 포함. 최신 확인 기준 27 suites / 461 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 28 suites / 477 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |

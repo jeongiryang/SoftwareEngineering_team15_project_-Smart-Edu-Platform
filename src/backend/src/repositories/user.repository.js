@@ -59,6 +59,13 @@ function updateUserPassword(userId, passwordHash) {
   });
 }
 
+function deactivateUser(userId, data) {
+  return prisma.user.update({
+    where: { id: userId },
+    data
+  });
+}
+
 async function getUserActivityStats(userId) {
   const [
     postCount,
@@ -92,6 +99,7 @@ async function getUserActivityStats(userId) {
 
 module.exports = {
   createUser,
+  deactivateUser,
   findUserByLoginId,
   findUserById,
   findUserWithProfileById,

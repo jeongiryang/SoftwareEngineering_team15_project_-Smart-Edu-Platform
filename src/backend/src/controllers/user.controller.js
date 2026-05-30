@@ -1,5 +1,13 @@
-const { changeMyPassword, getMyActivityStats, getMyUser, updateMyAccount, updateMyProfile } = require('../services/user.service');
+const {
+  changeMyPassword,
+  getMyActivityStats,
+  getMyUser,
+  updateMyAccount,
+  updateMyProfile,
+  withdrawMyAccount
+} = require('../services/user.service');
 const { searchFriendCandidates } = require('../services/friend.service');
+const { broadcastRealtimeEventToUsers } = require('../realtime/websocket.server');
 const { sendSuccess } = require('../utils/apiResponse');
 const { asyncHandler } = require('../utils/asyncHandler');
 
@@ -35,6 +43,22 @@ const changeMyPasswordController = asyncHandler(async (req, res) => {
   });
 });
 
+const withdrawMyAccountController = asyncHandler(async (req, res) => {
+  const user = await withdrawMyAccount(req.user.id, req.body);
+
+  broadcastRealtimeEventToUsers([req.user.id], 'account.status.updated', {
+    status: user.status,
+    reason: 'USER_WITHDRAWAL',
+    changedAt: new Date().toISOString(),
+    message: 'Account has been withdrawn'
+  });
+
+  sendSuccess(res, 200, {
+    message: 'Account withdrawn successfully',
+    user
+  });
+});
+
 const searchUsersController = asyncHandler(async (req, res) => {
   const users = await searchFriendCandidates(req.user.id, req.query.keyword);
 
@@ -47,5 +71,6 @@ module.exports = {
   searchUsers: searchUsersController,
   updateMyAccount: updateMyAccountController,
   changeMyPassword: changeMyPasswordController,
-  updateMyProfile: updateMyProfileController
+  updateMyProfile: updateMyProfileController,
+  withdrawMyAccount: withdrawMyAccountController
 };

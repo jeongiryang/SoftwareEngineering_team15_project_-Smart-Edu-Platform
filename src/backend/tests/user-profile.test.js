@@ -36,6 +36,17 @@ jest.mock('../src/repositories/user.repository', () => ({
 
     return user;
   }),
+  deactivateUser: jest.fn(async (userId, data) => {
+    const user = mockUsers.find((item) => item.id === Number(userId));
+
+    if (!user) {
+      return null;
+    }
+
+    Object.assign(user, data);
+
+    return user;
+  }),
   findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null),
   findUserWithProfileById: jest.fn(async (id) => {
@@ -377,6 +388,102 @@ describe('PATCH /api/users/me/password', () => {
       });
 
     expect(response.status).toBe(400);
+  });
+});
+
+describe('DELETE /api/users/me', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app)
+      .delete('/api/users/me')
+      .send({
+        currentPassword: 'password1234',
+        confirmationText: '탈퇴합니다'
+      });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects unsupported withdrawal fields', async () => {
+    const { payload, token } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        confirmationText: '탈퇴합니다',
+        userId: 999
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects incorrect current passwords', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: 'wrong-password',
+        confirmationText: '탈퇴합니다'
+      });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects incorrect confirmation text', async () => {
+    const { payload, token } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        confirmationText: '탈퇴'
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('soft-deactivates the current user and blocks the old token', async () => {
+    const { payload, token, user } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        confirmationText: '탈퇴합니다'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toEqual(
+      expect.objectContaining({
+        id: user.id,
+        loginId: payload.loginId,
+        name: '탈퇴한 사용자',
+        status: 'DEACTIVATED'
+      })
+    );
+    expectSafeUser(response.body.user);
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+    expect(mockUsers).toHaveLength(1);
+
+    const meResponse = await request(app)
+      .get('/api/users/me')
+      .set(createAuthHeader(token));
+
+    expect(meResponse.status).toBe(401);
+
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({
+        loginId: payload.loginId,
+        password: payload.password
+      });
+
+    expect(loginResponse.status).toBe(403);
   });
 });
 

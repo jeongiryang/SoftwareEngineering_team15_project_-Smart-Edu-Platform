@@ -5,6 +5,7 @@ import FieldFeedback from '../components/FieldFeedback';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   changeCurrentUserPassword,
+  deleteCurrentUser,
   getCommunityBookmarks,
   getFriendRequests,
   getFriends,
@@ -16,6 +17,8 @@ import {
   updateCurrentUser
 } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
+
+const WITHDRAWAL_CONFIRMATION_TEXT = '탈퇴합니다';
 
 const EMPTY_PROFILE_DATA = {
   schedules: [],
@@ -106,8 +109,8 @@ function formatAccountStatus(status) {
     return '제한된 계정';
   }
 
-  if (status === 'DELETED') {
-    return '탈퇴 처리 계정';
+  if (status === 'DEACTIVATED' || status === 'DELETED') {
+    return '비활성/탈퇴 처리 계정';
   }
 
   return '활성 계정';
@@ -165,6 +168,26 @@ function getConfirmPasswordFeedback(newPassword, confirmPassword) {
   }
 
   return { tone: 'success', message: '두 비밀번호가 일치해요.' };
+}
+
+function getWithdrawalPasswordFeedback(currentPassword) {
+  if (!currentPassword) {
+    return { tone: 'info', message: '본인 확인을 위해 현재 비밀번호를 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '현재 비밀번호가 입력되었습니다.' };
+}
+
+function getWithdrawalConfirmationFeedback(confirmationText) {
+  if (!confirmationText) {
+    return { tone: 'info', message: `"${WITHDRAWAL_CONFIRMATION_TEXT}"를 그대로 입력해야 탈퇴할 수 있습니다.` };
+  }
+
+  if (confirmationText.trim() !== WITHDRAWAL_CONFIRMATION_TEXT) {
+    return { tone: 'error', message: '확인 문구가 일치하지 않습니다.' };
+  }
+
+  return { tone: 'success', message: '확인 문구가 일치합니다.' };
 }
 
 function getInitial(name = '') {
@@ -242,7 +265,7 @@ function SectionCard({ children, headerAction, subtitle, title }) {
   );
 }
 
-export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token, user }) {
+export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, onUserUpdate, token, user }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -253,6 +276,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
   const [nameForm, setNameForm] = useState(user?.name || '');
   const [savingName, setSavingName] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [withdrawingAccount, setWithdrawingAccount] = useState(false);
   const [accountMessage, setAccountMessage] = useState('');
   const [accountError, setAccountError] = useState('');
   const [passwordForm, setPasswordForm] = useState({
@@ -261,6 +285,10 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     confirmPassword: ''
   });
   const [accountSection, setAccountSection] = useState('nickname');
+  const [withdrawalForm, setWithdrawalForm] = useState({
+    currentPassword: '',
+    confirmationText: ''
+  });
 
   useEffect(() => {
     setNameForm(user?.name || '');
@@ -397,6 +425,38 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
       setAccountError(submitError.message || '비밀번호를 변경하지 못했습니다.');
     } finally {
       setChangingPassword(false);
+    }
+  }
+
+  async function handleWithdrawalSubmit() {
+    if (!token || withdrawingAccount) {
+      return;
+    }
+
+    setAccountMessage('');
+    setAccountError('');
+
+    if (!withdrawalForm.currentPassword || !withdrawalForm.confirmationText) {
+      setAccountError('현재 비밀번호와 확인 문구를 모두 입력해 주세요.');
+      return;
+    }
+
+    if (withdrawalForm.confirmationText.trim() !== WITHDRAWAL_CONFIRMATION_TEXT) {
+      setAccountError(`확인 문구로 "${WITHDRAWAL_CONFIRMATION_TEXT}"를 정확히 입력해 주세요.`);
+      return;
+    }
+
+    setWithdrawingAccount(true);
+
+    try {
+      const result = await deleteCurrentUser(token, withdrawalForm);
+      setWithdrawalForm({ currentPassword: '', confirmationText: '' });
+      onUserUpdate?.(result.user);
+      onAccountDeleted?.(result.user);
+    } catch (submitError) {
+      setAccountError(submitError.message || '회원 탈퇴를 처리하지 못했습니다.');
+    } finally {
+      setWithdrawingAccount(false);
     }
   }
 
@@ -762,7 +822,8 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
               <View style={styles.accountTabRow}>
                 {[
                   { key: 'nickname', label: '닉네임 변경' },
-                  { key: 'password', label: '비밀번호 변경' }
+                  { key: 'password', label: '비밀번호 변경' },
+                  { key: 'withdrawal', label: '회원 탈퇴' }
                 ].map((item) => {
                   const active = accountSection === item.key;
 
@@ -814,7 +875,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   </View>
                   <FieldFeedback {...getProfileNameFeedback(nameForm, user?.name)} />
                 </View>
-              ) : (
+              ) : accountSection === 'password' ? (
                 <View style={styles.accountPanel}>
                   <Text style={styles.formLabel}>비밀번호 변경</Text>
                   <Text style={styles.formHelper}>현재 비밀번호 확인 후 새 비밀번호를 저장합니다. 비밀번호 원문이나 hash는 화면에 표시하지 않습니다.</Text>
@@ -856,6 +917,47 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                     ]}
                   >
                     <Text style={styles.passwordButtonText}>{changingPassword ? '변경 중' : '비밀번호 변경'}</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={[styles.accountPanel, styles.withdrawalPanel]}>
+                  <Text style={styles.formLabel}>회원 탈퇴</Text>
+                  <Text style={styles.formHelper}>
+                    탈퇴하면 계정 상태가 비활성화되고 즉시 로그아웃됩니다. 기존 게시글과 댓글은 서비스 흐름이 깨지지 않도록 유지되며, 로그인 아이디는 재사용할 수 없습니다.
+                  </Text>
+                  <View style={styles.withdrawalWarning}>
+                    <Text style={styles.withdrawalWarningTitle}>탈퇴 전 확인</Text>
+                    <Text style={styles.withdrawalWarningText}>현재 비밀번호와 확인 문구를 입력해야 탈퇴할 수 있습니다.</Text>
+                    <Text style={styles.withdrawalWarningText}>확인 문구: {WITHDRAWAL_CONFIRMATION_TEXT}</Text>
+                  </View>
+                  <AccessibleTextInput
+                    onChangeText={(value) => setWithdrawalForm((current) => ({ ...current, currentPassword: value }))}
+                    placeholder="현재 비밀번호"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={withdrawalForm.currentPassword}
+                  />
+                  <FieldFeedback {...getWithdrawalPasswordFeedback(withdrawalForm.currentPassword)} />
+                  <AccessibleTextInput
+                    onChangeText={(value) => setWithdrawalForm((current) => ({ ...current, confirmationText: value }))}
+                    placeholder={WITHDRAWAL_CONFIRMATION_TEXT}
+                    placeholderTextColor={colors.muted}
+                    style={styles.textInput}
+                    value={withdrawalForm.confirmationText}
+                  />
+                  <FieldFeedback {...getWithdrawalConfirmationFeedback(withdrawalForm.confirmationText)} />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={withdrawingAccount}
+                    onPress={handleWithdrawalSubmit}
+                    style={(state) => [
+                      styles.withdrawalButton,
+                      withdrawingAccount && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: withdrawingAccount })
+                    ]}
+                  >
+                    <Text style={styles.withdrawalButtonText}>{withdrawingAccount ? '탈퇴 처리 중' : '회원 탈퇴'}</Text>
                   </Pressable>
                 </View>
               )}
@@ -1400,6 +1502,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     padding: 16
   },
+  withdrawalPanel: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft
+  },
+  withdrawalWarning: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: colors.surface,
+    padding: 14,
+    gap: 6
+  },
+  withdrawalWarningTitle: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  withdrawalWarningText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20
+  },
   formGroup: {
     gap: 9
   },
@@ -1464,6 +1588,21 @@ const styles = StyleSheet.create({
     ...interactions.transition
   },
   passwordButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  withdrawalButton: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: colors.danger,
+    paddingHorizontal: 18,
+    justifyContent: 'center'
+  },
+  withdrawalButtonText: {
     color: colors.surface,
     fontSize: 13,
     fontWeight: '900'

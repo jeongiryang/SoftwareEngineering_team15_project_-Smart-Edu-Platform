@@ -278,6 +278,16 @@ export function changeCurrentUserPassword(token, payload) {
   });
 }
 
+export function deleteCurrentUser(token, payload) {
+  return request('/users/me', {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
 export function getMyRewards(token) {
   return request('/rewards/me', {
     headers: {

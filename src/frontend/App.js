@@ -447,6 +447,15 @@ function AppRoot() {
     navigateTo('home', { replace: true });
   }
 
+  function handleAccountDeleted() {
+    removeStoredToken();
+    setShowLogoutModal(false);
+    setToken(null);
+    setUser(null);
+    setMessageUnreadCount(0);
+    navigateTo('login', { replace: true });
+  }
+
   if (initializing || maintenanceLoading) {
     return (
       <AccessibilityProvider token={token}>
@@ -511,6 +520,7 @@ function AppRoot() {
         <View nativeID="sagak-screen-content" style={styles.container}>
           <Screen
             onAuthenticated={handleAuthenticated}
+            onAccountDeleted={handleAccountDeleted}
             onLogout={() => setShowLogoutModal(true)}
             onMessagesChanged={updateMessageUnreadCount}
             onNavigate={navigateTo}
