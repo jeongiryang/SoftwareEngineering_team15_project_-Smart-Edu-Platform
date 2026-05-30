@@ -183,8 +183,13 @@ jest.mock('../src/repositories/admin.repository', () => ({
   })
 }));
 
+jest.mock('../src/realtime/websocket.server', () => ({
+  broadcastRealtimeEventToUsers: jest.fn()
+}));
+
 const request = require('supertest');
 const app = require('../src/app');
+const { broadcastRealtimeEventToUsers } = require('../src/realtime/websocket.server');
 const { signToken } = require('../src/utils/jwt');
 const { createAuthHeader } = require('./helpers/auth.helper');
 const { expectNoPasswordHash } = require('./helpers/assert.helper');
@@ -242,7 +247,8 @@ describe('Admin APIs', () => {
     mockUsers[0].status = 'ACTIVE';
     mockUsers[1].status = 'ACTIVE';
     mockActions.length = 0;
-    
+    broadcastRealtimeEventToUsers.mockClear();
+
     // Reset posts
     mockPosts.length = 0;
     mockPosts.push(
@@ -392,6 +398,16 @@ describe('Admin APIs', () => {
       expect(response.body.action.actionType).toBe('SUSPEND_USER');
       expect(response.body.action.status).toBe('SUSPENDED');
       expect(response.body.action.reason).toBe('부적절한 발언');
+      expect(broadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+        [1],
+        'account.status.updated',
+        expect.objectContaining({
+          status: 'SUSPENDED',
+          reason: 'ADMIN_STATUS_CHANGE',
+          message: 'Account status changed to SUSPENDED',
+          changedAt: expect.any(String)
+        })
+      );
     });
 
     it('fails if administrator tries to suspend own account (400)', async () => {
@@ -402,6 +418,7 @@ describe('Admin APIs', () => {
 
       expect(response.status).toBe(400);
       expect(mockUsers[1].status).toBe('ACTIVE');
+      expect(broadcastRealtimeEventToUsers).not.toHaveBeenCalled();
     });
 
     it('fails if administrator tries to deactivate own account (400)', async () => {

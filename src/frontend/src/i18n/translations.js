@@ -549,7 +549,17 @@ const UI_TRANSLATIONS = {
     'admin.userStatus.currentStatus': '현재 상태',
     'admin.userStatus.description.ACTIVE': '로그인과 서비스 이용이 모두 가능한 정상 운영 상태입니다.',
     'admin.userStatus.description.SUSPENDED': '운영자가 일시적으로 이용을 제한한 상태입니다. 사유 입력을 권장합니다.',
-    'admin.userStatus.description.DEACTIVATED': '탈퇴 또는 비활성 처리된 계정 상태입니다. 일반 서비스 이용이 제한됩니다.'
+    'admin.userStatus.description.DEACTIVATED': '탈퇴 또는 비활성 처리된 계정 상태입니다. 일반 서비스 이용이 제한됩니다.',
+    'account.restricted.accessibilityLabel': '계정 이용 제한 안내',
+    'account.restricted.badge': '계정 이용 제한',
+    'account.restricted.title.SUSPENDED': '계정이 일시 정지되었습니다',
+    'account.restricted.title.DEACTIVATED': '계정이 비활성화되었습니다',
+    'account.restricted.message.SUSPENDED': '관리자에 의해 서비스 이용이 일시 제한되었습니다. 제한이 해제되면 이 화면이 자동으로 사라집니다.',
+    'account.restricted.message.DEACTIVATED': '탈퇴 또는 비활성 처리된 계정입니다. 다시 이용하려면 관리자에게 상태 확인을 요청해 주세요.',
+    'account.restricted.changedAt': '변경 시각',
+    'account.restricted.login': '로그인 화면으로 이동',
+    'account.restricted.logout': '로그아웃',
+    'account.restricted.help': '예상하지 못한 제한이라면 관리자에게 계정 상태 확인을 요청해 주세요.'
   },
   en: {
     'language.selectorLabel': 'Language',
@@ -594,7 +604,17 @@ const UI_TRANSLATIONS = {
     'admin.userStatus.currentStatus': 'Current status',
     'admin.userStatus.description.ACTIVE': 'The account can sign in and use the service normally.',
     'admin.userStatus.description.SUSPENDED': 'The account is temporarily restricted by an admin. A reason is recommended.',
-    'admin.userStatus.description.DEACTIVATED': 'The account is withdrawn or deactivated. General service use is restricted.'
+    'admin.userStatus.description.DEACTIVATED': 'The account is withdrawn or deactivated. General service use is restricted.',
+    'account.restricted.accessibilityLabel': 'Account access restriction notice',
+    'account.restricted.badge': 'Account access restricted',
+    'account.restricted.title.SUSPENDED': 'Your account has been suspended',
+    'account.restricted.title.DEACTIVATED': 'Your account has been deactivated',
+    'account.restricted.message.SUSPENDED': 'An administrator has temporarily restricted service access. This screen will disappear when the restriction is lifted.',
+    'account.restricted.message.DEACTIVATED': 'This account has been withdrawn or deactivated. Ask an administrator to review the account status before using the service again.',
+    'account.restricted.changedAt': 'Changed at',
+    'account.restricted.login': 'Go to login',
+    'account.restricted.logout': 'Log out',
+    'account.restricted.help': 'If this looks unexpected, ask an administrator to review the account status.'
   },
   ja: {
     'language.selectorLabel': '言語選択',
@@ -604,7 +624,17 @@ const UI_TRANSLATIONS = {
     'admin.userStatus.currentStatus': '現在の状態',
     'admin.userStatus.description.ACTIVE': 'ログインとサービス利用が可能な通常運用状態です。',
     'admin.userStatus.description.SUSPENDED': '管理者が一時的に利用を制限した状態です。理由の入力を推奨します。',
-    'admin.userStatus.description.DEACTIVATED': '退会または無効化されたアカウント状態です。通常のサービス利用は制限されます。'
+    'admin.userStatus.description.DEACTIVATED': '退会または無効化されたアカウント状態です。通常のサービス利用は制限されます。',
+    'account.restricted.accessibilityLabel': 'アカウント利用制限のお知らせ',
+    'account.restricted.badge': 'アカウント利用制限',
+    'account.restricted.title.SUSPENDED': 'アカウントが一時停止されました',
+    'account.restricted.title.DEACTIVATED': 'アカウントが無効化されました',
+    'account.restricted.message.SUSPENDED': '管理者によりサービス利用が一時的に制限されています。制限が解除されるとこの画面は自動で消えます。',
+    'account.restricted.message.DEACTIVATED': '退会または無効化されたアカウントです。再利用するには管理者に状態確認を依頼してください。',
+    'account.restricted.changedAt': '変更時刻',
+    'account.restricted.login': 'ログイン画面へ移動',
+    'account.restricted.logout': 'ログアウト',
+    'account.restricted.help': '心当たりがない場合は、管理者にアカウント状態の確認を依頼してください。'
   },
   zh: {
     'language.selectorLabel': '语言选择',
@@ -614,7 +644,17 @@ const UI_TRANSLATIONS = {
     'admin.userStatus.currentStatus': '当前状态',
     'admin.userStatus.description.ACTIVE': '账号可正常登录并使用服务。',
     'admin.userStatus.description.SUSPENDED': '账号已被管理员临时限制。建议填写处理原因。',
-    'admin.userStatus.description.DEACTIVATED': '账号已注销或停用，普通服务使用将受到限制。'
+    'admin.userStatus.description.DEACTIVATED': '账号已注销或停用，普通服务使用将受到限制。',
+    'account.restricted.accessibilityLabel': '账号使用限制提示',
+    'account.restricted.badge': '账号使用受限',
+    'account.restricted.title.SUSPENDED': '账号已被暂时停用',
+    'account.restricted.title.DEACTIVATED': '账号已被停用',
+    'account.restricted.message.SUSPENDED': '管理员已暂时限制该账号使用服务。限制解除后，此页面会自动消失。',
+    'account.restricted.message.DEACTIVATED': '该账号已注销或停用。如需继续使用，请联系管理员确认账号状态。',
+    'account.restricted.changedAt': '变更时间',
+    'account.restricted.login': '前往登录页面',
+    'account.restricted.logout': '退出登录',
+    'account.restricted.help': '如果这不是预期状态，请联系管理员确认账号状态。'
   }
 };
 

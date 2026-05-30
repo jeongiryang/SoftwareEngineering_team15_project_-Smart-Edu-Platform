@@ -51,6 +51,7 @@ const screens = {
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
 const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'messages', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest'];
+const restrictedAccountStatuses = ['SUSPENDED', 'DEACTIVATED'];
 
 const screenPaths = {
   home: '/',
@@ -205,6 +206,24 @@ function normalizeScreen(screen) {
   return screens[screen] ? screen : 'home';
 }
 
+function isRestrictedAccountStatus(status) {
+  return restrictedAccountStatuses.includes(status);
+}
+
+function formatRestrictedChangedAt(value) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleString();
+}
+
 function getStorage() {
   try {
     return globalThis.localStorage || null;
@@ -247,12 +266,14 @@ function AppRoot() {
   const [, setRealtimeStatus] = useState('disconnected');
   const [adminNotice, setAdminNotice] = useState(null);
   const [latestRealtimeEvent, setLatestRealtimeEvent] = useState(null);
+  const [accountStatusEvent, setAccountStatusEvent] = useState(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LandingScreen;
   const maintenanceEnabled = Boolean(maintenanceStatus?.enabled);
   const adminBypass = user?.role === 'ADMIN';
+  const accountRestricted = Boolean(user && isRestrictedAccountStatus(user.status));
   const showMaintenanceScreen = maintenanceEnabled && !adminBypass && currentScreen !== 'login';
 
   const navigateTo = useCallback((screen, options = {}) => {
@@ -355,6 +376,25 @@ function AppRoot() {
       return;
     }
 
+    if (event.type === 'account.status.updated' && event.payload?.status) {
+      const nextStatus = event.payload.status;
+      setUser((currentUser) => (
+        currentUser ? { ...currentUser, status: nextStatus } : currentUser
+      ));
+      setAccountStatusEvent({
+        status: nextStatus,
+        reason: event.payload.reason || '',
+        message: event.payload.message || '',
+        changedAt: event.payload.changedAt || event.sentAt || new Date().toISOString()
+      });
+
+      if (isRestrictedAccountStatus(nextStatus)) {
+        setMessageUnreadCount(0);
+      }
+
+      return;
+    }
+
     if (event.type === 'directMessage.created' || event.type === 'directMessage.read') {
       refreshMessageUnreadCount();
     }
@@ -418,6 +458,7 @@ function AppRoot() {
     saveStoredToken(nextToken);
     setToken(nextToken);
     setUser(nextUser);
+    setAccountStatusEvent(null);
     navigateTo('dashboard', { replace: true });
   }
 
@@ -425,6 +466,16 @@ function AppRoot() {
     removeStoredToken();
     setToken(null);
     setUser(null);
+    setAccountStatusEvent(null);
+    navigateTo('login', { replace: true });
+  }
+
+  function handleRestrictedLogin() {
+    removeStoredToken();
+    setToken(null);
+    setUser(null);
+    setMessageUnreadCount(0);
+    setAccountStatusEvent(null);
     navigateTo('login', { replace: true });
   }
 
@@ -434,6 +485,7 @@ function AppRoot() {
     setToken(null);
     setUser(null);
     setMessageUnreadCount(0);
+    setAccountStatusEvent(null);
     navigateTo('home', { replace: true });
   }
 
@@ -443,6 +495,7 @@ function AppRoot() {
     setToken(null);
     setUser(null);
     setMessageUnreadCount(0);
+    setAccountStatusEvent(null);
     navigateTo('login', { replace: true });
   }
 
@@ -461,6 +514,33 @@ function AppRoot() {
           <View style={styles.loadingShell}>
             <PanelSkeleton rows={4} />
             <PanelSkeleton rows={3} />
+          </View>
+        </AppChrome>
+      </AccessibilityProvider>
+    );
+  }
+
+  if (accountRestricted) {
+    return (
+      <AccessibilityProvider token={token}>
+        <AppChrome
+          activeScreenName="home"
+          adminNotice={adminNotice}
+          handleLogout={handleLogout}
+          messageUnreadCount={0}
+          navigateTo={navigateTo}
+          onCloseAdminNotice={() => setAdminNotice(null)}
+          showHeader={false}
+          showLogoutModal={false}
+          user={user}
+        >
+          <View nativeID="sagak-screen-content" style={styles.container}>
+            <AccountRestrictedScreen
+              event={accountStatusEvent}
+              onLogin={handleRestrictedLogin}
+              onLogout={handleLogout}
+              status={user.status}
+            />
           </View>
         </AppChrome>
       </AccessibilityProvider>
@@ -522,6 +602,88 @@ function AppRoot() {
         </View>
       </AppChrome>
     </AccessibilityProvider>
+  );
+}
+
+function AccountRestrictedScreen({ event, onLogin, onLogout, status }) {
+  const { palette } = useThemeMode();
+  const { t } = useLanguage();
+  const changedAt = formatRestrictedChangedAt(event?.changedAt);
+  const normalizedStatus = status === 'DEACTIVATED' ? 'DEACTIVATED' : 'SUSPENDED';
+
+  return (
+    <View
+      accessibilityLabel={t('account.restricted.accessibilityLabel', 'Account access is restricted')}
+      accessibilityRole="alert"
+      style={[styles.accountRestrictedShell, { backgroundColor: palette.background }]}
+    >
+      <View
+        style={[
+          styles.accountRestrictedCard,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.line,
+            shadowColor: palette.shadow
+          }
+        ]}
+      >
+        <View style={[styles.accountRestrictedBadge, { backgroundColor: palette.warningSoft, borderColor: palette.warning }]}>
+          <Text style={[styles.accountRestrictedBadgeText, { color: palette.warning }]}>
+            {t('account.restricted.badge', 'Account access restricted')}
+          </Text>
+        </View>
+        <Text style={[styles.accountRestrictedTitle, { color: palette.ink }]}>
+          {t(
+            `account.restricted.title.${normalizedStatus}`,
+            normalizedStatus === 'DEACTIVATED' ? 'Account is deactivated' : 'Account is suspended'
+          )}
+        </Text>
+        <Text style={[styles.accountRestrictedMessage, { color: palette.muted }]}>
+          {t(
+            `account.restricted.message.${normalizedStatus}`,
+            'Please contact an administrator or sign in again after the restriction is resolved.'
+          )}
+        </Text>
+        {changedAt ? (
+          <Text style={[styles.accountRestrictedMeta, { color: palette.muted }]}>
+            {t('account.restricted.changedAt', 'Changed at')}: {changedAt}
+          </Text>
+        ) : null}
+        <View style={styles.accountRestrictedActions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onLogin}
+            style={({ hovered, pressed }) => [
+              styles.accountRestrictedPrimaryButton,
+              { backgroundColor: palette.blue, borderColor: palette.blue },
+              hovered && styles.accountRestrictedButtonHovered,
+              pressed && styles.accountRestrictedButtonPressed
+            ]}
+          >
+            <Text style={[styles.accountRestrictedPrimaryButtonText, { color: palette.surface }]}>
+              {t('account.restricted.login', 'Go to login')}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onLogout}
+            style={({ hovered, pressed }) => [
+              styles.accountRestrictedSecondaryButton,
+              { backgroundColor: palette.surfaceWarm, borderColor: palette.line },
+              hovered && styles.accountRestrictedButtonHovered,
+              pressed && styles.accountRestrictedButtonPressed
+            ]}
+          >
+            <Text style={[styles.accountRestrictedSecondaryButtonText, { color: palette.ink }]}>
+              {t('account.restricted.logout', 'Log out')}
+            </Text>
+          </Pressable>
+        </View>
+        <Text style={[styles.accountRestrictedHelp, { color: palette.muted }]}>
+          {t('account.restricted.help', 'If this looks unexpected, ask an administrator to review the account status.')}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -663,6 +825,91 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     padding: 30,
     gap: 18
+  },
+  accountRestrictedShell: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24
+  },
+  accountRestrictedCard: {
+    width: '100%',
+    maxWidth: 560,
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 30,
+    gap: 16,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.14,
+    shadowRadius: 32,
+    elevation: 4
+  },
+  accountRestrictedBadge: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7
+  },
+  accountRestrictedBadgeText: {
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  accountRestrictedTitle: {
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: '900'
+  },
+  accountRestrictedMessage: {
+    fontSize: 16,
+    lineHeight: 26,
+    fontWeight: '700'
+  },
+  accountRestrictedMeta: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700'
+  },
+  accountRestrictedActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 6
+  },
+  accountRestrictedPrimaryButton: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  accountRestrictedSecondaryButton: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  accountRestrictedButtonHovered: {
+    transform: [{ translateY: -1 }]
+  },
+  accountRestrictedButtonPressed: {
+    transform: [{ translateY: 1 }]
+  },
+  accountRestrictedPrimaryButtonText: {
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  accountRestrictedSecondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  accountRestrictedHelp: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '700'
   },
   readPageButton: {
     position: 'absolute',
