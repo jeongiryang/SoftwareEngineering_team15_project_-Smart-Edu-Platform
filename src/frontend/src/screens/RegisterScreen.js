@@ -9,7 +9,7 @@ function getNameFeedback(name) {
   const trimmedName = name.trim();
 
   if (!trimmedName) {
-    return { tone: 'info', message: '이름 또는 닉네임을 입력해 주세요.' };
+    return { tone: 'info', message: '닉네임을 입력해 주세요.' };
   }
 
   if (trimmedName.length < 2) {
@@ -20,7 +20,7 @@ function getNameFeedback(name) {
     return { tone: 'error', message: '30자 이하로 입력해 주세요.' };
   }
 
-  return { tone: 'success', message: '좋은 이름이에요. 계속 진행할 수 있어요.' };
+  return { tone: 'success', message: '좋은 닉네임이에요. 계속 진행할 수 있어요.' };
 }
 
 function getLoginIdFeedback(loginId) {
@@ -90,8 +90,8 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
       <View style={[styles.formCard, shadows.card]}>
         <Text style={styles.title}>회원가입</Text>
         <Text style={styles.subtitle}>사각사각에서 나만의 학습 공간을 만드세요.</Text>
-        <Text style={styles.label}>이름</Text>
-        <AccessibleTextInput enableVoiceInput={false} onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
+        <Text style={styles.label}>닉네임</Text>
+        <AccessibleTextInput enableVoiceInput={false} onChangeText={setName} placeholder="닉네임을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
         <FieldFeedback {...getNameFeedback(name)} />
         <Text style={styles.label}>아이디</Text>
         <AccessibleTextInput autoCapitalize="none" enableVoiceInput={false} onChangeText={setLoginId} placeholder="dev_user" placeholderTextColor={colors.muted} style={styles.input} value={loginId} />

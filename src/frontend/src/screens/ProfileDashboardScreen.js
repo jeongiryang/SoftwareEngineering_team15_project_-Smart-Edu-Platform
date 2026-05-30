@@ -789,7 +789,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
               {accountSection === 'nickname' ? (
                 <View style={styles.accountPanel}>
                   <Text style={styles.formLabel}>닉네임</Text>
-                  <Text style={styles.formHelper}>커뮤니티와 프로필에 표시되는 이름입니다. 실제 중복 확인은 저장 시 서버 응답 기준으로 처리합니다.</Text>
+                  <Text style={styles.formHelper}>커뮤니티와 프로필에 표시되는 닉네임입니다. 실제 중복 확인은 저장 시 서버 응답 기준으로 처리합니다.</Text>
                   <View style={styles.inlineForm}>
                     <AccessibleTextInput
                       containerStyle={styles.inlineTextInputContainer}

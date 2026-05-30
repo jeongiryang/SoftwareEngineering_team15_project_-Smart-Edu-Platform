@@ -246,7 +246,7 @@ WebSocket URL 기준:
 | Method | `POST` |
 | Endpoint | `/api/auth/register` |
 | 인증 | 불필요 |
-| 설명 | 아이디, 비밀번호, 이름을 받아 사용자를 생성하고 JWT를 발급함 |
+| 설명 | 아이디, 비밀번호, 닉네임을 받아 사용자를 생성하고 JWT를 발급함 |
 
 Request Body:
 
@@ -254,7 +254,7 @@ Request Body:
 |---|---|---|---|
 | `loginId` | string | 예 | 사용자 아이디 |
 | `password` | string | 예 | 사용자 비밀번호 |
-| `name` | string | 예 | 사용자 이름 |
+| `name` | string | 예 | 사용자 닉네임. API field는 기존 호환성을 위해 `name`을 유지함 |
 
 Request 예시:
 
@@ -452,7 +452,7 @@ Response 예시:
 | Method | `PATCH` |
 | Endpoint | `/api/users/me` |
 | 인증 | 필요 |
-| 설명 | 로그인한 사용자의 표시명/닉네임을 수정함 |
+| 설명 | 로그인한 사용자의 닉네임을 수정함 |
 
 Request Header:
 
@@ -464,7 +464,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `name` | string | 사용자 표시명 또는 닉네임 |
+| `name` | string | 사용자 닉네임. API field는 기존 호환성을 위해 `name`을 유지함 |
 
 Request 예시:
 
@@ -492,7 +492,7 @@ Response 예시:
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `400` | `VALIDATION_ERROR` | 빈 이름, 허용되지 않은 필드, 잘못된 필드 타입 |
+| `400` | `VALIDATION_ERROR` | 빈 닉네임, 허용되지 않은 필드, 잘못된 필드 타입 |
 | `401` | `UNAUTHORIZED` | 인증 실패 |
 | `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
 
@@ -694,7 +694,7 @@ Response 예시:
 | Method | `GET` |
 | Endpoint | `/api/users/search?keyword=...` |
 | 인증 | 필요 |
-| 설명 | 이름 또는 아이디 일부로 친구 추가 대상을 검색함 |
+| 설명 | 닉네임 또는 아이디 일부로 친구 추가 대상을 검색함 |
 
 Query:
 

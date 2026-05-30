@@ -46,7 +46,7 @@ function getFriendSearchFeedback(keyword) {
   const trimmedKeyword = keyword.trim();
 
   if (!trimmedKeyword) {
-    return { tone: 'info', message: '이름 또는 아이디 일부를 입력해 친구를 찾을 수 있어요.' };
+    return { tone: 'info', message: '닉네임 또는 아이디 일부를 입력해 친구를 찾을 수 있어요.' };
   }
 
   if (trimmedKeyword.length < 2) {
@@ -415,7 +415,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>친구 검색</Text>
-                <Text style={styles.sectionSubtitle}>이름 또는 아이디 일부로 친구를 찾아 요청을 보낼 수 있습니다.</Text>
+                <Text style={styles.sectionSubtitle}>닉네임 또는 아이디 일부로 친구를 찾아 요청을 보낼 수 있습니다.</Text>
               </View>
             </View>
             <View style={styles.searchRow}>
@@ -424,7 +424,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
                 containerStyle={styles.searchInputContainer}
                 onChangeText={setSearchKeyword}
                 onSubmitEditing={handleSearch}
-                placeholder="친구 이름 또는 아이디"
+                placeholder="친구 닉네임 또는 아이디"
                 placeholderTextColor={colors.muted}
                 style={styles.searchInput}
                 value={searchKeyword}
@@ -446,7 +446,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
             ) : (
               <EmptyState
                 title="검색 결과가 아직 없습니다."
-                description="친구 이름이나 아이디 일부를 2글자 이상 입력해 보세요."
+                description="친구 닉네임이나 아이디 일부를 2글자 이상 입력해 보세요."
                 actionLabel="커뮤니티 보기"
                 onPress={() => onNavigate('community')}
               />

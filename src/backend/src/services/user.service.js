@@ -99,20 +99,20 @@ function buildAccountUpdateData(payload = {}) {
   }
 
   assertSupportedFields(payload, EDITABLE_ACCOUNT_FIELDS, 'Account update contains unsupported fields');
-  requireFields(payload, ['name'], 'Name is required');
+  requireFields(payload, ['name'], 'Nickname is required');
 
   if (typeof payload.name !== 'string') {
-    throw validationError('Name must be a string', { field: 'name' });
+    throw validationError('Nickname must be a string', { field: 'name' });
   }
 
   const name = normalizeString(payload.name);
 
   if (!name) {
-    throw validationError('Name is required', { field: 'name' });
+    throw validationError('Nickname is required', { field: 'name' });
   }
 
   if (name.length > 40) {
-    throw validationError('Name must be 40 characters or fewer', {
+    throw validationError('Nickname must be 40 characters or fewer', {
       field: 'name',
       maxLength: 40
     });
