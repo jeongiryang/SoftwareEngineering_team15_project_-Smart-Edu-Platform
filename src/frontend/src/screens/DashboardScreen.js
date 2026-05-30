@@ -877,13 +877,6 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <View style={styles.memberBadge}>
               <Text style={styles.memberBadgeText}>{hasAdminRole ? 'ADMIN ACCOUNT' : 'LEARNER ACCOUNT'}</Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => onNavigate('profile')}
-              style={(state) => [styles.profileLinkButton, ...interactiveStateStyles(state)]}
-            >
-              <Text style={styles.profileLinkText}>마이페이지</Text>
-            </Pressable>
             <Pressable accessibilityRole="button" onPress={onLogout} style={(state) => [styles.logoutButton, ...interactiveStateStyles(state)]}>
               <Text style={styles.logoutButtonText}>로그아웃</Text>
             </Pressable>
@@ -1491,24 +1484,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5
   },
-  profileLinkButton: {
-    marginTop: 18,
-    minHeight: 42,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.blue,
-    backgroundColor: colors.blue,
-    paddingHorizontal: 18,
-    justifyContent: 'center',
-    ...interactions.transition
-  },
-  profileLinkText: {
-    color: colors.surface,
-    fontSize: 13,
-    fontWeight: '800'
-  },
   logoutButton: {
-    marginTop: 10,
+    marginTop: 18,
     minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
