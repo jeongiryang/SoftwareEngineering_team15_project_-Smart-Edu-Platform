@@ -17,7 +17,7 @@ function sanitizeUser(user) {
 }
 
 function validateRegisterInput({ loginId, password, name }) {
-  requireFields({ loginId, password, name }, ['loginId', 'password', 'name'], 'Login ID, password, and name are required');
+  requireFields({ loginId, password, name }, ['loginId', 'password', 'name'], 'Login ID, password, and nickname are required');
   validateLoginId(loginId);
   validatePassword(password);
 }
