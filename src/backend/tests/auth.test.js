@@ -126,6 +126,22 @@ describe('POST /api/auth/login', () => {
 
     expect(response.status).toBe(401);
   });
+
+  it.each(['SUSPENDED', 'DEACTIVATED'])('rejects login for a %s account', async (status) => {
+    const { payload } = await registerTestUser();
+    mockUsers[0].status = status;
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({
+        loginId: payload.loginId,
+        password: payload.password
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.token).toBeUndefined();
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+  });
 });
 
 describe('GET /api/auth/me', () => {
@@ -145,5 +161,18 @@ describe('GET /api/auth/me', () => {
     expect(response.status).toBe(200);
     expectSafeUser(response.body.user);
     expect(response.body.user.loginId).toBe(payload.loginId);
+  });
+
+  it.each(['SUSPENDED', 'DEACTIVATED'])('rejects an existing token after the account becomes %s', async (status) => {
+    const { response: registerResponse } = await registerTestUser();
+    mockUsers[0].status = status;
+
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set(createAuthHeader(registerResponse.body.token));
+
+    expect(response.status).toBe(401);
+    expect(response.body.user).toBeUndefined();
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
   });
 });
