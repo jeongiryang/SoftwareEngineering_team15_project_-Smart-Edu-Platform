@@ -46,7 +46,7 @@ function getPasswordFeedback(password) {
     return { tone: 'warning', message: '8자 이상으로 입력해 주세요.' };
   }
 
-  return { tone: 'success', message: '안전하게 사용할 수 있는 길이예요.' };
+  return { tone: 'success', message: '안전하게 사용할 수 있는 비밀번호예요.' };
 }
 
 export default function RegisterScreen({ onAuthenticated, onNavigate }) {
@@ -91,10 +91,10 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.title}>회원가입</Text>
         <Text style={styles.subtitle}>사각사각에서 나만의 학습 공간을 만드세요.</Text>
         <Text style={styles.label}>이름</Text>
-        <AccessibleTextInput forceVoiceInput onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
+        <AccessibleTextInput enableVoiceInput={false} onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
         <FieldFeedback {...getNameFeedback(name)} />
         <Text style={styles.label}>아이디</Text>
-        <AccessibleTextInput autoCapitalize="none" forceVoiceInput onChangeText={setLoginId} placeholder="dev_user" placeholderTextColor={colors.muted} style={styles.input} value={loginId} />
+        <AccessibleTextInput autoCapitalize="none" enableVoiceInput={false} onChangeText={setLoginId} placeholder="dev_user" placeholderTextColor={colors.muted} style={styles.input} value={loginId} />
         <FieldFeedback {...getLoginIdFeedback(loginId)} />
         <Text style={styles.label}>비밀번호</Text>
         <AccessibleTextInput enableVoiceInput={false} onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
