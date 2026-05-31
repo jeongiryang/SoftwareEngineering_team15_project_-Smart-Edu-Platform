@@ -934,7 +934,6 @@ function AppChrome({
           onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
           onNavigate={navigateTo}
           user={user}
-          introPassed={introPassed}
         />
       ) : null}
       {children}
