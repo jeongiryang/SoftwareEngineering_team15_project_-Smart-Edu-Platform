@@ -49,6 +49,9 @@ const DASHBOARD_COPY = {
     moreActiveQuests: '진행 중 퀘스트 더보기 ({count}개 더)',
     moreBadges: '배지 더보기 ({count}개 더)',
     moreTransactions: '포인트 내역 더보기 ({count}건 더)',
+    rewardDetailsShow: '더보기',
+    rewardDetailsHide: '숨기기',
+    rewardDetailsSummary: '진행 중 퀘스트 {questCount}개 · 배지 {badgeCount}개 · 포인트 내역 {transactionCount}건',
     claimedQuestToggle: '{count}개 {action}'
   },
   en: {
@@ -69,6 +72,9 @@ const DASHBOARD_COPY = {
     moreActiveQuests: 'Show more active quests ({count} more)',
     moreBadges: 'Show more badges ({count} more)',
     moreTransactions: 'Show more point history ({count} more)',
+    rewardDetailsShow: 'Show more',
+    rewardDetailsHide: 'Hide',
+    rewardDetailsSummary: '{questCount} active quest(s) · {badgeCount} badge(s) · {transactionCount} point record(s)',
     claimedQuestToggle: '{count} {action}'
   },
   ja: {
@@ -89,6 +95,9 @@ const DASHBOARD_COPY = {
     moreActiveQuests: '進行中のクエストをさらに表示（残り{count}件）',
     moreBadges: 'バッジをさらに表示（残り{count}件）',
     moreTransactions: 'ポイント履歴をさらに表示（残り{count}件）',
+    rewardDetailsShow: 'さらに表示',
+    rewardDetailsHide: '隠す',
+    rewardDetailsSummary: '進行中クエスト{questCount}件 · バッジ{badgeCount}個 · ポイント履歴{transactionCount}件',
     claimedQuestToggle: '{count}件 {action}'
   },
   zh: {
@@ -109,6 +118,9 @@ const DASHBOARD_COPY = {
     moreActiveQuests: '查看更多进行中任务（还有 {count} 个）',
     moreBadges: '查看更多徽章（还有 {count} 个）',
     moreTransactions: '查看更多积分记录（还有 {count} 条）',
+    rewardDetailsShow: '查看更多',
+    rewardDetailsHide: '隐藏',
+    rewardDetailsSummary: '进行中任务 {questCount} 个 · 徽章 {badgeCount} 枚 · 积分记录 {transactionCount} 条',
     claimedQuestToggle: '{count} 个 {action}'
   }
 };
@@ -493,6 +505,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [showClaimedQuests, setShowClaimedQuests] = useState(false);
   const [showAllActiveQuests, setShowAllActiveQuests] = useState(false);
+  const [showRewardDetails, setShowRewardDetails] = useState(false);
   const [failedBadgeIcons, setFailedBadgeIcons] = useState({});
   const [rewardLoading, setRewardLoading] = useState(true);
   const [rewardRefreshing, setRewardRefreshing] = useState(false);
@@ -1083,6 +1096,27 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 </View>
               ) : null}
 
+              <View style={styles.rewardDetailsBar}>
+                <Text style={styles.rewardDetailsText}>
+                  {dashboardCopy(currentLanguage, 'rewardDetailsSummary', {
+                    questCount: formatNumber(activeQuests.length, currentLanguage),
+                    badgeCount: formatNumber(rewardData.badges?.length || 0, currentLanguage),
+                    transactionCount: formatNumber(rewardData.recentPointTransactions?.length || 0, currentLanguage)
+                  })}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showRewardDetails }}
+                  onPress={() => setShowRewardDetails((current) => !current)}
+                  style={(state) => [styles.rewardDetailsToggle, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.rewardDetailsToggleText}>
+                    {dashboardCopy(currentLanguage, showRewardDetails ? 'rewardDetailsHide' : 'rewardDetailsShow')}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {showRewardDetails ? (
               <View style={styles.rewardContentGrid}>
                 <View style={styles.questColumn}>
                   <View style={styles.subsectionHeader}>
@@ -1340,6 +1374,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                   )}
                 </View>
               </View>
+              ) : null}
             </>
           )}
         </View>
@@ -2069,6 +2104,42 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontSize: 13,
     lineHeight: 20
+  },
+  rewardDetailsBar: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  rewardDetailsText: {
+    flex: 1,
+    minWidth: 220,
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 20
+  },
+  rewardDetailsToggle: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  rewardDetailsToggleText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
   },
   rewardContentGrid: {
     flexDirection: 'row',
