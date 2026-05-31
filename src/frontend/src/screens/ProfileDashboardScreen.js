@@ -1288,7 +1288,7 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     flex: 1,
-    minWidth: 320,
+    minWidth: 260,
     borderRadius: 26,
     borderWidth: 1,
     borderColor: colors.line,

@@ -1217,7 +1217,7 @@ const styles = StyleSheet.create({
   },
   reviewPlanCard: {
     flex: 2,
-    minWidth: 320,
+    minWidth: 260,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.line,
@@ -1450,7 +1450,7 @@ const styles = StyleSheet.create({
   },
   chartPanel: {
     flex: 1,
-    minWidth: 320,
+    minWidth: 260,
     borderRadius: 26,
     borderWidth: 1,
     borderColor: colors.line,

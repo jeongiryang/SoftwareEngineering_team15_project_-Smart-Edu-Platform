@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
   },
   friendCard: {
     flexGrow: 1,
-    flexBasis: '31%',
+    flexBasis: 280,
     minWidth: 260,
     borderRadius: 22,
     borderWidth: 1,

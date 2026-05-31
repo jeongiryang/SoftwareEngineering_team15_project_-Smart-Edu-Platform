@@ -947,7 +947,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1180,
     alignSelf: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 28,
     paddingBottom: 80,
     gap: 24
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.ink,
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: '900'
   },
   description: {
@@ -1053,7 +1053,7 @@ const styles = StyleSheet.create({
     gap: 16
   },
   raidCard: {
-    width: 360,
+    width: 340,
     maxWidth: '100%',
     borderRadius: radii.panel,
     backgroundColor: colors.surface,
@@ -1140,7 +1140,7 @@ const styles = StyleSheet.create({
   },
   actionPanel: {
     flex: 1,
-    minWidth: 320,
+    minWidth: 260,
     borderRadius: radii.panel,
     backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
@@ -1457,7 +1457,7 @@ const styles = StyleSheet.create({
   },
   membersCard: {
     flex: 1,
-    minWidth: 320,
+    minWidth: 260,
     borderRadius: radii.card,
     backgroundColor: colors.surfaceWarm,
     borderWidth: 1,

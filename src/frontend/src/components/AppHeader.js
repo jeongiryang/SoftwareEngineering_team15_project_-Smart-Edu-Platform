@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1180,
     minHeight: 76,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    minWidth: 150,
+    minWidth: 120,
     flexShrink: 1,
     borderRadius: 18,
     padding: 4,
@@ -572,13 +572,13 @@ const styles = StyleSheet.create({
     borderColor: colors.line
   },
   logo: {
-    height: 47,
-    width: 47,
+    height: 42,
+    width: 42,
     borderRadius: 13
   },
   brandName: {
     color: colors.ink,
-    fontSize: 21,
+    fontSize: 19,
     fontWeight: '800',
     letterSpacing: 0
   },
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   navItem: {
     minHeight: 40,
     justifyContent: 'center',
-    paddingHorizontal: 11,
+    paddingHorizontal: 9,
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 44,
     right: 0,
-    width: 224,
+    width: 210,
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 12,
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 44,
     right: 0,
-    width: 276,
+    width: 268,
     padding: 10,
     borderRadius: 16,
     borderWidth: 1,

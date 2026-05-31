@@ -1494,8 +1494,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1120,
     alignSelf: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingHorizontal: 16,
+    paddingTop: 24,
     paddingBottom: 56,
     gap: 28
   },
@@ -1506,10 +1506,10 @@ const styles = StyleSheet.create({
   },
   heroCopy: {
     flex: 1,
-    minWidth: 280,
+    minWidth: 240,
     borderRadius: 28,
-    paddingHorizontal: 32,
-    paddingVertical: 30,
+    paddingHorizontal: 24,
+    paddingVertical: 26,
     backgroundColor: colors.mintSoft
   },
   eyebrow: {
@@ -1521,8 +1521,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.ink,
-    fontSize: 32,
-    lineHeight: 42,
+    fontSize: 30,
+    lineHeight: 39,
     fontWeight: '800'
   },
   titleWritingPhrase: {
@@ -1576,7 +1576,8 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   profileCard: {
-    width: 280,
+    width: 260,
+    maxWidth: '100%',
     minHeight: 280,
     borderRadius: 28,
     padding: 28,
@@ -1646,7 +1647,7 @@ const styles = StyleSheet.create({
   },
   motivationCard: {
     flex: 1,
-    minWidth: 300,
+    minWidth: 260,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.line,
@@ -1656,7 +1657,7 @@ const styles = StyleSheet.create({
   },
   quickQuizCard: {
     flex: 1,
-    minWidth: 300,
+    minWidth: 260,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.mint,
@@ -2190,7 +2191,7 @@ const styles = StyleSheet.create({
   },
   questColumn: {
     flex: 2,
-    minWidth: 320,
+    minWidth: 260,
     gap: 12
   },
   badgeColumn: {
@@ -2488,7 +2489,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flexGrow: 1,
-    flexBasis: '31%',
+    flexBasis: 280,
     minWidth: 250,
     minHeight: 180,
     borderRadius: 24,

@@ -2050,12 +2050,12 @@ const styles = StyleSheet.create({
   },
   boardMainPane: {
     flex: 1.8,
-    minWidth: 420,
+    minWidth: 260,
     gap: 12
   },
   boardDetailPane: {
     flex: 0.8,
-    minWidth: 320,
+    minWidth: 260,
     maxWidth: 420
   },
   searchRow: {
