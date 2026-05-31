@@ -1055,7 +1055,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1180,
     alignSelf: 'center',
-    padding: 24,
+    padding: 16,
     gap: 18
   },
   hero: {
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
   },
   leftColumn: {
     flex: 1,
-    minWidth: 320,
+    minWidth: 260,
     gap: 18
   },
   panel: {
@@ -1113,7 +1113,7 @@ const styles = StyleSheet.create({
   },
   detailPanel: {
     flex: 1.05,
-    minWidth: 340,
+    minWidth: 260,
     borderRadius: radii.panel,
     borderWidth: 1,
     borderColor: colors.line,

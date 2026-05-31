@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1180,
     alignSelf: 'center',
-    padding: 24,
+    padding: 16,
     gap: 18
   },
   hero: {
@@ -667,6 +667,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 22,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
@@ -692,12 +693,13 @@ const styles = StyleSheet.create({
   },
   layout: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 18,
     alignItems: 'stretch'
   },
   threadPanel: {
     flex: 0.9,
-    minWidth: 280,
+    minWidth: 260,
     backgroundColor: colors.surface,
     borderRadius: 20,
     borderWidth: 1,
@@ -707,7 +709,7 @@ const styles = StyleSheet.create({
   },
   conversationPanel: {
     flex: 1.45,
-    minWidth: 320,
+    minWidth: 260,
     backgroundColor: colors.surface,
     borderRadius: 20,
     borderWidth: 1,
@@ -940,6 +942,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
     paddingTop: 12,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-end',
     gap: 10
   },

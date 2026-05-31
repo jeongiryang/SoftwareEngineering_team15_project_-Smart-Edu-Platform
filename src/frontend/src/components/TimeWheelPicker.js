@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   container: {
     gap: 10,
     flex: 1,
-    minWidth: 320,
+    minWidth: 0,
     alignSelf: 'stretch'
   },
   header: {

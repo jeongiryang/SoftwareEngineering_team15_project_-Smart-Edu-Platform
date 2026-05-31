@@ -2370,7 +2370,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1080,
     alignSelf: 'center',
-    padding: 28,
+    padding: 18,
     paddingBottom: 48,
     gap: 18
   },
@@ -2381,6 +2381,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
@@ -2411,7 +2412,7 @@ const styles = StyleSheet.create({
   },
   mockModeCopy: {
     flex: 1,
-    minWidth: 260,
+    minWidth: 220,
     gap: 6
   },
   mockModeLabel: {
@@ -2467,7 +2468,7 @@ const styles = StyleSheet.create({
   },
   audioBriefingCopy: {
     flex: 1,
-    minWidth: 260,
+    minWidth: 220,
     gap: 6
   },
   audioBriefingEyebrow: {
@@ -2574,6 +2575,7 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 7,
@@ -2587,6 +2589,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
+    minWidth: 104,
     minHeight: 47,
     borderRadius: 13,
     alignItems: 'center',
@@ -2640,7 +2643,7 @@ const styles = StyleSheet.create({
     gap: 16
   },
   chatSidebar: {
-    width: 300,
+    width: 280,
     maxWidth: '100%',
     backgroundColor: colors.surface,
     borderRadius: 20,
