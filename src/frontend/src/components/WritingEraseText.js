@@ -21,7 +21,7 @@ export default function WritingEraseText({
   holdMs = 1300,
   pauseMs = 420,
   writingMark = '✎',
-  erasingMark = '▱',
+  erasingMark,
   accessibilityLabel,
   ...textProps
 }) {
@@ -109,14 +109,24 @@ export default function WritingEraseText({
 
   const visibleText = reducedMotion ? text : letters.slice(0, visibleCount).join('');
   const showMarker = !reducedMotion && letters.length > 0;
-  const marker = phase === 'erasing' ? erasingMark : writingMark;
+  const isErasing = phase === 'erasing';
 
   return (
     <Text {...textProps} accessibilityLabel={accessibilityLabel || text} style={[styles.text, style]}>
       {visibleText || ' '}
-      {showMarker ? (
+      {showMarker && isErasing && !erasingMark ? (
+        <Text
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          style={[styles.cursor, cursorStyle, styles.eraserCursor]}
+        >
+          <Text style={styles.eraserBand}>▌</Text>
+          <Text style={styles.eraserBody}>▰</Text>
+        </Text>
+      ) : null}
+      {showMarker && (!isErasing || erasingMark) ? (
         <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.cursor, cursorStyle]}>
-          {marker}
+          {isErasing ? erasingMark : writingMark}
         </Text>
       ) : null}
     </Text>
@@ -130,5 +140,19 @@ const styles = StyleSheet.create({
   cursor: {
     color: colors.creamStrong,
     fontWeight: '800'
+  },
+  eraserCursor: {
+    letterSpacing: 0,
+    transform: [{ rotate: '-8deg' }]
+  },
+  eraserBand: {
+    color: colors.mintDeep,
+    fontWeight: '900',
+    letterSpacing: 0
+  },
+  eraserBody: {
+    color: colors.creamStrong,
+    fontWeight: '900',
+    letterSpacing: 0
   }
 });
