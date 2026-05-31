@@ -1,4 +1,6 @@
 const {
+  DEV_AI_CHAT_ROOM_SEEDS,
+  DEV_DIRECT_MESSAGE_THREAD_SEEDS,
   DEV_SEED_PASSWORD,
   DEV_SHOP_ITEMS,
   DEV_SHOP_PURCHASES,
@@ -66,6 +68,55 @@ describe('development seed script', () => {
         expect.objectContaining({
           loginId: 'reward_user',
           itemCodes: expect.arrayContaining(['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'])
+        })
+      ])
+    );
+  });
+
+  it('defines demo AI chat room seeds for persisted chat history', () => {
+    expect(DEV_AI_CHAT_ROOM_SEEDS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          loginId: 'dev_user',
+          title: expect.any(String),
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              question: expect.any(String),
+              answer: expect.any(String),
+              source: 'AI_QNA',
+              isMock: true
+            })
+          ])
+        }),
+        expect.objectContaining({
+          loginId: 'quest_user',
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              source: 'AI_QNA',
+              isMock: true
+            })
+          ])
+        })
+      ])
+    );
+  });
+
+  it('defines demo direct message threads with unread states', () => {
+    expect(DEV_DIRECT_MESSAGE_THREAD_SEEDS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          participants: ['dev_user', 'study_peer'],
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              senderLoginId: 'study_peer',
+              content: expect.any(String)
+            })
+          ]),
+          unreadForLoginIds: expect.arrayContaining(['dev_user'])
+        }),
+        expect.objectContaining({
+          participants: ['community_user', 'quest_user'],
+          unreadForLoginIds: expect.arrayContaining(['community_user'])
         })
       ])
     );
