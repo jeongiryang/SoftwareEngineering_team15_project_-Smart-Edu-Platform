@@ -1,21 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-if (Platform.OS === 'web') {
-  gsap.registerPlugin(ScrollTrigger);
-}
-import { Volume2, VolumeX } from 'lucide-react';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 const GITHUB_REPOSITORY_URL = 'https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform';
 const GITHUB_ICON_COLOR = '#24292f';
-const INTRO_ENABLED_STORAGE_KEY = 'sagakLandingIntroEnabled';
-const INTRO_TOGGLE_EVENT = 'sagak:intro-toggle';
 const BGM_ENABLED_STORAGE_KEY = 'sagakLandingBgmEnabled';
+const INTRO_REPLAY_EVENT = 'sagak:intro-replay';
 const pencilCursorSvg = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
     <g transform="rotate(-35 22 22)">
@@ -63,6 +55,19 @@ const webLandingAnimationCss = `
   50% { transform: translateY(-8px); }
 }
 
+@keyframes sagakIntroStroke {
+  0% { stroke-dashoffset: 720; opacity: 0; }
+  12% { opacity: 1; }
+  58% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: -120; opacity: 0.55; }
+}
+
+@keyframes sagakIntroToolPop {
+  0%, 18% { opacity: 0; transform: translateY(18px) scale(0.92); filter: blur(3px); }
+  34%, 78% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  100% { opacity: 0.52; transform: translateY(-10px) scale(0.98); filter: blur(1px); }
+}
+
 @keyframes sagakIntroOut {
   0%, 76% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-18px); pointer-events: none; }
@@ -90,13 +95,57 @@ const webLandingAnimationCss = `
 }
 
 [data-sagak-intro-screen="true"] {
-  animation: sagakIntroOut 4200ms ease-in-out both;
+  animation: sagakIntroOut 5200ms ease-in-out both;
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: 100dvh !important;
   z-index: 2147483647 !important;
 }
+
+.sagak-pencil-interactive,
+.sagak-pencil-interactive * {
+  cursor: ${pencilCursor} !important;
+}
+
+.keyword-bg {
+  font-size: clamp(140px, 22vw, 360px) !important;
+  -webkit-text-stroke: 1px rgba(238, 185, 98, 0.45);
+  text-stroke: 1px rgba(238, 185, 98, 0.45);
+  mix-blend-mode: multiply;
+}
+
+.value-keyword-scroll-section {
+  background:
+    radial-gradient(circle at center, rgba(80, 180, 160, 0.10), transparent 42%),
+    linear-gradient(180deg, #061522 0%, #081827 52%, #061522 100%);
+}
+
+.value-keyword-scene {
+  position: sticky !important;
+  top: 0;
+  height: 100dvh;
+}
+
+.value-keyword {
+  font-size: clamp(48px, 10vw, 140px) !important;
+  will-change: opacity, transform, filter;
+  letter-spacing: 0;
+}
+
+.sagak-intro-film svg path {
+  stroke-dasharray: 720;
+  animation: sagakIntroStroke 5200ms cubic-bezier(.4, 0, .2, 1) infinite;
+}
+
+.sagak-intro-tool {
+  animation: sagakIntroToolPop 5200ms ease-in-out infinite;
+}
+
+.sagak-intro-tool:nth-child(2) { animation-delay: 240ms; }
+.sagak-intro-tool:nth-child(3) { animation-delay: 480ms; }
+.sagak-intro-tool:nth-child(4) { animation-delay: 720ms; }
+.sagak-intro-tool:nth-child(5) { animation-delay: 960ms; }
 
 [data-sagak-story-section="true"] [data-sagak-preview-frame="true"] {
   transition: transform 220ms ease-out, box-shadow 220ms ease-out;
@@ -140,9 +189,13 @@ const webLandingAnimationCss = `
   [data-sagak-write-line="true"],
   [data-sagak-preview-frame="true"],
   [data-sagak-story-keyword="true"],
-  [data-sagak-float-card="true"] {
+  [data-sagak-float-card="true"],
+  .value-keyword,
+  .sagak-intro-film svg path,
+  .sagak-intro-tool {
     animation: none !important;
     transform: none !important;
+    filter: none !important;
   }
 }
 `;
@@ -261,6 +314,168 @@ const trustItems = [
   'landing.trust.item3'
 ];
 
+const sectionKeywordSets = {
+  ko: {
+    record: '기록',
+    plan: '계획',
+    question: '질문',
+    summary: '요약',
+    report: '오답',
+    trust: '신뢰'
+  },
+  en: {
+    record: 'Record',
+    plan: 'Plan',
+    question: 'Ask',
+    summary: 'Summarize',
+    report: 'Review',
+    trust: 'Trust'
+  },
+  ja: {
+    record: '記録',
+    plan: '計画',
+    question: '質問',
+    summary: '要約',
+    report: '誤答',
+    trust: '信頼'
+  },
+  zh: {
+    record: '记录',
+    plan: '计划',
+    question: '提问',
+    summary: '总结',
+    report: '错题',
+    trust: '信任'
+  }
+};
+
+const projectCopySets = {
+  ko: {
+    eyebrow: 'PROJECT NOTES',
+    title: '회의록과 설계 문서에서 이어진 사각사각의 방향',
+    description: '요구사항과 설계 문서에는 사각사각이 전 연령층을 위한 개인화 학습 관리 앱으로, 일정·칸반·AI 학습·커뮤니티·접근성·보상을 하나의 학습 흐름으로 연결해야 한다고 정리되어 있습니다.',
+    cards: [
+      {
+        title: '계획은 작게, 실행은 분명하게',
+        description: '캘린더와 칸반으로 오늘 할 일을 나누고, D-Day와 집중 시간으로 학습 리듬을 확인합니다.'
+      },
+      {
+        title: 'AI는 답변보다 복습 흐름으로',
+        description: '질문, 요약, 오답노트, 추천, 퀴즈가 다시 볼 기록으로 남아 다음 학습을 준비합니다.'
+      },
+      {
+        title: '모두가 쓰는 학습 공간',
+        description: '큰 글씨, 고대비, TTS/STT, 커뮤니티와 보상 흐름까지 고려해 연령과 목적이 달라도 이어 쓸 수 있게 설계했습니다.'
+      },
+      {
+        title: '운영 가능한 플랫폼',
+        description: '게시판, 신고, 관리자, 데이터 보호 기준을 문서화해 수업 프로젝트 데모 이후에도 확장 가능한 구조를 남겼습니다.'
+      }
+    ]
+  },
+  en: {
+    eyebrow: 'PROJECT NOTES',
+    title: 'The direction shaped by meeting notes and design docs',
+    description: 'The requirements and design documents define Sagak Sagak as a personalized learning platform for all ages, connecting schedules, boards, AI study, community, accessibility, and rewards into one study flow.',
+    cards: [
+      {
+        title: 'Smaller plans, clearer action',
+        description: 'Use calendars and boards to break down today’s tasks, then check rhythm through D-Day and focus time.'
+      },
+      {
+        title: 'AI as a review flow',
+        description: 'Questions, summaries, wrong-answer notes, recommendations, and quizzes stay as records for the next study session.'
+      },
+      {
+        title: 'A study space for everyone',
+        description: 'Large text, high contrast, TTS/STT, community, and rewards support different ages and learning goals.'
+      },
+      {
+        title: 'A platform ready to operate',
+        description: 'Board moderation, reports, admin roles, and data protection are documented for growth beyond the class demo.'
+      }
+    ]
+  },
+  ja: {
+    eyebrow: 'PROJECT NOTES',
+    title: '議事録と設計文書から続くサガクサガクの方向',
+    description: '要件定義と設計文書では、サガクサガクを全年齢向けのパーソナライズ学習管理アプリとして、予定・カンバン・AI学習・コミュニティ・アクセシビリティ・報酬を一つの学習フローにつなげる方針で整理しています。',
+    cards: [
+      {
+        title: '計画は小さく、実行は明確に',
+        description: 'カレンダーとカンバンで今日のタスクを分け、D-Dayと集中時間で学習リズムを確認します。'
+      },
+      {
+        title: 'AIは答えより復習の流れへ',
+        description: '質問、要約、誤答ノート、推薦、クイズを見返せる記録として残し、次の学習につなげます。'
+      },
+      {
+        title: '誰でも使える学習空間',
+        description: '大きな文字、高コントラスト、TTS/STT、コミュニティ、報酬まで考慮し、年齢や目的が違っても使い続けられるようにします。'
+      },
+      {
+        title: '運用できるプラットフォーム',
+        description: '掲示板、通報、管理者、データ保護の基準を文書化し、授業デモ後の拡張余地も残しています。'
+      }
+    ]
+  },
+  zh: {
+    eyebrow: 'PROJECT NOTES',
+    title: '从会议记录和设计文档延伸出的方向',
+    description: '需求和设计文档将沙沙学习定位为面向全年龄段的个性化学习管理平台，把日程、看板、AI 学习、社区、无障碍和奖励连接成一个学习流程。',
+    cards: [
+      {
+        title: '计划更小，行动更清楚',
+        description: '用日历和看板拆分今天的任务，并通过 D-Day 和专注时间确认学习节奏。'
+      },
+      {
+        title: 'AI 不止回答，更连接复习',
+        description: '提问、总结、错题笔记、推荐和测验会留下可回看的记录，帮助准备下一次学习。'
+      },
+      {
+        title: '人人都能使用的学习空间',
+        description: '大字、高对比度、TTS/STT、社区和奖励流程，让不同年龄和目标的用户都能持续使用。'
+      },
+      {
+        title: '可运营的平台结构',
+        description: '帖子、举报、管理员和数据保护标准已文档化，为课程演示之后的扩展保留空间。'
+      }
+    ]
+  }
+};
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function smoothStep(value) {
+  const p = clamp(value, 0, 1);
+  return p * p * (3 - 2 * p);
+}
+
+function calculateSectionKeywordMotion(scrollY, layout, viewportHeight) {
+  const sectionHeight = Number(layout?.height) || 0;
+  const sectionY = Number(layout?.y) || 0;
+
+  if (!sectionHeight) {
+    return { opacity: 0, blur: 14, y: 72, scale: 0.94 };
+  }
+
+  const sectionCenter = sectionY + sectionHeight / 2;
+  const viewportCenter = scrollY + viewportHeight / 2;
+  const distance = sectionCenter - viewportCenter;
+  const range = Math.max(sectionHeight * 0.76, viewportHeight * 0.72);
+  const proximity = smoothStep(1 - clamp(Math.abs(distance) / range, 0, 1));
+  const direction = clamp(distance / range, -1, 1);
+
+  return {
+    opacity: proximity,
+    blur: 14 * (1 - proximity),
+    y: 84 * direction * (1 - proximity * 0.4),
+    scale: 0.94 + 0.06 * proximity + (direction < 0 ? 0.04 * (1 - proximity) : 0)
+  };
+}
+
 const storySections = [
   {
     keywordKey: 'landing.story.plan.keyword',
@@ -323,97 +538,458 @@ function LandingAnimationStyles() {
   return <style dangerouslySetInnerHTML={{ __html: webLandingAnimationCss }} />;
 }
 
+const topHeroSlides = [
+  {
+    key: 'question',
+    eyebrow: 'AI STUDY',
+    title: 'AI가 오늘의 학습을\n한 번에 정리해줘요',
+    description: '개념 요약, 오답 분석, 복습 루틴까지 공부 흐름을 놓치지 않게 도와줍니다.',
+    cta: 'AI 기능 보기',
+    action: 'home'
+  },
+  {
+    key: 'plan',
+    eyebrow: 'PLAN',
+    title: 'D-day와 오늘 계획을\n한 장에 정리하세요',
+    description: '시간표, 우선순위, 완료 상태가 함께 보이는 학습 계획 흐름을 제공합니다.',
+    cta: '계획 흐름 보기',
+    action: 'register'
+  },
+  {
+    key: 'record',
+    eyebrow: 'RECORD',
+    title: '공부의 흔적을\n사각사각 쌓아가세요',
+    description: '오늘 저장한 노트, 질문, 오답과 집중 시간을 실제 학습 기록처럼 한눈에 확인합니다.',
+    cta: '무료로 시작하기',
+    action: 'register'
+  },
+  {
+    key: 'summary',
+    eyebrow: 'SUMMARY',
+    title: '긴 내용은 핵심만\n선명하게 남기세요',
+    description: '미적분 핵심 개념처럼 실제 요약 결과와 키워드 태그가 노트 카드에 남습니다.',
+    cta: '요약 예시 보기',
+    action: 'register'
+  }
+];
 
-function TopHeroCarousel({ activeIndex, onNext, onPrevious, onSelect, onNavigate }) {
-  const slides = [
-    {
-      title: '공부의 흐름을\n사각사각 쌓아가세요',
-      description: '질문하고, 요약하고, 틀린 이유가 되는 흐름을\n한곳에서 관리하는 학습 플랫폼입니다.',
-      cta: '무료로 시작하기',
-      action: 'register',
-    },
-    {
+const topHeroCopySets = {
+  ko: {
+    question: {
+      eyebrow: 'AI STUDY',
       title: 'AI가 오늘의 학습을\n한 번에 정리해줘요',
-      description: '개념 요약, 오답 분석, 복습 루틴까지\n공부 흐름을 놓치지 않게 도와줍니다.',
-      cta: 'AI 기능 보기',
-      action: 'home',
+      description: '개념 요약, 오답 분석, 복습 루틴까지 공부 흐름을 놓치지 않게 도와줍니다.',
+      cta: 'AI 기능 보기'
     },
-    {
-      title: '나만의 학습 리듬을\n기록하고 관리하세요',
-      description: '집중 시간, 학습 기록, 반복되는 실수까지\n사각사각 안에 쌓입니다.',
-      cta: '학습 기록 시작하기',
-      action: 'register',
+    plan: {
+      eyebrow: 'PLAN',
+      title: 'D-day와 오늘 계획을\n한 장에 정리하세요',
+      description: '시간표, 우선순위, 완료 상태가 함께 보이는 학습 계획 흐름을 제공합니다.',
+      cta: '계획 흐름 보기'
     },
-    {
-      title: '사각사각 베타 오픈',
-      description: '지금 시작하면 초기 학습 관리 기능을\n가장 먼저 경험할 수 있습니다.',
-      cta: '무료로 시작하기',
-      action: 'register',
+    record: {
+      eyebrow: 'RECORD',
+      title: '공부의 흔적을\n사각사각 쌓아가세요',
+      description: '오늘 저장한 노트, 질문, 오답과 집중 시간을 실제 학습 기록처럼 한눈에 확인합니다.',
+      cta: '무료로 시작하기'
+    },
+    summary: {
+      eyebrow: 'SUMMARY',
+      title: '긴 내용은 핵심만\n선명하게 남기세요',
+      description: '미적분 핵심 개념처럼 실제 요약 결과와 키워드 태그가 노트 카드에 남습니다.',
+      cta: '요약 예시 보기'
     }
-  ];
+  },
+  en: {
+    question: {
+      eyebrow: 'AI STUDY',
+      title: 'Let AI organize\ntoday’s learning',
+      description: 'Concept summaries, error reviews, and review routines stay connected in one study flow.',
+      cta: 'View AI features'
+    },
+    plan: {
+      eyebrow: 'PLAN',
+      title: 'Keep D-day and\ntoday’s plan together',
+      description: 'Schedules, priorities, and completion status are shown as one clear planning flow.',
+      cta: 'View planning flow'
+    },
+    record: {
+      eyebrow: 'RECORD',
+      title: 'Build your learning traces\none note at a time',
+      description: 'See saved notes, questions, mistakes, and focus time as real study records.',
+      cta: 'Start for free'
+    },
+    summary: {
+      eyebrow: 'SUMMARY',
+      title: 'Leave long material\nas clear key points',
+      description: 'Summary results and keyword tags remain in a note card, just like a calculus concept review.',
+      cta: 'View summary example'
+    }
+  },
+  ja: {
+    question: {
+      eyebrow: 'AI STUDY',
+      title: 'AIが今日の学習を\n一度に整理します',
+      description: '概念要約、誤答分析、復習ルーティンまで学習の流れをつなげます。',
+      cta: 'AI機能を見る'
+    },
+    plan: {
+      eyebrow: 'PLAN',
+      title: 'D-dayと今日の計画を\n一枚で整理',
+      description: '時間割、優先順位、完了状態が一緒に見える学習計画フローを提供します。',
+      cta: '計画フローを見る'
+    },
+    record: {
+      eyebrow: 'RECORD',
+      title: '学びの足跡を\n少しずつ積み上げよう',
+      description: '今日保存したノート、質問、誤答、集中時間を学習記録として確認します。',
+      cta: '無料で始める'
+    },
+    summary: {
+      eyebrow: 'SUMMARY',
+      title: '長い内容は要点だけ\nはっきり残しましょう',
+      description: '微積分の要点のように、実際の要約結果とキーワードタグがノートに残ります。',
+      cta: '要約例を見る'
+    }
+  },
+  zh: {
+    question: {
+      eyebrow: 'AI STUDY',
+      title: '让 AI 一次整理\n今天的学习',
+      description: '概念总结、错题分析和复习节奏会连接成一个学习流程。',
+      cta: '查看 AI 功能'
+    },
+    plan: {
+      eyebrow: 'PLAN',
+      title: '把 D-day 和今日计划\n整理在一张卡片里',
+      description: '时间表、优先级和完成状态会一起展示为清晰的学习计划。',
+      cta: '查看计划流程'
+    },
+    record: {
+      eyebrow: 'RECORD',
+      title: '一点点积累\n学习的痕迹',
+      description: '今天保存的笔记、问题、错题和专注时间都会成为真实学习记录。',
+      cta: '免费开始'
+    },
+    summary: {
+      eyebrow: 'SUMMARY',
+      title: '长内容只留下\n清晰重点',
+      description: '像微积分核心概念一样，实际总结结果和关键词标签会保存在笔记卡片中。',
+      cta: '查看总结示例'
+    }
+  }
+};
 
-  const slide = slides[activeIndex];
+const exampleCopySets = {
+  ko: {
+    topHeroPlanRows: ['09:00 수학 개념 복습', '11:30 영어 단어 30개', '14:00 자료구조 과제', '20:00 오답 노트'],
+    topHeroQuestion: 'Q. DFS를 쉽게 설명해줘',
+    topHeroAnswerTitle: 'AI 답변 요약',
+    topHeroAnswer: '한 방향으로 끝까지 탐색한 뒤 막히면 되돌아오는 방식입니다.',
+    summarize: '요약하기',
+    review: '다시 보기',
+    example: '예시 보기',
+    summaryDone: 'AI 요약 완료',
+    summarySubject: '수학 미적분 핵심 개념',
+    topHeroSummaryRows: ['미분 = 순간 변화율', '도함수 = 접선의 기울기', '적분 = 누적량', '기본정리 = 미분·적분 연결'],
+    recordTitle: '오늘의 학습 기록',
+    recordStreak: '연속 5일째',
+    topHeroRecordRows: ['자료구조 복습 42분', '미적분 문제풀이 1시간 10분', '오늘 질문 3개 저장', 'AI 요약 2개 다시보기'],
+    recordRows: ['자료구조 DFS 복습 완료 · 42분', '미적분 문제풀이 · 1시간 10분', '영어 단어 암기 · 25분', '오늘 질문 3개 / 요약 2개 저장'],
+    openingNotes: 'Opening Notes',
+    recordMiniText: '개념 정리 완료 · 오답 노트 저장',
+    savedQuestions: '다시 볼 질문',
+    savedQuestionsValue: '2건',
+    savedQuestionsText: '극한과 도함수 관계, DFS 탐색 순서',
+    month: 'May 2026',
+    planRows: ['09:00 수학 개념 복습', '11:30 영어 단어 암기', '14:00 오답 노트 작성', '20:00 자료구조 과제 정리'],
+    priorityTitle: '오늘 목표 4개 중 2개 완료',
+    priorityRows: ['1. 미적분 요약 보기', '2. DFS 문제 2개 풀기'],
+    chatQuestion: 'Q. 이 개념을 쉽게 설명해줘',
+    chatAnswer: 'AI. DFS는 그래프를 한 방향으로 끝까지 탐색한 뒤, 막다른 지점에서 되돌아오는 방식입니다. 스택이나 재귀로 구현할 수 있어요.',
+    summaryBullets: ['미분은 함수의 순간 변화율을 구하는 방법입니다.', '도함수는 원함수의 기울기 변화를 나타냅니다.', 'f(x)=x²의 도함수는 2x입니다.', '접선의 기울기는 해당 지점의 미분값으로 구할 수 있습니다.', '복습 추천: 극한과 도함수의 관계'],
+    summaryTags: ['변화율', '도함수', '접선 기울기'],
+    reportTitle: '오답 분석 리포트',
+    myAnswer: '내 답안',
+    correctAnswer: '정답',
+    wrongReason: '틀린 이유',
+    wrongReasonText: '개념 A와 B의 차이를 혼동했습니다. 다시 복습을 추천합니다.',
+    trustTag: 'TRUST'
+  },
+  en: {
+    topHeroPlanRows: ['09:00 Math concept review', '11:30 30 English words', '14:00 Data structure task', '20:00 Wrong-answer notes'],
+    topHeroQuestion: 'Q. Explain DFS simply',
+    topHeroAnswerTitle: 'AI answer summary',
+    topHeroAnswer: 'Explore one path to the end, then backtrack when it is blocked.',
+    summarize: 'Summarize',
+    review: 'Review',
+    example: 'See example',
+    summaryDone: 'AI summary done',
+    summarySubject: 'Core calculus concepts',
+    topHeroSummaryRows: ['Derivative = instant rate of change', 'Derivative function = tangent slope', 'Integral = accumulated amount', 'Fundamental theorem connects them'],
+    recordTitle: 'Today’s study record',
+    recordStreak: '5-day streak',
+    topHeroRecordRows: ['Data structures · 42 min', 'Calculus practice · 1h 10m', '3 questions saved today', '2 AI summaries to revisit'],
+    recordRows: ['DFS review complete · 42 min', 'Calculus problem solving · 1h 10m', 'English vocabulary · 25 min', '3 questions / 2 summaries saved'],
+    openingNotes: 'Opening Notes',
+    recordMiniText: 'Concept notes complete · wrong-answer note saved',
+    savedQuestions: 'Questions to revisit',
+    savedQuestionsValue: '2',
+    savedQuestionsText: 'Limits and derivatives, DFS traversal order',
+    month: 'May 2026',
+    planRows: ['09:00 Math concept review', '11:30 English vocabulary', '14:00 Wrong-answer notes', '20:00 Data structure assignment'],
+    priorityTitle: '2 of 4 goals completed today',
+    priorityRows: ['1. Review calculus summary', '2. Solve 2 DFS problems'],
+    chatQuestion: 'Q. Explain this concept simply',
+    chatAnswer: 'AI. DFS explores a graph deeply in one direction, then backtracks at a dead end. You can implement it with a stack or recursion.',
+    summaryBullets: ['A derivative measures a function’s instant rate of change.', 'The derivative function shows how the slope changes.', 'The derivative of f(x)=x² is 2x.', 'A tangent slope is found from the derivative value at that point.', 'Review tip: connect limits with derivatives.'],
+    summaryTags: ['Rate of change', 'Derivative', 'Tangent slope'],
+    reportTitle: 'Wrong-answer report',
+    myAnswer: 'My answer',
+    correctAnswer: 'Correct answer',
+    wrongReason: 'Why it was wrong',
+    wrongReasonText: 'You mixed up the difference between concepts A and B. A quick review is recommended.',
+    trustTag: 'TRUST'
+  },
+  ja: {
+    topHeroPlanRows: ['09:00 数学概念の復習', '11:30 英単語30個', '14:00 データ構造課題', '20:00 誤答ノート'],
+    topHeroQuestion: 'Q. DFSを簡単に説明して',
+    topHeroAnswerTitle: 'AI回答要約',
+    topHeroAnswer: '一方向に最後まで探索し、行き止まりなら戻る方式です。',
+    summarize: '要約する',
+    review: 'もう一度見る',
+    example: '例を見る',
+    summaryDone: 'AI要約完了',
+    summarySubject: '微積分の核心概念',
+    topHeroSummaryRows: ['微分 = 瞬間変化率', '導関数 = 接線の傾き', '積分 = 累積量', '基本定理 = 微分と積分の接続'],
+    recordTitle: '今日の学習記録',
+    recordStreak: '5日連続',
+    topHeroRecordRows: ['データ構造復習 42分', '微積分演習 1時間10分', '今日の質問3件保存', 'AI要約2件を再確認'],
+    recordRows: ['DFS復習完了 · 42分', '微積分問題演習 · 1時間10分', '英単語暗記 · 25分', '今日の質問3件 / 要約2件保存'],
+    openingNotes: 'Opening Notes',
+    recordMiniText: '概念整理完了 · 誤答ノート保存',
+    savedQuestions: 'もう一度見る質問',
+    savedQuestionsValue: '2件',
+    savedQuestionsText: '極限と導関数の関係、DFS探索順序',
+    month: '2026年5月',
+    planRows: ['09:00 数学概念の復習', '11:30 英単語暗記', '14:00 誤答ノート作成', '20:00 データ構造課題整理'],
+    priorityTitle: '今日の目標4個中2個完了',
+    priorityRows: ['1. 微積分要約を見る', '2. DFS問題を2問解く'],
+    chatQuestion: 'Q. この概念を簡単に説明して',
+    chatAnswer: 'AI. DFSはグラフを一方向に深く探索し、行き止まりで戻る方式です。スタックや再帰で実装できます。',
+    summaryBullets: ['微分は関数の瞬間変化率を求める方法です。', '導関数は元の関数の傾きの変化を表します。', 'f(x)=x²の導関数は2xです。', '接線の傾きはその点の微分値で求められます。', '復習推奨: 極限と導関数の関係'],
+    summaryTags: ['変化率', '導関数', '接線の傾き'],
+    reportTitle: '誤答分析レポート',
+    myAnswer: '自分の答え',
+    correctAnswer: '正解',
+    wrongReason: '間違えた理由',
+    wrongReasonText: '概念AとBの違いを混同しました。もう一度復習することをおすすめします。',
+    trustTag: 'TRUST'
+  },
+  zh: {
+    topHeroPlanRows: ['09:00 复习数学概念', '11:30 英语单词30个', '14:00 数据结构作业', '20:00 错题笔记'],
+    topHeroQuestion: 'Q. 简单说明 DFS',
+    topHeroAnswerTitle: 'AI 回答摘要',
+    topHeroAnswer: '沿一个方向探索到尽头，遇到阻塞时再回退。',
+    summarize: '总结',
+    review: '再看',
+    example: '看示例',
+    summaryDone: 'AI 总结完成',
+    summarySubject: '微积分核心概念',
+    topHeroSummaryRows: ['微分 = 瞬时变化率', '导函数 = 切线斜率', '积分 = 累积量', '基本定理 = 连接微分和积分'],
+    recordTitle: '今天的学习记录',
+    recordStreak: '连续5天',
+    topHeroRecordRows: ['数据结构复习 42分钟', '微积分练习 1小时10分', '今天保存3个问题', '2个 AI 总结待复习'],
+    recordRows: ['DFS 复习完成 · 42分钟', '微积分题目练习 · 1小时10分', '英语单词记忆 · 25分钟', '今天保存3个问题 / 2个总结'],
+    openingNotes: 'Opening Notes',
+    recordMiniText: '概念整理完成 · 错题笔记已保存',
+    savedQuestions: '待回看的问题',
+    savedQuestionsValue: '2条',
+    savedQuestionsText: '极限与导函数关系，DFS 遍历顺序',
+    month: '2026年5月',
+    planRows: ['09:00 复习数学概念', '11:30 记忆英语单词', '14:00 写错题笔记', '20:00 整理数据结构作业'],
+    priorityTitle: '今日4个目标已完成2个',
+    priorityRows: ['1. 查看微积分总结', '2. 完成2道 DFS 题'],
+    chatQuestion: 'Q. 简单解释这个概念',
+    chatAnswer: 'AI. DFS 会沿着图的一个方向深入探索，走到尽头后再回退。可以用栈或递归实现。',
+    summaryBullets: ['微分表示函数的瞬时变化率。', '导函数表示原函数斜率的变化。', 'f(x)=x² 的导函数是 2x。', '切线斜率可由该点的微分值求出。', '复习建议：极限与导函数的关系'],
+    summaryTags: ['变化率', '导函数', '切线斜率'],
+    reportTitle: '错题分析报告',
+    myAnswer: '我的答案',
+    correctAnswer: '正确答案',
+    wrongReason: '错误原因',
+    wrongReasonText: '你混淆了概念 A 和 B 的差异。建议再次复习。',
+    trustTag: 'TRUST'
+  }
+};
+
+function TopHeroCarousel({ activeIndex, onNext, onPrevious, onSelect, onNavigate, language }) {
+  const baseSlide = topHeroSlides[activeIndex];
+  const slide = {
+    ...baseSlide,
+    ...(topHeroCopySets[language]?.[baseSlide.key] || topHeroCopySets.ko[baseSlide.key])
+  };
+  const exampleCopy = exampleCopySets[language] || exampleCopySets.ko;
 
   return (
     <View style={styles.topHeroCarousel}>
-      <Pressable onPress={onPrevious} style={(state) => [styles.topHeroArrow, styles.topHeroArrowLeft, ...interactiveStateStyles(state)]}>
+      <Pressable className="sagak-pencil-interactive" onPress={onPrevious} style={(state) => [styles.topHeroArrow, styles.topHeroArrowLeft, ...interactiveStateStyles(state)]}>
         <Text style={styles.topHeroArrowText}>‹</Text>
       </Pressable>
       <View style={styles.topHeroContent}>
-        <Text style={styles.topHeroTitle}>{slide.title}</Text>
-        <Text style={styles.topHeroDescription}>{slide.description}</Text>
-        <Pressable onPress={() => onNavigate(slide.action)} style={(state) => [styles.topHeroCta, ...interactiveStateStyles(state)]}>
-          <Text style={styles.topHeroCtaText}>{slide.cta}</Text>
-        </Pressable>
+        <View style={styles.topHeroCopy}>
+          <Text style={styles.topHeroEyebrow}>{slide.eyebrow}</Text>
+          <Text style={styles.topHeroTitle}>{slide.title}</Text>
+          <Text style={styles.topHeroDescription}>{slide.description}</Text>
+          <Pressable className="sagak-pencil-interactive" onPress={() => onNavigate(slide.action)} style={(state) => [styles.topHeroCta, ...interactiveStateStyles(state)]}>
+            <Text style={styles.topHeroCtaText}>{slide.cta}</Text>
+          </Pressable>
+        </View>
+        <TopHeroMockup copy={exampleCopy} kind={slide.key} />
       </View>
-      <Pressable onPress={onNext} style={(state) => [styles.topHeroArrow, styles.topHeroArrowRight, ...interactiveStateStyles(state)]}>
+      <Pressable className="sagak-pencil-interactive" onPress={onNext} style={(state) => [styles.topHeroArrow, styles.topHeroArrowRight, ...interactiveStateStyles(state)]}>
         <Text style={styles.topHeroArrowText}>›</Text>
       </Pressable>
       <View style={styles.topHeroDots}>
-        {slides.map((_, index) => (
-          <Pressable key={index} onPress={() => onSelect(index)} style={[styles.topHeroDot, index === activeIndex && styles.topHeroDotActive]} />
+        {topHeroSlides.map((item, index) => (
+          <Pressable className="sagak-pencil-interactive" key={item.key} onPress={() => onSelect(index)} style={[styles.topHeroDot, index === activeIndex && styles.topHeroDotActive]} />
         ))}
       </View>
     </View>
   );
 }
 
-
-function CinematicIntroVideo() {
-  return (
-    <View style={styles.introVideoSection} className="intro-video-section">
-      {Platform.OS === 'web' ? (
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover' }}
-          src="https://www.w3schools.com/html/mov_bbb.mp4"
-        />
-      ) : (
-        <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: '#081220' }} />
-      )}
-      <View style={styles.introOverlay} className="intro-overlay" />
-      <View style={styles.introVideoContent}>
-        <Text style={styles.introVideoBrand}>사각사각</Text>
-        <Text style={styles.introVideoCopy}>
-          공부의 흐름을\n조용히 기록하는 공간
-        </Text>
+function TopHeroMockup({ copy, kind }) {
+  if (kind === 'plan') {
+    return (
+      <View style={[styles.topHeroMockup, styles.topHeroMockupPlan]}>
+        <View style={styles.topHeroMockupHeader}>
+          <Text style={styles.topHeroMockupTitle}>{copy.month}</Text>
+          <Text style={styles.topHeroMockupBadge}>D-12</Text>
+        </View>
+        {copy.topHeroPlanRows.map((item, index) => (
+          <View key={item} style={styles.topHeroMockupRow}>
+            <View style={[styles.topHeroMockupCheck, index < 2 && styles.topHeroMockupCheckDone]} />
+            <Text style={styles.topHeroMockupRowText}>{item}</Text>
+          </View>
+        ))}
       </View>
+    );
+  }
+
+  if (kind === 'question') {
+    return (
+      <View style={[styles.topHeroMockup, styles.topHeroMockupChat]}>
+        <View style={styles.topHeroQuestionBubble}>
+          <Text style={styles.topHeroQuestionText}>{copy.topHeroQuestion}</Text>
+        </View>
+        <View style={styles.topHeroAnswerCard}>
+          <Text style={styles.topHeroAnswerTitle}>{copy.topHeroAnswerTitle}</Text>
+          <Text style={styles.topHeroAnswerText}>{copy.topHeroAnswer}</Text>
+        </View>
+        <View style={styles.topHeroActionRow}>
+          <Text style={styles.topHeroActionPill}>{copy.summarize}</Text>
+          <Text style={styles.topHeroActionPillMuted}>{copy.review}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (kind === 'summary') {
+    return (
+      <View style={[styles.topHeroMockup, styles.topHeroMockupSummary]}>
+        <Text style={styles.topHeroMockupTitle}>{copy.summaryDone}</Text>
+        <Text style={styles.topHeroSummarySubject}>{copy.summarySubject}</Text>
+        {copy.topHeroSummaryRows.map((item) => (
+          <View key={item} style={styles.topHeroSummaryLine}>
+            <View style={styles.heroSlideBullet} />
+            <Text style={styles.topHeroMockupRowText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.topHeroMockup, styles.topHeroMockupRecord]}>
+      <View style={styles.topHeroMockupHeader}>
+        <Text style={styles.topHeroMockupTitle}>{copy.recordTitle}</Text>
+        <Text style={styles.topHeroMockupBadge}>{copy.recordStreak}</Text>
+      </View>
+      {copy.topHeroRecordRows.map((item) => (
+        <View key={item} style={styles.topHeroMockupRow}>
+          <View style={styles.topHeroMockupCheckDone} />
+          <Text style={styles.topHeroMockupRowText}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+
+function CinematicIntroVideo({ onComplete, onSkip }) {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 5200);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <View dataSet={{ sagakIntroScreen: 'true' }} style={styles.introVideoSection} className="intro-video-section">
+      <View style={styles.introFilm} className="sagak-intro-film">
+        {Platform.OS === 'web' && (
+          <svg aria-hidden="true" viewBox="0 0 1200 720" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+            <path d="M76 508 C222 382 314 444 438 344 C566 240 654 280 758 204 C854 134 1016 158 1128 92" fill="none" stroke="#73C9BD" strokeWidth="14" strokeLinecap="round" />
+            <path d="M118 562 C286 500 390 548 530 462 C660 382 734 426 870 336 C976 266 1062 286 1144 240" fill="none" stroke="#F4BE64" strokeWidth="8" strokeLinecap="round" />
+          </svg>
+        )}
+        <View style={[styles.introToolCard, styles.introToolNote]} className="sagak-intro-tool">
+          <View style={styles.introToolLineLong} />
+          <View style={styles.introToolLineShort} />
+          <View style={[styles.introToolLineShort, styles.introToolLineMuted]} />
+        </View>
+        <View style={[styles.introToolCard, styles.introToolCheck]} className="sagak-intro-tool">
+          {[0, 1, 2].map((item) => (
+            <View key={item} style={styles.introToolCheckRow}>
+              <View style={[styles.introToolCheckBox, item < 2 && styles.introToolCheckBoxDone]} />
+              <View style={[styles.introToolLineShort, item === 1 && styles.introToolLineMuted]} />
+            </View>
+          ))}
+        </View>
+        <View style={[styles.introToolCard, styles.introToolChat]} className="sagak-intro-tool">
+          <View style={styles.introToolChatBubble}>
+            <View style={styles.introToolLineLong} />
+            <View style={[styles.introToolLineShort, styles.introToolLineMuted]} />
+          </View>
+        </View>
+        <View style={[styles.introToolCard, styles.introToolSummary]} className="sagak-intro-tool">
+          <View style={styles.introHighlight} />
+          <View style={styles.introToolLineLong} />
+          <View style={[styles.introToolLineShort, styles.introToolLineMuted]} />
+        </View>
+        <View dataSet={{ sagakPencil: 'true' }} style={styles.introPencilMark}>
+          <View style={styles.introPencilEraser} />
+          <View style={styles.introPencilBody}>
+            <View style={styles.introPencilBodyLine} />
+          </View>
+          <View style={styles.introPencilWood} />
+          <View style={styles.introPencilLead} />
+        </View>
+      </View>
+      <View style={styles.introOverlay} className="intro-overlay" />
+      <Pressable
+        accessibilityLabel="인트로 건너뛰기"
+        accessibilityRole="button"
+        className="sagak-pencil-interactive"
+        onPress={onSkip}
+        style={(state) => [styles.introSkipButton, ...interactiveStateStyles(state)]}
+      >
+        <Text style={styles.introSkipText}>Skip Intro</Text>
+      </Pressable>
       <View style={styles.introVideoScroll}>
         <Text style={styles.introVideoScrollText}>Scroll ↓</Text>
       </View>
     </View>
   );
-}
-
-function readIntroEnabled() {
-  try {
-    return globalThis.localStorage?.getItem(INTRO_ENABLED_STORAGE_KEY) !== 'false';
-  } catch (error) {
-    return true;
-  }
 }
 
 function readBgmEnabled() {
@@ -570,6 +1146,48 @@ function HeroSlide({ slide, t }) {
   );
 }
 
+function SectionKeyword({ label, motion, style }) {
+  const keywordMotion = motion || { opacity: 0, blur: 14, y: 72, scale: 0.94 };
+
+  return (
+    <Text
+      className="keyword-bg"
+      style={[
+        styles.bgTitleText,
+        style,
+        {
+          opacity: keywordMotion.opacity,
+          filter: `blur(${keywordMotion.blur}px)`,
+          transform: [{ translateY: keywordMotion.y }, { scale: keywordMotion.scale }]
+        }
+      ]}
+    >
+      {label}
+    </Text>
+  );
+}
+
+function ProjectGroundedCopySection({ copy }) {
+  return (
+    <View dataSet={{ sagakScrollSection: 'true' }} style={styles.projectSection}>
+      <View style={styles.projectHeading}>
+        <Text style={styles.sectionEyebrow}>{copy.eyebrow}</Text>
+        <Text style={styles.sectionTitle}>{copy.title}</Text>
+        <Text style={styles.sectionDescription}>{copy.description}</Text>
+      </View>
+      <View style={styles.projectCardGrid}>
+        {copy.cards.map((card) => (
+          <View key={card.title} style={[styles.projectCard, shadows.card]}>
+            <View style={styles.projectCardRule} />
+            <Text style={styles.projectCardTitle}>{card.title}</Text>
+            <Text style={styles.projectCardDescription}>{card.description}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function GitHubMark() {
   if (Platform.OS === 'web') {
     return (
@@ -601,14 +1219,16 @@ function GitHubMark() {
 }
 
 export default function LandingScreen({ onNavigate }) {
-  const { t } = useLanguage();
+  const { currentLanguage, t } = useLanguage();
   const [writtenWord, setWrittenWord] = useState('');
   const [introPassed, setIntroPassed] = useState(false);
   const [topHeroIndex, setTopHeroIndex] = useState(0);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
-  const [promoSlideIndex, setPromoSlideIndex] = useState(0);
-  const [promoPaused, setPromoPaused] = useState(false);
   const [bgmEnabled, setBgmEnabled] = useState(readBgmEnabled);
+  const [sectionLayouts, setSectionLayouts] = useState({});
+  const [sectionKeywordMotions, setSectionKeywordMotions] = useState({});
+  const scrollRef = useRef(null);
+  const scrollYRef = useRef(0);
   const bgmRef = useRef(null);
   const [githubTooltipState, setGithubTooltipState] = useState({
     focused: false,
@@ -618,58 +1238,57 @@ export default function LandingScreen({ onNavigate }) {
   const writingWord = t('landing.hero.writingWord', '사각사각');
   const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
   const currentHeroSlide = heroSlides[heroSlideIndex];
+  const currentSectionKeywords = sectionKeywordSets[currentLanguage] || sectionKeywordSets.ko;
+  const exampleCopy = exampleCopySets[currentLanguage] || exampleCopySets.ko;
+  const projectCopy = projectCopySets[currentLanguage] || projectCopySets.ko;
+
+  const updateSectionKeywordMotions = useCallback((scrollY, layoutOverride) => {
+    const layouts = layoutOverride || sectionLayouts;
+    const viewportHeight = Platform.OS === 'web'
+      ? (globalThis.window?.innerHeight || 800)
+      : 800;
+    const nextMotions = {};
+
+    Object.entries(layouts).forEach(([key, layout]) => {
+      nextMotions[key] = calculateSectionKeywordMotion(scrollY, layout, viewportHeight);
+    });
+
+    setSectionKeywordMotions(nextMotions);
+  }, [sectionLayouts]);
+
+  const completeIntro = useCallback(() => {
+    if (introPassed) return;
+    setIntroPassed(true);
+    if (Platform.OS === 'web') {
+      globalThis.window?.dispatchEvent(new CustomEvent('sagak:intro-passed'));
+    }
+  }, [introPassed]);
 
   const handleScroll = (e) => {
+    const scrollY = e.nativeEvent.contentOffset.y || 0;
+    scrollYRef.current = scrollY;
+    updateSectionKeywordMotions(scrollY);
+
     if (Platform.OS === 'web' && !introPassed) {
-      const scrollY = e.nativeEvent.contentOffset.y;
       const threshold = globalThis.window.innerHeight * 0.7;
       if (scrollY >= threshold) {
-        setIntroPassed(true);
-        globalThis.window.dispatchEvent(new CustomEvent('sagak:intro-passed'));
+        completeIntro();
       }
     }
   };
 
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const timer = setTimeout(() => {
-        const sections = [
-          { trigger: '.plan-section', target: '.bg-plan' },
-          { trigger: '.question-section', target: '.bg-question' },
-          { trigger: '.summary-section', target: '.bg-summary' },
-          { trigger: '.report-section', target: '.bg-report' },
-          { trigger: '.trust-section', target: '.bg-trust' }
-        ];
+  const handleSectionLayout = useCallback((sectionKey, event) => {
+    const nextLayout = event.nativeEvent.layout;
+    setSectionLayouts((current) => {
+      const nextLayouts = { ...current, [sectionKey]: nextLayout };
+      updateSectionKeywordMotions(scrollYRef.current, nextLayouts);
+      return nextLayouts;
+    });
+  }, [updateSectionKeywordMotions]);
 
-        sections.forEach(({ trigger, target }) => {
-          const el = document.querySelector(target);
-          if (el) {
-            gsap.timeline({
-              scrollTrigger: {
-                trigger: trigger,
-                start: 'top 80%',
-                end: 'bottom 20%',
-                scrub: true,
-              }
-            })
-            .fromTo(target,
-              { opacity: 0, y: 80, scale: 0.92 },
-              { opacity: 1, y: 0, scale: 1, duration: 0.4 }
-            )
-            .to(target,
-              { opacity: 0, y: -80, scale: 1.08, duration: 0.4 }
-            );
-          }
-        });
-      }, 500);
-      return () => {
-        ScrollTrigger.getAll().forEach(t => t.kill());
-      };
-    }
-  }, []);
   useEffect(() => {
     const timer = setInterval(() => {
-      setTopHeroIndex((current) => (current + 1) % 4);
+      setTopHeroIndex((current) => (current + 1) % topHeroSlides.length);
     }, 5000);
     return () => clearInterval(timer);
   }, []);
@@ -701,19 +1320,25 @@ export default function LandingScreen({ onNavigate }) {
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== 'web') return undefined;
+
+    function handleIntroReplay() {
+      setIntroPassed(false);
+      setTopHeroIndex(0);
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+      globalThis.window?.scrollTo?.({ top: 0, behavior: 'auto' });
+    }
+
+    globalThis.window?.addEventListener(INTRO_REPLAY_EVENT, handleIntroReplay);
+    return () => globalThis.window?.removeEventListener(INTRO_REPLAY_EVENT, handleIntroReplay);
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setHeroSlideIndex((current) => (current + 1) % heroSlides.length);
     }, 5200);
     return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (promoPaused) return undefined;
-    const timer = setInterval(() => {
-      setPromoSlideIndex((current) => (current + 1) % promoSlides.length);
-    }, 5600);
-    return () => clearInterval(timer);
-  }, [promoPaused]);
 
   useEffect(() => {
     if (!bgmEnabled || Platform.OS !== 'web') return undefined;
@@ -749,10 +1374,6 @@ function moveHeroSlide(direction) {
     setHeroSlideIndex((current) => (current + direction + heroSlides.length) % heroSlides.length);
   }
 
-  function movePromoSlide(direction) {
-    setPromoSlideIndex((current) => (current + direction + promoSlides.length) % promoSlides.length);
-  }
-
   function toggleBgm() {
     const nextEnabled = !bgmEnabled;
     setBgmEnabled(nextEnabled);
@@ -764,6 +1385,7 @@ function moveHeroSlide(direction) {
 
   return (
     <ScrollView
+      ref={scrollRef}
       onScroll={handleScroll}
       scrollEventThrottle={16}
       dataSet={{ sagakI18nIgnore: 'true' }}
@@ -779,14 +1401,15 @@ function moveHeroSlide(direction) {
       `}} />
       <LandingAnimationStyles />
 
-      {!introPassed && <CinematicIntroVideo />}
+      {!introPassed && <CinematicIntroVideo onComplete={completeIntro} onSkip={completeIntro} />}
 
       <TopHeroCarousel
         activeIndex={topHeroIndex}
-        onNext={() => setTopHeroIndex((c) => (c + 1) % 4)}
-        onPrevious={() => setTopHeroIndex((c) => (c + 3) % 4)}
+        onNext={() => setTopHeroIndex((c) => (c + 1) % topHeroSlides.length)}
+        onPrevious={() => setTopHeroIndex((c) => (c + topHeroSlides.length - 1) % topHeroSlides.length)}
         onSelect={setTopHeroIndex}
         onNavigate={onNavigate}
+        language={currentLanguage}
       />
 
       <View dataSet={{ sagakScrollSection: 'true' }} style={styles.hero}>
@@ -805,7 +1428,7 @@ function moveHeroSlide(direction) {
             {heroSuffix ? ` ${heroSuffix}` : ''}
           </Text>
           <Text style={styles.description}>
-            질문, 요약, 오답, 복습까지 공부의 흐름을 한곳에서 관리하는 학습 파트너입니다.
+            {t('landing.hero.description', '질문, 요약, 오답, 복습까지 공부의 흐름을 한곳에서 관리하는 학습 파트너입니다.')}
           </Text>
           <View style={styles.heroActions}>
             <Pressable
@@ -864,18 +1487,8 @@ function moveHeroSlide(direction) {
         </View>
       </View>
 
-      <PromoCarousel
-        activeIndex={promoSlideIndex}
-        onNavigate={onNavigate}
-        onNext={() => movePromoSlide(1)}
-        onPauseChange={setPromoPaused}
-        onPrevious={() => movePromoSlide(-1)}
-        onSelect={setPromoSlideIndex}
-        t={t}
-      />
-
-      <View nativeID="features" className="sagak-fade-up" style={styles.revealSection}>
-        <Text style={styles.largeSectionTitle}>기록</Text>
+      <View nativeID="features" className="keyword-section record-section sagak-fade-up" onLayout={(event) => handleSectionLayout('record', event)} style={styles.revealSection}>
+        <SectionKeyword label={currentSectionKeywords.record} motion={sectionKeywordMotions.record} style={styles.bgRecord} />
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionEyebrow}>OPENING NOTES</Text>
           <Text style={styles.sectionTitle}>{t('landing.reveal.title', '사각사각이 학습을 여는 방식')}</Text>
@@ -883,14 +1496,31 @@ function moveHeroSlide(direction) {
             {t('landing.reveal.description', '조용한 기록, 다정한 피드백, 반복되는 복습을 한 페이지에서 이어갑니다.')}
           </Text>
         </View>
-        <View style={styles.revealGrid}>
-          {revealCards.map((card, index) => (
-            <View dataSet={{ sagakScrollSection: 'true' }} key={card.titleKey} style={[styles.revealCard, index % 2 === 1 && styles.revealCardAlt]}>
-              <Text style={styles.revealCardNumber}>{String(index + 1).padStart(2, '0')}</Text>
-              <Text style={styles.revealCardTitle}>{t(card.titleKey)}</Text>
-              <Text style={styles.revealCardDescription}>{t(card.descriptionKey)}</Text>
+        <View style={styles.recordExperience}>
+          <View dataSet={{ sagakScrollSection: 'true' }} style={[styles.recordMainCard, shadows.card]}>
+            <View style={styles.recordHeaderRow}>
+              <Text style={styles.recordCardTitle}>{exampleCopy.recordTitle}</Text>
+              <Text style={styles.recordStreak}>{exampleCopy.recordStreak}</Text>
             </View>
-          ))}
+            {exampleCopy.recordRows.map((item) => (
+              <View key={item} style={styles.recordLogRow}>
+                <View style={styles.recordLogDot} />
+                <Text style={styles.recordLogText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.recordSideStack}>
+            <View style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
+              <Text style={styles.recordMiniLabel}>{exampleCopy.openingNotes}</Text>
+              <Text style={styles.recordMiniValue}>05/28</Text>
+              <Text style={styles.recordMiniText}>{exampleCopy.recordMiniText}</Text>
+            </View>
+            <View style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
+              <Text style={styles.recordMiniLabel}>{exampleCopy.savedQuestions}</Text>
+              <Text style={styles.recordMiniValue}>{exampleCopy.savedQuestionsValue}</Text>
+              <Text style={styles.recordMiniText}>{exampleCopy.savedQuestionsText}</Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -921,35 +1551,37 @@ function moveHeroSlide(direction) {
         })}
       </View>
 
+      <ProjectGroundedCopySection copy={projectCopy} />
+
       
       {/* 1. 계획 섹션 */}
-      <View nativeID="plan" className="plan-section sagak-fade-up" style={styles.newSection}>
-        {Platform.OS === 'web' && <Text style={[styles.bgTitleText, { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }]} className="bg-plan">계획</Text>}
+      <View nativeID="plan" className="keyword-section plan-section sagak-fade-up" onLayout={(event) => handleSectionLayout('plan', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.plan} motion={sectionKeywordMotions.plan} style={styles.bgPlan} />
         <View style={styles.newSectionInner}>
           <View style={styles.newTextCol}>
-            <Text style={styles.newSectionTitle}>하루 계획이{`\n`}흩어지지 않게</Text>
-            <Text style={styles.newSectionDesc}>일정표와 타임라인으로 오늘의 목표를 한눈에 관리하세요.</Text>
-            <View style={styles.tagWrap}><Text style={styles.tagText}>일정 관리</Text></View>
+            <Text style={styles.newSectionTitle}>{t('landing.story.plan.title', '하루 계획이 흩어지지 않게')}</Text>
+            <Text style={styles.newSectionDesc}>{t('landing.story.plan.description', '일정표와 타임라인으로 오늘의 목표를 한눈에 관리하세요.')}</Text>
+            <View style={styles.tagWrap}><Text style={styles.tagText}>{t('landing.story.plan.chip1', '일정')}</Text></View>
           </View>
           <View style={[styles.newVisualCol, { alignItems: 'flex-end' }]}>
             <View style={[styles.mockCard, styles.planMock]}>
               <View style={styles.planHeader}>
-                <Text style={styles.planMonth}>May 2026</Text>
+                <Text style={styles.planMonth}>{exampleCopy.month}</Text>
                 <View style={styles.planDday}><Text style={styles.planDdayText}>D-12</Text></View>
               </View>
               <View style={styles.planTimeline}>
-                <View style={styles.planTimeItem}>
-                  <View style={styles.planTimeDot} />
-                  <Text style={styles.planTimeText}>09:00 수학 개념 복습</Text>
-                </View>
-                <View style={styles.planTimeItem}>
-                  <View style={[styles.planTimeDot, { backgroundColor: '#FF8A65' }]} />
-                  <Text style={styles.planTimeText}>11:30 영어 단어 암기</Text>
-                </View>
-                <View style={styles.planTimeItem}>
-                  <View style={styles.planTimeDot} />
-                  <Text style={styles.planTimeText}>14:00 오답 노트 작성</Text>
-                </View>
+                {exampleCopy.planRows.map((item, index) => (
+                  <View key={item} style={styles.planTimeItem}>
+                    <View style={[styles.planTimeDot, index === 1 && { backgroundColor: '#FF8A65' }, index === 3 && { backgroundColor: '#173B63' }]} />
+                    <Text style={styles.planTimeText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.planPriorityBox}>
+                <Text style={styles.planPriorityTitle}>{exampleCopy.priorityTitle}</Text>
+                {exampleCopy.priorityRows.map((item) => (
+                  <Text key={item} style={styles.planPriorityText}>{item}</Text>
+                ))}
               </View>
             </View>
           </View>
@@ -957,27 +1589,27 @@ function moveHeroSlide(direction) {
       </View>
 
       {/* 2. 질문 섹션 */}
-      <View nativeID="question" className="question-section sagak-fade-up delay-1" style={styles.newSection}>
-        {Platform.OS === 'web' && <Text style={[styles.bgTitleText, { left: '10%', top: '40%' }]} className="bg-question">질문</Text>}
+      <View nativeID="question" className="keyword-section question-section sagak-fade-up delay-1" onLayout={(event) => handleSectionLayout('question', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.question} motion={sectionKeywordMotions.question} style={styles.bgQuestion} />
         <View style={[styles.newSectionInner, { flexDirection: 'column', alignItems: 'center', textAlign: 'center' }]}>
           <View style={[styles.newTextCol, { width: '100%', alignItems: 'center', marginBottom: 40 }]}>
-            <Text style={[styles.newSectionTitle, { textAlign: 'center' }]}>질문하고, 요약하고,{`\n`}다시 보기</Text>
-            <Text style={[styles.newSectionDesc, { textAlign: 'center' }]}>막히는 부분은 언제든 AI에게 질문하고 힌트를 얻으세요.</Text>
+            <Text style={[styles.newSectionTitle, { textAlign: 'center' }]}>{t('landing.story.ai.title', '질문하고, 요약하고, 다시 보기')}</Text>
+            <Text style={[styles.newSectionDesc, { textAlign: 'center' }]}>{t('landing.story.ai.description', '막히는 부분은 언제든 AI에게 질문하고 힌트를 얻으세요.')}</Text>
           </View>
           <View style={[styles.newVisualCol, { width: '100%', maxWidth: 600, position: 'relative' }]}>
-            {/* 떠다니는 말풍선들 */}
-            <View style={[styles.floatingBubble, { top: -20, left: -40, backgroundColor: '#FFFDF6' }]}><Text style={{fontSize:24}}>🤔</Text></View>
-            <View style={[styles.floatingBubble, { bottom: -20, right: -40, backgroundColor: '#FF8A65' }]}><Text style={{fontSize:24}}>💡</Text></View>
+            <View style={[styles.floatingBubble, { top: -20, left: -40, backgroundColor: '#FFFDF6' }]}><Text style={styles.floatingBubbleIcon}>?</Text></View>
+            <View style={[styles.floatingBubble, { bottom: -20, right: -40, backgroundColor: '#FF8A65' }]}><Text style={styles.floatingBubbleIconLight}>AI</Text></View>
             
             <View style={[styles.mockCard, styles.chatMock]}>
               <View style={styles.chatUserBubble}>
-                <Text style={styles.chatUserText}>Q. 이 개념을 쉽게 설명해줘</Text>
+                <Text style={styles.chatUserText}>{exampleCopy.chatQuestion}</Text>
               </View>
               <View style={styles.chatAiBubble}>
-                <Text style={styles.chatAiText}>AI. 핵심만 정리하면 다음과 같습니다. 먼저 가장 중요한 공식은...</Text>
+                <Text style={styles.chatAiText}>{exampleCopy.chatAnswer}</Text>
                 <View style={styles.chatActions}>
-                  <View style={styles.chatBtn}><Text style={styles.chatBtnText}>요약하기</Text></View>
-                  <View style={[styles.chatBtn, { backgroundColor: '#F1F5F9' }]}><Text style={[styles.chatBtnText, { color: '#64748B' }]}>다시 보기</Text></View>
+                  <View style={styles.chatBtn} className="sagak-pencil-interactive"><Text style={styles.chatBtnText}>{exampleCopy.summarize}</Text></View>
+                  <View style={[styles.chatBtn, { backgroundColor: '#F1F5F9' }]} className="sagak-pencil-interactive"><Text style={[styles.chatBtnText, { color: '#64748B' }]}>{exampleCopy.review}</Text></View>
+                  <View style={[styles.chatBtn, { backgroundColor: '#FFF5D6' }]} className="sagak-pencil-interactive"><Text style={[styles.chatBtnText, { color: '#A15C00' }]}>{exampleCopy.example}</Text></View>
                 </View>
               </View>
             </View>
@@ -986,26 +1618,29 @@ function moveHeroSlide(direction) {
       </View>
 
       {/* 3. 요약 섹션 */}
-      <View nativeID="summary" className="summary-section sagak-fade-up delay-2" style={styles.newSection}>
-        {Platform.OS === 'web' && <Text style={[styles.bgTitleText, { right: '10%', top: '50%' }]} className="bg-summary">요약</Text>}
+      <View nativeID="summary" className="keyword-section summary-section sagak-fade-up delay-2" onLayout={(event) => handleSectionLayout('summary', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.summary} motion={sectionKeywordMotions.summary} style={styles.bgSummary} />
         <View style={[styles.newSectionInner, { flexDirection: 'row-reverse' }]}>
           <View style={styles.newTextCol}>
-            <Text style={styles.newSectionTitle}>긴 내용을{`\n`}핵심만 남기세요</Text>
-            <Text style={styles.newSectionDesc}>노트 필기와 문서 하이라이트로 배운 것을 온전히 내 것으로 만듭니다.</Text>
+            <Text style={styles.newSectionTitle}>{t('landing.summary.title', '긴 내용을 핵심만 남기세요')}</Text>
+            <Text style={styles.newSectionDesc}>{t('landing.summary.description', '노트 필기와 문서 하이라이트로 배운 것을 온전히 내 것으로 만듭니다.')}</Text>
           </View>
           <View style={[styles.newVisualCol, { alignItems: 'flex-start' }]}>
             <View style={[styles.mockCard, styles.noteMock]}>
-              <View style={styles.noteBadge}><Text style={styles.noteBadgeText}>AI 요약 완료</Text></View>
-              <Text style={styles.noteTitle}>수학 미적분 핵심 개념</Text>
-              <View style={styles.noteLines}>
-                <View style={[styles.noteLine, { width: '90%' }]} />
-                <View style={[styles.noteLine, { width: '80%' }]} />
-                {/* 하이라이트 줄 */}
-                <View style={{ position: 'relative', width: '70%', height: 16, marginBottom: 12 }}>
-                  <View style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 8, backgroundColor: 'rgba(244, 190, 100, 0.4)' }} />
-                  <View style={[styles.noteLine, { width: '100%', position: 'absolute', top: 0, marginBottom: 0 }]} />
-                </View>
-                <View style={[styles.noteLine, { width: '50%' }]} />
+              <View style={styles.noteBadge}><Text style={styles.noteBadgeText}>{exampleCopy.summaryDone}</Text></View>
+              <Text style={styles.noteTitle}>{exampleCopy.summarySubject}</Text>
+              <View style={styles.summaryBulletList}>
+                {exampleCopy.summaryBullets.map((item, index) => (
+                  <View key={item} style={styles.summaryBulletRow}>
+                    <Text style={styles.summaryBulletNumber}>{index + 1}</Text>
+                    <Text style={[styles.summaryBulletText, index === 2 && styles.summaryHighlightText]}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.summaryTagRow}>
+                {exampleCopy.summaryTags.map((tag) => (
+                  <Text key={tag} style={styles.summaryTag}>{tag}</Text>
+                ))}
               </View>
             </View>
           </View>
@@ -1013,12 +1648,12 @@ function moveHeroSlide(direction) {
       </View>
 
       {/* 4. 오답 섹션 */}
-      <View nativeID="report" className="report-section sagak-fade-up delay-1" style={styles.newSection}>
-        {Platform.OS === 'web' && <Text style={[styles.bgTitleText, { left: '50%', bottom: '-10%', transform: 'translateX(-50%)' }]} className="bg-report">오답</Text>}
+      <View nativeID="report" className="report-section sagak-fade-up delay-1" onLayout={(event) => handleSectionLayout('report', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.report} motion={sectionKeywordMotions.report} style={styles.bgReport} />
         <View style={styles.newSectionInner}>
           <View style={styles.newTextCol}>
-            <Text style={styles.newSectionTitle}>틀린 이유를{`\n`}정확히 이해하세요</Text>
-            <Text style={styles.newSectionDesc}>내 답안과 정답을 비교하고 AI가 분석해주는 오답 리포트를 확인하세요.</Text>
+            <Text style={styles.newSectionTitle}>{t('landing.report.title', '틀린 이유를 정확히 이해하세요')}</Text>
+            <Text style={styles.newSectionDesc}>{t('landing.report.description', '내 답안과 정답을 비교하고 AI가 분석해주는 오답 리포트를 확인하세요.')}</Text>
           </View>
           <View style={[styles.newVisualCol, { position: 'relative', height: 320 }]}>
             {/* 겹쳐진 카드들 */}
@@ -1026,20 +1661,20 @@ function moveHeroSlide(direction) {
             <View style={[styles.mockCard, styles.reportCardBg1]} />
             <View style={[styles.mockCard, styles.reportCardMain]}>
               <View style={styles.reportHeader}>
-                <Text style={styles.reportTitle}>오답 분석 리포트</Text>
+                <Text style={styles.reportTitle}>{exampleCopy.reportTitle}</Text>
                 <Text style={styles.reportScore}>-5점</Text>
               </View>
               <View style={styles.reportRow}>
-                <Text style={styles.reportLabel}>내 답안</Text>
+                <Text style={styles.reportLabel}>{exampleCopy.myAnswer}</Text>
                 <Text style={styles.reportWrong}>④</Text>
               </View>
               <View style={styles.reportRow}>
-                <Text style={styles.reportLabel}>정답</Text>
+                <Text style={styles.reportLabel}>{exampleCopy.correctAnswer}</Text>
                 <Text style={styles.reportCorrect}>②</Text>
               </View>
               <View style={styles.reportReason}>
-                <Text style={styles.reportReasonTitle}>틀린 이유</Text>
-                <Text style={styles.reportReasonText}>개념 A와 B의 차이를 혼동했습니다. 다시 복습을 추천합니다.</Text>
+                <Text style={styles.reportReasonTitle}>{exampleCopy.wrongReason}</Text>
+                <Text style={styles.reportReasonText}>{exampleCopy.wrongReasonText}</Text>
               </View>
             </View>
           </View>
@@ -1047,35 +1682,35 @@ function moveHeroSlide(direction) {
       </View>
 
       {/* 5. 신뢰/TRUST 섹션 */}
-      <View nativeID="trust" className="trust-section sagak-fade-up delay-2" style={styles.newSection}>
-        {Platform.OS === 'web' && <Text style={[styles.bgTitleText, { left: '-5%', top: '10%', opacity: 0.12, fontSize: 160 }]} className="bg-trust">신뢰</Text>}
+      <View nativeID="trust" className="trust-section sagak-fade-up delay-2" onLayout={(event) => handleSectionLayout('trust', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.trust} motion={sectionKeywordMotions.trust} style={styles.bgTrust} />
         <View style={[styles.newSectionInner, { alignItems: 'flex-start' }]}>
           <View style={[styles.newTextCol, { paddingTop: 40 }]}>
-            <View style={styles.tagWrap}><Text style={styles.tagText}>TRUST</Text></View>
-            <Text style={[styles.newSectionTitle, { marginTop: 20 }]}>차분하지만{`\n`}믿을 수 있는{`\n`}학습 공간</Text>
-            <Text style={styles.newSectionDesc}>화려한 효과보다 실제 학습 흐름, 접근성, 기존 API 안정성을 우선합니다.</Text>
+            <View style={styles.tagWrap}><Text style={styles.tagText}>{exampleCopy.trustTag}</Text></View>
+            <Text style={[styles.newSectionTitle, { marginTop: 20 }]}>{t('landing.trust.title', '차분하지만 믿을 수 있는 학습 공간')}</Text>
+            <Text style={styles.newSectionDesc}>{t('landing.trust.description', '화려한 효과보다 실제 학습 흐름, 접근성, 기존 API 안정성을 우선합니다.')}</Text>
           </View>
           <View style={[styles.newVisualCol, { flex: 1.2 }]}>
             <View style={styles.trustCardsContainer}>
               <View style={[styles.mockCard, styles.trustCard]}>
                 <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>🔗</Text></View>
                 <View style={styles.trustCardContent}>
-                  <Text style={styles.trustCardTitle}>기존 흐름 유지</Text>
-                  <Text style={styles.trustCardDesc}>로그인/회원가입/라우팅 구조를 무리 없이 이어갑니다.</Text>
+                  <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '기존 흐름 유지')}</Text>
+                  <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '로그인/회원가입/라우팅 구조를 무리 없이 이어갑니다.')}</Text>
                 </View>
               </View>
               <View style={[styles.mockCard, styles.trustCard]}>
                 <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>👁️</Text></View>
                 <View style={styles.trustCardContent}>
-                  <Text style={styles.trustCardTitle}>접근성 대응</Text>
-                  <Text style={styles.trustCardDesc}>모션 민감 사용자를 위한 reduced motion 설정을 지원합니다.</Text>
+                  <Text style={styles.trustCardTitle}>{t('landing.trust.item2', '접근성 대응')}</Text>
+                  <Text style={styles.trustCardDesc}>{t('landing.trust.description2', '모션 민감 사용자를 위한 reduced motion 설정을 지원합니다.')}</Text>
                 </View>
               </View>
               <View style={[styles.mockCard, styles.trustCard]}>
                 <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>🛡️</Text></View>
                 <View style={styles.trustCardContent}>
-                  <Text style={styles.trustCardTitle}>안정적인 확장성</Text>
-                  <Text style={styles.trustCardDesc}>기존 백엔드 흐름을 유지하며 안정적으로 기능을 확장합니다.</Text>
+                  <Text style={styles.trustCardTitle}>{t('landing.trust.item3', '안정적인 확장성')}</Text>
+                  <Text style={styles.trustCardDesc}>{t('landing.trust.description3', '기존 백엔드 흐름을 유지하며 안정적으로 기능을 확장합니다.')}</Text>
                 </View>
               </View>
             </View>
@@ -1096,16 +1731,18 @@ function moveHeroSlide(direction) {
         </Pressable>
       </View>
 
-      <Pressable
-        accessibilityLabel={bgmEnabled ? t('landing.bgm.offLabel', 'BGM 끄기') : t('landing.bgm.onLabel', 'BGM 켜기')}
-        accessibilityRole="button"
-        onPress={toggleBgm}
-        style={(state) => [styles.bgmButton, bgmEnabled && styles.bgmButtonActive, ...interactiveStateStyles(state)]}
-      >
-        <Text style={[styles.bgmButtonText, bgmEnabled && styles.bgmButtonTextActive]}>
-          ♪ BGM {bgmEnabled ? 'ON' : 'OFF'}
-        </Text>
-      </Pressable>
+      {introPassed ? (
+        <Pressable
+          accessibilityLabel={bgmEnabled ? t('landing.bgm.offLabel', 'BGM 끄기') : t('landing.bgm.onLabel', 'BGM 켜기')}
+          accessibilityRole="button"
+          onPress={toggleBgm}
+          style={(state) => [styles.bgmButton, bgmEnabled && styles.bgmButtonActive, ...interactiveStateStyles(state)]}
+        >
+          <Text style={[styles.bgmButtonText, bgmEnabled && styles.bgmButtonTextActive]}>
+            ♪ BGM {bgmEnabled ? 'ON' : 'OFF'}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View dataSet={{ sagakI18nIgnore: 'true' }} style={styles.footer}>
         <View style={styles.footerInner}>
@@ -1180,6 +1817,7 @@ const styles = StyleSheet.create({
     maxWidth: 1180,
     paddingVertical: 140,
     position: 'relative',
+    overflow: 'hidden',
   },
   newSectionInner: {
     flexDirection: 'row',
@@ -1225,12 +1863,45 @@ const styles = StyleSheet.create({
   },
   bgTitleText: {
     position: 'absolute',
-    fontSize: 180,
+    left: 0,
+    right: 0,
+    top: '42%',
+    fontSize: 210,
+    lineHeight: 230,
     fontWeight: '900',
-    color: 'rgba(244, 190, 100, 0.22)',
+    color: 'rgba(244, 190, 100, 0.28)',
     zIndex: 0,
+    opacity: 0,
+    filter: 'blur(8px)',
     pointerEvents: 'none',
     whiteSpace: 'nowrap',
+    textAlign: 'center',
+  },
+  bgRecord: {
+    top: '48%',
+    color: 'rgba(244, 190, 100, 0.24)',
+  },
+  bgPlan: {
+    top: '50%',
+    color: 'rgba(244, 190, 100, 0.28)',
+  },
+  bgQuestion: {
+    top: '45%',
+    color: 'rgba(115, 201, 189, 0.28)',
+  },
+  bgSummary: {
+    top: '58%',
+    color: 'rgba(244, 190, 100, 0.30)',
+  },
+  bgReport: {
+    top: '50%',
+    color: 'rgba(244, 190, 100, 0.25)',
+  },
+  bgTrust: {
+    top: '34%',
+    color: 'rgba(115, 201, 189, 0.22)',
+    fontSize: 170,
+    lineHeight: 190,
   },
   mockCard: {
     backgroundColor: '#FFFFFF',
@@ -1288,6 +1959,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#334155',
   },
+  planPriorityBox: {
+    marginTop: 28,
+    backgroundColor: '#FFF8E7',
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 190, 100, 0.35)',
+    gap: 8,
+  },
+  planPriorityTitle: {
+    color: '#173B63',
+    fontSize: 15,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  planPriorityText: {
+    color: '#5A6472',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   chatMock: {
     width: '100%',
     padding: 24,
@@ -1326,6 +2017,7 @@ const styles = StyleSheet.create({
   },
   chatActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   chatBtn: {
@@ -1333,6 +2025,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
+    cursor: pencilCursor,
   },
   chatBtnText: {
     color: '#FFF',
@@ -1350,6 +2043,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 20,
     zIndex: 20,
+  },
+  floatingBubbleIcon: {
+    color: '#173B63',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  floatingBubbleIconLight: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
   },
   noteMock: {
     width: '100%',
@@ -1376,6 +2079,52 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#15202B',
     marginBottom: 24,
+  },
+  summaryBulletList: {
+    gap: 11,
+  },
+  summaryBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  summaryBulletNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#DDF4F0',
+    color: '#0F766E',
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 24,
+  },
+  summaryBulletText: {
+    flex: 1,
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 23,
+    fontWeight: '700',
+  },
+  summaryHighlightText: {
+    backgroundColor: 'rgba(244, 190, 100, 0.28)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+  },
+  summaryTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 22,
+  },
+  summaryTag: {
+    backgroundColor: '#F1F5F9',
+    color: '#173B63',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: '900',
   },
   noteLines: {
     gap: 12,
@@ -1540,15 +2289,166 @@ const styles = StyleSheet.create({
   },
 
   introVideoSection: {
-    width: '100%',
+    width: '100vw',
     height: '100dvh',
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: '#081220',
+    backgroundColor: '#071827',
+  },
+  introFilm: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#071827',
+    zIndex: 0,
+  },
+  introToolCard: {
+    position: 'absolute',
+    minWidth: 150,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 253, 246, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+  },
+  introToolNote: {
+    left: '11%',
+    top: '18%',
+  },
+  introToolCheck: {
+    right: '13%',
+    top: '20%',
+  },
+  introToolChat: {
+    left: '16%',
+    bottom: '20%',
+  },
+  introToolSummary: {
+    right: '16%',
+    bottom: '18%',
+  },
+  introToolTitle: {
+    color: '#0F766E',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  introToolText: {
+    color: '#173B63',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  introToolLineLong: {
+    width: 126,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#73C9BD',
+    marginBottom: 10,
+  },
+  introToolLineShort: {
+    width: 82,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#F4BE64',
+  },
+  introToolLineMuted: {
+    width: 64,
+    backgroundColor: 'rgba(255, 241, 217, 0.86)',
+  },
+  introToolCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  introToolCheckBox: {
+    width: 16,
+    height: 16,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#73C9BD',
+    backgroundColor: 'transparent',
+  },
+  introToolCheckBoxDone: {
+    backgroundColor: '#73C9BD',
+  },
+  introToolChatBubble: {
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+    backgroundColor: 'rgba(115, 201, 189, 0.16)',
+    padding: 14,
+  },
+  introHighlight: {
+    width: 118,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(244, 190, 100, 0.48)',
+    marginBottom: 8,
+  },
+  introPencilMark: {
+    position: 'absolute',
+    left: '50%',
+    top: '54%',
+    width: 300,
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  introPencilEraser: {
+    width: 32,
+    height: 44,
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    backgroundColor: '#F3D4A0',
+    borderWidth: 2,
+    borderColor: '#173B63',
+  },
+  introPencilBody: {
+    width: 188,
+    height: 44,
+    backgroundColor: '#73C9BD',
+    borderTopWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: '#173B63',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  introPencilBodyLine: {
+    width: 112,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(23, 59, 99, 0.32)',
+  },
+  introPencilWood: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#FFF1D9',
+    borderTopWidth: 22,
+    borderBottomWidth: 22,
+    borderRightWidth: 32,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderRightColor: '#173B63',
+  },
+  introPencilLead: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 10,
+    borderBottomWidth: 10,
+    borderLeftWidth: 20,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: '#0F172A',
+    marginLeft: -16,
   },
   introOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8, 18, 32, 0.35)',
+    backgroundColor: 'rgba(7, 24, 39, 0.34)',
     zIndex: 1,
   },
   introVideoContent: {
@@ -1560,19 +2460,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
+  introLogoIcon: {
+    width: 118,
+    height: 118,
+    borderRadius: 28,
+    marginBottom: 18,
+  },
   introVideoBrand: {
     color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: 2,
-  },
-  introVideoCopy: {
-    color: '#FFFFFF',
-    fontSize: 48,
+    fontSize: 64,
     fontWeight: '900',
-    textAlign: 'center',
-    lineHeight: 64,
+    marginBottom: 10,
+    letterSpacing: 0,
+  },
+  introSkipButton: {
+    position: 'absolute',
+    right: 28,
+    bottom: 28,
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.26)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+    cursor: pencilCursor,
+  },
+  introSkipText: {
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   introVideoScroll: {
     position: 'absolute',
@@ -1602,7 +2522,7 @@ const styles = StyleSheet.create({
   topHeroCarousel: {
     width: '100%',
     backgroundColor: '#FFFDF6',
-    paddingVertical: 120,
+    paddingVertical: 104,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1611,15 +2531,36 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(21, 32, 43, 0.08)',
   },
   topHeroContent: {
-    maxWidth: 800,
+    width: '100%',
+    maxWidth: 1060,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    textAlign: 'center',
+    justifyContent: 'space-between',
+    gap: 34,
+  },
+  topHeroCopy: {
+    flex: 1,
+    minWidth: 280,
+    maxWidth: 520,
+  },
+  topHeroEyebrow: {
+    alignSelf: 'flex-start',
+    color: '#0F766E',
+    backgroundColor: 'rgba(115, 201, 189, 0.18)',
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+    marginBottom: 18,
   },
   topHeroTitle: {
     fontSize: 42,
     fontWeight: '900',
     color: '#15202B',
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 56,
     marginBottom: 24,
   },
@@ -1627,7 +2568,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     color: '#6B7280',
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 28,
     marginBottom: 32,
   },
@@ -1636,6 +2577,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 999,
+    cursor: pencilCursor,
+    alignSelf: 'flex-start',
   },
   topHeroCtaText: {
     color: '#FFF',
@@ -1655,6 +2598,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     zIndex: 10,
+    cursor: pencilCursor,
   },
   topHeroArrowLeft: { left: 24 },
   topHeroArrowRight: { right: 24 },
@@ -1669,10 +2613,157 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: 'rgba(21, 32, 43, 0.1)',
+    cursor: pencilCursor,
   },
   topHeroDotActive: {
     width: 24,
     backgroundColor: '#5CC6B8',
+  },
+  topHeroMockup: {
+    flex: 1,
+    minWidth: 290,
+    maxWidth: 430,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(21, 32, 43, 0.08)',
+    padding: 26,
+    shadowColor: '#0F1B2D',
+    shadowOpacity: 0.11,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 16 },
+  },
+  topHeroMockupRecord: {
+    backgroundColor: '#FFFFFF',
+  },
+  topHeroMockupPlan: {
+    backgroundColor: '#F8FFFD',
+  },
+  topHeroMockupChat: {
+    backgroundColor: '#F6F8FB',
+  },
+  topHeroMockupSummary: {
+    backgroundColor: '#FFFDF6',
+  },
+  topHeroMockupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  topHeroMockupTitle: {
+    color: '#173B63',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  topHeroMockupBadge: {
+    color: '#FFFFFF',
+    backgroundColor: '#FF8A65',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  topHeroMockupRow: {
+    minHeight: 43,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+  },
+  topHeroMockupCheck: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+  },
+  topHeroMockupCheckDone: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#73C9BD',
+  },
+  topHeroMockupRowText: {
+    flex: 1,
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '800',
+  },
+  topHeroQuestionBubble: {
+    alignSelf: 'flex-end',
+    maxWidth: '84%',
+    backgroundColor: '#173B63',
+    borderRadius: 20,
+    borderBottomRightRadius: 4,
+    padding: 16,
+    marginBottom: 16,
+  },
+  topHeroQuestionText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  topHeroAnswerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderBottomLeftRadius: 4,
+    padding: 18,
+    marginBottom: 15,
+  },
+  topHeroAnswerTitle: {
+    color: '#0F766E',
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 7,
+  },
+  topHeroAnswerText: {
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '700',
+  },
+  topHeroActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+  topHeroActionPill: {
+    color: '#FFFFFF',
+    backgroundColor: '#73C9BD',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  topHeroActionPillMuted: {
+    color: '#64748B',
+    backgroundColor: '#EAF0F5',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  topHeroSummarySubject: {
+    color: '#15202B',
+    fontSize: 21,
+    lineHeight: 28,
+    fontWeight: '900',
+    marginTop: 14,
+    marginBottom: 18,
+  },
+  topHeroSummaryLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 11,
   },
   largeSectionTitle: {
     fontSize: 48,
@@ -2001,7 +3092,8 @@ const styles = StyleSheet.create({
     borderColor: colors.blue,
     paddingHorizontal: 24,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    cursor: pencilCursor
   },
   primaryText: {
     color: colors.surface,
@@ -2016,7 +3108,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 24,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    cursor: pencilCursor
   },
   secondaryText: {
     color: colors.blueDeep,
@@ -2151,7 +3244,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    cursor: pencilCursor
   },
   heroCarouselButtonText: {
     color: colors.blueDeep,
@@ -2168,11 +3262,60 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: colors.line
+    backgroundColor: colors.line,
+    cursor: pencilCursor
   },
   heroCarouselDotActive: {
     width: 26,
     backgroundColor: colors.mintDeep
+  },
+  projectSection: {
+    width: '100%',
+    maxWidth: 1180,
+    paddingHorizontal: 18,
+    paddingTop: 82,
+    paddingBottom: 34,
+    gap: 28,
+  },
+  projectHeading: {
+    maxWidth: 820,
+  },
+  projectCardGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  projectCard: {
+    flexGrow: 1,
+    flexBasis: 250,
+    minWidth: 240,
+    backgroundColor: '#FFFDF6',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(21, 32, 43, 0.06)',
+    padding: 24,
+    overflow: 'hidden',
+  },
+  projectCardRule: {
+    width: 52,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#73C9BD',
+    marginBottom: 20,
+  },
+  projectCardTitle: {
+    color: '#15202B',
+    fontSize: 19,
+    lineHeight: 27,
+    fontWeight: '900',
+    marginBottom: 10,
+  },
+  projectCardDescription: {
+    color: '#475569',
+    fontSize: 15,
+    lineHeight: 24,
+    fontWeight: '600',
   },
   heroIcon: {
     height: 238,
@@ -2268,7 +3411,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24
+    marginTop: 24,
+    cursor: pencilCursor
   },
   promoCtaText: {
     color: colors.surface,
@@ -2317,7 +3461,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 5
+    zIndex: 5,
+    cursor: pencilCursor
   },
   promoArrowLeft: {
     left: 14
@@ -2344,7 +3489,8 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.surface
+    backgroundColor: colors.surface,
+    cursor: pencilCursor
   },
   promoDotActive: {
     width: 28,
@@ -2354,12 +3500,113 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1180,
     paddingVertical: 120,
+    position: 'relative',
+    overflow: 'hidden',
   },
   revealGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
     paddingHorizontal: 18
+  },
+  recordExperience: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18,
+    paddingHorizontal: 18,
+    position: 'relative',
+    zIndex: 2,
+  },
+  recordMainCard: {
+    flex: 1.25,
+    minWidth: 290,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 26,
+  },
+  recordHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  recordCardTitle: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  recordStreak: {
+    color: '#FFFFFF',
+    backgroundColor: '#173B63',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  recordLogRow: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 15,
+    marginBottom: 10,
+  },
+  recordLogDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#73C9BD',
+  },
+  recordLogText: {
+    flex: 1,
+    color: '#334155',
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800',
+  },
+  recordSideStack: {
+    flex: 0.75,
+    minWidth: 250,
+    gap: 14,
+  },
+  recordMiniCard: {
+    borderRadius: 22,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  recordMiniCardMint: {
+    backgroundColor: '#E8FAF6',
+  },
+  recordMiniCardCream: {
+    backgroundColor: '#FFF5D6',
+  },
+  recordMiniLabel: {
+    color: '#0F766E',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  recordMiniValue: {
+    color: '#173B63',
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  recordMiniText: {
+    color: '#475569',
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   revealCard: {
     flex: 1,
@@ -2434,7 +3681,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface
+    backgroundColor: colors.surface,
+    cursor: pencilCursor
   },
   featureLabel: {
     alignSelf: 'flex-start',
@@ -2839,7 +4087,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 28
+    marginTop: 28,
+    cursor: pencilCursor
   },
   finalCtaButtonText: {
     color: colors.surface,
@@ -2858,7 +4107,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 50
+    zIndex: 50,
+    cursor: pencilCursor
   },
   bgmButtonActive: {
     backgroundColor: colors.mintSoft,
@@ -2916,7 +4166,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative'
+    position: 'relative',
+    cursor: pencilCursor
   },
   githubTooltip: {
     position: 'absolute',

@@ -41,6 +41,7 @@ const screens = {
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
+const INTRO_REPLAY_EVENT = 'sagak:intro-replay';
 const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop'];
 
 const screenPaths = {
@@ -381,7 +382,7 @@ function AppChrome({
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
   const { currentLanguage, translateText } = useLanguage();
   const [readTextError, setReadTextError] = useState('');
-  const [introPassed, setIntroPassed] = useState(activeScreenName !== 'home');
+  const [introPassed, setIntroPassed] = useState(() => activeScreenName !== 'home');
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
 
   useWebTextLocalization(currentLanguage, translateText);
@@ -416,21 +417,34 @@ function AppChrome({
 
     documentRef.addEventListener('click', handleReadableTextClick);
 
+    return () => {
+      documentRef.removeEventListener('click', handleReadableTextClick);
+    };
+  }, [preference.voiceOutputEnabled, speakText, user]);
+
+  useEffect(() => {
+    if (!globalThis.window) {
+      return undefined;
+    }
+
     function handleIntroPassedEvent() {
       setIntroPassed(true);
     }
 
-    if (globalThis.window) {
-      globalThis.window.addEventListener('sagak:intro-passed', handleIntroPassedEvent);
+    function handleIntroReplayEvent() {
+      if (activeScreenName === 'home') {
+        setIntroPassed(false);
+      }
     }
 
+    globalThis.window.addEventListener('sagak:intro-passed', handleIntroPassedEvent);
+    globalThis.window.addEventListener(INTRO_REPLAY_EVENT, handleIntroReplayEvent);
+
     return () => {
-      documentRef.removeEventListener('click', handleReadableTextClick);
-      if (globalThis.window) {
-        globalThis.window.removeEventListener('sagak:intro-passed', handleIntroPassedEvent);
-      }
+      globalThis.window.removeEventListener('sagak:intro-passed', handleIntroPassedEvent);
+      globalThis.window.removeEventListener(INTRO_REPLAY_EVENT, handleIntroReplayEvent);
     };
-  }, [preference.voiceOutputEnabled, speakText, user]);
+  }, [activeScreenName]);
 
   useEffect(() => {
     if (activeScreenName !== 'home') {
@@ -455,19 +469,23 @@ function AppChrome({
     }
   }, [activeScreenName, speakText]);
 
+  const showHeader = activeScreenName !== 'home' || introPassed;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle={isDarkSurface ? 'light-content' : 'dark-content'}
         backgroundColor={palette.surface}
       />
-      <AppHeader
-        activeScreen={activeScreenName}
-        onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
-        onNavigate={navigateTo}
-        user={user}
-        introPassed={introPassed}
-      />
+      {showHeader ? (
+        <AppHeader
+          activeScreen={activeScreenName}
+          onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
+          onNavigate={navigateTo}
+          user={user}
+          introPassed={introPassed}
+        />
+      ) : null}
       {children}
       {user && preference.voiceOutputEnabled ? (
         <Pressable
