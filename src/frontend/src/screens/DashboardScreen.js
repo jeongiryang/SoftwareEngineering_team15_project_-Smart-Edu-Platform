@@ -45,7 +45,11 @@ const DASHBOARD_COPY = {
     claimPoints: '{points}포인트를 받았습니다.',
     count: '{count}개',
     minutes: '{value}분 / {target}분',
-    countProgress: '{value}개 / {target}개'
+    countProgress: '{value}개 / {target}개',
+    moreActiveQuests: '진행 중 퀘스트 더보기 ({count}개 더)',
+    moreBadges: '배지 더보기 ({count}개 더)',
+    moreTransactions: '포인트 내역 더보기 ({count}건 더)',
+    claimedQuestToggle: '{count}개 {action}'
   },
   en: {
     rewardAvailable: '{count} reward(s) are ready to claim. Check quest rewards first today.',
@@ -61,7 +65,11 @@ const DASHBOARD_COPY = {
     claimPoints: 'Received {points} points.',
     count: '{count}',
     minutes: '{value} min / {target} min',
-    countProgress: '{value} / {target}'
+    countProgress: '{value} / {target}',
+    moreActiveQuests: 'Show more active quests ({count} more)',
+    moreBadges: 'Show more badges ({count} more)',
+    moreTransactions: 'Show more point history ({count} more)',
+    claimedQuestToggle: '{count} {action}'
   },
   ja: {
     rewardAvailable: '受け取れる報酬が{count}件あります。今日はクエスト報酬を先に確認しましょう。',
@@ -77,7 +85,11 @@ const DASHBOARD_COPY = {
     claimPoints: '{points}ポイントを受け取りました。',
     count: '{count}件',
     minutes: '{value}分 / {target}分',
-    countProgress: '{value}件 / {target}件'
+    countProgress: '{value}件 / {target}件',
+    moreActiveQuests: '進行中のクエストをさらに表示（残り{count}件）',
+    moreBadges: 'バッジをさらに表示（残り{count}件）',
+    moreTransactions: 'ポイント履歴をさらに表示（残り{count}件）',
+    claimedQuestToggle: '{count}件 {action}'
   },
   zh: {
     rewardAvailable: '有 {count} 个奖励可领取。今天可以先查看任务奖励。',
@@ -93,7 +105,11 @@ const DASHBOARD_COPY = {
     claimPoints: '获得 {points} 积分。',
     count: '{count} 个',
     minutes: '{value} 分 / {target} 分',
-    countProgress: '{value} 个 / {target} 个'
+    countProgress: '{value} 个 / {target} 个',
+    moreActiveQuests: '查看更多进行中任务（还有 {count} 个）',
+    moreBadges: '查看更多徽章（还有 {count} 个）',
+    moreTransactions: '查看更多积分记录（还有 {count} 条）',
+    claimedQuestToggle: '{count} 个 {action}'
   }
 };
 
@@ -266,6 +282,10 @@ function buildClaimMessage(result, language) {
   }
 
   return dashboardCopy(language, 'claimPoints', { points });
+}
+
+function localizeDisplayText(value, translateText, fallback) {
+  return translateText(value || fallback || '');
 }
 
 function buildRewardInsight(rewardData, activeQuests, language) {
@@ -1007,8 +1027,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         <View style={[styles.rewardPanel, shadows.card]}>
           <View style={styles.rewardHeader}>
             <View>
-              <Text style={styles.rewardTitle}>보상 현황</Text>
-              <Text style={styles.rewardSubtitle}>포인트, 퀘스트, 배지를 대시보드에서 바로 확인할 수 있어요.</Text>
+              <Text style={styles.rewardTitle}>{translateText('보상 현황')}</Text>
+              <Text style={styles.rewardSubtitle}>{translateText('포인트, 퀘스트, 배지를 대시보드에서 바로 확인할 수 있어요.')}</Text>
             </View>
             <Pressable
               accessibilityRole="button"
@@ -1020,7 +1040,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 ...interactiveStateStyles(state, { disabled: rewardLoading || rewardRefreshing })
               ]}
             >
-              <Text style={styles.refreshButtonText}>{rewardRefreshing ? '새로고침 중' : '새로고침'}</Text>
+              <Text style={styles.refreshButtonText}>{translateText(rewardRefreshing ? '새로고침 중' : '새로고침')}</Text>
             </Pressable>
           </View>
 
@@ -1030,23 +1050,23 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
             <>
               <View style={styles.rewardStats}>
                 <View style={[styles.statCard, styles.pointCard]}>
-                  <Text style={styles.statLabel}>보유 포인트</Text>
+                  <Text style={styles.statLabel}>{translateText('보유 포인트')}</Text>
                   <Text style={styles.pointValue}>{formatNumber(rewardData.account?.pointBalance, currentLanguage)}</Text>
-                  <Text style={styles.statHint}>보상 수령 시 자동으로 적립됩니다.</Text>
+                  <Text style={styles.statHint}>{translateText('보상 수령 시 자동으로 적립됩니다.')}</Text>
                 </View>
 
                 <View style={styles.metricCard}>
-                  <Text style={styles.metricLabel}>누적 집중 시간</Text>
+                  <Text style={styles.metricLabel}>{translateText('누적 집중 시간')}</Text>
                   <Text style={styles.metricValue}>{formatNumber(rewardData.metrics?.totalStudyMinutes, currentLanguage)}{translateText('분')}</Text>
                 </View>
 
                 <View style={styles.metricCard}>
-                  <Text style={styles.metricLabel}>완료한 태스크</Text>
+                  <Text style={styles.metricLabel}>{translateText('완료한 태스크')}</Text>
                   <Text style={styles.metricValue}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(rewardData.metrics?.completedTaskCount, currentLanguage) })}</Text>
                 </View>
 
                 <View style={styles.storyCard}>
-                  <Text style={styles.storyLabel}>오늘의 보상 흐름</Text>
+                  <Text style={styles.storyLabel}>{translateText('오늘의 보상 흐름')}</Text>
                   <Text style={styles.storyText}>{rewardInsight}</Text>
                 </View>
               </View>
@@ -1066,20 +1086,20 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               <View style={styles.rewardContentGrid}>
                 <View style={styles.questColumn}>
                   <View style={styles.subsectionHeader}>
-                    <Text style={styles.subsectionTitle}>진행 중인 퀘스트</Text>
+                    <Text style={styles.subsectionTitle}>{translateText('진행 중인 퀘스트')}</Text>
                     <Text style={styles.subsectionMeta}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(activeQuests.length, currentLanguage) })}</Text>
                   </View>
 
                   {activeQuests.length === 0 ? (
                     <View style={styles.emptyCard}>
-                      <Text style={styles.emptyTitle}>아직 등록된 퀘스트가 없습니다.</Text>
-                      <Text style={styles.emptyText}>관리자 화면에서 보상 퀘스트를 추가하면 이곳에 표시됩니다.</Text>
+                      <Text style={styles.emptyTitle}>{translateText('아직 등록된 퀘스트가 없습니다.')}</Text>
+                      <Text style={styles.emptyText}>{translateText('관리자 화면에서 보상 퀘스트를 추가하면 이곳에 표시됩니다.')}</Text>
                       <Pressable
                         accessibilityRole="button"
                         onPress={() => onNavigate('schedule')}
                         style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
                       >
-                        <Text style={styles.emptyActionText}>오늘 일정부터 채우기</Text>
+                        <Text style={styles.emptyActionText}>{translateText('오늘 일정부터 채우기')}</Text>
                       </Pressable>
                     </View>
                   ) : (
@@ -1088,9 +1108,9 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
                         <View style={styles.questHeader}>
                           <View style={styles.questCopy}>
-                            <Text style={styles.questTitle}>{quest.title}</Text>
+                            <Text style={styles.questTitle}>{localizeDisplayText(quest.title, translateText)}</Text>
                             <Text style={styles.questDescription}>
-                              {quest.description || '설명 없이 등록된 퀘스트입니다.'}
+                              {localizeDisplayText(quest.description, translateText, '설명 없이 등록된 퀘스트입니다.')}
                             </Text>
                           </View>
                           <View style={styles.questStatusChip}>
@@ -1125,13 +1145,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                               ]}
                             >
                               <Text style={styles.claimButtonText}>
-                                {claimingQuestId === quest.id ? '수령 중' : '보상 받기'}
+                                {translateText(claimingQuestId === quest.id ? '수령 중' : '보상 받기')}
                               </Text>
                             </Pressable>
                           ) : (
                             <View style={styles.questTag}>
                               <Text style={styles.questTagText}>
-                                {quest.status === 'CLAIMED' ? '수령 완료' : '진행 중'}
+                                {translateText(quest.status === 'CLAIMED' ? '수령 완료' : '진행 중')}
                               </Text>
                             </View>
                           )}
@@ -1146,8 +1166,10 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllActiveQuests
-                              ? '진행 중 퀘스트 숨기기'
-                              : `진행 중 퀘스트 더보기 (${activeQuests.length - 3}개 더)`}
+                              ? translateText('진행 중 퀘스트 숨기기')
+                              : dashboardCopy(currentLanguage, 'moreActiveQuests', {
+                                count: formatNumber(activeQuests.length - 3, currentLanguage)
+                              })}
                           </Text>
                         </Pressable>
                       ) : null}
@@ -1161,9 +1183,12 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         onPress={() => setShowClaimedQuests((current) => !current)}
                         style={(state) => [styles.collapsibleToggle, ...interactiveStateStyles(state)]}
                       >
-                        <Text style={styles.collapsibleTitle}>수령 완료한 퀘스트</Text>
+                        <Text style={styles.collapsibleTitle}>{translateText('수령 완료한 퀘스트')}</Text>
                         <Text style={styles.collapsibleMeta}>
-                          {claimedQuests.length}개 {showClaimedQuests ? '접기' : '보기'}
+                          {dashboardCopy(currentLanguage, 'claimedQuestToggle', {
+                            count: formatNumber(claimedQuests.length, currentLanguage),
+                            action: translateText(showClaimedQuests ? '접기' : '보기')
+                          })}
                         </Text>
                       </Pressable>
 
@@ -1172,9 +1197,9 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                             <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
                               <View style={styles.questHeader}>
                                 <View style={styles.questCopy}>
-                                  <Text style={styles.questTitle}>{quest.title}</Text>
+                                  <Text style={styles.questTitle}>{localizeDisplayText(quest.title, translateText)}</Text>
                                   <Text style={styles.questDescription}>
-                                    {quest.description || '설명 없이 등록된 퀘스트입니다.'}
+                                    {localizeDisplayText(quest.description, translateText, '설명 없이 등록된 퀘스트입니다.')}
                                   </Text>
                                 </View>
                                 <View style={styles.questStatusChip}>
@@ -1198,7 +1223,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                                 </View>
 
                                 <View style={styles.questTag}>
-                                  <Text style={styles.questTagText}>수령 완료</Text>
+                                  <Text style={styles.questTagText}>{translateText('수령 완료')}</Text>
                                 </View>
                               </View>
                             </View>
@@ -1210,7 +1235,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                 <View style={styles.badgeColumn}>
                   <View style={styles.subsectionHeader}>
-                    <Text style={styles.subsectionTitle}>획득한 배지</Text>
+                    <Text style={styles.subsectionTitle}>{translateText('획득한 배지')}</Text>
                     <Text style={styles.subsectionMeta}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(rewardData.badges?.length || 0, currentLanguage) })}</Text>
                   </View>
 
@@ -1236,9 +1261,9 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                           )}
                         </View>
                         <View style={styles.badgeCopy}>
-                          <Text style={styles.badgeTitle}>{userBadge.badge?.name || '배지'}</Text>
+                          <Text style={styles.badgeTitle}>{localizeDisplayText(userBadge.badge?.name, translateText, '배지')}</Text>
                           <Text style={styles.badgeDescription}>
-                            {userBadge.badge?.description || '설명 없이 등록된 배지입니다.'}
+                            {localizeDisplayText(userBadge.badge?.description, translateText, '설명 없이 등록된 배지입니다.')}
                           </Text>
                         </View>
                       </View>
@@ -1252,20 +1277,24 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                           style={(state) => [styles.moreButton, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.moreButtonText}>
-                            {showAllBadges ? '배지 접기' : `배지 더보기 (${rewardData.badges.length - 4}개 더)`}
+                            {showAllBadges
+                              ? translateText('배지 접기')
+                              : dashboardCopy(currentLanguage, 'moreBadges', {
+                                count: formatNumber(rewardData.badges.length - 4, currentLanguage)
+                              })}
                           </Text>
                         </Pressable>
                       ) : null}
                     </>
                   ) : (
                     <View style={styles.emptyCard}>
-                      <Text style={styles.emptyTitle}>아직 획득한 배지가 없습니다.</Text>
-                      <Text style={styles.emptyText}>퀘스트를 달성하고 보상을 수령하면 배지가 여기에 표시됩니다.</Text>
+                      <Text style={styles.emptyTitle}>{translateText('아직 획득한 배지가 없습니다.')}</Text>
+                      <Text style={styles.emptyText}>{translateText('퀘스트를 달성하고 보상을 수령하면 배지가 여기에 표시됩니다.')}</Text>
                     </View>
                   )}
 
                   <View style={styles.subsectionHeader}>
-                    <Text style={styles.subsectionTitle}>최근 포인트 내역</Text>
+                    <Text style={styles.subsectionTitle}>{translateText('최근 포인트 내역')}</Text>
                     <Text style={styles.subsectionMeta}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(rewardData.recentPointTransactions?.length || 0, currentLanguage) })}</Text>
                   </View>
 
@@ -1274,8 +1303,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       {visibleTransactions.map((transaction) => (
                       <View key={transaction.id} style={styles.transactionRow}>
                         <View>
-                          <Text style={styles.transactionReason}>{transaction.reason || transaction.sourceType}</Text>
-                          <Text style={styles.transactionMeta}>{transaction.sourceType}</Text>
+                          <Text style={styles.transactionReason}>{localizeDisplayText(transaction.reason, translateText, transaction.sourceType)}</Text>
+                          <Text style={styles.transactionMeta}>{translateText(transaction.sourceType)}</Text>
                         </View>
                         <Text style={styles.transactionAmount}>+{formatNumber(transaction.amount, currentLanguage)}P</Text>
                       </View>
@@ -1288,22 +1317,24 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllTransactions
-                              ? '포인트 내역 숨기기'
-                              : `포인트 내역 더보기 (${rewardData.recentPointTransactions.length - 5}건 더)`}
+                              ? translateText('포인트 내역 숨기기')
+                              : dashboardCopy(currentLanguage, 'moreTransactions', {
+                                count: formatNumber(rewardData.recentPointTransactions.length - 5, currentLanguage)
+                              })}
                           </Text>
                         </Pressable>
                       ) : null}
                     </>
                   ) : (
                     <View style={styles.emptyCard}>
-                      <Text style={styles.emptyTitle}>아직 포인트 적립 내역이 없습니다.</Text>
-                      <Text style={styles.emptyText}>보상을 수령하면 최근 적립 내역을 이곳에서 볼 수 있습니다.</Text>
+                      <Text style={styles.emptyTitle}>{translateText('아직 포인트 적립 내역이 없습니다.')}</Text>
+                      <Text style={styles.emptyText}>{translateText('보상을 수령하면 최근 적립 내역을 이곳에서 볼 수 있습니다.')}</Text>
                       <Pressable
                         accessibilityRole="button"
                         onPress={() => loadRewards({ silent: true })}
                         style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
                       >
-                        <Text style={styles.emptyActionText}>보상 다시 확인하기</Text>
+                        <Text style={styles.emptyActionText}>{translateText('보상 다시 확인하기')}</Text>
                       </Pressable>
                     </View>
                   )}
@@ -1315,8 +1346,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>연결된 학습 기능</Text>
-            <Text style={styles.sectionSub}>지금 사용할 수 있는 화면과 준비 중인 화면을 한눈에 보여줍니다.</Text>
+            <Text style={styles.sectionTitle}>{translateText('연결된 학습 기능')}</Text>
+            <Text style={styles.sectionSub}>{translateText('지금 사용할 수 있는 화면과 준비 중인 화면을 한눈에 보여줍니다.')}</Text>
           </View>
         </View>
 
@@ -1339,12 +1370,12 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 ]}
               >
                 <View style={[styles.statusChip, cardStyle.status]}>
-                  <Text style={[styles.statusChipText, cardStyle.statusText]}>{card.status}</Text>
+                  <Text style={[styles.statusChipText, cardStyle.statusText]}>{translateText(card.status)}</Text>
                 </View>
-                <Text style={[styles.cardTitle, cardStyle.title]}>{card.label}</Text>
-                <Text style={[styles.cardSummary, cardStyle.summary]}>{card.summary}</Text>
+                <Text style={[styles.cardTitle, cardStyle.title]}>{translateText(card.label)}</Text>
+                <Text style={[styles.cardSummary, cardStyle.summary]}>{translateText(card.summary)}</Text>
                 <Text style={[styles.cardLink, cardStyle.link]}>
-                  {card.screen ? '화면으로 이동 ->' : '화면 준비 중'}
+                  {translateText(card.screen ? '화면으로 이동 ->' : '화면 준비 중')}
                 </Text>
               </Pressable>
             );
@@ -1359,11 +1390,11 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               <View style={[styles.statusChip, styles.adminStatus]}>
                 <Text style={[styles.statusChipText, styles.adminStatusText]}>ADMIN</Text>
               </View>
-              <Text style={styles.cardTitle}>관리자 콘솔</Text>
+              <Text style={styles.cardTitle}>{translateText('관리자 콘솔')}</Text>
               <Text style={styles.cardSummary}>
-                사용자 상태와 관리자 운영 데이터를 확인하고 처리할 수 있습니다.
+                {translateText('사용자 상태와 관리자 운영 데이터를 확인하고 처리할 수 있습니다.')}
               </Text>
-              <Text style={[styles.cardLink, styles.defaultLink]}>콘솔로 이동 -></Text>
+              <Text style={[styles.cardLink, styles.defaultLink]}>{translateText('콘솔로 이동 ->')}</Text>
             </Pressable>
           ) : null}
         </View>
