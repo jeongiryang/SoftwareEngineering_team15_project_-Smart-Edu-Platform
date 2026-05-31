@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import FeatureGuideModal from '../components/FeatureGuideModal';
 import { SkeletonBlock } from '../components/Skeleton';
+import WritingEraseText from '../components/WritingEraseText';
 import { languageIntlLocale, useLanguage } from '../i18n';
 import { claimRewardQuest, getMyRewards, getSchedules, getTasks } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
@@ -32,6 +33,9 @@ const quickQuizBank = [
 
 const DASHBOARD_COPY = {
   ko: {
+    heroNameLine: '{name}님,',
+    heroIntro: '오늘도',
+    heroWritingPhrase: '차곡차곡 기록해요',
     rewardAvailable: '수령 가능한 보상이 {count}개 있습니다. 오늘은 퀘스트 보상을 먼저 확인해 보세요.',
     rewardProgress: '진행 중인 퀘스트 {count}개가 있습니다. 일정과 칸반을 채우면 보상 진행률이 함께 올라갑니다.',
     rewardBadges: '현재 {count}개의 배지를 모았습니다. 다음 퀘스트가 열리면 이어서 보상을 쌓을 수 있습니다.',
@@ -55,6 +59,9 @@ const DASHBOARD_COPY = {
     claimedQuestToggle: '{count}개 {action}'
   },
   en: {
+    heroNameLine: '{name},',
+    heroIntro: 'Today, keep',
+    heroWritingPhrase: 'building steady records',
     rewardAvailable: '{count} reward(s) are ready to claim. Check quest rewards first today.',
     rewardProgress: '{count} quest(s) are in progress. Filling schedules and boards will raise reward progress.',
     rewardBadges: 'You have collected {count} badge(s). Keep building rewards when the next quest opens.',
@@ -78,6 +85,9 @@ const DASHBOARD_COPY = {
     claimedQuestToggle: '{count} {action}'
   },
   ja: {
+    heroNameLine: '{name}さん、',
+    heroIntro: '今日も',
+    heroWritingPhrase: '少しずつ記録しよう',
     rewardAvailable: '受け取れる報酬が{count}件あります。今日はクエスト報酬を先に確認しましょう。',
     rewardProgress: '進行中のクエストが{count}件あります。予定とカンバンを埋めると報酬進捗も上がります。',
     rewardBadges: '現在{count}個のバッジを集めています。次のクエストでも報酬を続けて積み上げられます。',
@@ -101,6 +111,9 @@ const DASHBOARD_COPY = {
     claimedQuestToggle: '{count}件 {action}'
   },
   zh: {
+    heroNameLine: '{name}，',
+    heroIntro: '今天也',
+    heroWritingPhrase: '一点点记录下来',
     rewardAvailable: '有 {count} 个奖励可领取。今天可以先查看任务奖励。',
     rewardProgress: '有 {count} 个任务正在进行。填写日程和看板后，奖励进度也会提升。',
     rewardBadges: '目前已收集 {count} 枚徽章。下一个任务开启后可继续累积奖励。',
@@ -591,6 +604,10 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     () => (planningData.tasks || []).filter((task) => task.status !== 'DONE').length,
     [planningData.tasks]
   );
+  const dashboardUserName = user?.name || translateText('사용자');
+  const heroNameLine = dashboardCopy(currentLanguage, 'heroNameLine', { name: dashboardUserName });
+  const heroIntro = dashboardCopy(currentLanguage, 'heroIntro');
+  const heroWritingPhrase = dashboardCopy(currentLanguage, 'heroWritingPhrase');
 
   function isGuideDismissed() {
     try {
@@ -894,7 +911,22 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
         <View style={styles.hero}>
           <View style={styles.heroCopy}>
             <Text style={styles.eyebrow}>MY LEARNING SPACE</Text>
-            <Text style={styles.title}>{user?.name || '사용자'}님,{'\n'}오늘도 차곡차곡 기록해요</Text>
+            <Text accessibilityLabel={`${heroNameLine} ${heroIntro} ${heroWritingPhrase}`} style={styles.title}>
+              {heroNameLine}
+              {'\n'}
+              {heroIntro}{' '}
+              <WritingEraseText
+                accessibilityElementsHidden
+                cursorStyle={styles.titleWritingCursor}
+                eraseInterval={56}
+                holdMs={1250}
+                importantForAccessibility="no"
+                pauseMs={520}
+                style={styles.titleWritingPhrase}
+                text={heroWritingPhrase}
+                writeInterval={118}
+              />
+            </Text>
             <Text style={styles.subtitle}>
               AI 학습, 커뮤니티, 일정, 칸반 화면을 한곳에서 오가며 오늘의 학습 흐름을 정리할 수 있습니다.
             </Text>
@@ -1491,6 +1523,14 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 32,
     lineHeight: 42,
+    fontWeight: '800'
+  },
+  titleWritingPhrase: {
+    color: colors.mintDeep,
+    fontWeight: '800'
+  },
+  titleWritingCursor: {
+    color: colors.blueDeep,
     fontWeight: '800'
   },
   subtitle: {
