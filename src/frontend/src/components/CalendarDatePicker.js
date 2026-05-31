@@ -45,12 +45,16 @@ function buildCalendarDays(visibleMonth, selectedValue) {
     date.setUTCDate(startDate.getUTCDate() + index);
 
     const dateString = formatDateString(date);
+    const dayOfWeek = date.getUTCDay();
 
     return {
       key: dateString,
       date,
       dateString,
       dayNumber: date.getUTCDate(),
+      isSaturday: dayOfWeek === 6,
+      isSunday: dayOfWeek === 0,
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
       isCurrentMonth: date.getUTCMonth() === month,
       isSelected: dateString === selectedValue,
       isToday: dateString === today
@@ -114,9 +118,16 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
         </View>
 
         <View style={styles.weekdayRow}>
-          {weekdayLabels.map((weekday) => (
+          {weekdayLabels.map((weekday, index) => (
             <View key={weekday} style={styles.weekdayCell}>
-              <Text style={styles.weekdayText}>{weekday}</Text>
+              <Text style={[
+                styles.weekdayText,
+                index === 0 && styles.sundayText,
+                index === 6 && styles.saturdayText
+              ]}
+              >
+                {weekday}
+              </Text>
             </View>
           ))}
         </View>
@@ -128,6 +139,7 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
               onPress={() => onChange(day.dateString)}
               style={[
                 styles.dayCell,
+                day.isWeekend && styles.weekendDayCell,
                 !day.isCurrentMonth && styles.dayCellMuted,
                 day.isToday && styles.todayCell,
                 day.isSelected && accentStyle
@@ -136,6 +148,8 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
               <Text
                 style={[
                   styles.dayText,
+                  day.isSunday && styles.sundayText,
+                  day.isSaturday && styles.saturdayText,
                   !day.isCurrentMonth && styles.dayTextMuted,
                   day.isToday && styles.todayText,
                   day.isSelected && accentTextStyle
@@ -239,6 +253,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700'
   },
+  sundayText: {
+    color: colors.danger
+  },
+  saturdayText: {
+    color: colors.blue
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap'
@@ -251,6 +271,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceWarm
+  },
+  weekendDayCell: {
+    backgroundColor: colors.cream
   },
   dayCellMuted: {
     opacity: 0.5

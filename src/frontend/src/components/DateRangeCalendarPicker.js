@@ -52,11 +52,15 @@ function buildCalendarDays(visibleMonth, startDate, endDate) {
     const date = new Date(startDateCursor);
     date.setUTCDate(startDateCursor.getUTCDate() + index);
     const dateString = formatDateString(date);
+    const dayOfWeek = date.getUTCDay();
 
     return {
       key: dateString,
       dateString,
       dayNumber: date.getUTCDate(),
+      isSaturday: dayOfWeek === 6,
+      isSunday: dayOfWeek === 0,
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
       isCurrentMonth: date.getUTCMonth() === month,
       isToday: dateString === today,
       isStart: dateString === startDate,
@@ -150,9 +154,16 @@ export default function DateRangeCalendarPicker({
       </View>
 
       <View style={styles.weekdayRow}>
-        {weekdayLabels.map((weekday) => (
+        {weekdayLabels.map((weekday, index) => (
           <View key={weekday} style={styles.weekdayCell}>
-            <Text style={styles.weekdayText}>{weekday}</Text>
+            <Text style={[
+              styles.weekdayText,
+              index === 0 && styles.sundayText,
+              index === 6 && styles.saturdayText
+            ]}
+            >
+              {weekday}
+            </Text>
           </View>
         ))}
       </View>
@@ -164,6 +175,7 @@ export default function DateRangeCalendarPicker({
             onPress={() => handleSelect(day.dateString)}
             style={[
               styles.dayCell,
+              day.isWeekend && styles.weekendDayCell,
               !day.isCurrentMonth && styles.dayCellMuted,
               day.isInRange && styles.dayInRange,
               (day.isStart || day.isEnd) && styles.dayEdge,
@@ -173,6 +185,8 @@ export default function DateRangeCalendarPicker({
             <Text
               style={[
                 styles.dayText,
+                day.isSunday && styles.sundayText,
+                day.isSaturday && styles.saturdayText,
                 !day.isCurrentMonth && styles.dayTextMuted,
                 day.isToday && styles.todayText,
                 (day.isStart || day.isEnd) && styles.dayEdgeText
@@ -280,6 +294,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700'
   },
+  sundayText: {
+    color: colors.danger
+  },
+  saturdayText: {
+    color: colors.blue
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap'
@@ -292,6 +312,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.line
+  },
+  weekendDayCell: {
+    backgroundColor: colors.cream
   },
   dayCellMuted: {
     opacity: 0.35
