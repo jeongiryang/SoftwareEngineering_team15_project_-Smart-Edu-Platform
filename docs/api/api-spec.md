@@ -1,4 +1,4 @@
-# Smart Edu Platform API 명세서
+﻿# Smart Edu Platform API 명세서
 
 ## 목차
 
@@ -78,7 +78,7 @@ Authorization: Bearer <JWT_TOKEN>
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -122,7 +122,7 @@ Authorization: Bearer <JWT_TOKEN>
 | `401 Unauthorized` | 인증 실패 | 토큰 없음, 토큰 오류, 로그인 실패 |
 | `403 Forbidden` | 권한 없음 | 비활성 사용자, 관리자 권한 부족 |
 | `404 Not Found` | 리소스 없음 | 사용자 또는 대상 데이터 없음 |
-| `409 Conflict` | 충돌 | 중복 이메일 등 |
+| `409 Conflict` | 충돌 | 중복 아이디 등 |
 | `500 Internal Server Error` | 서버 오류 | 예상하지 못한 서버 오류 |
 
 ---
@@ -148,6 +148,88 @@ Response 예시:
 }
 ```
 
+### 4.2 System Status / Maintenance
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/system/status` |
+| 인증 | 불필요 |
+| 설명 | 서비스 점검/업데이트 모드 상태를 공개 조회함 |
+
+Response 예시:
+
+```json
+{
+  "maintenance": {
+    "enabled": false,
+    "title": "사각사각 업데이트 중",
+    "message": "더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.",
+    "estimatedEndAt": null,
+    "updatedAt": "2026-05-29T12:00:00.000Z"
+  }
+}
+```
+
+정책:
+
+- 공개 조회 API이므로 DB URL, secret, 관리자 정보 등 민감정보를 반환하지 않음.
+- `enabled`가 `true`이면 프론트엔드는 일반 사용자에게 점검 화면을 표시함.
+- 관리자 로그인과 관리자 화면 접근은 프론트엔드에서 별도 우회 정책으로 처리함.
+- status API 조회 실패 시 프론트엔드는 fail-open 방식으로 일반 화면을 유지함.
+
+### 4.3 Realtime WebSocket
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Endpoint | `/ws` |
+| 인증 | 서비스 점검/공지 수신은 불필요, 친구 접속 상태는 연결 후 `presence.authenticate` 메시지로 인증 |
+| 설명 | 접속 중인 클라이언트에 서비스 점검 상태, 관리자 공지, 커뮤니티 새 댓글, 친구 접속 상태를 실시간 전달함 |
+
+클라이언트 발행 메시지:
+
+| Message type | Payload | 설명 |
+|---|---|---|
+| `presence.authenticate` | `{ "token": "<JWT>" }` | WebSocket 연결 후 친구 접속 상태를 수신하기 위해 현재 사용자 token으로 인증함. token은 URL query로 보내지 않음 |
+| `presence.refresh` | `{}` | 인증된 연결에서 현재 온라인 친구 목록 snapshot을 다시 요청함 |
+
+서버 발행 이벤트:
+
+| Event type | Payload | 설명 |
+|---|---|---|
+| `maintenance.updated` | `{ "maintenance": { ... } }` | 관리자가 점검 모드 ON/OFF 또는 안내 문구를 변경했을 때 발행 |
+| `admin.notice` | `{ "notice": { "id": "...", "title": "...", "message": "...", "level": "info" } }` | 관리자가 실시간 공지를 전송했을 때 발행 |
+| `community.comment.created` | `{ "comment": { "postId": 1, "commentId": 10, "parentId": null, "isReply": false, "author": { "id": 2, "name": "사용자" }, "preview": "댓글 미리보기", "createdAt": "..." } }` | 커뮤니티 게시글에 새 댓글이 작성되었을 때 발행 |
+| `community.reply.created` | `{ "comment": { "postId": 1, "commentId": 11, "parentId": 10, "isReply": true, "author": { "id": 2, "name": "사용자" }, "preview": "대답글 미리보기", "createdAt": "..." } }` | 커뮤니티 게시글에 새 대답글이 작성되었을 때 발행 |
+| `friends.presence.snapshot` | `{ "onlineFriendIds": [2, 3] }` | 인증된 사용자에게 현재 온라인 상태인 친구 ID 목록을 전달 |
+| `friends.presence.updated` | `{ "userId": 2, "online": true, "updatedAt": "..." }` | 친구가 온라인/오프라인 상태로 바뀌었을 때 해당 친구 관계 사용자에게만 전달 |
+| `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
+| `directMessage.created` | `{ "thread": { "id": 1, "friend": { "id": 2, "name": "학습 친구", "loginId": "study_peer" }, "unreadCount": 1 }, "message": { "id": 10, "threadId": 1, "senderId": 2, "content": "오늘 복습할까요?", "createdAt": "..." } }` | 친구 간 쪽지 작성 성공 후 thread 참여자에게만 전달 |
+| `directMessage.read` | `{ "threadId": 1, "userId": 1, "lastReadAt": "...", "thread": { ... } }` | 사용자가 쪽지 thread를 읽음 처리했을 때 thread 참여자에게만 전달 |
+| `directMessage.typing` | `{ "threadId": 1, "userId": 2, "isTyping": true, "updatedAt": "..." }` | 인증된 WebSocket 사용자가 참여 중인 쪽지 thread에서 작성 중 상태를 보낼 때 thread 참여자에게만 전달 |
+| `account.status.updated` | `{ "status": "SUSPENDED", "reason": "ADMIN_STATUS_CHANGE", "changedAt": "...", "message": "Account status changed to SUSPENDED" }` | 회원 탈퇴 또는 관리자 계정 상태 변경 성공 후 해당 사용자 연결에 전달. 프론트엔드는 `SUSPENDED`/`DEACTIVATED` 수신 시 중앙 제한 화면으로 전환하고, `ACTIVE` 수신 시 제한 화면을 해제함 |
+| `bossRaid.progress.updated` | `{ "party": { "id": 10, "raid": { "id": 1, ... }, "totalDamage": 140, "remainingHp": 160, "progressRate": 0.46, "participantCount": 2, "completed": false } }` | 보스 레이드 파티 생성/참가/상세 갱신 후 진행률이 변경될 수 있을 때 파티 멤버에게만 전달 |
+| `bossRaid.completed` | `{ "party": { "id": 10, "status": "CLEARED", "completed": true, ... } }` | 보스 레이드가 처치 완료 상태로 계산되거나 보상 수령 흐름에서 완료 상태가 확인될 때 파티 멤버에게만 전달 |
+| `collabQuest.progress.updated` | `{ "quest": { "questId": 1, "currentValue": 55, "goalValue": 100, "progressPercent": 55, "participantCount": 2, "completed": false } }` | 협동 퀘스트 생성/참여/기여도 추가 후 진행률이 바뀌었을 때 참여자에게만 전달 |
+| `collabQuest.completed` | `{ "quest": { "questId": 1, "status": "COMPLETED", "completed": true, ... } }` | 협동 퀘스트 목표 달성 또는 보상 수령 흐름에서 완료 상태가 확인될 때 참여자에게만 전달 |
+
+WebSocket URL 기준:
+
+- 로컬 개발 API가 `http://localhost:4000/api`이면 WebSocket은 `ws://localhost:4000/ws`를 사용함.
+- 배포 API가 `https://<backend-domain>/api`이면 WebSocket은 `wss://<backend-domain>/ws`를 사용함.
+
+정책:
+
+- WebSocket은 서버 broadcast 수신을 기본으로 사용하고, 클라이언트 발행 메시지는 `presence.authenticate`/`presence.refresh`와 `directMessage.typing`만 제한적으로 처리함.
+- 클라이언트가 임의 관리자 이벤트를 보낼 수 없도록 관리자 공지나 점검 상태 변경 메시지는 클라이언트 입력으로 처리하지 않음.
+- WebSocket 연결 실패 시 기존 `GET /api/system/status` 기반 HTTP fallback을 유지함.
+- 친구 접속 상태는 친구 관계가 있는 사용자에게만 표시하며, 정확한 위치나 상세 활동 내역은 전달하지 않음.
+- 보스 레이드 진행률 event는 해당 파티 멤버에게만 전달하며, 보상 지급은 기존 HTTP API transaction과 중복 수령 방지 로직을 그대로 사용함.
+- Vercel은 WebSocket 서버를 실행하지 않고, 브라우저가 Render backend의 `/ws` endpoint에 직접 연결함.
+- 서버 발행 WebSocket payload에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
+
 ---
 
 ## 5. Auth API
@@ -160,6 +242,14 @@ Response 예시:
 - 성공 시 token은 클라이언트 저장소에 저장하고 이후 인증 요청에 Bearer token으로 사용함.
 - 실제 JWT token 원문은 화면, 로그, 문서에 출력하지 않음.
 
+계정 상태 정책:
+
+| 상태 | 로그인 | 보호 API 호출 | 설명 |
+|---|---|---|---|
+| `ACTIVE` | 허용 | 허용 | 정상 이용 상태 |
+| `SUSPENDED` | 차단 (`403`) | 차단 (`401`) | 관리자 정지 상태. 기존 token도 보호 API에서 유효하지 않게 처리함 |
+| `DEACTIVATED` | 차단 (`403`) | 차단 (`401`) | 회원 탈퇴 또는 비활성 상태. 기존 token도 보호 API에서 유효하지 않게 처리함 |
+
 ### 5.1 회원가입
 
 | 항목 | 내용 |
@@ -168,21 +258,21 @@ Response 예시:
 | Method | `POST` |
 | Endpoint | `/api/auth/register` |
 | 인증 | 불필요 |
-| 설명 | 이메일, 비밀번호, 이름을 받아 사용자를 생성하고 JWT를 발급함 |
+| 설명 | 아이디, 비밀번호, 닉네임을 받아 사용자를 생성하고 JWT를 발급함 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `email` | string | 예 | 사용자 이메일 |
+| `loginId` | string | 예 | 사용자 아이디 |
 | `password` | string | 예 | 사용자 비밀번호 |
-| `name` | string | 예 | 사용자 이름 |
+| `name` | string | 예 | 사용자 닉네임. API field는 기존 호환성을 위해 `name`을 유지함 |
 
 Request 예시:
 
 ```json
 {
-  "email": "user@example.com",
+  "loginId": "user_id",
   "password": "<PASSWORD>",
   "name": "홍길동"
 }
@@ -194,7 +284,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -207,8 +297,8 @@ Response 예시:
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `400` | `VALIDATION_ERROR` | 필수값 누락, 이메일 형식 오류, 비밀번호 길이 부족 |
-| `409` | `CONFLICT` | 이미 가입된 이메일 |
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 아이디 형식 오류, 비밀번호 길이 부족 |
+| `409` | `CONFLICT` | 이미 가입된 아이디 |
 
 보안 주의사항:
 
@@ -224,20 +314,20 @@ Response 예시:
 | Method | `POST` |
 | Endpoint | `/api/auth/login` |
 | 인증 | 불필요 |
-| 설명 | 이메일과 비밀번호를 검증하고 JWT를 발급함 |
+| 설명 | 아이디와 비밀번호를 검증하고 JWT를 발급함 |
 
 Request Body:
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `email` | string | 예 | 사용자 이메일 |
+| `loginId` | string | 예 | 사용자 아이디 |
 | `password` | string | 예 | 사용자 비밀번호 |
 
 Request 예시:
 
 ```json
 {
-  "email": "user@example.com",
+  "loginId": "user_id",
   "password": "<PASSWORD>"
 }
 ```
@@ -248,7 +338,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -263,7 +353,7 @@ Response 예시:
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | 필수값 누락 |
 | `401` | `UNAUTHORIZED` | 존재하지 않는 사용자 또는 잘못된 비밀번호 |
-| `403` | `FORBIDDEN` | 비활성 사용자 |
+| `403` | `FORBIDDEN` | `SUSPENDED` 또는 `DEACTIVATED` 상태 계정 |
 
 보안 주의사항:
 
@@ -292,7 +382,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE"
@@ -304,8 +394,7 @@ Response 예시:
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `401` | `UNAUTHORIZED` | 인증 헤더 없음, Bearer token 없음, token 검증 실패 |
-| `404` | `NOT_FOUND` | token의 사용자를 찾을 수 없음 |
+| `401` | `UNAUTHORIZED` | 인증 헤더 없음, Bearer token 없음, token 검증 실패, token의 사용자를 찾을 수 없음, 계정이 `ACTIVE`가 아님 |
 
 보안 주의사항:
 
@@ -337,7 +426,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "ACTIVE",
@@ -374,7 +463,7 @@ Response 예시:
 | Method | `PATCH` |
 | Endpoint | `/api/users/me` |
 | 인증 | 필요 |
-| 설명 | 로그인한 사용자의 표시명/닉네임을 수정함 |
+| 설명 | 로그인한 사용자의 닉네임을 수정함 |
 
 Request Header:
 
@@ -386,7 +475,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `name` | string | 사용자 표시명 또는 닉네임 |
+| `name` | string | 사용자 닉네임. API field는 기존 호환성을 위해 `name`을 유지함 |
 
 Request 예시:
 
@@ -402,7 +491,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "사각 학습자",
     "role": "USER",
     "status": "ACTIVE"
@@ -414,13 +503,13 @@ Response 예시:
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `400` | `VALIDATION_ERROR` | 빈 이름, 허용되지 않은 필드, 잘못된 필드 타입 |
+| `400` | `VALIDATION_ERROR` | 빈 닉네임, 허용되지 않은 필드, 잘못된 필드 타입 |
 | `401` | `UNAUTHORIZED` | 인증 실패 |
 | `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
 
 보안 주의사항:
 
-- `role`, `status`, `email`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
+- `role`, `status`, `loginId`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
 
 ### 6.3 내 비밀번호 변경
@@ -477,7 +566,70 @@ Response 예시:
 - 응답에 기존/신규 비밀번호, `passwordHash`, token 원문을 포함하지 않음.
 - 비밀번호는 bcrypt hash로 저장함.
 
-### 6.4 내 프로필 수정
+### 6.4 내 계정 탈퇴
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `DELETE` |
+| Endpoint | `/api/users/me` |
+| 인증 | 필요 |
+| 설명 | 현재 비밀번호와 확인 문구 검증 후 현재 로그인한 계정을 soft delete 방식으로 비활성화함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `currentPassword` | string | 예 | 현재 비밀번호 |
+| `confirmationText` | string | 예 | 탈퇴 확인 문구. 정확히 `탈퇴합니다` 입력 필요 |
+
+Request 예시:
+
+```json
+{
+  "currentPassword": "current-password",
+  "confirmationText": "탈퇴합니다"
+}
+```
+
+Response 예시:
+
+```json
+{
+  "message": "Account withdrawn successfully",
+  "user": {
+    "id": 1,
+    "loginId": "user_id",
+    "name": "탈퇴한 사용자",
+    "role": "USER",
+    "status": "DEACTIVATED"
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | 필수값 누락, 확인 문구 불일치, 허용되지 않은 필드 |
+| `401` | `UNAUTHORIZED` | 인증 실패 또는 현재 비밀번호 불일치 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안/운영 주의사항:
+
+- hard delete가 아니라 기존 `AccountStatus.DEACTIVATED`를 사용하는 soft delete로 처리함.
+- 탈퇴 후 기존 token은 `authMiddleware`의 status 검증에서 차단됨.
+- 기존 게시글/댓글/보상/쪽지 등 사용자 참조 데이터는 FK 보호를 위해 유지함.
+- 탈퇴 계정의 `loginId`는 재사용하지 않음.
+- 응답에 `passwordHash`, token 원문, 현재 비밀번호를 포함하지 않음.
+
+### 6.5 내 프로필 수정
 
 | 항목 | 내용 |
 |---|---|
@@ -540,7 +692,120 @@ Response 예시:
 - `role`, `status`, `passwordHash` 같은 권한/인증 관련 필드는 이 API에서 수정하지 않음.
 - 응답에 `passwordHash`를 포함하지 않음.
 
-### 6.5 친구 추가 및 친구 목록 API
+### 6.6 내 커뮤니티 활동 통계 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/users/me/activity` |
+| 인증 | 필요 |
+| 설명 | 현재 로그인한 사용자의 커뮤니티 활동 수를 마이페이지 요약용으로 반환함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Response 예시:
+
+```json
+{
+  "activity": {
+    "postCount": 4,
+    "commentCount": 7,
+    "replyCount": 3,
+    "likeCount": 11,
+    "dislikeCount": 2,
+    "bookmarkCount": 5,
+    "reactionBasis": "GIVEN"
+  }
+}
+```
+
+집계 기준:
+
+- `postCount`: 내가 작성한 커뮤니티 게시글 수
+- `commentCount`: 내가 작성한 최상위 댓글 수
+- `replyCount`: 내가 작성한 대답글 수
+- `likeCount`: 내가 게시글과 댓글에 누른 좋아요 수
+- `dislikeCount`: 내가 게시글과 댓글에 누른 싫어요 수
+- `bookmarkCount`: 내가 저장한 커뮤니티 북마크 수
+- `reactionBasis`가 `GIVEN`이면 받은 반응이 아니라 내가 누른 반응 기준임.
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `401` | `UNAUTHORIZED` | 인증 실패 |
+| `404` | `NOT_FOUND` | 사용자를 찾을 수 없음 |
+
+보안 주의사항:
+
+- 현재 사용자 본인(`req.user.id`) 기준으로만 집계함.
+- 응답에 `passwordHash`, token, JWT 원문을 포함하지 않음.
+
+### 6.7 공개 프로필 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/users/:userId/public-profile` |
+| 인증 | 필요 |
+| 설명 | 다른 사용자의 공개 가능한 프로필, 상점 꾸미기 적용 상태, 간단한 학습 요약을 조회함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Response 예시:
+
+```json
+{
+  "profile": {
+    "id": 2,
+    "name": "학습 친구",
+    "displayLoginId": "st***r",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "learningGoal": "매일 30분 복습",
+    "preferredSubject": "영어",
+    "appearance": {
+      "profileImageUrl": "/assets/shop/avatar-sky.png",
+      "profileBackgroundUrl": "/assets/shop/background-mint.png",
+      "titleText": "아침형 학습러",
+      "equippedItems": {
+        "profileImage": {
+          "id": 1,
+          "code": "PROFILE_AVATAR_SKY",
+          "name": "하늘 노트 아바타",
+          "type": "PROFILE_IMAGE",
+          "assetUrl": "/assets/shop/avatar-sky.png"
+        },
+        "profileBackground": null,
+        "title": null
+      }
+    },
+    "stats": {
+      "todayFocusMinutes": 25,
+      "weeklyFocusMinutes": 180,
+      "completedTaskCount": 9
+    }
+  }
+}
+```
+
+보안 기준:
+
+- 공개 프로필은 인증된 사용자만 조회함.
+- 비활성/제재 계정은 공개 프로필로 노출하지 않음.
+- 응답에는 원본 `loginId` 대신 표시용 `displayLoginId`만 제공함.
+- `passwordHash`, token, JWT 원문, 관리자 내부 정보는 포함하지 않음.
+
+### 6.8 친구 추가 및 친구 목록 API
 
 친구 기능은 인증된 사용자끼리 친구 요청을 보내고, 수락/거절하고, 친구 목록을 조회하는 1차 MVP 범위로 구현함. DM, 실시간 채팅, 차단, 그룹 기능은 후속 범위임.
 
@@ -552,9 +817,9 @@ Response 예시:
 - A→B와 B→A 중복 pending/accepted 관계를 service 계층에서 차단함.
 - 친구 요청 수락/거절은 요청 수신자만 가능함.
 - 응답에는 `passwordHash`, plain password, token/JWT 원문을 포함하지 않음.
-- 사용자 검색 결과의 이메일은 원문 전체를 노출하지 않고 최소 식별 힌트만 제공함.
+- 사용자 검색 결과에는 공개 식별자인 `loginId`를 포함하되 password, token/JWT, `passwordHash`는 포함하지 않음.
 
-#### 6.5.1 친구 추가 대상 검색
+#### 6.8.1 친구 추가 대상 검색
 
 | 항목 | 내용 |
 |---|---|
@@ -562,7 +827,7 @@ Response 예시:
 | Method | `GET` |
 | Endpoint | `/api/users/search?keyword=...` |
 | 인증 | 필요 |
-| 설명 | 이름 또는 이메일 일부로 친구 추가 대상을 검색함 |
+| 설명 | 닉네임 또는 아이디 일부로 친구 추가 대상을 검색함 |
 
 Query:
 
@@ -580,8 +845,20 @@ Response `200`:
       "name": "학습 친구",
       "role": "USER",
       "status": "ACTIVE",
-      "emailMasked": "lea***",
+      "loginId": "study_peer",
       "profileImageUrl": null,
+      "profileBackgroundUrl": null,
+      "titleText": null,
+      "appearance": {
+        "profileImageUrl": null,
+        "profileBackgroundUrl": null,
+        "titleText": null,
+        "equippedItems": {
+          "profileImage": null,
+          "profileBackground": null,
+          "title": null
+        }
+      },
       "learningGoal": "매일 30분 복습",
       "preferredSubject": "영어",
       "relationshipStatus": "NONE",
@@ -608,7 +885,7 @@ Response `200`:
 | `400` | `VALIDATION_ERROR` | 검색어 누락, 2자 미만, 40자 초과 |
 | `401` | `UNAUTHORIZED` | 인증 실패 |
 
-#### 6.5.2 친구 목록 조회
+#### 6.8.2 친구 목록 조회
 
 | 항목 | 내용 |
 |---|---|
@@ -634,17 +911,33 @@ Response `200`:
         "name": "학습 친구",
         "role": "USER",
         "status": "ACTIVE",
-        "emailMasked": "lea***",
+        "loginId": "study_peer",
         "profileImageUrl": null,
+        "profileBackgroundUrl": null,
+        "titleText": null,
+        "appearance": {
+          "profileImageUrl": null,
+          "profileBackgroundUrl": null,
+          "titleText": null,
+          "equippedItems": {
+            "profileImage": null,
+            "profileBackground": null,
+            "title": null
+          }
+        },
         "learningGoal": "매일 30분 복습",
         "preferredSubject": "영어"
       }
     }
-  ]
+  ],
+  "onlineFriendIds": [2]
 }
 ```
 
-#### 6.5.3 친구 요청 목록 조회
+- `onlineFriendIds`는 현재 WebSocket presence registry 기준으로 온라인 상태인 친구 ID 목록임.
+- 이 값은 HTTP fallback용 snapshot이며, 이후 상태 변화는 `friends.presence.updated` WebSocket event로 반영함.
+
+#### 6.8.3 친구 요청 목록 조회
 
 | 항목 | 내용 |
 |---|---|
@@ -670,7 +963,7 @@ Response `200`:
           "name": "보상 데모 사용자",
           "role": "USER",
           "status": "ACTIVE",
-          "emailMasked": "rew***"
+          "loginId": "reward_user"
         }
       }
     ]
@@ -678,7 +971,7 @@ Response `200`:
 }
 ```
 
-#### 6.5.4 친구 요청 보내기
+#### 6.8.4 친구 요청 보내기
 
 | 항목 | 내용 |
 |---|---|
@@ -718,7 +1011,7 @@ Response `201`:
 | `404` | `NOT_FOUND` | 대상 사용자 없음 또는 비활성 사용자 |
 | `409` | `CONFLICT` | 이미 친구, 이미 pending 요청 존재, 반대 방향 pending 요청 존재 |
 
-#### 6.5.5 친구 요청 수락/거절
+#### 6.8.5 친구 요청 수락/거절
 
 | 항목 | 내용 |
 |---|---|
@@ -743,7 +1036,7 @@ Request Body:
 | `404` | `NOT_FOUND` | 요청 없음 |
 | `409` | `CONFLICT` | 이미 처리된 요청 |
 
-#### 6.5.6 친구 삭제
+#### 6.8.6 친구 삭제
 
 | 항목 | 내용 |
 |---|---|
@@ -775,6 +1068,173 @@ Response `200`:
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | `friendId` 형식 오류 |
 | `404` | `NOT_FOUND` | accepted 친구 관계 없음 |
+
+### 6.6 Direct Message API
+
+친구 간 쪽지 API는 인증된 사용자만 사용할 수 있으며, `ACCEPTED` 친구 관계가 있는 사용자끼리만 1:1 thread를 생성하고 메시지를 전송할 수 있음. 모든 응답은 `passwordHash`, JWT token, secret 값을 반환하지 않음.
+
+#### 6.6.1 쪽지 thread 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/messages/threads` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자가 참여 중인 쪽지 thread 목록과 unread count를 조회함 |
+
+Response `200`:
+
+```json
+{
+  "threads": [
+    {
+      "id": 1,
+      "participantIds": [1, 2],
+      "friend": {
+        "id": 2,
+        "name": "학습 친구",
+        "loginId": "study_peer"
+      },
+      "lastMessage": {
+        "id": 10,
+        "threadId": 1,
+        "senderId": 2,
+        "content": "오늘 복습할까요?",
+        "createdAt": "2026-05-30T12:00:00.000Z"
+      },
+      "unreadCount": 1,
+      "lastMessageAt": "2026-05-30T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### 6.6.2 쪽지 thread 상세 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/messages/threads/:threadId` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자가 참여 중인 쪽지 thread의 메시지 목록을 조회함 |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `threadId` 형식 오류 |
+| `403` | `FORBIDDEN` | thread 참여자가 아닌 사용자가 접근 |
+| `404` | `NOT_FOUND` | thread 없음 |
+
+#### 6.6.3 쪽지 thread 생성
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/messages/threads` |
+| 인증 | 필요 |
+| 설명 | accepted 친구와 1:1 쪽지 thread를 생성하거나 기존 thread를 반환함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `friendId` | number | 예 | 대화할 accepted 친구 사용자 ID |
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `friendId` 누락/형식 오류, 자기 자신 지정 |
+| `403` | `FORBIDDEN` | accepted 친구 관계가 없음 |
+
+#### 6.6.4 쪽지 전송
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/messages/threads/:threadId/messages` |
+| 인증 | 필요 |
+| 설명 | thread 참여자가 친구에게 쪽지를 전송함. 성공 시 `directMessage.created` WebSocket event를 thread 참여자에게만 발행함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `content` | string | 예 | 1~1000자 쪽지 본문 |
+
+Response `201`:
+
+```json
+{
+  "message": {
+    "id": 10,
+    "threadId": 1,
+    "senderId": 1,
+    "sender": {
+      "id": 1,
+      "name": "나",
+      "loginId": "me"
+    },
+    "content": "오늘 복습할까요?",
+    "createdAt": "2026-05-30T12:00:00.000Z"
+  },
+  "thread": {
+    "id": 1,
+    "friend": {
+      "id": 2,
+      "name": "학습 친구",
+      "loginId": "study_peer"
+    },
+    "unreadCount": 0
+  }
+}
+```
+
+주요 에러:
+
+| Status | Code | 발생 조건 |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | `threadId` 형식 오류, `content` 누락/공백/1000자 초과 |
+| `403` | `FORBIDDEN` | thread 참여자가 아니거나 accepted 친구 관계가 사라짐 |
+| `404` | `NOT_FOUND` | thread 없음 |
+
+#### 6.6.5 쪽지 thread 읽음 처리
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `POST` |
+| Endpoint | `/api/messages/threads/:threadId/read` |
+| 인증 | 필요 |
+| 설명 | 현재 사용자의 thread 읽음 시각을 저장함. 성공 시 `directMessage.read` WebSocket event를 thread 참여자에게만 발행함 |
+
+Response `200`:
+
+```json
+{
+  "read": {
+    "threadId": 1,
+    "userId": 1,
+    "lastReadAt": "2026-05-30T12:01:00.000Z"
+  },
+  "thread": {
+    "id": 1,
+    "unreadCount": 0
+  }
+}
+```
+
+정책:
+
+- 쪽지 thread는 `participantAId`, `participantBId` 정렬 pair로 unique 처리하여 중복 생성을 방지함.
+- 메시지 전송 API는 body의 `userId`를 신뢰하지 않고 `req.user.id`를 sender로 사용함.
+- WebSocket payload에는 thread ID, friend public profile, message preview 수준 정보만 포함하고 비밀번호 hash, token, secret 값을 포함하지 않음.
+- WebSocket 연결 실패 시 프론트엔드는 `GET /api/messages/threads` 및 `GET /api/messages/threads/:threadId` HTTP fallback으로 다시 조회함.
 
 ---
 
@@ -1181,10 +1641,10 @@ npm run seed:dev
 
 생성 또는 갱신되는 개발용 데이터:
 
-| 구분 | Email | Role | UserProfile |
+| 구분 | Login ID | Role | UserProfile |
 |---|---|---|---|
-| 일반 사용자 | `dev.user@example.com` | `USER` | 생성 또는 갱신 |
-| 관리자 사용자 | `dev.admin@example.com` | `ADMIN` | 생성 또는 갱신 |
+| 일반 사용자 | `dev_user` | `USER` | 생성 또는 갱신 |
+| 관리자 사용자 | `admin_user` | `ADMIN` | 생성 또는 갱신 |
 
 주의:
 
@@ -1414,7 +1874,7 @@ Response (200 OK) 예시:
 - `AI_API_KEY`가 없거나 provider 호출이 실패해도 서버가 중단되지 않고 fallback 응답을 반환함.
 - 자동 테스트는 mock/fallback 중심으로 수행하며 실제 외부 AI API를 호출하지 않음.
 - rate limit은 MVP용 in-memory 방식이며, production 수준 분산 rate limit은 후속 개선 범위임.
-- AI MVP API는 기존 Prisma schema 기준으로 동작하며 schema/migration 변경 없음.
+- AI 질문/추천/요약/오답 분석 API는 기존 Prisma schema 기준으로 동작하며, AI 대화방 저장은 `AIChatRoom`, `AIChatMessage` 모델을 사용함.
 - `noteId`를 받는 API는 현재 로그인 사용자 소유 학습 노트만 허용함.
 - invalid `noteId`는 `400 VALIDATION_ERROR`, 존재하지 않거나 다른 사용자 소유 `noteId`는 `404 NOT_FOUND`로 처리함.
 - 기본 provider prompt와 fallback 문구는 한국어 응답을 우선하도록 정리함.
@@ -1601,13 +2061,148 @@ Response 예시:
 }
 ```
 
-### 9.2.5 AI API 주요 에러
+### 9.2.5 AI 대화방 저장 API
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 인증 | 필요 |
+| 사용 모델 | `AIChatRoom`, `AIChatMessage` |
+| 설명 | AI 학습 화면의 대화방과 질문/답변 메시지를 사용자별 DB 데이터로 저장하고 삭제함 |
+
+보안/권한:
+
+- 모든 API는 Bearer token 기준 현재 사용자만 접근 가능함.
+- `roomId`는 서버에서 현재 사용자 소유 여부를 확인하며, 다른 사용자의 대화방은 `404 NOT_FOUND`로 처리함.
+- 응답에는 `passwordHash`, token, provider key, DB URL 등 민감정보를 포함하지 않음.
+- 프론트는 더 이상 AI 대화방 내용을 브라우저 localStorage에 영구 저장하지 않고 백엔드 API를 사용함.
+
+#### 9.2.5.1 AI 대화방 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| Method | `GET` |
+| Endpoint | `/api/ai/chat-rooms` |
+| 설명 | 현재 사용자의 AI 대화방 목록과 최근 메시지를 반환함 |
+
+Response 예시:
+
+```json
+{
+  "chatRooms": [
+    {
+      "id": 1,
+      "title": "운영체제 교착상태를 설명해 줘",
+      "createdAt": "2026-05-31T12:00:00.000Z",
+      "updatedAt": "2026-05-31T12:01:00.000Z",
+      "messages": [
+        {
+          "id": 1,
+          "roomId": 1,
+          "question": "운영체제 교착상태를 설명해 줘",
+          "answer": "교착상태는 여러 프로세스가 서로 자원을 기다리며 멈춘 상태입니다.",
+          "isMock": false,
+          "isTruncated": false,
+          "source": "AI_QNA",
+          "createdAt": "2026-05-31T12:01:00.000Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### 9.2.5.2 AI 대화방 생성
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Endpoint | `/api/ai/chat-rooms` |
+| 설명 | 새 AI 대화방을 생성함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 아니오 | 대화방 제목. 미입력 시 기본 제목 사용 |
+
+Response 예시:
+
+```json
+{
+  "chatRoom": {
+    "id": 1,
+    "title": "AI 대화",
+    "messages": []
+  }
+}
+```
+
+#### 9.2.5.3 AI 대화방 메시지 저장
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Endpoint | `/api/ai/chat-rooms/{roomId}/messages` |
+| 설명 | 선택한 대화방에 질문/답변 메시지를 저장함. 실제 AI 호출은 기존 `/api/ai/questions`에서 처리하고, 이 API는 화면 대화 기록 저장을 담당함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `question` | string | 예 | 질문 내용. 최대 1,000자 |
+| `answer` | string | 예 | 답변 내용. 최대 4,000자 |
+| `isMock` | boolean | 아니오 | Mock/demo 응답 여부 |
+| `isTruncated` | boolean | 아니오 | 입력 또는 응답이 잘렸는지 여부 |
+| `source` | string | 아니오 | `AI_QNA`, `MOCK_QNA`, `IMAGE_INSIGHT` 중 하나 |
+| `allowTruncate` | boolean | 아니오 | `true`이면 길이 초과 시 저장 가능한 범위로 자름 |
+
+Response 예시:
+
+```json
+{
+  "message": {
+    "id": 1,
+    "roomId": 1,
+    "question": "운영체제 교착상태를 설명해 줘",
+    "answer": "교착상태는 여러 프로세스가 서로 자원을 기다리며 멈춘 상태입니다.",
+    "isMock": false,
+    "isTruncated": false,
+    "source": "AI_QNA",
+    "createdAt": "2026-05-31T12:01:00.000Z"
+  },
+  "chatRoom": {
+    "id": 1,
+    "title": "운영체제 교착상태를 설명...",
+    "messages": []
+  }
+}
+```
+
+#### 9.2.5.4 AI 대화방 삭제
+
+| 항목 | 내용 |
+|---|---|
+| Method | `DELETE` |
+| Endpoint | `/api/ai/chat-rooms/{roomId}` |
+| 설명 | 현재 사용자 소유 AI 대화방과 하위 메시지를 삭제함 |
+
+Response 예시:
+
+```json
+{
+  "id": 1,
+  "deleted": true
+}
+```
+
+### 9.2.6 AI API 주요 에러
 
 | Status | Code | 발생 조건 |
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | 필수 값 누락, 글자 수 초과, 잘못된 데이터 구조 |
 | `401` | `UNAUTHORIZED` | 인증 실패 및 토큰 유효하지 않음 |
-| `404` | `NOT_FOUND` | `noteId`가 존재하지 않거나 현재 사용자 소유 학습 노트가 아님 |
+| `404` | `NOT_FOUND` | `noteId` 또는 AI 대화방이 존재하지 않거나 현재 사용자 소유가 아님 |
 | `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
 
 ### 9.3 집중 시간/통계 API
@@ -1634,7 +2229,7 @@ Response 예시:
 - 히트맵의 날짜 key는 서버에서 `startedAt`의 UTC 날짜(`YYYY-MM-DD`) 기준으로 그룹핑함.
 - KST 등 사용자 현지 시간대 기준 시각화는 프론트 또는 후속 통계 고도화에서 별도 보정이 필요함.
 - `taskId`를 전달하면 현재 사용자 소유 `StudyTask`인지 확인하며, 없거나 타 사용자 소유이면 404로 처리함.
-- 응답에는 `passwordHash`, password, token/JWT, email 등 민감정보를 포함하지 않음.
+- 응답에는 `passwordHash`, password, token/JWT 등 민감정보를 포함하지 않음.
 
 #### 9.3.1 집중 세션 기록
 
@@ -1828,7 +2423,7 @@ Response `200`:
 - 게시글/댓글 신고는 `CommunityReport`에 `PENDING` 상태로 저장하며, 신고자는 `req.user.id` 기준으로 처리함.
 - 같은 사용자가 같은 게시글 또는 댓글을 다시 신고하면 `409 CONFLICT`로 처리함.
 - 신고 생성 시 기존 관리자 호환을 위해 대상 `BoardPost.reported` 또는 `Comment.reported`를 `true`로 갱신함.
-- 응답에는 `passwordHash`, password, token, email 등 불필요한 민감정보를 포함하지 않음.
+- 응답에는 `passwordHash`, password, token 등 불필요한 민감정보를 포함하지 않음.
 - 게시글 삭제 시 현재 schema의 `Comment` relation에 cascade가 없으므로, 작성자 소유 게시글 확인 후 연결 댓글을 먼저 삭제하고 게시글을 삭제함.
 
 #### 9.4.1 게시글 목록 조회
@@ -1842,8 +2437,8 @@ Query:
 | `page` | 선택 | positive integer, 기본값 `1` |
 | `pageSize` | 선택 | positive integer, 기본값 `10`, 최대 `50` |
 | `category` | 선택 | `QUESTION`, `FREE`, `STUDY_PROOF` 중 하나 |
-| `search` | 선택 | `title`, `content` 대상 포함 검색. trim 후 빈 문자열 또는 100자 초과는 400 |
-| `sort` | 선택 | `latest` 또는 `oldest`. 기본값 `latest` |
+| `search` | 선택 | `title`, `content`, 작성자 `name` 대상 포함 검색. trim 후 빈 문자열 또는 100자 초과는 400 |
+| `sort` | 선택 | `latest`, `oldest`, `likes`, `views`, `comments` 중 하나. 기본값 `latest` |
 
 Response `200`:
 
@@ -1856,6 +2451,7 @@ Response `200`:
       "category": "QUESTION",
       "title": "학습 질문",
       "content": "문제 풀이 질문입니다.",
+      "viewCount": 0,
       "createdAt": "2026-05-26T00:00:00.000Z",
       "updatedAt": "2026-05-26T00:00:00.000Z",
       "author": {
@@ -1907,8 +2503,9 @@ Response `201`:
     "userId": 1,
     "category": "QUESTION",
     "title": "학습 질문",
-    "content": "문제 풀이 질문입니다.",
-    "createdAt": "2026-05-26T00:00:00.000Z",
+      "content": "문제 풀이 질문입니다.",
+      "viewCount": 0,
+      "createdAt": "2026-05-26T00:00:00.000Z",
     "updatedAt": "2026-05-26T00:00:00.000Z",
     "author": {
       "id": 1,
@@ -1937,8 +2534,9 @@ Response `200`:
     "userId": 1,
     "category": "QUESTION",
     "title": "학습 질문",
-    "content": "문제 풀이 질문입니다.",
-    "createdAt": "2026-05-26T00:00:00.000Z",
+      "content": "문제 풀이 질문입니다.",
+      "viewCount": 1,
+      "createdAt": "2026-05-26T00:00:00.000Z",
     "updatedAt": "2026-05-26T00:00:00.000Z",
     "author": {
       "id": 1,
@@ -1959,6 +2557,10 @@ Error:
 - `400`: invalid `postId`
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음
+
+Note:
+
+- 상세 조회 성공 시 `viewCount`가 1 증가함.
 
 #### 9.4.4 게시글 수정
 
@@ -2041,13 +2643,38 @@ Response `200`:
       "id": 1,
       "postId": 1,
       "userId": 1,
+      "parentId": null,
       "content": "댓글 내용입니다.",
+      "replyCount": 1,
+      "likeCount": 2,
+      "dislikeCount": 0,
+      "myReaction": "LIKE",
       "createdAt": "2026-05-26T00:00:00.000Z",
       "updatedAt": "2026-05-26T00:00:00.000Z",
       "author": {
         "id": 1,
         "name": "사용자 이름"
-      }
+      },
+      "replies": [
+        {
+          "id": 2,
+          "postId": 1,
+          "userId": 2,
+          "parentId": 1,
+          "content": "대답글 내용입니다.",
+          "replyCount": 0,
+          "likeCount": 0,
+          "dislikeCount": 0,
+          "myReaction": null,
+          "createdAt": "2026-05-26T00:01:00.000Z",
+          "updatedAt": "2026-05-26T00:01:00.000Z",
+          "author": {
+            "id": 2,
+            "name": "다른 사용자"
+          },
+          "replies": []
+        }
+      ]
     }
   ],
   "pagination": {
@@ -2073,9 +2700,14 @@ Request body:
 
 ```json
 {
-  "content": "댓글 내용입니다."
+  "content": "댓글 내용입니다.",
+  "parentId": null
 }
 ```
+
+- `parentId`는 선택값임. 생략 또는 `null`이면 일반 댓글로 생성함.
+- `parentId`에 같은 게시글의 최상위 댓글 id를 전달하면 대답글로 생성함.
+- 대답글에 다시 대답글을 다는 2단 이상 nested reply는 지원하지 않음.
 
 Response `201`:
 
@@ -2085,7 +2717,9 @@ Response `201`:
     "id": 1,
     "postId": 1,
     "userId": 1,
+    "parentId": null,
     "content": "댓글 내용입니다.",
+    "replyCount": 0,
     "createdAt": "2026-05-26T00:00:00.000Z",
     "updatedAt": "2026-05-26T00:00:00.000Z",
     "author": {
@@ -2098,9 +2732,9 @@ Response `201`:
 
 Error:
 
-- `400`: invalid `postId`, `content` 누락 또는 빈 문자열, 지원하지 않는 field 포함
+- `400`: invalid `postId`, invalid `parentId`, `content` 누락 또는 빈 문자열, 지원하지 않는 field 포함, 대답글에 다시 대답글 작성 시도
 - `401`: 인증 token 없음 또는 유효하지 않음
-- `404`: 게시글 없음
+- `404`: 게시글 없음 또는 parent comment 없음
 
 #### 9.4.8 댓글 수정
 
@@ -2210,7 +2844,60 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음 또는 현재 사용자의 반응 없음
 
-#### 9.4.12 게시글 북마크 생성
+#### 9.4.12 댓글 반응 생성/전환
+
+`POST /api/community/comments/:commentId/reactions`
+
+Request body:
+
+```json
+{
+  "type": "LIKE"
+}
+```
+
+`type`은 `LIKE` 또는 `DISLIKE`만 허용함. 같은 사용자가 같은 댓글에 이미 반응한 상태에서 같은 `type`을 다시 요청하면 중복 row를 만들지 않고 현재 반응을 유지함. 다른 `type`을 요청하면 기존 반응을 새 `type`으로 전환함.
+
+Response `201`:
+
+```json
+{
+  "reaction": {
+    "id": 1,
+    "commentId": 1,
+    "userId": 1,
+    "type": "LIKE",
+    "createdAt": "2026-05-27T00:00:00.000Z",
+    "updatedAt": "2026-05-27T00:00:00.000Z"
+  }
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`, `type` 누락, invalid `type`, 지원하지 않는 field 포함
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음
+
+#### 9.4.13 댓글 반응 취소
+
+`DELETE /api/community/comments/:commentId/reactions`
+
+Response `200`:
+
+```json
+{
+  "message": "Community comment reaction deleted successfully"
+}
+```
+
+Error:
+
+- `400`: invalid `commentId`
+- `401`: 인증 token 없음 또는 유효하지 않음
+- `404`: 댓글 없음 또는 현재 사용자의 댓글 반응 없음
+
+#### 9.4.14 게시글 북마크 생성
 
 `POST /api/community/posts/:postId/bookmarks`
 
@@ -2240,7 +2927,7 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음
 
-#### 9.4.13 게시글 북마크 취소
+#### 9.4.15 게시글 북마크 취소
 
 `DELETE /api/community/posts/:postId/bookmarks`
 
@@ -2258,7 +2945,7 @@ Error:
 - `401`: 인증 token 없음 또는 유효하지 않음
 - `404`: 게시글 없음 또는 현재 사용자의 북마크 없음
 
-#### 9.4.14 내 북마크 목록 조회
+#### 9.4.16 내 북마크 목록 조회
 
 `GET /api/community/bookmarks`
 
@@ -2321,7 +3008,7 @@ Error:
 - `400`: invalid `page`, `pageSize`, `sort`
 - `401`: 인증 token 없음 또는 유효하지 않음
 
-#### 9.4.15 게시글 신고
+#### 9.4.17 게시글 신고
 
 `POST /api/community/posts/:postId/reports`
 
@@ -2366,7 +3053,7 @@ Error:
 - `404`: 게시글 없음
 - `409`: 현재 사용자가 이미 같은 게시글을 신고함
 
-#### 9.4.16 댓글 신고
+#### 9.4.18 댓글 신고
 
 `POST /api/community/comments/:commentId/reports`
 
@@ -2439,6 +3126,83 @@ Error:
 
 ---
 
+#### 9.5.0 서비스 점검 모드 관리
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/system/maintenance` | 현재 점검 모드 설정 조회 |
+| `PATCH` | `/api/admin/system/maintenance` | 점검 모드 ON/OFF 및 안내 문구 수정 |
+| `POST` | `/api/admin/system/notice` | 접속 중인 사용자에게 관리자 실시간 공지 broadcast |
+
+Request Body:
+
+```json
+{
+  "enabled": true,
+  "title": "사각사각 업데이트 중",
+  "message": "더 좋은 기능으로 찾아오겠습니다. 조금만 기다려주세요.",
+  "estimatedEndAt": null
+}
+```
+
+Response 예시:
+
+```json
+{
+  "maintenance": {
+    "enabled": true,
+    "title": "사각사각 업데이트 중",
+    "message": "더 좋은 기능으로 찾아오겠습니다. 조금만 기다려주세요.",
+    "estimatedEndAt": null,
+    "updatedAt": "2026-05-29T12:00:00.000Z"
+  }
+}
+```
+
+정책:
+
+- `authMiddleware`와 `adminMiddleware`를 모두 적용하므로 `ADMIN`만 조회/수정할 수 있음.
+- 일반 사용자는 `PATCH` 요청 시 `403 FORBIDDEN`을 반환함.
+- `enabled`는 boolean만 허용함.
+- `title`과 `message`는 빈 문자열을 허용하지 않으며 각각 길이 제한을 적용함.
+- `estimatedEndAt`은 ISO date string 또는 `null`만 허용함.
+- 응답에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
+- 점검 모드가 켜져도 관리자 로그인과 관리자 화면 접근은 프론트엔드에서 우회 허용함.
+- 점검 모드 설정 변경 성공 시 WebSocket `maintenance.updated` 이벤트를 접속 중인 클라이언트에 broadcast함.
+
+관리자 실시간 공지 Request Body:
+
+```json
+{
+  "title": "공지",
+  "message": "잠시 후 서비스 업데이트가 시작됩니다.",
+  "level": "info"
+}
+```
+
+관리자 실시간 공지 Response 예시:
+
+```json
+{
+  "notice": {
+    "id": "notice-1780000000000",
+    "title": "공지",
+    "message": "잠시 후 서비스 업데이트가 시작됩니다.",
+    "level": "info"
+  }
+}
+```
+
+관리자 실시간 공지 정책:
+
+- `authMiddleware`와 `adminMiddleware`를 모두 적용하므로 `ADMIN`만 전송할 수 있음.
+- `level`은 `info`, `success`, `warning`, `danger` 중 하나만 허용하며 생략 시 `info`로 처리함.
+- `title`과 `message`는 빈 문자열을 허용하지 않고 길이 제한을 적용함.
+- 공지 메시지 자체는 관리자가 입력한 텍스트를 그대로 broadcast하며 자동 번역하지 않음.
+- 요청 성공 시 WebSocket `admin.notice` 이벤트를 접속 중인 클라이언트에 broadcast함.
+- 응답에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
+
+---
 #### 9.5.1 사용자 목록 조회
 
 | Method | Endpoint | 설명 |
@@ -2452,14 +3216,14 @@ Response 예시:
   "users": [
     {
       "id": 1,
-      "email": "user@example.com",
+      "loginId": "user_id",
       "name": "홍길동",
       "role": "USER",
       "status": "ACTIVE"
     },
     {
       "id": 2,
-      "email": "dev.admin@example.com",
+      "loginId": "admin_user",
       "name": "관리자",
       "role": "ADMIN",
       "status": "ACTIVE"
@@ -2498,7 +3262,7 @@ Response 예시:
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "loginId": "user_id",
     "name": "홍길동",
     "role": "USER",
     "status": "SUSPENDED"
@@ -2518,6 +3282,9 @@ Response 예시:
 
 - 관리자는 자기 자신의 status를 `SUSPENDED`, `DEACTIVATED`로 변경할 수 없음.
 - 현재 `AdminActionType` enum은 사용자 상태 변경 로그 타입을 `SUSPEND_USER`로 관리하므로, 실제 변경된 status는 응답의 `action.status`와 대상 사용자 상태로 확인함.
+- 변경 성공 시 해당 사용자 WebSocket 연결에 `account.status.updated` 이벤트를 발행함.
+- 프론트엔드는 `SUSPENDED` 또는 `DEACTIVATED` 이벤트를 수신하면 일반 화면 대신 계정 이용 제한 화면을 표시하고, 로그인 화면 이동/로그아웃 액션만 제공함.
+- `ACTIVE`로 복구되는 이벤트를 수신하면 기존 세션의 제한 화면을 해제함. WebSocket 연결이 끊긴 경우에는 기존 HTTP 인증/API fallback 기준을 따름.
 
 ---
 
@@ -2543,7 +3310,7 @@ Response 예시:
       "reported": true,
       "user": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "홍길동"
       }
     }
@@ -2557,7 +3324,7 @@ Response 예시:
       "reported": true,
       "user": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "홍길동"
       },
       "post": {
@@ -2577,7 +3344,7 @@ Response 예시:
       "createdAt": "2026-05-24T20:30:00.000Z",
       "admin": {
         "id": 2,
-        "email": "dev.admin@example.com",
+        "loginId": "admin_user",
         "name": "관리자"
       }
     }
@@ -2622,7 +3389,7 @@ Response 예시:
       "updatedAt": "2026-05-28T00:00:00.000Z",
       "reporter": {
         "id": 1,
-        "email": "user@example.com",
+        "loginId": "user_id",
         "name": "사용자",
         "role": "USER",
         "status": "ACTIVE"
@@ -2635,7 +3402,7 @@ Response 예시:
         "reported": true,
         "author": {
           "id": 3,
-          "email": "author@example.com",
+          "loginId": "author_user",
           "name": "작성자",
           "role": "USER",
           "status": "ACTIVE"
@@ -2663,7 +3430,7 @@ Error:
 
 - `ADMIN` 사용자만 조회할 수 있음.
 - 신고자, 처리자, 대상 게시글/댓글의 최소 정보만 반환함.
-- 관리자 API 특성상 사용자 email은 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
+- 관리자 API 특성상 사용자 `loginId`는 기존 관리자 API 정책에 맞춰 반환하지만, `passwordHash`, password, token/JWT는 반환하지 않음.
 
 ---
 
@@ -3348,7 +4115,252 @@ Request Body:
 |---|---|---|---|
 | `type` | string | 예 | `PROFILE_IMAGE`, `PROFILE_BACKGROUND`, `TITLE` 중 하나 |
 
-### 9.9 docs 기준 기능 구현 상태 재점검
+### 9.9 스터디 보스 레이드 API
+
+스터디 보스 레이드는 원하는 사람끼리 파티를 만들거나 참여 코드로 합류해서,
+그룹 누적 집중 시간과 완료 태스크 수로 보스 HP를 깎는 협동 퀘스트입니다.
+
+핵심 규칙:
+
+- 파티 단위로 진행
+- 공개 모집 파티는 목록에서 바로 참여 가능하고, 비공개 파티는 참여 코드로 원하는 사람끼리 합류 가능
+- 데미지 계산:
+  - `1 집중분 = 1 데미지`
+  - `완료 태스크 1개 = 15 데미지`
+- 진행도는 최근 계산 시점 기준 5분 간격으로 갱신
+- 보상은 보스당 사용자 1회만 수령 가능
+- 보상 구조:
+  - 공통 포인트
+  - 개인 기여도 보너스
+  - 한정 배지
+
+#### 9.9.1 보스 레이드 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids` | 현재 활성 보스 레이드 목록과 내 파티 참여 여부 조회 |
+
+#### 9.9.2 보스 레이드 파티 생성
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties` | 특정 보스 레이드에 새 파티 생성 |
+
+Request Body:
+
+```json
+{
+  "raidId": 1,
+  "name": "아침 집중팟",
+  "isPublic": true
+}
+```
+
+`isPublic`은 기본값이 `true`임. `false`로 생성하면 공개 모집 목록에 표시하지 않고 참여 코드로만 합류함.
+비공개 파티는 참여 코드로 직접 입장하거나 파티장이 명시적으로 보낸 초대를 수락해 입장할 수 있음.
+
+#### 9.9.3 공개 모집 파티 조회 / 참여
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids/parties/public` | 공개 모집 중인 보스 레이드 파티 목록 조회 |
+| `POST` | `/api/boss-raids/parties/:partyId/join` | 공개 모집 파티에 참여 코드 없이 합류 |
+
+Query:
+
+- `raidId`: 선택한 보스 기준으로 공개 모집 파티를 좁혀 조회할 때 사용함.
+
+응답 파티에는 `isPublic`, `inviteMode`, `totalMembers`, `members`, `contributions`가 포함됨. 공개 참여 API는 비공개 파티에 대해 `404`를 반환해 초대 전용 파티를 노출하지 않음.
+
+#### 9.9.4 참여 코드로 파티 참가
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties/join` | 참여 코드로 기존 파티에 합류 |
+
+Request Body:
+
+```json
+{
+  "joinCode": "DAWN01"
+}
+```
+
+#### 9.9.5 내 파티 목록 / 파티 상세 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids/parties/me` | 내가 참여 중인 보스 레이드 파티 목록 조회 |
+| `GET` | `/api/boss-raids/parties/:partyId` | 파티 상세, 멤버, 기여도, 남은 HP, 클리어 여부 조회 |
+
+#### 9.9.6 보스 레이드 초대 조회 / 생성 / 응답
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids/invites/me` | 현재 사용자에게 온 pending 보스 레이드 초대 목록 조회 |
+| `GET` | `/api/boss-raids/parties/:partyId/invites` | 파티장이 해당 파티의 초대 목록 조회 |
+| `POST` | `/api/boss-raids/parties/:partyId/invites` | 파티장이 loginId 기준으로 사용자 초대 생성 |
+| `POST` | `/api/boss-raids/invites/:inviteId/accept` | 초대받은 사용자가 초대 수락 후 파티 참여 |
+| `POST` | `/api/boss-raids/invites/:inviteId/decline` | 초대받은 사용자가 초대 거절 |
+| `POST` | `/api/boss-raids/invites/:inviteId/cancel` | 파티장이 pending 초대 취소 |
+
+초대 생성 Request Body:
+
+```json
+{
+  "loginId": "friend_user"
+}
+```
+
+초대 정책:
+
+- 초대 생성, 파티별 초대 목록 조회, 초대 취소는 파티장만 가능함.
+- 초대 수락/거절은 초대받은 사용자만 가능함.
+- 이미 해당 보스 레이드의 다른 파티에 참여한 사용자는 초대 수락 또는 새 초대 대상이 될 수 없음.
+- pending 초대가 이미 있는 사용자를 다시 초대하면 `409`로 차단함.
+- 공개 파티는 기존 공개 참여 흐름을 유지하고, 비공개 파티는 초대 수락 또는 참여 코드 입력을 통해 참여함.
+- 초대 수락으로 파티원이 추가되면 기존 보스 레이드 진행률 WebSocket event 흐름을 재사용함.
+
+#### 9.9.7 보스 레이드 보상 수령
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/boss-raids/parties/:partyId/claim` | 클리어한 보스 레이드 보상 수령 |
+
+응답에는 아래 내용이 포함될 수 있음:
+
+- 공통 포인트 지급 내역
+- 개인 기여도 기반 보너스 포인트
+- 한정 배지 지급 여부
+
+### 9.10 협동 퀘스트 API
+
+협동 퀘스트는 기존 개인 보상 퀘스트(`RewardQuest`/`UserQuest`)와 분리된 공동 목표 기반 학습 기능이다. 참여자는 같은 퀘스트에 참여하고 기여도를 추가하며, 목표 수치 달성 후 각자 한 번만 보상을 수령한다.
+
+공통 정책:
+
+- 모든 API는 로그인 사용자만 접근 가능함.
+- 1차 MVP는 친구 그룹 강제 제한 없이 참여 가능한 협동 퀘스트로 시작함. 친구/그룹 기반 제한은 후속 고도화 범위임.
+- 기여도 추가와 보상 수령은 현재 로그인 사용자 기준으로 처리하며, `userId`를 body로 받아 신뢰하지 않음.
+- 완료 전 보상 수령, 미참여자 기여/보상 수령, 중복 보상 수령은 차단함.
+- 진행률 변경 성공 시 WebSocket `collabQuest.progress.updated`, 완료 시 `collabQuest.completed` event를 참여자에게 전달함.
+- 숨김/보관은 `CollaborativeQuestParticipant` 기준의 사용자별 상태로 처리함. 다른 참여자, 전체 진행률, 보상 claim 상태에는 영향을 주지 않음.
+
+#### 9.10.1 협동 퀘스트 목록 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/collaborative-quests` | 협동 퀘스트 목록과 내 참여/보상 수령 상태 조회 |
+
+Query:
+
+- `includeHidden=true`: 현재 사용자가 숨김/보관 처리한 협동 퀘스트까지 함께 조회함.
+
+Response 주요 필드:
+
+- `id`, `title`, `description`
+- `goalValue`, `currentValue`, `progressRate`, `progressPercent`
+- `status`: `ACTIVE`, `COMPLETED`, `EXPIRED`
+- `rewardPoints`
+- `recommendedRewardPoints`, `recommendedContributionAmount`
+- `participantCount`, `participants`
+- `hasJoined`, `hasClaimed`, `canJoin`, `canContribute`, `canClaim`
+- `currentUserHidden`, `currentUserArchived`
+- `currentUserHiddenAt`, `currentUserArchivedAt`
+
+#### 9.10.2 협동 퀘스트 상세 조회
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/collaborative-quests/:questId` | 협동 퀘스트 상세, 참여자, 최근 기여도, 보상 상태 조회 |
+
+#### 9.10.3 협동 퀘스트 생성
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests` | 새 협동 퀘스트 생성. 생성자는 자동 참여자로 등록 |
+
+Request Body:
+
+```json
+{
+  "title": "100분 집중 릴레이",
+  "description": "함께 집중 시간을 모아 목표를 달성합니다.",
+  "goalValue": 100,
+  "rewardPoints": 30,
+  "endsAt": null
+}
+```
+
+`rewardPoints`를 생략하거나 빈 값으로 보내면 서버가 `goalValue` 기준으로 추천 보상을 자동 계산함. 현재 MVP 정책은 `goalValue * 0.3`을 올림 처리하되 최소 10P, 최대 100000P로 제한함.
+
+#### 9.10.4 협동 퀘스트 참여
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests/:questId/join` | 진행 중인 협동 퀘스트에 참여 |
+
+중복 참여는 `409 Conflict`로 차단함.
+
+#### 9.10.5 협동 퀘스트 기여도 추가
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests/:questId/contributions` | 참여 중인 협동 퀘스트에 기여도 추가 |
+
+Request Body:
+
+```json
+{
+  "amount": 15,
+  "memo": "25분 집중 완료"
+}
+```
+
+기여도 추가 성공 시 현재 진행률을 갱신한다. `currentValue >= goalValue`가 되면 상태를 `COMPLETED`로 전환하고 `completedAt`을 기록한다.
+
+프론트엔드 MVP는 10/25/50분 프리셋을 제공해 시간 기반 순차 기여 흐름을 빠르게 입력할 수 있게 한다. API는 여전히 `amount` 숫자를 기준으로 처리하며, 참여자가 아닌 사용자의 기여는 차단함.
+
+#### 9.10.6 협동 퀘스트 보상 수령
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/api/collaborative-quests/:questId/claim` | 완료된 협동 퀘스트 보상을 현재 사용자 기준으로 수령 |
+
+보상 정책:
+
+- 완료된 퀘스트의 참여자만 수령 가능함.
+- `CollaborativeQuestRewardClaim`의 `questId + userId` unique 제약으로 중복 수령을 방지함.
+- 포인트 보상은 `RewardAccount`와 `PointTransaction`에 `sourceType: "COLLABORATIVE_QUEST"`로 기록함.
+
+#### 9.10.7 협동 퀘스트 숨김/보관 상태 변경
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/collaborative-quests/:questId/visibility` | 현재 사용자 기준으로 협동 퀘스트를 숨김, 보관, 복원 |
+
+Request Body:
+
+```json
+{
+  "action": "HIDE"
+}
+```
+
+`action` 값:
+
+- `HIDE`: 진행 중 퀘스트를 내 목록에서 숨김. 참여자/기여도/보상 정보는 유지함.
+- `ARCHIVE`: 완료 또는 종료된 퀘스트를 내 보관 상태로 전환함.
+- `RESTORE`: 숨김/보관 상태를 해제하고 기본 목록에 다시 표시함.
+
+정책:
+
+- 현재 로그인 사용자가 참여한 협동 퀘스트만 숨김/보관/복원 가능함.
+- `ARCHIVE`는 `COMPLETED` 또는 `EXPIRED` 상태에서만 허용함.
+- 진행 중 퀘스트는 삭제하지 않고 `HIDE`로만 내 목록에서 제외함.
+- 상태 변경은 사용자별 `CollaborativeQuestParticipant.hiddenAt`, `archivedAt`에만 기록되며 다른 참여자에게 영향을 주지 않음.
+
+### 9.11 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
 
@@ -3382,18 +4394,22 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed 포함. 최신 확인 기준 22 suites / 402 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, AI Chat Room, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 29 suites / 499 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 48 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 38 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 24 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-comment.test.js` | 커뮤니티 댓글 API 단일 테스트 | 1 suite / 41 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/community-reaction.test.js` | 커뮤니티 반응 API 단일 테스트 | 1 suite / 31 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark.test.js` | 커뮤니티 북마크 API 단일 테스트 | 1 suite / 16 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-bookmark-list.test.js` | 커뮤니티 내 북마크 목록 API 단일 테스트 | 1 suite / 14 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 커뮤니티 사용자 신고 API 단일 테스트 | 1 suite / 36 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 스터디 보스 레이드 API 단일 테스트 | 1 suite / 23 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js` | 협동 퀘스트 API 단일 테스트 | 1 suite / 21 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 서비스 점검 모드 및 관리자 공지 API 단일 테스트 | 1 suite / 10 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/realtime-websocket.test.js` | WebSocket frame/helper 단일 테스트 | 1 suite / 3 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |
 | `npm run check` | 전체 기본 검증 | 백엔드 테스트, Prisma validate, frontend config/export 포함 |
 | `npm run validate:prisma` | Prisma schema 유효성 검증 | DB 구조 변경 없음 |
@@ -3422,8 +4438,10 @@ Request Body:
 | 2026-05-26 | 커뮤니티 게시글 CRUD API(§9.4) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-26 | 커뮤니티 댓글 API(§9.4.6~§9.4.9) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-27 | 커뮤니티 반응 API(§9.4.10~§9.4.11) 구현 완료 내역과 테스트 결과 반영 |
-| 2026-05-27 | 커뮤니티 북마크 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
-| 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.14) 구현 완료 내역과 테스트 결과 반영 |
-| 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.15~§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-27 | 커뮤니티 북마크 API(§9.4.14~§9.4.15) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 커뮤니티 내 북마크 목록 API(§9.4.16) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-28 | 커뮤니티 사용자 신고 API(§9.4.17~§9.4.18) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-29 | 커뮤니티 댓글 반응 API(§9.4.12~§9.4.13) 구현 완료 내역과 테스트 결과 반영 |
+| 2026-05-29 | 커뮤니티 게시글 작성자 검색, 좋아요/조회수/댓글순 정렬, 조회수 응답 및 상세 조회 증가 정책 반영 |
 | 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-29 | 친구 추가 및 친구 목록 API(§6.5) 구현 완료 내역과 테스트 결과 반영 |

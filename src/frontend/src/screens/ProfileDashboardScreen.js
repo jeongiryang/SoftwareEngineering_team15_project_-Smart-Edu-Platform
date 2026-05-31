@@ -2,19 +2,30 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
+import { ProfileAvatar, ProfileBackground, ProfileTitleChip } from '../components/ProfileAppearance';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   changeCurrentUserPassword,
+  deleteCurrentUser,
   getCommunityBookmarks,
   getFriendRequests,
   getFriends,
+  getMyActivityStats,
+  getMyShop,
   getMyRewards,
   getSchedules,
   getStatisticsSummary,
   getTasks,
   updateCurrentUser
 } from '../services/api';
+import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
+
+const WITHDRAWAL_CONFIRMATION_TEXT = '탈퇴합니다';
+const PROFILE_TAB_KEYS = {
+  learning: 'learning',
+  account: 'account'
+};
 
 const EMPTY_PROFILE_DATA = {
   schedules: [],
@@ -26,9 +37,26 @@ const EMPTY_PROFILE_DATA = {
     badges: [],
     recentPointTransactions: []
   },
+  shop: {
+    profile: null,
+    equippedItems: {
+      profileImage: null,
+      profileBackground: null,
+      title: null
+    }
+  },
   bookmarks: [],
   friends: [],
   friendRequests: { received: [], sent: [] },
+  activityStats: {
+    postCount: 0,
+    commentCount: 0,
+    replyCount: 0,
+    likeCount: 0,
+    dislikeCount: 0,
+    bookmarkCount: 0,
+    reactionBasis: 'GIVEN'
+  },
   todaySummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 },
   weekSummary: { totalMinutes: 0, completionRate: 0, sessionCount: 0, taskCount: 0 }
 };
@@ -51,6 +79,10 @@ function formatMinutes(value) {
   }
 
   return `${hours}시간 ${rest}분`;
+}
+
+function normalizeProfileTab(value) {
+  return value === PROFILE_TAB_KEYS.account ? PROFILE_TAB_KEYS.account : PROFILE_TAB_KEYS.learning;
 }
 
 function toDateKey(date) {
@@ -87,15 +119,20 @@ function formatShortDate(value) {
   }).format(date);
 }
 
-function maskEmail(email = '') {
-  const [localPart, domain] = email.split('@');
+function formatLoginId(loginId = '') {
+  return loginId || '아이디 없음';
+}
 
-  if (!localPart || !domain) {
-    return email || '이메일 없음';
+function formatAccountStatus(status) {
+  if (status === 'SUSPENDED') {
+    return '제한된 계정';
   }
 
-  const visible = localPart.slice(0, Math.min(3, localPart.length));
-  return `${visible}${localPart.length > 3 ? '***' : ''}@${domain}`;
+  if (status === 'DEACTIVATED' || status === 'DELETED') {
+    return '비활성/탈퇴 처리 계정';
+  }
+
+  return '활성 계정';
 }
 
 function getProfileNameFeedback(name, currentName) {
@@ -152,8 +189,24 @@ function getConfirmPasswordFeedback(newPassword, confirmPassword) {
   return { tone: 'success', message: '두 비밀번호가 일치해요.' };
 }
 
-function getInitial(name = '') {
-  return name.trim().slice(0, 1) || '학';
+function getWithdrawalPasswordFeedback(currentPassword) {
+  if (!currentPassword) {
+    return { tone: 'info', message: '본인 확인을 위해 현재 비밀번호를 입력해 주세요.' };
+  }
+
+  return { tone: 'success', message: '현재 비밀번호가 입력되었습니다.' };
+}
+
+function getWithdrawalConfirmationFeedback(confirmationText) {
+  if (!confirmationText) {
+    return { tone: 'info', message: `"${WITHDRAWAL_CONFIRMATION_TEXT}"를 그대로 입력해야 탈퇴할 수 있습니다.` };
+  }
+
+  if (confirmationText.trim() !== WITHDRAWAL_CONFIRMATION_TEXT) {
+    return { tone: 'error', message: '확인 문구가 일치하지 않습니다.' };
+  }
+
+  return { tone: 'success', message: '확인 문구가 일치합니다.' };
 }
 
 function sortByDate(items, field, direction = 'asc') {
@@ -227,7 +280,7 @@ function SectionCard({ children, headerAction, subtitle, title }) {
   );
 }
 
-export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token, user }) {
+export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, onUserUpdate, routeParams = {}, token, user }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -238,6 +291,7 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
   const [nameForm, setNameForm] = useState(user?.name || '');
   const [savingName, setSavingName] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [withdrawingAccount, setWithdrawingAccount] = useState(false);
   const [accountMessage, setAccountMessage] = useState('');
   const [accountError, setAccountError] = useState('');
   const [passwordForm, setPasswordForm] = useState({
@@ -245,6 +299,18 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     newPassword: '',
     confirmPassword: ''
   });
+  const [accountSection, setAccountSection] = useState('nickname');
+  const [withdrawalForm, setWithdrawalForm] = useState({
+    currentPassword: '',
+    confirmationText: ''
+  });
+  const { translateText } = useLanguage();
+  const requestedProfileTab = normalizeProfileTab(routeParams.tab || routeParams.section);
+  const [activeProfileTab, setActiveProfileTab] = useState(requestedProfileTab);
+
+  useEffect(() => {
+    setActiveProfileTab(requestedProfileTab);
+  }, [requestedProfileTab]);
 
   useEffect(() => {
     setNameForm(user?.name || '');
@@ -269,13 +335,15 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     const weekRange = getDateRange(7);
 
     try {
-      const [scheduleResult, taskResult, rewardResult, bookmarkResult, friendsResult, requestsResult, todayResult, weekResult] = await Promise.all([
+      const [scheduleResult, taskResult, rewardResult, shopResult, bookmarkResult, friendsResult, requestsResult, activityResult, todayResult, weekResult] = await Promise.all([
         getSchedules(token),
         getTasks(token),
         getMyRewards(token),
+        getMyShop(token),
         getCommunityBookmarks(token, { page: 1, pageSize: 3 }),
         getFriends(token),
         getFriendRequests(token),
+        getMyActivityStats(token),
         getStatisticsSummary(token, todayRange),
         getStatisticsSummary(token, weekRange)
       ]);
@@ -287,11 +355,19 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
           ...EMPTY_PROFILE_DATA.rewards,
           ...(rewardResult?.rewards || {})
         },
+        shop: {
+          ...EMPTY_PROFILE_DATA.shop,
+          ...(shopResult?.shop || {})
+        },
         bookmarks: Array.isArray(bookmarkResult?.bookmarks) ? bookmarkResult.bookmarks : [],
         friends: Array.isArray(friendsResult?.friends) ? friendsResult.friends : [],
         friendRequests: {
           ...EMPTY_PROFILE_DATA.friendRequests,
           ...(requestsResult?.requests || {})
+        },
+        activityStats: {
+          ...EMPTY_PROFILE_DATA.activityStats,
+          ...(activityResult?.activity || {})
         },
         todaySummary: todayResult?.summary || EMPTY_PROFILE_DATA.todaySummary,
         weekSummary: weekResult?.summary || EMPTY_PROFILE_DATA.weekSummary
@@ -379,6 +455,38 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
     }
   }
 
+  async function handleWithdrawalSubmit() {
+    if (!token || withdrawingAccount) {
+      return;
+    }
+
+    setAccountMessage('');
+    setAccountError('');
+
+    if (!withdrawalForm.currentPassword || !withdrawalForm.confirmationText) {
+      setAccountError('현재 비밀번호와 확인 문구를 모두 입력해 주세요.');
+      return;
+    }
+
+    if (withdrawalForm.confirmationText.trim() !== WITHDRAWAL_CONFIRMATION_TEXT) {
+      setAccountError(`확인 문구로 "${WITHDRAWAL_CONFIRMATION_TEXT}"를 정확히 입력해 주세요.`);
+      return;
+    }
+
+    setWithdrawingAccount(true);
+
+    try {
+      const result = await deleteCurrentUser(token, withdrawalForm);
+      setWithdrawalForm({ currentPassword: '', confirmationText: '' });
+      onUserUpdate?.(result.user);
+      onAccountDeleted?.(result.user);
+    } catch (submitError) {
+      setAccountError(submitError.message || '회원 탈퇴를 처리하지 못했습니다.');
+    } finally {
+      setWithdrawingAccount(false);
+    }
+  }
+
   const derived = useMemo(() => {
     const tasks = profileData.tasks || [];
     const schedules = profileData.schedules || [];
@@ -420,24 +528,58 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
   }, [profileData]);
 
   const rewardPoints = profileData.rewards?.account?.pointBalance || 0;
+  const profileAppearance = profileData.shop?.profile || user?.profile || {};
   const visibleBadges = derived.badges.slice(0, 4);
   const visibleQuests = derived.activeQuests.slice(0, 3);
+  const activityStats = profileData.activityStats || EMPTY_PROFILE_DATA.activityStats;
+  const activityItems = [
+    { key: 'posts', label: '작성 글', value: activityStats.postCount },
+    { key: 'comments', label: '댓글', value: activityStats.commentCount },
+    { key: 'replies', label: '대답글', value: activityStats.replyCount },
+    { key: 'likes', label: '내가 누른 좋아요', value: activityStats.likeCount },
+    { key: 'dislikes', label: '내가 누른 싫어요', value: activityStats.dislikeCount },
+    { key: 'bookmarks', label: '북마크', value: activityStats.bookmarkCount }
+  ];
+  const profileTabs = [
+    {
+      key: PROFILE_TAB_KEYS.learning,
+      label: translateText('학습 흐름'),
+      description: translateText('일정, 태스크, 보상, 활동 흐름을 확인합니다.')
+    },
+    {
+      key: PROFILE_TAB_KEYS.account,
+      label: translateText('계정 설정'),
+      description: translateText('닉네임, 비밀번호, 회원 탈퇴를 관리합니다.')
+    }
+  ];
+  const activeTabDescription = profileTabs.find((item) => item.key === activeProfileTab)?.description;
+  const heroTitle = activeProfileTab === PROFILE_TAB_KEYS.account
+    ? `${userName}님의 ${translateText('계정 설정')}`
+    : `${userName}님의 ${translateText('학습 흐름')}`;
+  const heroSubtitle = activeProfileTab === PROFILE_TAB_KEYS.account
+    ? translateText('계정 정보와 보안 설정을 필요한 항목만 열어서 관리합니다.')
+    : derived.insight;
+
+  function handleProfileTabChange(nextTab) {
+    const normalizedTab = normalizeProfileTab(nextTab);
+    setActiveProfileTab(normalizedTab);
+    onNavigate?.('profile', { replace: true, params: { tab: normalizedTab } });
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.hero, shadows.card]}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getInitial(userName)}</Text>
-        </View>
+      <ProfileBackground appearance={profileAppearance} style={[styles.hero, shadows.card]}>
+        <ProfileAvatar appearance={profileAppearance} name={userName} size="lg" />
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>PROFILE DASHBOARD</Text>
-          <Text style={styles.title}>{userName}님의 학습 흐름</Text>
-          <Text style={styles.subtitle}>{derived.insight}</Text>
+          <Text style={styles.title}>{heroTitle}</Text>
+          <ProfileTitleChip animated title={profileAppearance.titleText} translateText={translateText} />
+          <Text style={styles.subtitle}>{heroSubtitle}</Text>
           <View style={styles.identityRow}>
             <View style={styles.identityChip}>
               <Text style={styles.identityChipText}>{isAdmin ? 'ADMIN' : 'LEARNER'}</Text>
             </View>
-            <Text style={styles.emailText}>{maskEmail(user?.email)}</Text>
+            <Text style={styles.loginIdText}>{formatLoginId(user?.loginId)}</Text>
           </View>
         </View>
         <Pressable
@@ -452,6 +594,35 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
         >
           <Text style={styles.refreshButtonText}>{refreshing ? '갱신 중' : '새로고침'}</Text>
         </Pressable>
+      </ProfileBackground>
+
+      <View style={[styles.profileTabCard, shadows.card]}>
+        <View style={styles.profileTabRow}>
+          {profileTabs.map((item) => {
+            const active = activeProfileTab === item.key;
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                key={item.key}
+                onPress={() => handleProfileTabChange(item.key)}
+                style={(state) => [
+                  styles.profileTabButton,
+                  active && styles.profileTabButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text style={[styles.profileTabButtonText, active && styles.profileTabButtonTextActive]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {activeTabDescription ? (
+          <Text style={styles.profileTabDescription}>{activeTabDescription}</Text>
+        ) : null}
       </View>
 
       {loading ? (
@@ -472,15 +643,32 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
             </View>
           ) : null}
 
-          <View style={styles.metricGrid}>
-            <MetricCard label="오늘 집중" value={formatMinutes(profileData.todaySummary.totalMinutes)} helper={`${profileData.todaySummary.sessionCount || 0}회 기록`} tone="mint" />
-            <MetricCard label="최근 7일 집중" value={formatMinutes(profileData.weekSummary.totalMinutes)} helper={`완료율 ${profileData.weekSummary.completionRate || 0}%`} tone="blue" />
-            <MetricCard label="완료 태스크" value={`${formatNumber(derived.doneTasks.length)}개`} helper={`진행 중 ${derived.inProgressTasks.length}개`} />
-            <MetricCard label="보유 포인트" value={`${formatNumber(rewardPoints)}P`} helper={`배지 ${derived.badges.length}개`} tone="mint" />
-            <MetricCard label="학습 친구" value={`${formatNumber(profileData.friends.length)}명`} helper={`받은 요청 ${profileData.friendRequests.received.length}건`} tone="blue" />
-          </View>
+          {activeProfileTab === PROFILE_TAB_KEYS.learning ? (
+            <>
+              <View style={styles.accountMetaGrid}>
+                <View style={styles.accountMetaCard}>
+                  <Text style={styles.accountMetaLabel}>가입일</Text>
+                  <Text style={styles.accountMetaValue}>{formatShortDate(user?.createdAt)}</Text>
+                </View>
+                <View style={styles.accountMetaCard}>
+                  <Text style={styles.accountMetaLabel}>계정 상태</Text>
+                  <Text style={styles.accountMetaValue}>{formatAccountStatus(user?.status)}</Text>
+                </View>
+                <View style={styles.accountMetaCard}>
+                  <Text style={styles.accountMetaLabel}>로그인 아이디</Text>
+                  <Text style={styles.accountMetaValue}>{formatLoginId(user?.loginId)}</Text>
+                </View>
+              </View>
 
-          <View style={styles.bentoGrid}>
+              <View style={styles.metricGrid}>
+                <MetricCard label="오늘 집중" value={formatMinutes(profileData.todaySummary.totalMinutes)} helper={`${profileData.todaySummary.sessionCount || 0}회 기록`} tone="mint" />
+                <MetricCard label="최근 7일 집중" value={formatMinutes(profileData.weekSummary.totalMinutes)} helper={`완료율 ${profileData.weekSummary.completionRate || 0}%`} tone="blue" />
+                <MetricCard label="완료 태스크" value={`${formatNumber(derived.doneTasks.length)}개`} helper={`진행 중 ${derived.inProgressTasks.length}개`} />
+                <MetricCard label="보유 포인트" value={`${formatNumber(rewardPoints)}P`} helper={`배지 ${derived.badges.length}개`} tone="mint" />
+                <MetricCard label="학습 친구" value={`${formatNumber(profileData.friends.length)}명`} helper={`받은 요청 ${profileData.friendRequests.received.length}건`} tone="blue" />
+              </View>
+
+              <View style={styles.bentoGrid}>
             <SectionCard
               title="학습 요약"
               subtitle="일정과 칸반 진행 상황을 함께 봅니다."
@@ -574,6 +762,18 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                   ))}
                 </View>
               ) : null}
+            </SectionCard>
+
+            <SectionCard title="커뮤니티 활동" subtitle="내가 작성하거나 누른 활동 기준으로 집계합니다.">
+              <View style={styles.activityGrid}>
+                {activityItems.map((item) => (
+                  <View key={item.key} style={styles.activityStatCard}>
+                    <Text style={styles.activityStatValue}>{formatNumber(item.value)}</Text>
+                    <Text style={styles.activityStatLabel}>{item.label}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.activityBasisText}>좋아요/싫어요는 내가 게시글과 댓글에 누른 반응 수입니다.</Text>
             </SectionCard>
 
             <SectionCard
@@ -674,8 +874,13 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                 </Pressable>
               </View>
             </SectionCard>
+              </View>
+            </>
+          ) : null}
 
-            <SectionCard title="계정 설정" subtitle="닉네임과 비밀번호를 본인 계정 기준으로 관리합니다.">
+          {activeProfileTab === PROFILE_TAB_KEYS.account ? (
+            <View style={styles.bentoGrid}>
+              <SectionCard title="계정 설정" subtitle="닉네임, 비밀번호, 탈퇴 여부를 필요한 항목만 열어서 관리합니다.">
               {accountMessage ? (
                 <View style={styles.accountSuccess}>
                   <Text style={styles.accountSuccessText}>{accountMessage}</Text>
@@ -687,78 +892,166 @@ export default function ProfileDashboardScreen({ onNavigate, onUserUpdate, token
                 </View>
               ) : null}
 
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>닉네임</Text>
-                <View style={styles.inlineForm}>
-                  <AccessibleTextInput
-                    containerStyle={styles.inlineTextInputContainer}
-                    onChangeText={setNameForm}
-                    placeholder="닉네임을 입력하세요"
-                    placeholderTextColor={colors.muted}
-                    style={styles.textInput}
-                    value={nameForm}
-                  />
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={savingName}
-                    onPress={handleNameSubmit}
-                    style={(state) => [
-                      styles.formButton,
-                      savingName && styles.disabledButton,
-                      ...interactiveStateStyles(state, { disabled: savingName })
-                    ]}
-                  >
-                    <Text style={styles.formButtonText}>{savingName ? '저장 중' : '저장'}</Text>
-                  </Pressable>
+              <View style={styles.accountOverview}>
+                <View style={styles.accountOverviewItem}>
+                  <Text style={styles.accountOverviewLabel}>현재 닉네임</Text>
+                  <Text style={styles.accountOverviewValue}>{userName}</Text>
                 </View>
-                <FieldFeedback {...getProfileNameFeedback(nameForm, user?.name)} />
+                <View style={styles.accountOverviewItem}>
+                  <Text style={styles.accountOverviewLabel}>로그인 아이디</Text>
+                  <Text style={styles.accountOverviewValue}>{formatLoginId(user?.loginId)}</Text>
+                </View>
+                <View style={styles.accountOverviewItem}>
+                  <Text style={styles.accountOverviewLabel}>계정 유형</Text>
+                  <Text style={styles.accountOverviewValue}>{isAdmin ? '관리자' : '일반 학습자'}</Text>
+                </View>
               </View>
 
-              <View style={styles.passwordBox}>
-                <Text style={styles.formLabel}>비밀번호 변경</Text>
-                <AccessibleTextInput
-                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
-                  placeholder="현재 비밀번호"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
-                  style={styles.textInput}
-                  value={passwordForm.currentPassword}
-                />
-                <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
-                <AccessibleTextInput
-                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
-                  placeholder="새 비밀번호"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
-                  style={styles.textInput}
-                  value={passwordForm.newPassword}
-                />
-                <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
-                <AccessibleTextInput
-                  onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
-                  placeholder="새 비밀번호 확인"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
-                  style={styles.textInput}
-                  value={passwordForm.confirmPassword}
-                />
-                <FieldFeedback {...getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword)} />
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={changingPassword}
-                  onPress={handlePasswordSubmit}
-                  style={(state) => [
-                    styles.passwordButton,
-                    changingPassword && styles.disabledButton,
-                    ...interactiveStateStyles(state, { disabled: changingPassword })
-                  ]}
-                >
-                  <Text style={styles.passwordButtonText}>{changingPassword ? '변경 중' : '비밀번호 변경'}</Text>
-                </Pressable>
-                <Text style={styles.formHelper}>비밀번호는 8자 이상이어야 하며, 응답에 비밀번호 원문이나 hash를 표시하지 않습니다.</Text>
+              <View style={styles.accountTabRow}>
+                {[
+                  { key: 'nickname', label: '닉네임 변경' },
+                  { key: 'password', label: '비밀번호 변경' },
+                  { key: 'withdrawal', label: '회원 탈퇴' }
+                ].map((item) => {
+                  const active = accountSection === item.key;
+
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      key={item.key}
+                      onPress={() => setAccountSection(item.key)}
+                      style={(state) => [
+                        styles.accountTab,
+                        active && styles.accountTabActive,
+                        ...interactiveStateStyles(state)
+                      ]}
+                    >
+                      <Text style={[styles.accountTabText, active && styles.accountTabTextActive]}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-            </SectionCard>
-          </View>
+
+              {accountSection === 'nickname' ? (
+                <View style={styles.accountPanel}>
+                  <Text style={styles.formLabel}>닉네임</Text>
+                  <Text style={styles.formHelper}>커뮤니티와 프로필에 표시되는 이름입니다. 저장할 때 사용할 수 있는 닉네임인지 확인합니다.</Text>
+                  <View style={styles.inlineForm}>
+                    <AccessibleTextInput
+                      containerStyle={styles.inlineTextInputContainer}
+                      onChangeText={setNameForm}
+                      placeholder="닉네임을 입력하세요"
+                      placeholderTextColor={colors.muted}
+                      style={styles.textInput}
+                      value={nameForm}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={savingName}
+                      onPress={handleNameSubmit}
+                      style={(state) => [
+                        styles.formButton,
+                        savingName && styles.disabledButton,
+                        ...interactiveStateStyles(state, { disabled: savingName })
+                      ]}
+                    >
+                      <Text style={styles.formButtonText}>{savingName ? '저장 중' : '저장'}</Text>
+                    </Pressable>
+                  </View>
+                  <FieldFeedback {...getProfileNameFeedback(nameForm, user?.name)} />
+                </View>
+              ) : accountSection === 'password' ? (
+                <View style={styles.accountPanel}>
+                  <Text style={styles.formLabel}>비밀번호 변경</Text>
+                  <Text style={styles.formHelper}>현재 비밀번호로 본인 확인을 한 뒤 새 비밀번호를 저장합니다. 비밀번호는 화면에 표시하지 않습니다.</Text>
+                  <AccessibleTextInput
+                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
+                    placeholder="현재 비밀번호"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={passwordForm.currentPassword}
+                  />
+                  <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
+                  <AccessibleTextInput
+                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
+                    placeholder="새 비밀번호"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={passwordForm.newPassword}
+                  />
+                  <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
+                  <AccessibleTextInput
+                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
+                    placeholder="새 비밀번호 확인"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={passwordForm.confirmPassword}
+                  />
+                  <FieldFeedback {...getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword)} />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={changingPassword}
+                    onPress={handlePasswordSubmit}
+                    style={(state) => [
+                      styles.passwordButton,
+                      changingPassword && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: changingPassword })
+                    ]}
+                  >
+                    <Text style={styles.passwordButtonText}>{changingPassword ? '변경 중' : '비밀번호 변경'}</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={[styles.accountPanel, styles.withdrawalPanel]}>
+                  <Text style={styles.formLabel}>회원 탈퇴</Text>
+                  <Text style={styles.formHelper}>
+                    탈퇴하면 계정 상태가 비활성화되고 즉시 로그아웃됩니다. 기존 게시글과 댓글은 서비스 흐름이 깨지지 않도록 유지되며, 로그인 아이디는 재사용할 수 없습니다.
+                  </Text>
+                  <View style={styles.withdrawalWarning}>
+                    <Text style={styles.withdrawalWarningTitle}>탈퇴 전 확인</Text>
+                    <Text style={styles.withdrawalWarningText}>현재 비밀번호와 확인 문구를 입력해야 탈퇴할 수 있습니다.</Text>
+                    <Text style={styles.withdrawalWarningText}>확인 문구: {WITHDRAWAL_CONFIRMATION_TEXT}</Text>
+                  </View>
+                  <AccessibleTextInput
+                    onChangeText={(value) => setWithdrawalForm((current) => ({ ...current, currentPassword: value }))}
+                    placeholder="현재 비밀번호"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry
+                    style={styles.textInput}
+                    value={withdrawalForm.currentPassword}
+                  />
+                  <FieldFeedback {...getWithdrawalPasswordFeedback(withdrawalForm.currentPassword)} />
+                  <AccessibleTextInput
+                    onChangeText={(value) => setWithdrawalForm((current) => ({ ...current, confirmationText: value }))}
+                    placeholder={WITHDRAWAL_CONFIRMATION_TEXT}
+                    placeholderTextColor={colors.muted}
+                    style={styles.textInput}
+                    value={withdrawalForm.confirmationText}
+                  />
+                  <FieldFeedback {...getWithdrawalConfirmationFeedback(withdrawalForm.confirmationText)} />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={withdrawingAccount}
+                    onPress={handleWithdrawalSubmit}
+                    style={(state) => [
+                      styles.withdrawalButton,
+                      withdrawingAccount && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: withdrawingAccount })
+                    ]}
+                  >
+                  <Text style={styles.withdrawalButtonText}>{withdrawingAccount ? '탈퇴 처리 중' : '회원 탈퇴'}</Text>
+                </Pressable>
+              </View>
+              )}
+              </SectionCard>
+            </View>
+          ) : null}
         </>
       )}
     </ScrollView>
@@ -785,21 +1078,6 @@ const styles = StyleSheet.create({
     gap: 22,
     flexWrap: 'wrap'
   },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 28,
-    backgroundColor: colors.mintSoft,
-    borderWidth: 1,
-    borderColor: colors.mint,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  avatarText: {
-    color: colors.blueDeep,
-    fontSize: 34,
-    fontWeight: '900'
-  },
   heroCopy: {
     flex: 1,
     minWidth: 260,
@@ -821,6 +1099,47 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24
   },
+  profileTabCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 16,
+    gap: 10
+  },
+  profileTabRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  profileTabButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  profileTabButtonActive: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  profileTabButtonText: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  profileTabButtonTextActive: {
+    color: colors.blueDeep
+  },
+  profileTabDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20
+  },
   identityRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -839,7 +1158,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900'
   },
-  emailText: {
+  loginIdText: {
     color: colors.muted,
     fontSize: 13,
     fontWeight: '700'
@@ -897,6 +1216,31 @@ const styles = StyleSheet.create({
   errorButtonText: {
     color: colors.danger,
     fontSize: 13,
+    fontWeight: '900'
+  },
+  accountMetaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+  accountMetaCard: {
+    flex: 1,
+    minWidth: 190,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16,
+    gap: 6
+  },
+  accountMetaLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  accountMetaValue: {
+    color: colors.ink,
+    fontSize: 15,
     fontWeight: '900'
   },
   metricGrid: {
@@ -1144,6 +1488,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900'
   },
+  activityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  activityStatCard: {
+    flex: 1,
+    minWidth: 130,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
+    gap: 5
+  },
+  activityStatValue: {
+    color: colors.blueDeep,
+    fontSize: 22,
+    fontWeight: '900'
+  },
+  activityStatLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  activityBasisText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
+  },
   bookmarkBlock: {
     gap: 12
   },
@@ -1182,6 +1556,88 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18
+  },
+  accountOverview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  accountOverviewItem: {
+    flex: 1,
+    minWidth: 150,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
+    gap: 6
+  },
+  accountOverviewLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  accountOverviewValue: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  accountTabRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  accountTab: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    ...interactions.transition
+  },
+  accountTabActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  accountTabText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  accountTabTextActive: {
+    color: colors.mintDeep
+  },
+  accountPanel: {
+    gap: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16
+  },
+  withdrawalPanel: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft
+  },
+  withdrawalWarning: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: colors.surface,
+    padding: 14,
+    gap: 6
+  },
+  withdrawalWarningTitle: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  withdrawalWarningText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20
   },
   formGroup: {
     gap: 9
@@ -1247,6 +1703,21 @@ const styles = StyleSheet.create({
     ...interactions.transition
   },
   passwordButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  withdrawalButton: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: colors.danger,
+    paddingHorizontal: 18,
+    justifyContent: 'center'
+  },
+  withdrawalButtonText: {
     color: colors.surface,
     fontSize: 13,
     fontWeight: '900'

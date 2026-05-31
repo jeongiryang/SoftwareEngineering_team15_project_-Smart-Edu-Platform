@@ -28,6 +28,34 @@ const defaultPreference = {
   reviewReminderEnabled: false,
   reminderTime: ''
 };
+const TEXT_SCALE_OPTIONS = [1, 1.2, 1.4, 1.6, 1.8, 2];
+const MAGNIFIER_MODE_STORAGE_KEY = 'sagaksagak:magnifier-mode';
+const MAGNIFIER_MODE_EVENT = 'sagak-magnifier-change';
+const KID_TEXT_SCALE_LABELS = {
+  1: '보통',
+  1.2: '조금 크게',
+  1.4: '많이 크게',
+  1.6: '아주 크게',
+  1.8: '더 크게',
+  2: '가장 크게'
+};
+
+function readStoredMagnifierMode() {
+  try {
+    return globalThis.localStorage?.getItem(MAGNIFIER_MODE_STORAGE_KEY) === 'true';
+  } catch (error) {
+    return false;
+  }
+}
+
+function writeStoredMagnifierMode(enabled) {
+  try {
+    globalThis.localStorage?.setItem(MAGNIFIER_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
+    globalThis.window?.dispatchEvent?.(new Event(MAGNIFIER_MODE_EVENT));
+  } catch (error) {
+    // localStorage is unavailable in some native/test runtimes; the local state still updates.
+  }
+}
 const DRAFT_STORAGE_KEY = 'smartEduAccessibilityDraft';
 const voiceGuideSteps = [
   {
@@ -213,8 +241,11 @@ function getCalendarCells(monthValue) {
 export default function AccessibilityScreen({ onNavigate, token, user }) {
   const {
     preference: globalPreference,
+    previewingVoiceType,
     setPreference: setGlobalPreference,
     setVoiceType: setGlobalVoiceType,
+    speakText,
+    stopSpeech,
     scheduleAlarm
   } = useAccessibility();
   const saveTimeoutRef = useRef(null);
@@ -222,6 +253,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const defaultReminderDateTime = useMemo(() => getDefaultReminderDateTime(), []);
   const todayDate = useMemo(() => getDefaultReminderDateTime().date, []);
   const [preference, setPreference] = useState(globalPreference || defaultPreference);
+  const [magnifierMode, setMagnifierMode] = useState(readStoredMagnifierMode);
   const [ttsText, setTtsText] = useState(draft.ttsText || '');
   const [voiceType, setVoiceType] = useState(draft.voiceType || 'ADULT_FEMALE');
   const [transcript, setTranscript] = useState('');
@@ -274,7 +306,6 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     setMessage('');
     setErrorMessage('');
     setErrorModalMessage('');
-    setShowSpeechError(false);
   }
 
   async function savePreference(nextPreference) {
@@ -315,6 +346,13 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     saveTimeoutRef.current = setTimeout(() => {
       savePreference(nextPreference);
     }, 500);
+  }
+
+  function toggleMagnifierMode() {
+    const nextMagnifierMode = !magnifierMode;
+
+    setMagnifierMode(nextMagnifierMode);
+    writeStoredMagnifierMode(nextMagnifierMode);
   }
 
   async function handleReminder() {
@@ -362,6 +400,22 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     }
 
     setCalendarVisible(true);
+  }
+
+  function handlePreviewVoice(option, label) {
+    if (previewingVoiceType === option.value) {
+      stopSpeech();
+      return;
+    }
+
+    const previewText = preference.elementaryFriendlyUi
+      ? `${label} 목소리로 읽어볼게요. 이 목소리가 편한지 들어보세요.`
+      : `${label} 미리듣기입니다. 선택한 톤과 속도가 이렇게 적용됩니다.`;
+
+    speakText(previewText, {
+      previewVoiceType: option.value,
+      voiceType: option.value
+    });
   }
 
   if (!user) {
@@ -478,7 +532,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               text={isKidMode ? kidTexts.speechSupportText : speechSupportText}
             />
             <View style={styles.scaleRow}>
-              {[1, 1.2, 1.4, 1.6].map((scale) => (
+              {TEXT_SCALE_OPTIONS.map((scale) => (
                 <Pressable
                   key={scale}
                   onPress={() => {
@@ -491,13 +545,34 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                   ]}
                 >
                   <Text style={[styles.scaleButtonText, preference.textScale === scale && styles.activeButtonText]}>
-                    {isKidMode
-                      ? (scale === 1 ? '보통' : scale === 1.2 ? '조금 크게' : scale === 1.4 ? '많이 크게' : '아주 크게')
-                      : `${scale.toFixed(1)}x`
-                    }
+                    {isKidMode ? KID_TEXT_SCALE_LABELS[scale] : `${scale.toFixed(1)}x`}
                   </Text>
                 </Pressable>
               ))}
+            </View>
+            <View style={[styles.magnifierCard, magnifierMode && styles.magnifierCardActive]}>
+              <View style={styles.magnifierCopy}>
+                <Text style={[styles.magnifierTitle, scaledStyles]}>
+                  돋보기 모드
+                </Text>
+                <Text style={styles.helperText}>
+                  고령자와 저시력 사용자를 위해 화면 전체 글자와 UI를 최소 1.35x로 확대합니다.
+                </Text>
+              </View>
+              <Pressable
+                onPress={toggleMagnifierMode}
+                style={(state) => [
+                  styles.scaleButton,
+                  magnifierMode && styles.activeButton,
+                  ...interactiveStateStyles(state)
+                ]}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: magnifierMode }}
+              >
+                <Text style={[styles.scaleButtonText, magnifierMode && styles.activeButtonText]}>
+                  {magnifierMode ? '켜짐' : '켜기'}
+                </Text>
+              </Pressable>
             </View>
             <ToggleRow
               active={preference.highContrast}
@@ -546,29 +621,59 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 const tag = isKidMode
                   ? (option.value.startsWith('CHILD') ? '🎒 친구 추천' : '👨 어른 추천')
                   : option.tag;
+                const active = voiceType === option.value;
+                const previewing = previewingVoiceType === option.value;
                 return (
-                  <Pressable
+                  <View
                     key={option.value}
-                    onPress={() => {
-                      if (saving) return;
-                      setVoiceType(option.value);
-                      setGlobalVoiceType(option.value);
-                    }}
-                    style={(state) => [
+                    style={[
                       styles.voiceButton,
-                      voiceType === option.value && styles.activeButton,
-                      saving && styles.disabledButton,
-                      ...interactiveStateStyles(state, { disabled: saving })
+                      active && styles.activeButton,
+                      saving && styles.disabledButton
                     ]}
                   >
-                    <Text style={[
-                      styles.voiceButtonText,
-                      voiceType === option.value && styles.activeButtonText
-                    ]}>{label}</Text>
-                    {voiceType !== option.value && (
-                      <Text style={styles.voiceTagText}>{tag}</Text>
-                    )}
-                  </Pressable>
+                    <Pressable
+                      accessibilityLabel={`${label} 선택`}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        if (saving) return;
+                        setVoiceType(option.value);
+                        setGlobalVoiceType(option.value);
+                      }}
+                      style={(state) => [
+                        styles.voiceSelectArea,
+                        state.hovered && !active && styles.voiceSelectAreaHover,
+                        ...interactiveStateStyles(state, { disabled: saving })
+                      ]}
+                    >
+                      <Text style={[
+                        styles.voiceButtonText,
+                        active && styles.activeButtonText
+                      ]}>{label}</Text>
+                      {!active && (
+                        <Text style={styles.voiceTagText}>{tag}</Text>
+                      )}
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel={`${label} 미리듣기`}
+                      accessibilityRole="button"
+                      accessibilityState={{ busy: previewing }}
+                      onPress={() => handlePreviewVoice(option, label)}
+                      style={(state) => [
+                        styles.voicePreviewButton,
+                        previewing && styles.voicePreviewButtonActive,
+                        ...interactiveStateStyles(state)
+                      ]}
+                    >
+                      <SpeakerIcon active={previewing} />
+                      <Text style={[
+                        styles.voicePreviewText,
+                        previewing && styles.voicePreviewTextActive
+                      ]}>
+                        {previewing ? '재생 중' : '미리듣기'}
+                      </Text>
+                    </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -860,6 +965,17 @@ function CalendarIcon() {
   );
 }
 
+function SpeakerIcon({ active }) {
+  return (
+    <View style={styles.speakerIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={[styles.speakerBody, active && styles.speakerBodyActive]} />
+      <View style={[styles.speakerCone, active && styles.speakerConeActive]} />
+      <View style={[styles.speakerWave, styles.speakerWaveInner, active && styles.speakerWaveActive]} />
+      <View style={[styles.speakerWave, styles.speakerWaveOuter, active && styles.speakerWaveActive]} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -961,6 +1077,31 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8
   },
+  magnifierCard: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    padding: 12
+  },
+  magnifierCardActive: {
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mintDeep
+  },
+  magnifierCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 180
+  },
+  magnifierTitle: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '900'
+  },
   voiceGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -976,8 +1117,24 @@ const styles = StyleSheet.create({
     gap: 4,
     minHeight: 88,
     minWidth: 160,
-    paddingHorizontal: 12,
+    overflow: 'hidden',
+    padding: 8,
     ...interactions.transition
+  },
+  voiceSelectArea: {
+    alignItems: 'center',
+    borderColor: 'transparent',
+    borderRadius: radii.control,
+    borderWidth: 1,
+    gap: 4,
+    justifyContent: 'center',
+    minHeight: 58,
+    paddingHorizontal: 10,
+    width: '100%',
+    ...interactions.transition
+  },
+  voiceSelectAreaHover: {
+    backgroundColor: colors.surface
   },
   voiceButtonText: {
     color: colors.ink,
@@ -989,6 +1146,88 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     textAlign: 'center'
+  },
+  voicePreviewButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    minHeight: 30,
+    paddingHorizontal: 10,
+    width: '100%',
+    ...interactions.transition
+  },
+  voicePreviewButtonActive: {
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mint
+  },
+  voicePreviewText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  voicePreviewTextActive: {
+    color: colors.mintDeep
+  },
+  speakerIcon: {
+    height: 16,
+    position: 'relative',
+    width: 18
+  },
+  speakerBody: {
+    backgroundColor: colors.blueDeep,
+    borderRadius: 2,
+    height: 8,
+    left: 0,
+    position: 'absolute',
+    top: 4,
+    width: 5
+  },
+  speakerBodyActive: {
+    backgroundColor: colors.mintDeep
+  },
+  speakerCone: {
+    borderBottomWidth: 5,
+    borderColor: 'transparent',
+    borderRightColor: colors.blueDeep,
+    borderRightWidth: 8,
+    borderTopWidth: 5,
+    height: 0,
+    left: 4,
+    position: 'absolute',
+    top: 3,
+    width: 0
+  },
+  speakerConeActive: {
+    borderRightColor: colors.mintDeep
+  },
+  speakerWave: {
+    borderColor: colors.blueDeep,
+    borderLeftWidth: 0,
+    borderRadius: 999,
+    borderRightWidth: 2,
+    borderTopWidth: 2,
+    height: 8,
+    position: 'absolute',
+    transform: [{ rotate: '45deg' }],
+    width: 8
+  },
+  speakerWaveInner: {
+    right: 1,
+    top: 4
+  },
+  speakerWaveOuter: {
+    right: -3,
+    top: 2,
+    height: 12,
+    width: 12
+  },
+  speakerWaveActive: {
+    borderColor: colors.mintDeep
   },
   scaleButton: {
     backgroundColor: colors.surfaceWarm,

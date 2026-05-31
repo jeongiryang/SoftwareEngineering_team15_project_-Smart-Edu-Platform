@@ -114,9 +114,28 @@ enum FriendshipStatus {
   REJECTED
 }
 
+enum BossRaidPartyStatus {
+  OPEN
+  CLEARED
+  CLOSED
+}
+
+enum BossRaidInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+enum CollaborativeQuestStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
 model User {
   id                      Int                         @id @default(autoincrement())
-  email                   String                      @unique
+  loginId                 String                      @unique @map("login_id")
   passwordHash            String                      @map("password_hash")
   name                    String
   role                    Role                        @default(USER)
@@ -130,6 +149,8 @@ model User {
   notifications           Notification[]
   notes                   StudyNote[]
   aiQuestions             AIQuestion[]
+  aiChatRooms             AIChatRoom[]
+  aiChatMessages          AIChatMessage[]
   wrongAnswerNotes        WrongAnswerNote[]
   quizzes                 Quiz[]
   aiRecommendations       AIRecommendation[]
@@ -138,6 +159,7 @@ model User {
   posts                   BoardPost[]
   comments                Comment[]
   communityReactions      CommunityReaction[]
+  commentReactions        CommentReaction[]
   communityBookmarks      CommunityBookmark[]
   communityReports        CommunityReport[]           @relation("CommunityReportReporter")
   resolvedReports         CommunityReport[]           @relation("CommunityReportResolver")
@@ -154,6 +176,20 @@ model User {
   sentFriendships         Friendship[]                @relation("FriendshipRequester")
   receivedFriendships     Friendship[]                @relation("FriendshipAddressee")
   shopPurchases           UserShopPurchase[]
+  ownedBossRaidParties    BossRaidParty[]             @relation("BossRaidPartyOwner")
+  bossRaidPartyMembers    BossRaidPartyMember[]
+  bossRaidContributions   BossRaidContribution[]
+  bossRaidRewardClaims    BossRaidRewardClaim[]
+  sentBossRaidInvites     BossRaidInvite[]            @relation("BossRaidInviteInviter")
+  receivedBossRaidInvites BossRaidInvite[]            @relation("BossRaidInviteInvitee")
+  createdCollaborativeQuests CollaborativeQuest[]      @relation("CollaborativeQuestCreator")
+  collaborativeQuestParticipants CollaborativeQuestParticipant[]
+  collaborativeQuestContributions CollaborativeQuestContribution[]
+  collaborativeQuestRewardClaims CollaborativeQuestRewardClaim[]
+  directMessageThreadsA   DirectMessageThread[]        @relation("DirectMessageThreadParticipantA")
+  directMessageThreadsB   DirectMessageThread[]        @relation("DirectMessageThreadParticipantB")
+  sentDirectMessages      DirectMessage[]              @relation("DirectMessageSender")
+  directMessageReadStates DirectMessageReadState[]     @relation("DirectMessageReadStateUser")
 
   @@map("users")
 }
@@ -272,6 +308,37 @@ model AIQuestion {
   note      StudyNote? @relation(fields: [noteId], references: [id], onDelete: SetNull)
 
   @@map("ai_questions")
+}
+
+model AIChatRoom {
+  id        Int             @id @default(autoincrement())
+  userId    Int             @map("user_id")
+  title     String          @default("AI 대화")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AIChatMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("ai_chat_rooms")
+}
+
+model AIChatMessage {
+  id          Int        @id @default(autoincrement())
+  roomId      Int        @map("room_id")
+  userId      Int        @map("user_id")
+  question    String
+  answer      String
+  isMock      Boolean    @default(false) @map("is_mock")
+  isTruncated Boolean    @default(false) @map("is_truncated")
+  source      String     @default("AI_QNA")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  room        AIChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_chat_messages")
 }
 
 model WrongAnswerNote {
@@ -394,6 +461,7 @@ model BoardPost {
   category  PostCategory        @default(FREE)
   title     String
   content   String
+  viewCount Int                 @default(0) @map("view_count")
   reported  Boolean             @default(false)
   createdAt DateTime            @default(now()) @map("created_at")
   updatedAt DateTime            @updatedAt @map("updated_at")
@@ -410,15 +478,38 @@ model Comment {
   id        Int       @id @default(autoincrement())
   postId    Int       @map("post_id")
   userId    Int       @map("user_id")
+  parentId  Int?      @map("parent_id")
   content   String
   reported  Boolean   @default(false)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   post      BoardPost @relation(fields: [postId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  reactions CommentReaction[]
   reports   CommunityReport[]
 
+  @@index([postId, parentId])
+  @@index([parentId])
   @@map("comments")
+}
+
+model CommentReaction {
+  id        Int          @id @default(autoincrement())
+  commentId Int          @map("comment_id")
+  userId    Int          @map("user_id")
+  type      ReactionType
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  comment   Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@index([type])
+  @@map("comment_reactions")
 }
 
 model CommunityReaction {
@@ -560,6 +651,7 @@ model Badge {
   updatedAt   DateTime      @updatedAt @map("updated_at")
   userBadges  UserBadge[]
   quests      RewardQuest[]
+  raids       BossRaid[]
 
   @@map("badges")
 }
@@ -665,4 +757,259 @@ model UserShopPurchase {
   @@unique([userId, itemId])
   @@index([itemId])
   @@map("user_shop_purchases")
+}
+
+model BossRaid {
+  id                    Int                   @id @default(autoincrement())
+  code                  String                @unique
+  name                  String
+  description           String?
+  imageUrl              String?               @map("image_url")
+  maxHp                 Int                   @map("max_hp")
+  focusMinuteDamage     Int                   @default(1) @map("focus_minute_damage")
+  taskCompletionDamage  Int                   @default(15) @map("task_completion_damage")
+  baseRewardPoints      Int                   @default(0) @map("base_reward_points")
+  bonusRewardPoolPoints Int                   @default(0) @map("bonus_reward_pool_points")
+  badgeId               Int?                  @map("badge_id")
+  startsAt              DateTime              @map("starts_at")
+  endsAt                DateTime?             @map("ends_at")
+  isActive              Boolean               @default(true) @map("is_active")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+  badge                 Badge?                @relation(fields: [badgeId], references: [id], onDelete: SetNull)
+  parties               BossRaidParty[]
+  rewardClaims          BossRaidRewardClaim[]
+
+  @@index([isActive])
+  @@index([startsAt])
+  @@index([badgeId])
+  @@map("boss_raids")
+}
+
+model BossRaidParty {
+  id               Int                 @id @default(autoincrement())
+  raidId           Int                 @map("raid_id")
+  ownerId          Int                 @map("owner_id")
+  name             String
+  joinCode         String              @unique @map("join_code")
+  isPublic         Boolean             @default(true) @map("is_public")
+  status           BossRaidPartyStatus @default(OPEN)
+  totalDamage      Int                 @default(0) @map("total_damage")
+  remainingHp      Int?                @map("remaining_hp")
+  lastCalculatedAt DateTime?           @map("last_calculated_at")
+  clearedAt        DateTime?           @map("cleared_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  raid             BossRaid            @relation(fields: [raidId], references: [id], onDelete: Cascade)
+  owner            User                @relation("BossRaidPartyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members          BossRaidPartyMember[]
+  contributions    BossRaidContribution[]
+  rewardClaims     BossRaidRewardClaim[]
+  invites          BossRaidInvite[]
+
+  @@index([raidId])
+  @@index([ownerId])
+  @@index([isPublic, status])
+  @@index([status])
+  @@map("boss_raid_parties")
+}
+
+model BossRaidPartyMember {
+  id       Int           @id @default(autoincrement())
+  partyId  Int           @map("party_id")
+  userId   Int           @map("user_id")
+  joinedAt DateTime      @default(now()) @map("joined_at")
+  party    BossRaidParty @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([partyId, userId])
+  @@index([userId])
+  @@map("boss_raid_party_members")
+}
+
+model BossRaidContribution {
+  id                Int           @id @default(autoincrement())
+  partyId           Int           @map("party_id")
+  userId            Int           @map("user_id")
+  focusMinutes      Int           @default(0) @map("focus_minutes")
+  completedTaskCount Int          @default(0) @map("completed_task_count")
+  totalDamage       Int           @default(0) @map("total_damage")
+  lastContributedAt DateTime?     @map("last_contributed_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  party             BossRaidParty @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([partyId, userId])
+  @@index([userId])
+  @@map("boss_raid_contributions")
+}
+
+model BossRaidRewardClaim {
+  id                Int           @id @default(autoincrement())
+  raidId            Int           @map("raid_id")
+  partyId           Int           @map("party_id")
+  userId            Int           @map("user_id")
+  baseRewardPoints  Int           @default(0) @map("base_reward_points")
+  bonusRewardPoints Int           @default(0) @map("bonus_reward_points")
+  badgeGranted      Boolean       @default(false) @map("badge_granted")
+  claimedAt         DateTime      @default(now()) @map("claimed_at")
+  raid              BossRaid      @relation(fields: [raidId], references: [id], onDelete: Cascade)
+  party             BossRaidParty @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([raidId, userId])
+  @@index([partyId])
+  @@index([userId])
+  @@map("boss_raid_reward_claims")
+}
+
+model BossRaidInvite {
+  id          Int                  @id @default(autoincrement())
+  partyId     Int                  @map("party_id")
+  inviterId   Int                  @map("inviter_id")
+  inviteeId   Int                  @map("invitee_id")
+  status      BossRaidInviteStatus @default(PENDING)
+  respondedAt DateTime?            @map("responded_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  party       BossRaidParty        @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  inviter     User                 @relation("BossRaidInviteInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee     User                 @relation("BossRaidInviteInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([partyId, inviteeId])
+  @@index([inviteeId, status])
+  @@index([inviterId, status])
+  @@index([partyId, status])
+  @@map("boss_raid_invites")
+}
+
+model CollaborativeQuest {
+  id             Int                               @id @default(autoincrement())
+  title          String
+  description    String?
+  goalValue      Int                               @map("goal_value")
+  currentValue   Int                               @default(0) @map("current_value")
+  status         CollaborativeQuestStatus          @default(ACTIVE)
+  rewardPoints   Int                               @default(0) @map("reward_points")
+  createdById    Int                               @map("created_by_id")
+  startsAt       DateTime                          @default(now()) @map("starts_at")
+  endsAt         DateTime?                         @map("ends_at")
+  completedAt    DateTime?                         @map("completed_at")
+  createdAt      DateTime                          @default(now()) @map("created_at")
+  updatedAt      DateTime                          @updatedAt @map("updated_at")
+  createdBy      User                              @relation("CollaborativeQuestCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants   CollaborativeQuestParticipant[]
+  contributions  CollaborativeQuestContribution[]
+  rewardClaims   CollaborativeQuestRewardClaim[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([endsAt])
+  @@map("collaborative_quests")
+}
+
+model CollaborativeQuestParticipant {
+  id                Int                @id @default(autoincrement())
+  questId           Int                @map("quest_id")
+  userId            Int                @map("user_id")
+  contributionValue Int                @default(0) @map("contribution_value")
+  hiddenAt          DateTime?          @map("hidden_at")
+  archivedAt        DateTime?          @map("archived_at")
+  joinedAt          DateTime           @default(now()) @map("joined_at")
+  quest             CollaborativeQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, userId])
+  @@index([userId])
+  @@index([userId, hiddenAt])
+  @@index([userId, archivedAt])
+  @@map("collaborative_quest_participants")
+}
+
+model CollaborativeQuestContribution {
+  id        Int                @id @default(autoincrement())
+  questId   Int                @map("quest_id")
+  userId    Int                @map("user_id")
+  amount    Int
+  memo      String?
+  createdAt DateTime           @default(now()) @map("created_at")
+  quest     CollaborativeQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([questId])
+  @@index([userId])
+  @@map("collaborative_quest_contributions")
+}
+
+model CollaborativeQuestRewardClaim {
+  id           Int                @id @default(autoincrement())
+  questId      Int                @map("quest_id")
+  userId       Int                @map("user_id")
+  rewardPoints Int                @default(0) @map("reward_points")
+  claimedAt    DateTime           @default(now()) @map("claimed_at")
+  quest        CollaborativeQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, userId])
+  @@index([userId])
+  @@map("collaborative_quest_reward_claims")
+}
+
+model DirectMessageThread {
+  id             Int                      @id @default(autoincrement())
+  participantAId Int                      @map("participant_a_id")
+  participantBId Int                      @map("participant_b_id")
+  lastMessageAt  DateTime?                @map("last_message_at")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+  participantA   User                     @relation("DirectMessageThreadParticipantA", fields: [participantAId], references: [id], onDelete: Cascade)
+  participantB   User                     @relation("DirectMessageThreadParticipantB", fields: [participantBId], references: [id], onDelete: Cascade)
+  messages       DirectMessage[]
+  readStates     DirectMessageReadState[]
+
+  @@unique([participantAId, participantBId])
+  @@index([participantAId])
+  @@index([participantBId])
+  @@index([lastMessageAt])
+  @@map("direct_message_threads")
+}
+
+model DirectMessage {
+  id        Int                 @id @default(autoincrement())
+  threadId  Int                 @map("thread_id")
+  senderId  Int                 @map("sender_id")
+  content   String
+  createdAt DateTime            @default(now()) @map("created_at")
+  thread    DirectMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender    User                @relation("DirectMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([senderId])
+  @@map("direct_messages")
+}
+
+model DirectMessageReadState {
+  id         Int                 @id @default(autoincrement())
+  threadId   Int                 @map("thread_id")
+  userId     Int                 @map("user_id")
+  lastReadAt DateTime?           @map("last_read_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+  thread     DirectMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user       User                @relation("DirectMessageReadStateUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@index([userId])
+  @@map("direct_message_read_states")
+}
+
+model MaintenanceSetting {
+  id             Int       @id @default(1)
+  enabled        Boolean   @default(false)
+  title          String
+  message        String
+  estimatedEndAt DateTime? @map("estimated_end_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("maintenance_settings")
 }

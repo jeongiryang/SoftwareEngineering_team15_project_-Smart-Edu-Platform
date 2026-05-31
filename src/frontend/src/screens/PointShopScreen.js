@@ -489,7 +489,34 @@ export default function PointShopScreen({ token, user }) {
     setErrorMessage('');
 
     try {
-      await purchaseShopItem(token, item.id);
+      const result = await purchaseShopItem(token, item.id);
+      const purchaseRecord = result?.purchase?.purchase || result?.purchase || null;
+
+      setShop((currentShop) => {
+        const currentPurchases = currentShop.purchases || [];
+        const alreadyListed = currentPurchases.some(
+          (purchase) => Number(purchase.itemId || purchase.item?.id) === Number(item.id)
+        );
+
+        return {
+          ...currentShop,
+          account: result?.purchase?.account || currentShop.account,
+          items: (currentShop.items || []).map((shopItem) =>
+            Number(shopItem.id) === Number(item.id) ? { ...shopItem, owned: true } : shopItem
+          ),
+          purchases: alreadyListed
+            ? currentPurchases
+            : [
+                purchaseRecord || {
+                  id: `optimistic-${item.id}`,
+                  item: { ...item, owned: true },
+                  itemId: item.id,
+                  purchasedAt: new Date().toISOString()
+                },
+                ...currentPurchases
+              ]
+        };
+      });
       setSuccessMessage(getPurchaseMessage(item, currentLanguage, translateText));
       await loadShop(true);
     } catch (error) {

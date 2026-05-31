@@ -193,7 +193,7 @@ API는 REST 방식으로 작성하며, 인증이 필요한 API는 JWT 인증 미
 
 | 테이블 | 설명 | 주요 필드 |
 |---|---|---|
-| `users` | 사용자 계정 및 권한 정보 | `id`, `email`, `password_hash`, `name`, `role`, `user_type`, `status`, `created_at`, `updated_at` |
+| `users` | 사용자 계정 및 권한 정보 | `id`, `login_id`, `password_hash`, `name`, `role`, `user_type`, `status`, `created_at`, `updated_at` |
 | `user_profiles` | 사용자 프로필 및 학습 목표 | `id`, `user_id`, `learning_goal`, `preferred_subject`, `profile_image_url`, `created_at`, `updated_at` |
 
 ### 4.2 일정/태스크/알림 영역

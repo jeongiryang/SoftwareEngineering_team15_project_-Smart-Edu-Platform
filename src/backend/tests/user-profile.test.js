@@ -1,17 +1,24 @@
 const mockUsers = [];
 const mockProfiles = new Map();
+const mockActivityStats = new Map();
+const mockPublicLearningStats = new Map();
+const mockShopPurchases = new Map();
 let mockNextUserId = 1;
 let mockNextProfileId = 1;
+const MOCK_CREATED_AT = new Date('2026-05-01T00:00:00.000Z');
+const MOCK_UPDATED_AT = new Date('2026-05-02T00:00:00.000Z');
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      createdAt: MOCK_CREATED_AT,
+      updatedAt: MOCK_UPDATED_AT
     };
 
     mockNextUserId += 1;
@@ -23,13 +30,26 @@ jest.mock('../src/repositories/user.repository', () => ({
       preferredSubject: null,
       profileImageUrl: null,
       profileBackgroundUrl: null,
-      titleText: null
+      titleText: null,
+      createdAt: MOCK_CREATED_AT,
+      updatedAt: MOCK_UPDATED_AT
     });
     mockNextProfileId += 1;
 
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  deactivateUser: jest.fn(async (userId, data) => {
+    const user = mockUsers.find((item) => item.id === Number(userId));
+
+    if (!user) {
+      return null;
+    }
+
+    Object.assign(user, data);
+
+    return user;
+  }),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null),
   findUserWithProfileById: jest.fn(async (id) => {
     const user = mockUsers.find((item) => item.id === Number(id));
@@ -42,6 +62,36 @@ jest.mock('../src/repositories/user.repository', () => ({
       ...user,
       profile: mockProfiles.get(user.id) || null
     };
+  }),
+  findPublicProfileById: jest.fn(async (id) => {
+    const user = mockUsers.find((item) => item.id === Number(id));
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      loginId: user.loginId,
+      name: user.name,
+      status: user.status,
+      createdAt: user.createdAt,
+      profile: mockProfiles.get(user.id) || null,
+      shopPurchases: mockShopPurchases.get(user.id) || []
+    };
+  }),
+  getPublicProfileLearningStats: jest.fn(async (id) => mockPublicLearningStats.get(Number(id)) || {
+    todayFocusMinutes: 0,
+    weeklyFocusMinutes: 0,
+    completedTaskCount: 0
+  }),
+  getUserActivityStats: jest.fn(async (id) => mockActivityStats.get(Number(id)) || {
+    postCount: 0,
+    commentCount: 0,
+    replyCount: 0,
+    likeCount: 0,
+    dislikeCount: 0,
+    bookmarkCount: 0
   }),
   updateUser: jest.fn(async (userId, data) => {
     const user = mockUsers.find((item) => item.id === Number(userId));
@@ -81,6 +131,8 @@ jest.mock('../src/repositories/user.repository', () => ({
       profileImageUrl: existingProfile?.profileImageUrl || null,
       profileBackgroundUrl: existingProfile?.profileBackgroundUrl || null,
       titleText: existingProfile?.titleText || null,
+      createdAt: existingProfile?.createdAt || MOCK_CREATED_AT,
+      updatedAt: MOCK_UPDATED_AT,
       ...data
     };
 
@@ -116,6 +168,9 @@ async function registerTestUser(overrides = {}) {
 beforeEach(() => {
   mockUsers.length = 0;
   mockProfiles.clear();
+  mockActivityStats.clear();
+  mockPublicLearningStats.clear();
+  mockShopPurchases.clear();
   mockNextUserId = 1;
   mockNextProfileId = 1;
   jest.clearAllMocks();
@@ -137,7 +192,7 @@ describe('GET /api/users/me', () => {
 
     expect(response.status).toBe(200);
     expectSafeUser(response.body.user);
-    expect(response.body.user.email).toBe(payload.email);
+    expect(response.body.user.loginId).toBe(payload.loginId);
     expect(response.body.user.profile).toEqual(
       expect.objectContaining({
         userId: response.body.user.id,
@@ -173,6 +228,153 @@ describe('GET /api/users/me', () => {
       .set(createAuthHeader(token));
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('GET /api/users/me/activity', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app).get('/api/users/me/activity');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('returns current user community activity stats without sensitive data', async () => {
+    const { token, user } = await registerTestUser();
+    mockActivityStats.set(user.id, {
+      postCount: 4,
+      commentCount: 7,
+      replyCount: 3,
+      likeCount: 11,
+      dislikeCount: 2,
+      bookmarkCount: 5
+    });
+
+    const response = await request(app)
+      .get('/api/users/me/activity')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.activity).toEqual({
+      postCount: 4,
+      commentCount: 7,
+      replyCount: 3,
+      likeCount: 11,
+      dislikeCount: 2,
+      bookmarkCount: 5,
+      reactionBasis: 'GIVEN'
+    });
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+    expect(JSON.stringify(response.body)).not.toContain('token');
+  });
+});
+
+describe('GET /api/users/:userId/public-profile', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app).get('/api/users/1/public-profile');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('returns safe public profile data with equipped appearance', async () => {
+    const { token } = await registerTestUser({ loginId: 'viewer-user', name: 'Viewer' });
+    const target = await registerTestUser({ loginId: 'target-user', name: 'Target Learner' });
+
+    mockProfiles.set(target.user.id, {
+      ...mockProfiles.get(target.user.id),
+      learningGoal: 'Daily study',
+      preferredSubject: 'Math',
+      profileImageUrl: '/assets/shop/avatar-sky.png',
+      profileBackgroundUrl: '/assets/shop/background-mint.png',
+      titleText: '새벽 집중러'
+    });
+    mockShopPurchases.set(target.user.id, [
+      {
+        id: 1,
+        userId: target.user.id,
+        item: {
+          id: 10,
+          code: 'PROFILE_IMAGE_SKY',
+          name: '하늘 노트',
+          type: 'PROFILE_IMAGE',
+          assetUrl: '/assets/shop/avatar-sky.png'
+        }
+      },
+      {
+        id: 2,
+        userId: target.user.id,
+        item: {
+          id: 11,
+          code: 'PROFILE_BACKGROUND_MINT',
+          name: '민트 책상',
+          type: 'PROFILE_BACKGROUND',
+          assetUrl: '/assets/shop/background-mint.png'
+        }
+      },
+      {
+        id: 3,
+        userId: target.user.id,
+        item: {
+          id: 12,
+          code: 'TITLE_EARLY_BIRD',
+          name: '새벽 집중러',
+          type: 'TITLE',
+          assetUrl: null
+        }
+      }
+    ]);
+    mockPublicLearningStats.set(target.user.id, {
+      todayFocusMinutes: 25,
+      weeklyFocusMinutes: 180,
+      completedTaskCount: 9
+    });
+
+    const response = await request(app)
+      .get(`/api/users/${target.user.id}/public-profile`)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.profile).toEqual(
+      expect.objectContaining({
+        id: target.user.id,
+        name: 'Target Learner',
+        displayLoginId: 'ta***r',
+        learningGoal: 'Daily study',
+        preferredSubject: 'Math',
+        stats: {
+          todayFocusMinutes: 25,
+          weeklyFocusMinutes: 180,
+          completedTaskCount: 9
+        }
+      })
+    );
+    expect(response.body.profile.appearance).toEqual(
+      expect.objectContaining({
+        profileImageUrl: '/assets/shop/avatar-sky.png',
+        profileBackgroundUrl: '/assets/shop/background-mint.png',
+        titleText: '새벽 집중러',
+        equippedItems: expect.objectContaining({
+          profileImage: expect.objectContaining({ code: 'PROFILE_IMAGE_SKY' }),
+          profileBackground: expect.objectContaining({ code: 'PROFILE_BACKGROUND_MINT' }),
+          title: expect.objectContaining({ code: 'TITLE_EARLY_BIRD' })
+        })
+      })
+    );
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+    expect(JSON.stringify(response.body)).not.toContain('target-user');
+    expect(JSON.stringify(response.body)).not.toContain('token');
+  });
+
+  it('does not expose inactive users through public profile', async () => {
+    const { token } = await registerTestUser({ loginId: 'viewer-user' });
+    const target = await registerTestUser({ loginId: 'inactive-user' });
+    const inactiveUser = mockUsers.find((item) => item.id === target.user.id);
+    inactiveUser.status = 'SUSPENDED';
+
+    const response = await request(app)
+      .get(`/api/users/${target.user.id}/public-profile`)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(404);
   });
 });
 
@@ -264,7 +466,7 @@ describe('PATCH /api/users/me/password', () => {
     const oldLoginResponse = await request(app)
       .post('/api/auth/login')
       .send({
-        email: payload.email,
+        loginId: payload.loginId,
         password: payload.password
       });
 
@@ -273,7 +475,7 @@ describe('PATCH /api/users/me/password', () => {
     const newLoginResponse = await request(app)
       .post('/api/auth/login')
       .send({
-        email: payload.email,
+        loginId: payload.loginId,
         password: 'new-password-1234'
       });
 
@@ -322,6 +524,102 @@ describe('PATCH /api/users/me/password', () => {
       });
 
     expect(response.status).toBe(400);
+  });
+});
+
+describe('DELETE /api/users/me', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app)
+      .delete('/api/users/me')
+      .send({
+        currentPassword: 'password1234',
+        confirmationText: '탈퇴합니다'
+      });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects unsupported withdrawal fields', async () => {
+    const { payload, token } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        confirmationText: '탈퇴합니다',
+        userId: 999
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects incorrect current passwords', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: 'wrong-password',
+        confirmationText: '탈퇴합니다'
+      });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects incorrect confirmation text', async () => {
+    const { payload, token } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        confirmationText: '탈퇴'
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('soft-deactivates the current user and blocks the old token', async () => {
+    const { payload, token, user } = await registerTestUser();
+
+    const response = await request(app)
+      .delete('/api/users/me')
+      .set(createAuthHeader(token))
+      .send({
+        currentPassword: payload.password,
+        confirmationText: '탈퇴합니다'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toEqual(
+      expect.objectContaining({
+        id: user.id,
+        loginId: payload.loginId,
+        name: '탈퇴한 사용자',
+        status: 'DEACTIVATED'
+      })
+    );
+    expectSafeUser(response.body.user);
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+    expect(mockUsers).toHaveLength(1);
+
+    const meResponse = await request(app)
+      .get('/api/users/me')
+      .set(createAuthHeader(token));
+
+    expect(meResponse.status).toBe(401);
+
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({
+        loginId: payload.loginId,
+        password: payload.password
+      });
+
+    expect(loginResponse.status).toBe(403);
   });
 });
 

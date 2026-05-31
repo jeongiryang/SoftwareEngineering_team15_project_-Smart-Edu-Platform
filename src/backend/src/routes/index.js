@@ -14,6 +14,10 @@ const accessibilityRoutes = require('./accessibility.routes');
 const rewardRoutes = require('./reward.routes');
 const shopRoutes = require('./shop.routes');
 const friendRoutes = require('./friend.routes');
+const messageRoutes = require('./message.routes');
+const bossRaidRoutes = require('./bossRaid.routes');
+const collaborativeQuestRoutes = require('./collaborativeQuest.routes');
+const systemRoutes = require('./system.routes');
 
 const router = express.Router();
 
@@ -31,6 +35,10 @@ router.use('/community', communityRoutes);
 router.use('/accessibility', accessibilityRoutes);
 router.use('/rewards', rewardRoutes);
 router.use('/friends', friendRoutes);
+router.use('/messages', messageRoutes);
 router.use('/shop', shopRoutes);
+router.use('/boss-raids', bossRaidRoutes);
+router.use('/collaborative-quests', collaborativeQuestRoutes);
+router.use('/system', systemRoutes);
 
 module.exports = router;

@@ -2,14 +2,14 @@ const { sendCreated, sendError, sendSuccess } = require('../src/utils/apiRespons
 const { asyncHandler } = require('../src/utils/asyncHandler');
 const { AppError, conflictError, forbiddenError, notFoundError, unauthorizedError, validationError } = require('../src/utils/errors');
 const {
-  normalizeEmail,
+  normalizeLoginId,
   normalizeString,
   parsePositiveInteger,
   requireFields,
-  validateEmail,
+  validateLoginId,
   validatePassword
 } = require('../src/utils/validators');
-const { createAuthHeader, createUniqueEmail, createUserPayload } = require('./helpers/auth.helper');
+const { createAuthHeader, createUniqueLoginId, createUserPayload } = require('./helpers/auth.helper');
 const { expectNoPasswordHash, expectSafeUser } = require('./helpers/assert.helper');
 
 function createMockResponse() {
@@ -44,7 +44,7 @@ describe('API response helpers', () => {
 
   it('sends standardized error payload', () => {
     const res = createMockResponse();
-    const error = validationError('Invalid input', { field: 'email' });
+    const error = validationError('Invalid input', { field: 'loginId' });
 
     sendError(res, error);
 
@@ -52,7 +52,7 @@ describe('API response helpers', () => {
     expect(res.json).toHaveBeenCalledWith({
       message: 'Invalid input',
       code: 'VALIDATION_ERROR',
-      details: { field: 'email' }
+      details: { field: 'loginId' }
     });
   });
 });
@@ -90,18 +90,19 @@ describe('async handler', () => {
 });
 
 describe('validation helpers', () => {
-  it('normalizes strings and email values', () => {
+  it('normalizes strings and loginId values', () => {
     expect(normalizeString('  value  ')).toBe('value');
-    expect(normalizeEmail('  USER@Example.COM  ')).toBe('user@example.com');
+    expect(normalizeLoginId('  USER_NAME  ')).toBe('user_name');
   });
 
   it('throws validation error for missing required fields', () => {
-    expect(() => requireFields({ email: '' }, ['email', 'password'])).toThrow(AppError);
+    expect(() => requireFields({ loginId: '' }, ['loginId', 'password'])).toThrow(AppError);
   });
 
-  it('validates email and password values', () => {
-    expect(() => validateEmail('user@example.com')).not.toThrow();
-    expect(() => validateEmail('invalid-email')).toThrow(AppError);
+  it('validates loginId and password values', () => {
+    expect(() => validateLoginId('user_01')).not.toThrow();
+    expect(() => validateLoginId('user@example')).toThrow(AppError);
+    expect(() => validateLoginId('invalid.login')).toThrow(AppError);
     expect(() => validatePassword('password123')).not.toThrow();
     expect(() => validatePassword('short')).toThrow(AppError);
   });
@@ -115,11 +116,11 @@ describe('validation helpers', () => {
 
 describe('test helpers', () => {
   it('creates reusable auth test values', () => {
-    expect(createUniqueEmail()).toContain('@example.com');
+    expect(createUniqueLoginId()).toMatch(/^[a-z0-9_-]{3,30}$/);
     expect(createAuthHeader('token')).toEqual({ Authorization: 'Bearer token' });
     expect(createUserPayload()).toEqual(
       expect.objectContaining({
-        email: expect.any(String),
+        loginId: expect.any(String),
         password: expect.any(String),
         name: expect.any(String)
       })
@@ -129,7 +130,7 @@ describe('test helpers', () => {
   it('asserts safe user payloads', () => {
     const user = {
       id: 1,
-      email: 'user@example.com',
+      loginId: 'user_01',
       name: 'User',
       role: 'USER'
     };

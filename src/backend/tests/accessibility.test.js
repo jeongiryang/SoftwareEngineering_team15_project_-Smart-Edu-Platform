@@ -8,10 +8,10 @@ let mockNextVoiceRequestId = 1;
 let mockNextNotificationId = 1;
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
@@ -21,7 +21,7 @@ jest.mock('../src/repositories/user.repository', () => ({
     mockUsers.push(user);
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null)
 }));
 
@@ -155,13 +155,25 @@ describe('Accessibility API integration tests', () => {
       });
     });
 
-    it('validates textScale range', async () => {
+    it('accepts textScale up to 2.0', async () => {
       const { token } = await registerTestUser();
 
       const response = await request(app)
         .put('/api/accessibility/preferences')
         .set(createAuthHeader(token))
         .send({ textScale: 2 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.preference).toMatchObject({ textScale: 2 });
+    });
+
+    it('validates textScale range', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .put('/api/accessibility/preferences')
+        .set(createAuthHeader(token))
+        .send({ textScale: 2.1 });
 
       expect(response.status).toBe(400);
       expect(response.body.code).toBe('VALIDATION_ERROR');

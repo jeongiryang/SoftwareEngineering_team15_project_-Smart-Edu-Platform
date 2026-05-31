@@ -22,10 +22,10 @@ function mockFindFriendshipPair(userId, otherUserId, status) {
 }
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
@@ -42,7 +42,7 @@ jest.mock('../src/repositories/user.repository', () => ({
 
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null),
   findUsersByKeyword: jest.fn(async (keyword, excludeUserId) => {
     const normalizedKeyword = String(keyword).toLowerCase();
@@ -50,7 +50,7 @@ jest.mock('../src/repositories/user.repository', () => ({
     return mockUsers
       .filter((user) => user.id !== Number(excludeUserId))
       .filter((user) => user.status === 'ACTIVE')
-      .filter((user) => user.name.toLowerCase().includes(normalizedKeyword) || user.email.toLowerCase().includes(normalizedKeyword))
+      .filter((user) => user.name.toLowerCase().includes(normalizedKeyword) || user.loginId.toLowerCase().includes(normalizedKeyword))
       .map((user) => ({
         ...user,
         profile: user.profile
@@ -118,7 +118,7 @@ jest.mock('../src/repositories/friend.repository', () => ({
     return mockUsers
       .filter((user) => user.id !== Number(excludeUserId))
       .filter((user) => user.status === 'ACTIVE')
-      .filter((user) => user.name.toLowerCase().includes(normalizedKeyword) || user.email.toLowerCase().includes(normalizedKeyword))
+      .filter((user) => user.name.toLowerCase().includes(normalizedKeyword) || user.loginId.toLowerCase().includes(normalizedKeyword))
       .map((user) => ({
         ...user,
         profile: user.profile
@@ -158,7 +158,7 @@ function expectNoSensitiveFriendData(payload) {
   expect(serialized).not.toContain('password');
   expect(serialized).not.toContain('token');
   expect(serialized).not.toContain('JWT');
-  expect(serialized).not.toContain('@example.com');
+  expect(serialized).not.toContain('passwordHash');
 }
 
 beforeEach(() => {
@@ -332,6 +332,7 @@ describe('Friend API', () => {
       .set(createAuthHeader(requester.token));
 
     expect(friendsResponse.status).toBe(200);
+    expect(friendsResponse.body.onlineFriendIds).toEqual([]);
     expect(friendsResponse.body.friends).toEqual([
       expect.objectContaining({
         status: 'ACCEPTED',
@@ -461,6 +462,7 @@ describe('Friend API', () => {
       .get('/api/friends')
       .set(createAuthHeader(requester.token));
 
+    expect(friendsResponse.body.onlineFriendIds).toEqual([]);
     expect(friendsResponse.body.friends).toHaveLength(0);
   });
 });

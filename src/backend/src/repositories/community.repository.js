@@ -4,7 +4,14 @@ const POST_INCLUDE = {
   user: {
     select: {
       id: true,
-      name: true
+      name: true,
+      profile: {
+        select: {
+          profileImageUrl: true,
+          profileBackgroundUrl: true,
+          titleText: true
+        }
+      }
     }
   },
   _count: {
@@ -18,7 +25,29 @@ const COMMENT_INCLUDE = {
   user: {
     select: {
       id: true,
-      name: true
+      name: true,
+      profile: {
+        select: {
+          profileImageUrl: true,
+          profileBackgroundUrl: true,
+          titleText: true
+        }
+      }
+    }
+  },
+  _count: {
+    select: {
+      replies: true
+    }
+  }
+};
+
+const COMMENT_WITH_REPLIES_INCLUDE = {
+  ...COMMENT_INCLUDE,
+  replies: {
+    include: COMMENT_INCLUDE,
+    orderBy: {
+      createdAt: 'asc'
     }
   }
 };
@@ -26,6 +55,15 @@ const COMMENT_INCLUDE = {
 const REACTION_SELECT = {
   id: true,
   postId: true,
+  userId: true,
+  type: true,
+  createdAt: true,
+  updatedAt: true
+};
+
+const COMMENT_REACTION_SELECT = {
+  id: true,
+  commentId: true,
   userId: true,
   type: true,
   createdAt: true,
@@ -75,6 +113,14 @@ function buildPostWhere(filters = {}) {
           contains: filters.search,
           mode: 'insensitive'
         }
+      },
+      {
+        user: {
+          name: {
+            contains: filters.search,
+            mode: 'insensitive'
+          }
+        }
       }
     ];
   }
@@ -83,6 +129,24 @@ function buildPostWhere(filters = {}) {
 }
 
 function buildPostOrderBy(sort = 'latest') {
+  if (sort === 'views') {
+    return [
+      { viewCount: 'desc' },
+      { createdAt: 'desc' }
+    ];
+  }
+
+  if (sort === 'comments') {
+    return [
+      {
+        comments: {
+          _count: 'desc'
+        }
+      },
+      { createdAt: 'desc' }
+    ];
+  }
+
   return {
     createdAt: sort === 'oldest' ? 'asc' : 'desc'
   };
@@ -90,8 +154,43 @@ function buildPostOrderBy(sort = 'latest') {
 
 async function findPosts({ page, pageSize, category, search, sort }) {
   const where = buildPostWhere({ category, search });
-  const orderBy = buildPostOrderBy(sort);
   const skip = (page - 1) * pageSize;
+
+  if (sort === 'likes') {
+    const [allPosts, total, likeCounts] = await Promise.all([
+      prisma.boardPost.findMany({
+        where,
+        include: POST_INCLUDE
+      }),
+      prisma.boardPost.count({ where }),
+      prisma.communityReaction.groupBy({
+        by: ['postId'],
+        where: {
+          type: 'LIKE',
+          post: where
+        },
+        _count: {
+          id: true
+        }
+      })
+    ]);
+    const likeCountMap = new Map(likeCounts.map((row) => [row.postId, row._count.id]));
+    const posts = allPosts
+      .sort((a, b) => {
+        const likeDelta = (likeCountMap.get(b.id) || 0) - (likeCountMap.get(a.id) || 0);
+
+        if (likeDelta !== 0) {
+          return likeDelta;
+        }
+
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      })
+      .slice(skip, skip + pageSize);
+
+    return { posts, total };
+  }
+
+  const orderBy = buildPostOrderBy(sort);
 
   const [posts, total] = await Promise.all([
     prisma.boardPost.findMany({
@@ -236,6 +335,18 @@ function findPostById(postId) {
   });
 }
 
+function incrementPostViewCount(postId) {
+  return prisma.boardPost.update({
+    where: { id: postId },
+    data: {
+      viewCount: {
+        increment: 1
+      }
+    },
+    include: POST_INCLUDE
+  });
+}
+
 function findPostByIdAndUserId(postId, userId) {
   return prisma.boardPost.findFirst({
     where: {
@@ -254,13 +365,13 @@ function findCommentById(commentId) {
 }
 
 async function findCommentsByPostId({ postId, page, pageSize }) {
-  const where = { postId };
+  const where = { postId, parentId: null };
   const skip = (page - 1) * pageSize;
 
   const [comments, total] = await Promise.all([
     prisma.comment.findMany({
       where,
-      include: COMMENT_INCLUDE,
+      include: COMMENT_WITH_REPLIES_INCLUDE,
       orderBy: { createdAt: 'asc' },
       skip,
       take: pageSize
@@ -269,6 +380,77 @@ async function findCommentsByPostId({ postId, page, pageSize }) {
   ]);
 
   return { comments, total };
+}
+
+async function findCommentReactionSummaries(commentIds, userId) {
+  const ids = [...new Set(commentIds.map(Number))].filter((id) => Number.isInteger(id) && id > 0);
+
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const [reactionCounts, currentUserReactions] = await Promise.all([
+    prisma.commentReaction.groupBy({
+      by: ['commentId', 'type'],
+      where: {
+        commentId: {
+          in: ids
+        }
+      },
+      _count: {
+        id: true
+      }
+    }),
+    prisma.commentReaction.findMany({
+      where: {
+        commentId: {
+          in: ids
+        },
+        userId
+      },
+      select: {
+        commentId: true,
+        type: true
+      }
+    })
+  ]);
+
+  const summaries = new Map(
+    ids.map((id) => [
+      id,
+      {
+        likeCount: 0,
+        dislikeCount: 0,
+        myReaction: null
+      }
+    ])
+  );
+
+  reactionCounts.forEach((row) => {
+    const summary = summaries.get(row.commentId);
+
+    if (!summary) {
+      return;
+    }
+
+    if (row.type === 'LIKE') {
+      summary.likeCount = row._count.id;
+    }
+
+    if (row.type === 'DISLIKE') {
+      summary.dislikeCount = row._count.id;
+    }
+  });
+
+  currentUserReactions.forEach((reaction) => {
+    const summary = summaries.get(reaction.commentId);
+
+    if (summary) {
+      summary.myReaction = reaction.type;
+    }
+  });
+
+  return summaries;
 }
 
 async function findBookmarksByUserId({ userId, page, pageSize, sort = 'latest' }) {
@@ -300,6 +482,26 @@ function createComment(postId, userId, data) {
       ...data
     },
     include: COMMENT_INCLUDE
+  });
+}
+
+function upsertCommentReaction(commentId, userId, type) {
+  return prisma.commentReaction.upsert({
+    where: {
+      commentId_userId: {
+        commentId,
+        userId
+      }
+    },
+    update: {
+      type
+    },
+    create: {
+      commentId,
+      userId,
+      type
+    },
+    select: COMMENT_REACTION_SELECT
   });
 }
 
@@ -494,6 +696,17 @@ async function deleteComment(commentId, userId) {
   return result.count;
 }
 
+async function deleteCommentReaction(commentId, userId) {
+  const result = await prisma.commentReaction.deleteMany({
+    where: {
+      commentId,
+      userId
+    }
+  });
+
+  return result.count;
+}
+
 async function deleteReaction(postId, userId) {
   const result = await prisma.communityReaction.deleteMany({
     where: {
@@ -522,11 +735,13 @@ module.exports = {
   createPost,
   createPostReport,
   deleteBookmark,
+  deleteCommentReaction,
   deleteReaction,
   deleteComment,
   deletePost,
   findCommentById,
   findCommentByIdAndUserId,
+  findCommentReactionSummaries,
   findCommentReportByReporterAndCommentId,
   findBookmarksByUserId,
   findCommentsByPostId,
@@ -535,7 +750,9 @@ module.exports = {
   findPostEngagementSummaries,
   findPostReportByReporterAndPostId,
   findPosts,
+  incrementPostViewCount,
   upsertBookmark,
+  upsertCommentReaction,
   upsertReaction,
   updateComment,
   updatePost

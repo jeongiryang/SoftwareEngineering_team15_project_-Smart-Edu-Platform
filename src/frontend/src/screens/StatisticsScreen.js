@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   getAccessibilityPreferences,
@@ -7,6 +7,7 @@ import {
   getReviewReminders,
   getStatisticsHeatmap,
   getStatisticsSummary,
+  recordFocusSession,
   retryPendingFocusSessions
 } from '../services/api';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
@@ -17,6 +18,55 @@ const EMPTY_SUMMARY = {
   sessionCount: 0,
   taskCount: 0
 };
+const ACTIVE_FOCUS_TIMER_STORAGE_KEY = 'smartEdu.activeFocusTimer';
+const DEFAULT_TIMER_MINUTES = '25';
+
+function readStoredFocusTimer() {
+  try {
+    const parsed = JSON.parse(globalThis.localStorage?.getItem(ACTIVE_FOCUS_TIMER_STORAGE_KEY) || 'null');
+
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    return parsed;
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeStoredFocusTimer(timer) {
+  try {
+    if (!timer || timer.status === 'idle') {
+      globalThis.localStorage?.removeItem(ACTIVE_FOCUS_TIMER_STORAGE_KEY);
+      return;
+    }
+
+    globalThis.localStorage?.setItem(ACTIVE_FOCUS_TIMER_STORAGE_KEY, JSON.stringify(timer));
+  } catch (error) {
+    // Storage can be unavailable in restricted browsers. The timer still works in memory.
+  }
+}
+
+function formatClock(ms) {
+  const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
+
+function normalizeTimerMinutes(value) {
+  const digitsOnly = String(value || '').replace(/[^\d]/g, '').slice(0, 3);
+  const minutes = Number(digitsOnly || 0);
+
+  if (minutes > 180) {
+    return '180';
+  }
+
+  return digitsOnly;
+}
 
 function formatNumber(value) {
   return new Intl.NumberFormat('ko-KR').format(Number(value || 0));
@@ -298,6 +348,7 @@ function EmptyAction({ onPress }) {
 }
 
 export default function StatisticsScreen({ onNavigate, token }) {
+  const storedFocusTimer = useMemo(() => readStoredFocusTimer(), []);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -310,9 +361,121 @@ export default function StatisticsScreen({ onNavigate, token }) {
   const [pendingFocusQueue, setPendingFocusQueue] = useState([]);
   const [syncingFocusQueue, setSyncingFocusQueue] = useState(false);
   const [focusQueueMessage, setFocusQueueMessage] = useState('');
+  const [focusTimerMode, setFocusTimerMode] = useState(storedFocusTimer?.mode === 'timer' ? 'timer' : 'stopwatch');
+  const [focusTimerStatus, setFocusTimerStatus] = useState(storedFocusTimer?.status === 'running' || storedFocusTimer?.status === 'paused' ? storedFocusTimer.status : 'idle');
+  const [focusStartedAt, setFocusStartedAt] = useState(storedFocusTimer?.startedAt || null);
+  const [focusLastStartedAt, setFocusLastStartedAt] = useState(Number(storedFocusTimer?.lastStartedAt || 0));
+  const [focusAccumulatedMs, setFocusAccumulatedMs] = useState(Number(storedFocusTimer?.accumulatedMs || 0));
+  const [timerTargetMinutes, setTimerTargetMinutes] = useState(String(storedFocusTimer?.targetMinutes || DEFAULT_TIMER_MINUTES));
+  const [focusTimerTick, setFocusTimerTick] = useState(Date.now());
+  const [savingFocusSession, setSavingFocusSession] = useState(false);
+  const [focusTimerMessage, setFocusTimerMessage] = useState('');
 
   function refreshPendingFocusQueue() {
     setPendingFocusQueue(getPendingFocusSessionQueue());
+  }
+
+  function getCurrentFocusElapsedMs() {
+    if (focusTimerStatus !== 'running') {
+      return focusAccumulatedMs;
+    }
+
+    return focusAccumulatedMs + Math.max(0, Date.now() - focusLastStartedAt);
+  }
+
+  function resetFocusTimerState() {
+    setFocusTimerStatus('idle');
+    setFocusStartedAt(null);
+    setFocusLastStartedAt(0);
+    setFocusAccumulatedMs(0);
+    setFocusTimerTick(Date.now());
+  }
+
+  function handleFocusModeChange(mode) {
+    if (focusTimerStatus !== 'idle') {
+      setFocusTimerMessage('진행 중인 집중 세션을 종료한 뒤 모드를 바꿀 수 있습니다.');
+      return;
+    }
+
+    setFocusTimerMode(mode);
+    setFocusTimerMessage('');
+  }
+
+  function handleStartFocusTimer() {
+    const now = Date.now();
+
+    setFocusTimerStatus('running');
+    setFocusStartedAt(new Date(now).toISOString());
+    setFocusLastStartedAt(now);
+    setFocusAccumulatedMs(0);
+    setFocusTimerTick(now);
+    setFocusTimerMessage('');
+  }
+
+  function handlePauseFocusTimer() {
+    if (focusTimerStatus !== 'running') {
+      return;
+    }
+
+    const now = Date.now();
+    setFocusAccumulatedMs(getCurrentFocusElapsedMs());
+    setFocusTimerStatus('paused');
+    setFocusLastStartedAt(now);
+    setFocusTimerTick(now);
+  }
+
+  function handleResumeFocusTimer() {
+    if (focusTimerStatus !== 'paused') {
+      return;
+    }
+
+    const now = Date.now();
+    setFocusTimerStatus('running');
+    setFocusLastStartedAt(now);
+    setFocusTimerTick(now);
+  }
+
+  async function handleFinishFocusSession({ completedByTimer = false } = {}) {
+    if (!token || focusTimerStatus === 'idle' || savingFocusSession) {
+      return;
+    }
+
+    const now = Date.now();
+    const durationMs = Math.max(1000, Math.round(getCurrentFocusElapsedMs()));
+    const startedAt = focusStartedAt || new Date(now - durationMs).toISOString();
+    const endedAt = new Date(now).toISOString();
+    const memo = focusTimerMode === 'timer'
+      ? `타이머 집중 기록${completedByTimer ? ' · 목표 시간 완료' : ''} · 목표 ${timerTargetMinutes || DEFAULT_TIMER_MINUTES}분`
+      : '스톱워치 집중 기록';
+
+    setSavingFocusSession(true);
+    setFocusTimerMessage('');
+
+    try {
+      await recordFocusSession(token, {
+        startedAt,
+        endedAt,
+        durationMs,
+        memo
+      });
+
+      resetFocusTimerState();
+      setFocusTimerMessage(`${formatClock(durationMs)} 집중 기록을 저장했습니다.`);
+      await loadStatistics({ silent: true });
+      refreshPendingFocusQueue();
+    } catch (saveError) {
+      if (saveError.queued) {
+        resetFocusTimerState();
+        refreshPendingFocusQueue();
+      } else {
+        setFocusTimerStatus('paused');
+        setFocusAccumulatedMs(durationMs);
+      }
+
+      setFocusTimerMessage(saveError.message || '집중 기록 저장에 실패했습니다.');
+    } finally {
+      setSavingFocusSession(false);
+    }
   }
 
   async function loadStatistics({ silent = false } = {}) {
@@ -370,6 +533,46 @@ export default function StatisticsScreen({ onNavigate, token }) {
     refreshPendingFocusQueue();
     loadStatistics();
   }, [token]);
+
+  useEffect(() => {
+    if (focusTimerStatus !== 'running') {
+      return undefined;
+    }
+
+    const timer = setInterval(() => setFocusTimerTick(Date.now()), 1000);
+
+    return () => clearInterval(timer);
+  }, [focusTimerStatus]);
+
+  useEffect(() => {
+    writeStoredFocusTimer({
+      mode: focusTimerMode,
+      status: focusTimerStatus,
+      startedAt: focusStartedAt,
+      lastStartedAt: focusLastStartedAt,
+      accumulatedMs: focusAccumulatedMs,
+      targetMinutes: timerTargetMinutes
+    });
+  }, [focusAccumulatedMs, focusLastStartedAt, focusStartedAt, focusTimerMode, focusTimerStatus, timerTargetMinutes]);
+
+  const focusElapsedMs = getCurrentFocusElapsedMs();
+  const timerTargetMs = Math.max(1, Number(timerTargetMinutes || DEFAULT_TIMER_MINUTES)) * 60 * 1000;
+  const timerRemainingMs = Math.max(0, timerTargetMs - focusElapsedMs);
+  const displayFocusMs = focusTimerMode === 'timer' ? timerRemainingMs : focusElapsedMs;
+  const timerProgressPercent = focusTimerMode === 'timer'
+    ? Math.min(100, Math.round((focusElapsedMs / timerTargetMs) * 100))
+    : 0;
+
+  useEffect(() => {
+    if (
+      focusTimerMode === 'timer'
+      && focusTimerStatus === 'running'
+      && focusElapsedMs >= timerTargetMs
+      && !savingFocusSession
+    ) {
+      handleFinishFocusSession({ completedByTimer: true });
+    }
+  }, [focusElapsedMs, focusTimerMode, focusTimerStatus, focusTimerTick, savingFocusSession, timerTargetMs]);
 
   async function handleRetryFocusQueue() {
     if (!token) {
@@ -500,6 +703,132 @@ export default function StatisticsScreen({ onNavigate, token }) {
           ) : null}
         </View>
       ) : null}
+
+      <View style={[styles.focusTimerCard, shadows.card]}>
+        <View style={styles.focusTimerHeader}>
+          <View style={styles.focusTimerTitleGroup}>
+            <Text style={styles.focusTimerEyebrow}>FOCUS TIMER</Text>
+            <Text style={styles.focusTimerTitle}>스톱워치·타이머 집중 기록</Text>
+            <Text style={styles.focusTimerText}>
+              종료한 세션은 기존 FocusSession API로 저장되어 대시보드, 통계, 프로필 집중 시간에 반영됩니다.
+            </Text>
+          </View>
+          <Text style={[styles.focusTimerStatus, focusTimerStatus === 'running' && styles.focusTimerStatusRunning]}>
+            {focusTimerStatus === 'running' ? '진행 중' : focusTimerStatus === 'paused' ? '일시정지' : '대기'}
+          </Text>
+        </View>
+
+        <View style={styles.focusModeRow}>
+          {[
+            { key: 'stopwatch', label: '스톱워치' },
+            { key: 'timer', label: '타이머' }
+          ].map((item) => {
+            const active = focusTimerMode === item.key;
+
+            return (
+              <Pressable
+                key={item.key}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                disabled={focusTimerStatus !== 'idle'}
+                onPress={() => handleFocusModeChange(item.key)}
+                style={(state) => [
+                  styles.focusModeButton,
+                  active && styles.focusModeButtonActive,
+                  focusTimerStatus !== 'idle' && styles.disabledButton,
+                  ...interactiveStateStyles(state, { disabled: focusTimerStatus !== 'idle' })
+                ]}
+              >
+                <Text style={[styles.focusModeButtonText, active && styles.focusModeButtonTextActive]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {focusTimerMode === 'timer' ? (
+          <View style={styles.timerTargetRow}>
+            <Text style={styles.timerTargetLabel}>목표 시간</Text>
+            <TextInput
+              value={timerTargetMinutes}
+              onChangeText={(value) => setTimerTargetMinutes(normalizeTimerMinutes(value))}
+              editable={focusTimerStatus === 'idle'}
+              keyboardType="number-pad"
+              style={styles.timerTargetInput}
+              accessibilityLabel="타이머 목표 시간 분 단위 입력"
+            />
+            <Text style={styles.timerTargetUnit}>분</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.focusClockPanel}>
+          <Text style={styles.focusClock}>{formatClock(displayFocusMs)}</Text>
+          <Text style={styles.focusClockHint}>
+            {focusTimerMode === 'timer'
+              ? `목표 ${timerTargetMinutes || DEFAULT_TIMER_MINUTES}분 · ${timerProgressPercent}% 진행`
+              : '종료 버튼을 누르면 실제 집중 시간이 저장됩니다.'}
+          </Text>
+          {focusTimerMode === 'timer' ? (
+            <View style={styles.timerProgressTrack}>
+              <View style={[styles.timerProgressFill, { width: `${timerProgressPercent}%` }]} />
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.focusTimerActions}>
+          {focusTimerStatus === 'idle' ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={savingFocusSession || (focusTimerMode === 'timer' && !timerTargetMinutes)}
+              onPress={handleStartFocusTimer}
+              style={(state) => [
+                styles.focusPrimaryButton,
+                (savingFocusSession || (focusTimerMode === 'timer' && !timerTargetMinutes)) && styles.disabledButton,
+                ...interactiveStateStyles(state, { disabled: savingFocusSession || (focusTimerMode === 'timer' && !timerTargetMinutes) })
+              ]}
+            >
+              <Text style={styles.focusPrimaryButtonText}>시작</Text>
+            </Pressable>
+          ) : focusTimerStatus === 'running' ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={handlePauseFocusTimer}
+              style={(state) => [styles.focusSecondaryButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.focusSecondaryButtonText}>일시정지</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleResumeFocusTimer}
+              style={(state) => [styles.focusPrimaryButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.focusPrimaryButtonText}>재개</Text>
+            </Pressable>
+          )}
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={focusTimerStatus === 'idle' || savingFocusSession}
+            onPress={() => handleFinishFocusSession()}
+            style={(state) => [
+              styles.focusFinishButton,
+              (focusTimerStatus === 'idle' || savingFocusSession) && styles.disabledButton,
+              ...interactiveStateStyles(state, { disabled: focusTimerStatus === 'idle' || savingFocusSession })
+            ]}
+          >
+            <Text style={styles.focusFinishButtonText}>{savingFocusSession ? '저장 중' : '종료 및 저장'}</Text>
+          </Pressable>
+        </View>
+
+        {focusTimerMessage ? (
+          <Text style={styles.focusTimerMessage}>{focusTimerMessage}</Text>
+        ) : null}
+        <Text style={styles.focusTimerPolicy}>
+          진행 중 세션은 브라우저에만 임시 보존됩니다. 종료하지 않은 세션은 서버에 저장되지 않습니다.
+        </Text>
+      </View>
 
       {loading ? (
         <View style={styles.skeletonGrid}>
@@ -816,6 +1145,211 @@ const styles = StyleSheet.create({
     color: colors.warning,
     fontSize: 13,
     fontWeight: '900'
+  },
+  focusTimerCard: {
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.surface,
+    padding: 20,
+    gap: 16
+  },
+  focusTimerHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  focusTimerTitleGroup: {
+    flex: 1,
+    minWidth: 240,
+    gap: 6
+  },
+  focusTimerEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1
+  },
+  focusTimerTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900'
+  },
+  focusTimerText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '700'
+  },
+  focusTimerStatus: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    color: colors.muted,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  focusTimerStatusRunning: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep
+  },
+  focusModeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  focusModeButton: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  focusModeButtonActive: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  focusModeButtonText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  focusModeButtonTextActive: {
+    color: colors.blueDeep
+  },
+  timerTargetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8
+  },
+  timerTargetLabel: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  timerTargetInput: {
+    width: 76,
+    minHeight: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    color: colors.ink,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    fontWeight: '900',
+    textAlign: 'center'
+  },
+  timerTargetUnit: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  focusClockPanel: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.cream,
+    padding: 18,
+    gap: 10
+  },
+  focusClock: {
+    color: colors.blueDeep,
+    fontSize: 42,
+    fontWeight: '900',
+    textAlign: 'center'
+  },
+  focusClockHint: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '700',
+    textAlign: 'center'
+  },
+  timerProgressTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceWarm,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  timerProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.mint
+  },
+  focusTimerActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  focusPrimaryButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  focusPrimaryButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  focusSecondaryButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  focusSecondaryButtonText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  focusFinishButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  focusFinishButtonText: {
+    color: colors.mintDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  focusTimerMessage: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800'
+  },
+  focusTimerPolicy: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
   },
   skeletonGrid: {
     gap: 16

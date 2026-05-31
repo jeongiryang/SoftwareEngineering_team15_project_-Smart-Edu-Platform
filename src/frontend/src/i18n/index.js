@@ -10,6 +10,7 @@ export {
   SUPPORTED_LANGUAGES,
   getLanguageOption,
   isBetaLanguage,
+  languageIntlLocale,
   languageBetaLabel,
   languageLabel,
   normalizeLanguage,

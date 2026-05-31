@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAY_LABELS = {
+  ko: ['일', '월', '화', '수', '목', '금', '토'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  ja: ['日', '月', '火', '水', '木', '金', '土'],
+  zh: ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+};
 
 function parseDateString(value) {
   if (!value) {
@@ -39,12 +45,16 @@ function buildCalendarDays(visibleMonth, selectedValue) {
     date.setUTCDate(startDate.getUTCDate() + index);
 
     const dateString = formatDateString(date);
+    const dayOfWeek = date.getUTCDay();
 
     return {
       key: dateString,
       date,
       dateString,
       dayNumber: date.getUTCDate(),
+      isSaturday: dayOfWeek === 6,
+      isSunday: dayOfWeek === 0,
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
       isCurrentMonth: date.getUTCMonth() === month,
       isSelected: dateString === selectedValue,
       isToday: dateString === today
@@ -53,6 +63,7 @@ function buildCalendarDays(visibleMonth, selectedValue) {
 }
 
 export default function CalendarDatePicker({ label, value, onChange, accent = 'mint' }) {
+  const { currentLanguage, translateText } = useLanguage();
   const parsedValue = parseDateString(value);
   const [visibleMonth, setVisibleMonth] = useState(
     parsedValue || new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))
@@ -65,17 +76,22 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
   }, [value]);
 
   const days = useMemo(() => buildCalendarDays(visibleMonth, value), [visibleMonth, value]);
-  const monthLabel = `${visibleMonth.getUTCFullYear()}년 ${visibleMonth.getUTCMonth() + 1}월`;
+  const monthLabel = new Intl.DateTimeFormat(languageIntlLocale(currentLanguage), {
+    month: 'long',
+    timeZone: 'UTC',
+    year: 'numeric'
+  }).format(visibleMonth);
+  const weekdayLabels = WEEKDAY_LABELS[currentLanguage] || WEEKDAY_LABELS.ko;
   const accentStyle = accent === 'blue' ? styles.selectedDayBlue : styles.selectedDayMint;
   const accentTextStyle = accent === 'blue' ? styles.selectedDayTextBlue : styles.selectedDayTextMint;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>{translateText(label)}</Text>
         <View style={styles.quickRow}>
           <Pressable onPress={() => onChange(formatDateString(new Date()))} style={styles.quickButton}>
-            <Text style={styles.quickButtonText}>오늘</Text>
+            <Text style={styles.quickButtonText}>{translateText('오늘')}</Text>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -85,7 +101,7 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
             }}
             style={styles.quickButton}
           >
-            <Text style={styles.quickButtonText}>내일</Text>
+            <Text style={styles.quickButtonText}>{translateText('내일')}</Text>
           </Pressable>
         </View>
       </View>
@@ -93,18 +109,25 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
       <View style={styles.calendarCard}>
         <View style={styles.monthRow}>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, -1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>이전</Text>
+            <Text style={styles.navButtonText}>{translateText('이전')}</Text>
           </Pressable>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, 1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>다음</Text>
+            <Text style={styles.navButtonText}>{translateText('다음')}</Text>
           </Pressable>
         </View>
 
         <View style={styles.weekdayRow}>
-          {WEEKDAY_LABELS.map((weekday) => (
+          {weekdayLabels.map((weekday, index) => (
             <View key={weekday} style={styles.weekdayCell}>
-              <Text style={styles.weekdayText}>{weekday}</Text>
+              <Text style={[
+                styles.weekdayText,
+                index === 0 && styles.sundayText,
+                index === 6 && styles.saturdayText
+              ]}
+              >
+                {weekday}
+              </Text>
             </View>
           ))}
         </View>
@@ -116,6 +139,7 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
               onPress={() => onChange(day.dateString)}
               style={[
                 styles.dayCell,
+                day.isWeekend && styles.weekendDayCell,
                 !day.isCurrentMonth && styles.dayCellMuted,
                 day.isToday && styles.todayCell,
                 day.isSelected && accentStyle
@@ -124,6 +148,8 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
               <Text
                 style={[
                   styles.dayText,
+                  day.isSunday && styles.sundayText,
+                  day.isSaturday && styles.saturdayText,
                   !day.isCurrentMonth && styles.dayTextMuted,
                   day.isToday && styles.todayText,
                   day.isSelected && accentTextStyle
@@ -136,8 +162,8 @@ export default function CalendarDatePicker({ label, value, onChange, accent = 'm
         </View>
 
         <View style={styles.selectedFooter}>
-          <Text style={styles.selectedFooterLabel}>선택한 날짜</Text>
-          <Text style={styles.selectedFooterValue}>{value || '날짜를 선택하세요'}</Text>
+          <Text style={styles.selectedFooterLabel}>{translateText('선택한 날짜')}</Text>
+          <Text style={styles.selectedFooterValue}>{value || translateText('날짜를 선택하세요')}</Text>
         </View>
       </View>
     </View>
@@ -227,6 +253,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700'
   },
+  sundayText: {
+    color: colors.danger
+  },
+  saturdayText: {
+    color: colors.blue
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap'
@@ -239,6 +271,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceWarm
+  },
+  weekendDayCell: {
+    backgroundColor: colors.cream
   },
   dayCellMuted: {
     opacity: 0.5

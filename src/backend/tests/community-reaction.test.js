@@ -1,9 +1,13 @@
 const mockUsers = [];
 const mockPosts = [];
 const mockReactions = [];
+const mockComments = [];
+const mockCommentReactions = [];
 let mockNextUserId = 1;
 let mockNextPostId = 1;
 let mockNextReactionId = 1;
+let mockNextCommentId = 1;
+let mockNextCommentReactionId = 1;
 
 function mockBuildAuthor(userId) {
   const user = mockUsers.find((item) => item.id === Number(userId));
@@ -27,10 +31,10 @@ function mockBuildRepositoryPost(post) {
 }
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
@@ -42,11 +46,33 @@ jest.mock('../src/repositories/user.repository', () => ({
 
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null)
 }));
 
 jest.mock('../src/repositories/community.repository', () => ({
+  createComment: jest.fn(async (postId, userId, data) => {
+    const now = new Date(Date.now() + mockNextCommentId);
+    const comment = {
+      id: mockNextCommentId,
+      postId: Number(postId),
+      userId: Number(userId),
+      parentId: data.parentId ?? null,
+      reported: false,
+      ...data,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    mockNextCommentId += 1;
+    mockComments.push(comment);
+
+    return {
+      ...comment,
+      user: mockBuildAuthor(comment.userId),
+      _count: { replies: 0 }
+    };
+  }),
   createPost: jest.fn(async (userId, data) => {
     const now = new Date(Date.now() + mockNextPostId);
     const post = {
@@ -76,10 +102,61 @@ jest.mock('../src/repositories/community.repository', () => ({
 
     return 1;
   }),
+  deleteCommentReaction: jest.fn(async (commentId, userId) => {
+    const index = mockCommentReactions.findIndex(
+      (reaction) => reaction.commentId === Number(commentId) && reaction.userId === Number(userId)
+    );
+
+    if (index === -1) {
+      return 0;
+    }
+
+    mockCommentReactions.splice(index, 1);
+
+    return 1;
+  }),
+  findCommentById: jest.fn(async (id) => {
+    const comment = mockComments.find((item) => item.id === Number(id));
+
+    return comment
+      ? {
+          ...comment,
+          user: mockBuildAuthor(comment.userId),
+          _count: { replies: 0 }
+        }
+      : null;
+  }),
   findPostById: jest.fn(async (id) => {
     const post = mockPosts.find((item) => item.id === Number(id));
 
     return post ? mockBuildRepositoryPost(post) : null;
+  }),
+  upsertCommentReaction: jest.fn(async (commentId, userId, type) => {
+    const existingReaction = mockCommentReactions.find(
+      (reaction) => reaction.commentId === Number(commentId) && reaction.userId === Number(userId)
+    );
+
+    if (existingReaction) {
+      existingReaction.type = type;
+      existingReaction.updatedAt = new Date(Date.now() + mockNextCommentReactionId);
+
+      return existingReaction;
+    }
+
+    const now = new Date(Date.now() + mockNextCommentReactionId);
+    const reaction = {
+      id: mockNextCommentReactionId,
+      commentId: Number(commentId),
+      userId: Number(userId),
+      type,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    mockNextCommentReactionId += 1;
+    mockCommentReactions.push(reaction);
+
+    return reaction;
   }),
   upsertReaction: jest.fn(async (postId, userId, type) => {
     const existingReaction = mockReactions.find(
@@ -142,6 +219,18 @@ async function createTestPost(token, overrides = {}) {
   return response.body.post;
 }
 
+async function createTestComment(token, postId, overrides = {}) {
+  const response = await request(app)
+    .post(`/api/community/posts/${postId}/comments`)
+    .set(createAuthHeader(token))
+    .send({
+      content: 'Reaction target comment',
+      ...overrides
+    });
+
+  return response.body.comment;
+}
+
 function expectSafeReactionPayload(payload) {
   const serialized = JSON.stringify(payload);
 
@@ -149,23 +238,29 @@ function expectSafeReactionPayload(payload) {
   expect(serialized).not.toContain('password');
   expect(serialized).not.toContain('token');
   expect(serialized).not.toContain('JWT');
-  expect(serialized).not.toContain('@example.com');
+  expect(serialized).not.toContain('passwordHash');
 }
 
 beforeEach(() => {
   mockUsers.length = 0;
   mockPosts.length = 0;
   mockReactions.length = 0;
+  mockComments.length = 0;
+  mockCommentReactions.length = 0;
   mockNextUserId = 1;
   mockNextPostId = 1;
   mockNextReactionId = 1;
+  mockNextCommentId = 1;
+  mockNextCommentReactionId = 1;
   jest.clearAllMocks();
 });
 
 describe('Community Reaction API', () => {
   it.each([
     { method: 'post', path: '/api/community/posts/1/reactions', body: { type: 'LIKE' } },
-    { method: 'delete', path: '/api/community/posts/1/reactions' }
+    { method: 'delete', path: '/api/community/posts/1/reactions' },
+    { method: 'post', path: '/api/community/comments/1/reactions', body: { type: 'LIKE' } },
+    { method: 'delete', path: '/api/community/comments/1/reactions' }
   ])('rejects unauthenticated $method $path requests', async ({ method, path, body }) => {
     const response = await request(app)[method](path).send(body || {});
 
@@ -176,8 +271,10 @@ describe('Community Reaction API', () => {
     { method: 'post', path: '/api/community/posts/abc/reactions', body: { type: 'LIKE' } },
     { method: 'post', path: '/api/community/posts/0/reactions', body: { type: 'LIKE' } },
     { method: 'delete', path: '/api/community/posts/-1/reactions' },
-    { method: 'delete', path: '/api/community/posts/abc/reactions' }
-  ])('rejects invalid postId for $method $path', async ({ method, path, body }) => {
+    { method: 'delete', path: '/api/community/posts/abc/reactions' },
+    { method: 'post', path: '/api/community/comments/abc/reactions', body: { type: 'LIKE' } },
+    { method: 'delete', path: '/api/community/comments/0/reactions' }
+  ])('rejects invalid target id for $method $path', async ({ method, path, body }) => {
     const { token } = await registerTestUser();
 
     const response = await request(app)[method](path)
@@ -206,6 +303,18 @@ describe('Community Reaction API', () => {
     const response = await request(app)
       .delete('/api/community/posts/999/reactions')
       .set(createAuthHeader(token));
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('NOT_FOUND');
+  });
+
+  it('returns 404 when creating a reaction for a missing comment', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/community/comments/999/reactions')
+      .set(createAuthHeader(token))
+      .send({ type: 'LIKE' });
 
     expect(response.status).toBe(404);
     expect(response.body.code).toBe('NOT_FOUND');
@@ -287,6 +396,56 @@ describe('Community Reaction API', () => {
       })
     );
     expect(mockReactions).toHaveLength(1);
+  });
+
+  it('creates a LIKE reaction for a comment without sensitive fields', async () => {
+    const { token, user } = await registerTestUser();
+    const post = await createTestPost(token);
+    const comment = await createTestComment(token, post.id);
+
+    const response = await request(app)
+      .post(`/api/community/comments/${comment.id}/reactions`)
+      .set(createAuthHeader(token))
+      .send({ type: 'LIKE' });
+
+    expect(response.status).toBe(201);
+    expect(response.body.reaction).toEqual(
+      expect.objectContaining({
+        commentId: comment.id,
+        userId: user.id,
+        type: 'LIKE'
+      })
+    );
+    expect(mockCommentReactions).toHaveLength(1);
+    expect(communityRepository.upsertCommentReaction).toHaveBeenCalledWith(comment.id, user.id, 'LIKE');
+    expectSafeReactionPayload(response.body);
+  });
+
+  it('switches and deletes a comment reaction for the current user', async () => {
+    const { token } = await registerTestUser();
+    const post = await createTestPost(token);
+    const comment = await createTestComment(token, post.id);
+
+    await request(app)
+      .post(`/api/community/comments/${comment.id}/reactions`)
+      .set(createAuthHeader(token))
+      .send({ type: 'LIKE' });
+    const switchResponse = await request(app)
+      .post(`/api/community/comments/${comment.id}/reactions`)
+      .set(createAuthHeader(token))
+      .send({ type: 'DISLIKE' });
+
+    expect(switchResponse.status).toBe(201);
+    expect(switchResponse.body.reaction.type).toBe('DISLIKE');
+    expect(mockCommentReactions).toHaveLength(1);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/community/comments/${comment.id}/reactions`)
+      .set(createAuthHeader(token));
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.body).toEqual({ message: 'Community comment reaction deleted successfully' });
+    expect(mockCommentReactions).toHaveLength(0);
   });
 
   it('does not create duplicate rows when the same type is requested again', async () => {

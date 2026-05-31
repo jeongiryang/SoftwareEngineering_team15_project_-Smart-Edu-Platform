@@ -19,6 +19,53 @@ const REQUEST_ACTIONS = {
   REJECT: 'REJECTED'
 };
 
+function sanitizePublicShopItem(item) {
+  if (!item) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    code: item.code,
+    name: item.name,
+    type: item.type,
+    assetUrl: item.assetUrl
+  };
+}
+
+function buildFriendAppearance(user) {
+  const profile = user?.profile || {};
+  const appearance = {
+    profileImageUrl: profile.profileImageUrl || null,
+    profileBackgroundUrl: profile.profileBackgroundUrl || null,
+    titleText: profile.titleText || null,
+    equippedItems: {
+      profileImage: null,
+      profileBackground: null,
+      title: null
+    }
+  };
+
+  (user?.shopPurchases || []).forEach((purchase) => {
+    const item = purchase.item;
+    const appliedValue = item?.type === 'TITLE' ? item.name : item?.assetUrl;
+
+    if (item?.type === 'PROFILE_IMAGE' && appearance.profileImageUrl === appliedValue) {
+      appearance.equippedItems.profileImage = sanitizePublicShopItem(item);
+    }
+
+    if (item?.type === 'PROFILE_BACKGROUND' && appearance.profileBackgroundUrl === appliedValue) {
+      appearance.equippedItems.profileBackground = sanitizePublicShopItem(item);
+    }
+
+    if (item?.type === 'TITLE' && appearance.titleText === appliedValue) {
+      appearance.equippedItems.title = sanitizePublicShopItem(item);
+    }
+  });
+
+  return appearance;
+}
+
 function assertPlainObject(payload, message) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw validationError(message);
@@ -33,17 +80,6 @@ function assertSupportedFields(payload, allowedFields, message) {
   }
 }
 
-function maskEmail(email = '') {
-  const [localPart] = String(email).split('@');
-
-  if (!localPart) {
-    return null;
-  }
-
-  const visible = localPart.slice(0, Math.min(3, localPart.length));
-  return `${visible}${localPart.length > 3 ? '***' : ''}`;
-}
-
 function sanitizeFriendUser(user) {
   if (!user) {
     return null;
@@ -54,8 +90,11 @@ function sanitizeFriendUser(user) {
     name: user.name,
     role: user.role,
     status: user.status,
-    emailMasked: maskEmail(user.email),
+    loginId: user.loginId,
     profileImageUrl: user.profile?.profileImageUrl || null,
+    profileBackgroundUrl: user.profile?.profileBackgroundUrl || null,
+    titleText: user.profile?.titleText || null,
+    appearance: buildFriendAppearance(user),
     learningGoal: user.profile?.learningGoal || null,
     preferredSubject: user.profile?.preferredSubject || null
   };

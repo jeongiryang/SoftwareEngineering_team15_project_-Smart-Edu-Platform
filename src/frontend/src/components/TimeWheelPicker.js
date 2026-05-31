@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AccessibleTextInput from './AccessibleTextInput';
+import { useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
 const ITEM_HEIGHT = 54;
@@ -174,6 +175,7 @@ export default function TimeWheelPicker({
   quickOptions = [],
   showCaption = true
 }) {
+  const { translateText } = useLanguage();
   const [isPreciseMode, setIsPreciseMode] = useState(false);
   const [draftHour, setDraftHour] = useState('09');
   const [draftMinute, setDraftMinute] = useState('00');
@@ -235,7 +237,7 @@ export default function TimeWheelPicker({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>{translateText(label)}</Text>
         {quickOptions.length ? (
           <View style={styles.quickRow}>
             {quickOptions.map((time) => (
@@ -248,7 +250,7 @@ export default function TimeWheelPicker({
       </View>
 
       <Pressable onPress={handleTogglePreciseMode} style={styles.currentValueCard}>
-        <Text style={styles.currentValueLabel}>현재 선택</Text>
+        <Text style={styles.currentValueLabel}>{translateText('현재 선택')}</Text>
         <Text
           style={[
             styles.currentValueText,
@@ -258,7 +260,7 @@ export default function TimeWheelPicker({
           {hour}:{minute}
         </Text>
         <Text style={styles.currentValueHint}>
-          {isPreciseMode ? '직접 입력 열림' : '눌러서 직접 입력 열기'}
+          {isPreciseMode ? translateText('직접 입력 열림') : translateText('눌러서 직접 입력 열기')}
         </Text>
       </Pressable>
 
@@ -266,7 +268,7 @@ export default function TimeWheelPicker({
         <View style={styles.preciseEditor}>
           <View style={styles.preciseInputRow}>
             <View style={styles.preciseInputBox}>
-              <Text style={styles.preciseInputLabel}>시</Text>
+              <Text style={styles.preciseInputLabel}>{translateText('시')}</Text>
               <AccessibleTextInput
                 keyboardType="number-pad"
                 maxLength={2}
@@ -277,7 +279,7 @@ export default function TimeWheelPicker({
             </View>
             <Text style={styles.preciseSeparator}>:</Text>
             <View style={styles.preciseInputBox}>
-              <Text style={styles.preciseInputLabel}>분</Text>
+              <Text style={styles.preciseInputLabel}>{translateText('분')}</Text>
               <AccessibleTextInput
                 keyboardType="number-pad"
                 maxLength={2}
@@ -290,7 +292,7 @@ export default function TimeWheelPicker({
 
           <View style={styles.preciseActionRow}>
             <Pressable onPress={() => applyPreciseTime()} style={styles.preciseButton}>
-              <Text style={styles.preciseButtonText}>적용</Text>
+              <Text style={styles.preciseButtonText}>{translateText('적용')}</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -300,25 +302,25 @@ export default function TimeWheelPicker({
               }}
               style={styles.preciseButton}
             >
-              <Text style={styles.preciseButtonText}>닫기</Text>
+              <Text style={styles.preciseButtonText}>{translateText('닫기')}</Text>
             </Pressable>
           </View>
         </View>
       ) : null}
 
       <View style={styles.dualWheel}>
-        <WheelColumn accent={accent} currentValue={hour} label="시" onChange={handleHourChange} options={HOUR_OPTIONS} />
+        <WheelColumn accent={accent} currentValue={hour} label={translateText('시')} onChange={handleHourChange} options={HOUR_OPTIONS} />
         <Text style={styles.separator}>:</Text>
         <WheelColumn
           accent={accent}
           currentValue={minute}
-          label="분"
+          label={translateText('분')}
           onChange={handleMinuteChange}
           options={MINUTE_OPTIONS}
         />
       </View>
 
-      {showCaption ? <Text style={styles.caption}>시와 분을 각각 위아래로 움직이거나 직접 입력해 시간을 맞춥니다.</Text> : null}
+      {showCaption ? <Text style={styles.caption}>{translateText('시와 분을 각각 위아래로 움직이거나 직접 입력해 시간을 맞춥니다.')}</Text> : null}
     </View>
   );
 }

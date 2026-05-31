@@ -11,7 +11,7 @@ const PRODUCTION_URL_PATTERNS = ['production', 'prod-', 'prod.'];
 
 const DEV_SEED_USERS = [
   {
-    email: 'dev.user@example.com',
+    loginId: 'dev_user',
     name: '개발용 일반 사용자',
     role: 'USER',
     userType: 'HIGH',
@@ -23,7 +23,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.peer@example.com',
+    loginId: 'study_peer',
     name: '개발용 스터디 친구',
     role: 'USER',
     userType: 'UNIVERSITY',
@@ -35,7 +35,19 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.community@example.com',
+    loginId: 'friend_user',
+    name: '개발용 친구 상태 사용자',
+    role: 'USER',
+    userType: 'UNIVERSITY',
+    status: 'ACTIVE',
+    profile: {
+      learningGoal: '친구 목록, 요청 상태, 접속 상태 표시 흐름 점검',
+      preferredSubject: '협업 학습',
+      profileImageUrl: null
+    }
+  },
+  {
+    loginId: 'community_user',
     name: '개발용 커뮤니티 활동 사용자',
     role: 'USER',
     userType: 'MIDDLE',
@@ -47,7 +59,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.reward@example.com',
+    loginId: 'reward_user',
     name: '개발용 보상 데모 사용자',
     role: 'USER',
     userType: 'EXAM_PREP',
@@ -59,7 +71,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.access@example.com',
+    loginId: 'accessibility_user',
     name: '개발용 접근성 설정 사용자',
     role: 'USER',
     userType: 'SENIOR',
@@ -71,7 +83,67 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.beginner@example.com',
+    loginId: 'raid_user',
+    name: '개발용 보스 레이드 사용자',
+    role: 'USER',
+    userType: 'HIGH',
+    status: 'ACTIVE',
+    profile: {
+      learningGoal: '스터디 보스 레이드 참여와 실시간 진행률 확인',
+      preferredSubject: '집중 학습',
+      profileImageUrl: null
+    }
+  },
+  {
+    loginId: 'quest_user',
+    name: '개발용 협동 퀘스트 사용자',
+    role: 'USER',
+    userType: 'EXAM_PREP',
+    status: 'ACTIVE',
+    profile: {
+      learningGoal: '협동 퀘스트 참여, 기여도, 보상 수령 흐름 확인',
+      preferredSubject: '프로젝트 학습',
+      profileImageUrl: null
+    }
+  },
+  {
+    loginId: 'team_user_01',
+    name: '개발용 팀 학습 사용자 1',
+    role: 'USER',
+    userType: 'UNIVERSITY',
+    status: 'ACTIVE',
+    profile: {
+      learningGoal: '팀 단위 협동 학습과 실시간 진행률 QA 참여',
+      preferredSubject: '소프트웨어공학',
+      profileImageUrl: null
+    }
+  },
+  {
+    loginId: 'team_user_02',
+    name: '개발용 팀 학습 사용자 2',
+    role: 'USER',
+    userType: 'UNIVERSITY',
+    status: 'ACTIVE',
+    profile: {
+      learningGoal: '협동 퀘스트 기여도와 친구 관계 시나리오 확인',
+      preferredSubject: '자료구조',
+      profileImageUrl: null
+    }
+  },
+  {
+    loginId: 'team_user_03',
+    name: '개발용 팀 학습 사용자 3',
+    role: 'USER',
+    userType: 'WORKER',
+    status: 'ACTIVE',
+    profile: {
+      learningGoal: '마감 전 팀 학습 루틴과 보상 claim 상태 확인',
+      preferredSubject: '서비스 운영',
+      profileImageUrl: null
+    }
+  },
+  {
+    loginId: 'beginner_user',
     name: '개발용 초보 루틴 사용자',
     role: 'USER',
     userType: 'ELEMENTARY',
@@ -83,7 +155,7 @@ const DEV_SEED_USERS = [
     }
   },
   {
-    email: 'dev.admin@example.com',
+    loginId: 'admin_user',
     name: '개발용 관리자',
     role: 'ADMIN',
     userType: 'WORKER',
@@ -197,7 +269,7 @@ const DEV_SHOP_ITEMS = [
 
 const DEV_SHOP_PURCHASES = [
   {
-    email: 'dev.user@example.com',
+    loginId: 'dev_user',
     itemCodes: ['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'],
     equipped: {
       profileImage: 'PROFILE_AVATAR_SKY',
@@ -206,7 +278,7 @@ const DEV_SHOP_PURCHASES = [
     }
   },
   {
-    email: 'dev.reward@example.com',
+    loginId: 'reward_user',
     itemCodes: ['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'],
     equipped: {
       profileImage: 'PROFILE_AVATAR_FOREST',
@@ -215,7 +287,7 @@ const DEV_SHOP_PURCHASES = [
     }
   },
   {
-    email: 'dev.community@example.com',
+    loginId: 'community_user',
     itemCodes: ['PROFILE_AVATAR_SUNSET', 'TITLE_COMMUNITY_HELPER'],
     equipped: {
       profileImage: 'PROFILE_AVATAR_SUNSET',
@@ -223,13 +295,145 @@ const DEV_SHOP_PURCHASES = [
     }
   },
   {
-    email: 'dev.access@example.com',
+    loginId: 'accessibility_user',
     itemCodes: ['PROFILE_BACKGROUND_NIGHT'],
     equipped: {
       profileBackground: 'PROFILE_BACKGROUND_NIGHT'
     }
+  },
+  {
+    loginId: 'friend_user',
+    itemCodes: ['PROFILE_AVATAR_SKY', 'TITLE_COMMUNITY_HELPER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_SKY',
+      title: 'TITLE_COMMUNITY_HELPER'
+    }
+  },
+  {
+    loginId: 'raid_user',
+    itemCodes: ['PROFILE_AVATAR_NIGHT', 'PROFILE_BACKGROUND_NIGHT', 'TITLE_DEEP_FOCUS'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_NIGHT',
+      profileBackground: 'PROFILE_BACKGROUND_NIGHT',
+      title: 'TITLE_DEEP_FOCUS'
+    }
+  },
+  {
+    loginId: 'quest_user',
+    itemCodes: ['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'],
+    equipped: {
+      profileImage: 'PROFILE_AVATAR_FOREST',
+      profileBackground: 'PROFILE_BACKGROUND_MINT',
+      title: 'TITLE_TASK_MASTER'
+    }
   }
 ];
+
+const DEV_AI_CHAT_ROOM_SEEDS = [
+  {
+    loginId: 'dev_user',
+    title: '발표 준비 AI 브리핑',
+    messages: [
+      {
+        question: '오늘 데모에서 설명할 핵심 기능을 3가지로 정리해줘',
+        answer: 'CI/CD 배포 흐름, WebSocket 실시간 기능, 접근성/다국어 사용자 경험을 중심으로 설명하면 좋습니다.',
+        source: 'AI_QNA',
+        isMock: true,
+        scheduledAt: { days: -1, hour: 20, minute: 10 }
+      },
+      {
+        question: '오디오 브리핑으로 읽을 수 있게 짧게 요약해줘',
+        answer: '오늘은 실시간 쪽지, 협동 학습, 관리자 운영 기능을 확인하고 마지막으로 수동 QA 기준을 점검합니다.',
+        source: 'AI_AUDIO_BRIEFING',
+        isMock: true,
+        scheduledAt: { days: -1, hour: 20, minute: 14 }
+      }
+    ]
+  },
+  {
+    loginId: 'accessibility_user',
+    title: '쉬운 설명 복습 대화',
+    messages: [
+      {
+        question: '분수 복습을 초등학생도 이해하기 쉽게 설명해줘',
+        answer: '분모는 조각의 크기이고 분자는 선택한 조각의 개수입니다. 먼저 분모를 같게 만든 뒤 분자끼리 더하면 됩니다.',
+        source: 'AI_QNA',
+        isMock: true,
+        scheduledAt: { days: -2, hour: 18, minute: 30 }
+      }
+    ]
+  },
+  {
+    loginId: 'quest_user',
+    title: '협동 퀘스트 진행 브리핑',
+    messages: [
+      {
+        question: '협동 퀘스트 진행률을 팀원에게 어떻게 안내하면 좋을까?',
+        answer: '현재 목표, 내 기여도, 남은 진행률, 보상 수령 조건을 한 화면에서 보여주면 팀원이 바로 다음 행동을 정할 수 있습니다.',
+        source: 'AI_QNA',
+        isMock: true,
+        scheduledAt: { days: 0, hour: 9, minute: 20 }
+      }
+    ]
+  }
+];
+
+const DEV_DIRECT_MESSAGE_THREAD_SEEDS = [
+  {
+    participants: ['dev_user', 'study_peer'],
+    messages: [
+      {
+        senderLoginId: 'study_peer',
+        content: '오늘 발표 전 CI/CD 흐름만 한 번 더 확인해볼게.',
+        sentAt: { days: -1, hour: 18, minute: 20 }
+      },
+      {
+        senderLoginId: 'dev_user',
+        content: '좋아. 나는 WebSocket 쪽 데모 순서를 정리할게.',
+        sentAt: { days: -1, hour: 18, minute: 24 }
+      },
+      {
+        senderLoginId: 'study_peer',
+        content: '마지막으로 seed는 수동 실행 기준이라는 점도 넣어줘.',
+        sentAt: { days: -1, hour: 18, minute: 31 }
+      }
+    ],
+    unreadForLoginIds: ['dev_user']
+  },
+  {
+    participants: ['friend_user', 'raid_user'],
+    messages: [
+      {
+        senderLoginId: 'raid_user',
+        content: '보스 레이드 진행률 실시간 반영은 확인했어.',
+        sentAt: { days: 0, hour: 10, minute: 5 }
+      },
+      {
+        senderLoginId: 'friend_user',
+        content: '좋아. 친구 목록에서 접속 상태도 같이 확인해볼게.',
+        sentAt: { days: 0, hour: 10, minute: 9 }
+      }
+    ],
+    unreadForLoginIds: []
+  },
+  {
+    participants: ['community_user', 'quest_user'],
+    messages: [
+      {
+        senderLoginId: 'community_user',
+        content: '커뮤니티 새 댓글 알림과 협동 퀘스트 알림을 같이 QA하자.',
+        sentAt: { days: 0, hour: 13, minute: 40 }
+      },
+      {
+        senderLoginId: 'quest_user',
+        content: '응. 진행률 갱신 후 새로고침 없이 반영되는지 볼게.',
+        sentAt: { days: 0, hour: 13, minute: 46 }
+      }
+    ],
+    unreadForLoginIds: ['community_user']
+  }
+];
+
 const SEED_IDS = {
   posts: {
     question: 900001,
@@ -265,7 +469,9 @@ const SEED_IDS = {
     database: 900043,
     english: 900044,
     math: 900045,
-    beginnerMath: 900046
+    beginnerMath: 900046,
+    pdfMock: 900047,
+    audioBriefing: 900048
   },
   aiQuestions: {
     architecture: 900051,
@@ -273,7 +479,9 @@ const SEED_IDS = {
     studyPlan: 900053,
     quizHelp: 900054,
     voiceReview: 900055,
-    beginnerMath: 900056
+    beginnerMath: 900056,
+    pdfSummary: 900057,
+    audioBriefing: 900058
   },
   wrongAnswers: [900061, 900062, 900063, 900064],
   quizzes: {
@@ -285,14 +493,26 @@ const SEED_IDS = {
     review: 900091,
     routine: 900092,
     exam: 900093,
-    beginner: 900094
+    beginner: 900094,
+    audioBriefing: 900095
   },
   friendships: {
     mainPeer: 900101,
     mainCommunity: 900102,
     mainRewardPending: 900103,
     accessMainPending: 900104,
-    peerBeginnerRejected: 900105
+    peerBeginnerRejected: 900105,
+    mainFriend: 900106,
+    friendRaid: 900107,
+    questTeam01: 900108,
+    team02QuestPending: 900109,
+    team03FriendRejected: 900110
+  },
+  collaborativeQuests: {
+    active: 900201,
+    nearlyDone: 900202,
+    completed: 900203,
+    expired: 900204
   }
 };
 
@@ -312,6 +532,15 @@ const SEED_QUEST_CODES = [
   'QUEST_FOCUS_600',
   'QUEST_TASK_7',
   'QUEST_REVIEW_ROUTINE'
+];
+
+const SEED_BOSS_BADGE_CODES = [
+  'SAGAK_BOSS_DAWN_SLAYER'
+];
+
+const SEED_BOSS_RAID_CODES = [
+  'BOSS_DAWN_PENCIL',
+  'BOSS_MIDNIGHT_GUARDIAN'
 ];
 
 function looksLikeProductionUrl(value) {
@@ -355,7 +584,7 @@ function minutesAfter(date, minutes) {
 async function upsertSeedUser(prisma, seedUser, passwordHash) {
   return prisma.user.upsert({
     where: {
-      email: seedUser.email
+      loginId: seedUser.loginId
     },
     update: {
       name: seedUser.name,
@@ -371,7 +600,7 @@ async function upsertSeedUser(prisma, seedUser, passwordHash) {
       }
     },
     create: {
-      email: seedUser.email,
+      loginId: seedUser.loginId,
       name: seedUser.name,
       role: seedUser.role,
       userType: seedUser.userType,
@@ -383,7 +612,7 @@ async function upsertSeedUser(prisma, seedUser, passwordHash) {
     },
     select: {
       id: true,
-      email: true,
+      loginId: true,
       role: true
     }
   });
@@ -395,6 +624,26 @@ async function resetSeedData(prisma, seedUsers) {
   const commentIds = Object.values(SEED_IDS.comments);
   const quizQuestionIds = SEED_IDS.quizQuestions;
   const friendshipIds = Object.values(SEED_IDS.friendships);
+  const collaborativeQuestIds = Object.values(SEED_IDS.collaborativeQuests);
+
+  await prisma.directMessageReadState.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.directMessage.deleteMany({
+    where: {
+      senderId: { in: userIds }
+    }
+  });
+  await prisma.directMessageThread.deleteMany({
+    where: {
+      OR: [
+        { participantAId: { in: userIds } },
+        { participantBId: { in: userIds } }
+      ]
+    }
+  });
 
   await prisma.friendship.deleteMany({
     where: {
@@ -431,6 +680,11 @@ async function resetSeedData(prisma, seedUsers) {
         { userId: { in: userIds } },
         { postId: { in: postIds } }
       ]
+    }
+  });
+  await prisma.commentReaction.deleteMany({
+    where: {
+      userId: { in: userIds }
     }
   });
   await prisma.comment.deleteMany({
@@ -483,6 +737,68 @@ async function resetSeedData(prisma, seedUsers) {
     }
   });
 
+  await prisma.bossRaidRewardClaim.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidContribution.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidPartyMember.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.bossRaidParty.deleteMany({
+    where: {
+      OR: [
+        { ownerId: { in: userIds } },
+        { raid: { code: { in: SEED_BOSS_RAID_CODES } } }
+      ]
+    }
+  });
+  await prisma.bossRaid.deleteMany({
+    where: {
+      code: { in: SEED_BOSS_RAID_CODES }
+    }
+  });
+
+  await prisma.collaborativeQuestRewardClaim.deleteMany({
+    where: {
+      OR: [
+        { questId: { in: collaborativeQuestIds } },
+        { userId: { in: userIds } }
+      ]
+    }
+  });
+  await prisma.collaborativeQuestContribution.deleteMany({
+    where: {
+      OR: [
+        { questId: { in: collaborativeQuestIds } },
+        { userId: { in: userIds } }
+      ]
+    }
+  });
+  await prisma.collaborativeQuestParticipant.deleteMany({
+    where: {
+      OR: [
+        { questId: { in: collaborativeQuestIds } },
+        { userId: { in: userIds } }
+      ]
+    }
+  });
+  await prisma.collaborativeQuest.deleteMany({
+    where: {
+      OR: [
+        { id: { in: collaborativeQuestIds } },
+        { createdById: { in: userIds } }
+      ]
+    }
+  });
+
   await prisma.pointTransaction.deleteMany({
     where: {
       userId: { in: userIds }
@@ -493,9 +809,23 @@ async function resetSeedData(prisma, seedUsers) {
       userId: { in: userIds }
     }
   });
+  await prisma.userQuest.deleteMany({
+    where: {
+      quest: {
+        code: { in: SEED_QUEST_CODES }
+      }
+    }
+  });
   await prisma.userBadge.deleteMany({
     where: {
       userId: { in: userIds }
+    }
+  });
+  await prisma.userBadge.deleteMany({
+    where: {
+      badge: {
+        code: { in: [...SEED_BADGE_CODES, ...SEED_BOSS_BADGE_CODES] }
+      }
     }
   });
   await prisma.rewardQuest.deleteMany({
@@ -505,7 +835,7 @@ async function resetSeedData(prisma, seedUsers) {
   });
   await prisma.badge.deleteMany({
     where: {
-      code: { in: SEED_BADGE_CODES }
+      code: { in: [...SEED_BADGE_CODES, ...SEED_BOSS_BADGE_CODES] }
     }
   });
 
@@ -572,6 +902,16 @@ async function resetSeedData(prisma, seedUsers) {
       ]
     }
   });
+  await prisma.aIChatMessage.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.aIChatRoom.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
   await prisma.studyNote.deleteMany({
     where: {
       OR: [
@@ -593,13 +933,19 @@ async function resetSeedData(prisma, seedUsers) {
   });
 }
 
-async function seedSchedulesAndTasks(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedSchedulesAndTasks(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const softwareReviewStart = daysFromNow(0, 19, 0);
   const algorithmStart = daysFromNow(1, 16, 30);
@@ -608,6 +954,10 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
   const pastReviewStart = daysFromNow(-2, 18, 0);
   const accessReviewStart = daysFromNow(0, 10, 0);
   const beginnerRoutineStart = daysFromNow(1, 17, 0);
+  const friendPresenceStart = daysFromNow(0, 15, 30);
+  const raidPlanStart = daysFromNow(1, 7, 30);
+  const collaborativeQuestStart = daysFromNow(2, 20, 0);
+  const teamReviewStart = daysFromNow(3, 19, 0);
 
   const softwareReview = await prisma.studySchedule.create({
     data: {
@@ -702,6 +1052,54 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
       endAt: minutesAfter(beginnerRoutineStart, 25),
       priority: 'LOW',
       memo: '처음 사용하는 사용자가 프로필과 통계 화면에서 작은 기록을 확인할 수 있게 하는 데모 일정'
+    }
+  });
+
+  const friendPresenceSchedule = await prisma.studySchedule.create({
+    data: {
+      userId: friendUser.id,
+      title: '친구 접속 상태 수동 QA',
+      subject: '협업 학습',
+      startAt: friendPresenceStart,
+      endAt: minutesAfter(friendPresenceStart, 40),
+      priority: 'MEDIUM',
+      memo: '친구 목록, 요청 상태, WebSocket presence fallback 흐름 확인'
+    }
+  });
+
+  const raidPlan = await prisma.studySchedule.create({
+    data: {
+      userId: raidUser.id,
+      title: '보스 레이드 진행률 점검',
+      subject: '집중 학습',
+      startAt: raidPlanStart,
+      endAt: minutesAfter(raidPlanStart, 75),
+      priority: 'HIGH',
+      memo: '레이드 파티 참여, 기여도, 완료/보상 상태를 순서대로 확인'
+    }
+  });
+
+  const collaborativeQuestPlan = await prisma.studySchedule.create({
+    data: {
+      userId: questUser.id,
+      title: '협동 퀘스트 진행률 QA',
+      subject: '프로젝트 학습',
+      startAt: collaborativeQuestStart,
+      endAt: minutesAfter(collaborativeQuestStart, 60),
+      priority: 'HIGH',
+      memo: '협동 퀘스트 참여, 기여도 추가, 완료 후 보상 수령 상태 점검'
+    }
+  });
+
+  const teamReviewPlan = await prisma.studySchedule.create({
+    data: {
+      userId: teamUser01.id,
+      title: '팀 데모 리허설 및 smoke test',
+      subject: '서비스 운영',
+      startAt: teamReviewStart,
+      endAt: minutesAfter(teamReviewStart, 90),
+      priority: 'HIGH',
+      memo: 'Vercel/Render 배포 후 핵심 화면을 실제 사용자처럼 확인'
     }
   });
 
@@ -846,17 +1244,87 @@ async function seedSchedulesAndTasks(prisma, usersByEmail) {
       memo: '완료 태스크가 0개로 보이지 않도록 하는 초보 사용자 데모 데이터'
     }
   }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: friendUser.id,
+      scheduleId: friendPresenceSchedule.id,
+      title: '친구 목록 온라인 배지 확인',
+      status: 'IN_PROGRESS',
+      dueDate: daysFromNow(0, 16, 20),
+      priority: 'MEDIUM',
+      memo: '여러 계정 로그인 상태에서 친구 접속 표시와 HTTP fallback을 확인'
+    }
+  }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: raidUser.id,
+      scheduleId: raidPlan.id,
+      title: '레이드 진행률 이벤트 수동 QA',
+      status: 'TODO',
+      dueDate: daysFromNow(1, 9, 0),
+      priority: 'HIGH',
+      memo: '보스 레이드 파티의 50%, 90%, 100% 진행 상태를 비교'
+    }
+  }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: questUser.id,
+      scheduleId: collaborativeQuestPlan.id,
+      title: '협동 퀘스트 기여도 추가 확인',
+      status: 'TODO',
+      dueDate: daysFromNow(2, 21, 0),
+      priority: 'HIGH',
+      memo: '기여도 추가 후 실시간 progress bar와 보상 버튼 상태 확인'
+    }
+  }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: teamUser01.id,
+      scheduleId: teamReviewPlan.id,
+      title: '배포 smoke test 체크리스트 작성',
+      status: 'IN_PROGRESS',
+      dueDate: daysFromNow(3, 22, 0),
+      priority: 'HIGH',
+      memo: '로그인, 커뮤니티, 상점, 레이드, 협동 퀘스트, 점검 모드 순서로 점검'
+    }
+  }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: teamUser02.id,
+      title: '협동 퀘스트 데모 데이터 검수',
+      status: 'DONE',
+      dueDate: daysFromNow(-1, 18, 0),
+      priority: 'MEDIUM',
+      memo: '완료/진행/만료 퀘스트가 화면에서 구분되는지 확인'
+    }
+  }));
+  tasks.push(await prisma.studyTask.create({
+    data: {
+      userId: teamUser03.id,
+      title: '최종 발표용 기능 흐름 메모',
+      status: 'TODO',
+      dueDate: daysFromNow(4, 20, 0),
+      priority: 'MEDIUM',
+      memo: '버전 태그, Release, CI/CD, seed 운영 기준을 발표 흐름에 맞춰 정리'
+    }
+  }));
 
   return tasks;
 }
 
-async function seedFriendships(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedFriendships(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   await prisma.friendship.createMany({
     data: [
@@ -899,19 +1367,65 @@ async function seedFriendships(prisma, usersByEmail) {
         status: 'REJECTED',
         createdAt: daysFromNow(-5, 15, 0),
         updatedAt: daysFromNow(-4, 19, 0)
+      },
+      {
+        id: SEED_IDS.friendships.mainFriend,
+        requesterId: friendUser.id,
+        addresseeId: mainUser.id,
+        status: 'ACCEPTED',
+        createdAt: daysFromNow(-6, 10, 0),
+        updatedAt: daysFromNow(-6, 10, 30)
+      },
+      {
+        id: SEED_IDS.friendships.friendRaid,
+        requesterId: friendUser.id,
+        addresseeId: raidUser.id,
+        status: 'ACCEPTED',
+        createdAt: daysFromNow(-4, 13, 0),
+        updatedAt: daysFromNow(-4, 13, 20)
+      },
+      {
+        id: SEED_IDS.friendships.questTeam01,
+        requesterId: questUser.id,
+        addresseeId: teamUser01.id,
+        status: 'ACCEPTED',
+        createdAt: daysFromNow(-3, 19, 0),
+        updatedAt: daysFromNow(-3, 19, 30)
+      },
+      {
+        id: SEED_IDS.friendships.team02QuestPending,
+        requesterId: teamUser02.id,
+        addresseeId: questUser.id,
+        status: 'PENDING',
+        createdAt: daysFromNow(-1, 12, 0),
+        updatedAt: daysFromNow(-1, 12, 0)
+      },
+      {
+        id: SEED_IDS.friendships.team03FriendRejected,
+        requesterId: teamUser03.id,
+        addresseeId: friendUser.id,
+        status: 'REJECTED',
+        createdAt: daysFromNow(-2, 14, 0),
+        updatedAt: daysFromNow(-2, 14, 20)
       }
     ],
     skipDuplicates: true
   });
 }
 
-async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedFocusAndStatistics(prisma, usersByLoginId, tasks) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
   const mainTask = tasks[0];
   const mainFocusMinutes = [
     35, 0, 55, 80, 0, 110, 45,
@@ -1046,6 +1560,72 @@ async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
     });
   }
 
+  const realtimeQaFocusBlocks = [
+    {
+      user: friendUser,
+      taskTitle: '친구 목록 온라인 배지 확인',
+      days: 0,
+      hour: 15,
+      minutes: 32,
+      memo: '친구 접속 상태와 presence fallback 확인'
+    },
+    {
+      user: raidUser,
+      taskTitle: '레이드 진행률 이벤트 수동 QA',
+      days: -1,
+      hour: 7,
+      minutes: 95,
+      memo: '보스 레이드 진행률 90% 구간 확인용 집중'
+    },
+    {
+      user: questUser,
+      taskTitle: '협동 퀘스트 기여도 추가 확인',
+      days: -1,
+      hour: 20,
+      minutes: 70,
+      memo: '협동 퀘스트 기여도 seed 기준 집중'
+    },
+    {
+      user: teamUser01,
+      taskTitle: '배포 smoke test 체크리스트 작성',
+      days: 0,
+      hour: 19,
+      minutes: 45,
+      memo: '최신 배포 smoke test 체크리스트 작성'
+    },
+    {
+      user: teamUser02,
+      taskTitle: '협동 퀘스트 데모 데이터 검수',
+      days: -2,
+      hour: 18,
+      minutes: 55,
+      memo: '협동 퀘스트 완료 상태 검수'
+    },
+    {
+      user: teamUser03,
+      taskTitle: '최종 발표용 기능 흐름 메모',
+      days: -1,
+      hour: 21,
+      minutes: 30,
+      memo: '릴리즈와 seed 운영 흐름 발표 메모'
+    }
+  ];
+
+  for (const block of realtimeQaFocusBlocks) {
+    const startedAt = daysFromNow(block.days, block.hour, 0);
+    const task = tasks.find((candidate) => candidate.title === block.taskTitle);
+    await prisma.focusSession.create({
+      data: {
+        userId: block.user.id,
+        taskId: task?.id || null,
+        startedAt,
+        endedAt: minutesAfter(startedAt, block.minutes),
+        durationMs: block.minutes * 60 * 1000,
+        memo: block.memo
+      }
+    });
+  }
+
   await prisma.studyStatistics.create({
     data: {
       userId: mainUser.id,
@@ -1138,16 +1718,106 @@ async function seedFocusAndStatistics(prisma, usersByEmail, tasks) {
       }
     }
   });
+
+  await prisma.studyStatistics.create({
+    data: {
+      userId: friendUser.id,
+      periodStart: daysFromNow(-6, 0, 0),
+      periodEnd: daysFromNow(0, 23, 59),
+      totalMinutes: 32,
+      completionRate: 0.5,
+      statisticsJson: {
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32],
+        todayMinutes: 32,
+        pattern: '친구 협업 확인형',
+        summary: '친구 목록과 접속 상태 흐름을 확인하기 위한 짧은 학습 기록'
+      }
+    }
+  });
+
+  await prisma.studyStatistics.create({
+    data: {
+      userId: raidUser.id,
+      periodStart: daysFromNow(-6, 0, 0),
+      periodEnd: daysFromNow(0, 23, 59),
+      totalMinutes: 95,
+      completionRate: 0.66,
+      statisticsJson: {
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 95, 0],
+        pattern: '레이드 집중형',
+        summary: '보스 레이드 진행률 데모와 연결되는 집중 기록'
+      }
+    }
+  });
+
+  await prisma.studyStatistics.create({
+    data: {
+      userId: questUser.id,
+      periodStart: daysFromNow(-6, 0, 0),
+      periodEnd: daysFromNow(0, 23, 59),
+      totalMinutes: 70,
+      completionRate: 0.6,
+      statisticsJson: {
+        dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 70, 0],
+        pattern: '협동 퀘스트 기여형',
+        summary: '협동 퀘스트 진행률과 보상 수령 흐름을 확인하기 위한 학습 기록'
+      }
+    }
+  });
+
+  await prisma.studyStatistics.createMany({
+    data: [
+      {
+        userId: teamUser01.id,
+        periodStart: daysFromNow(-6, 0, 0),
+        periodEnd: daysFromNow(0, 23, 59),
+        totalMinutes: 45,
+        completionRate: 0.5,
+        statisticsJson: {
+          dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 45],
+          pattern: '팀 QA 리더형'
+        }
+      },
+      {
+        userId: teamUser02.id,
+        periodStart: daysFromNow(-6, 0, 0),
+        periodEnd: daysFromNow(0, 23, 59),
+        totalMinutes: 55,
+        completionRate: 1,
+        statisticsJson: {
+          dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 55, 0, 0],
+          pattern: '협동 검수 완료형'
+        }
+      },
+      {
+        userId: teamUser03.id,
+        periodStart: daysFromNow(-6, 0, 0),
+        periodEnd: daysFromNow(0, 23, 59),
+        totalMinutes: 30,
+        completionRate: 0.2,
+        statisticsJson: {
+          dailyMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 0],
+          pattern: '발표 준비형'
+        }
+      }
+    ]
+  });
 }
 
-async function seedCommunity(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
-  const adminUser = usersByEmail['dev.admin@example.com'];
+async function seedCommunity(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
+  const adminUser = usersByLoginId['admin_user'];
 
   const questionPost = await prisma.boardPost.create({
     data: {
@@ -1214,6 +1884,238 @@ async function seedCommunity(prisma, usersByEmail) {
       reported: false
     }
   });
+
+  const expandedPostSeeds = [
+    {
+      loginId: 'dev_user',
+      category: 'QUESTION',
+      title: '요구사항 추적표를 발표에서 어떻게 설명하면 좋을까요?',
+      content: 'FR/UC 연결을 보여주려는데 너무 문서 중심으로 보일까 봐 걱정입니다. 화면 흐름과 함께 설명하는 팁이 있을까요?',
+      viewCount: 143,
+      days: -18,
+      hour: 9
+    },
+    {
+      loginId: 'study_peer',
+      category: 'FREE',
+      title: '다국어 QA하면서 발견한 문구 체크 방식 공유',
+      content: '언어를 바꾼 뒤 새로고침하고 버튼, 빈 상태, 오류 메시지를 한 화면씩 보는 방식이 가장 빠르게 누락을 찾았습니다.',
+      viewCount: 89,
+      days: -17,
+      hour: 21
+    },
+    {
+      loginId: 'community_user',
+      category: 'STUDY_PROOF',
+      title: '커뮤니티 댓글 정리하고 40분 집중했습니다',
+      content: '질문 글에 답변을 남기고, 북마크한 자료를 다시 보면서 짧게 복습했습니다.',
+      viewCount: 126,
+      days: -16,
+      hour: 18
+    },
+    {
+      loginId: 'reward_user',
+      category: 'QUESTION',
+      title: '포인트 상점 칭호는 어떤 기준으로 고르면 좋을까요?',
+      content: '프로필에서 보이는 칭호가 너무 튀지 않으면서도 학습 동기를 줄 수 있는 기준을 고민 중입니다.',
+      viewCount: 71,
+      days: -15,
+      hour: 14
+    },
+    {
+      loginId: 'accessibility_user',
+      category: 'FREE',
+      title: '읽어주기 목소리 미리듣기 사용 후기',
+      content: '목소리마다 속도와 높낮이가 조금 달라서 미리듣기 버튼이 있으면 설정을 고르기 훨씬 편합니다.',
+      viewCount: 64,
+      days: -14,
+      hour: 11
+    },
+    {
+      loginId: 'beginner_user',
+      category: 'QUESTION',
+      title: '1초 퀴즈는 하루에 몇 번 보는 게 적당할까요?',
+      content: '너무 자주 나오면 부담스럽고, 한 번만 나오면 잊어버릴 것 같아서 적당한 빈도를 찾고 있습니다.',
+      viewCount: 52,
+      days: -13,
+      hour: 20
+    },
+    {
+      loginId: 'dev_user',
+      category: 'STUDY_PROOF',
+      title: 'D-Day 계획으로 태스크 8개 나눠서 완료',
+      content: '마감일 기준으로 범위를 나누고 오늘 해야 할 분량만 칸반에서 처리했습니다.',
+      viewCount: 157,
+      days: -12,
+      hour: 22
+    },
+    {
+      loginId: 'study_peer',
+      category: 'QUESTION',
+      title: '통계 그래프에서 가장 집중한 요일을 어떻게 해석하나요?',
+      content: '히트맵과 막대그래프는 보이는데, 주간 패턴 문구를 발표 때 어떻게 설명하면 좋을지 궁금합니다.',
+      viewCount: 118,
+      days: -11,
+      hour: 13
+    },
+    {
+      loginId: 'community_user',
+      category: 'FREE',
+      title: '시험 전날 체크리스트 템플릿 공유',
+      content: '범위 확인, 오답노트 3개, 25분 집중 2회, 잠들기 전 10분 복습으로 구성했습니다.',
+      viewCount: 201,
+      days: -10,
+      hour: 8
+    },
+    {
+      loginId: 'reward_user',
+      category: 'STUDY_PROOF',
+      title: '퀘스트 보상 받고 프로필 배경 적용 완료',
+      content: '보상 포인트를 모아 민트 배경을 적용했습니다. 작은 변화지만 프로필 확인이 더 즐거워졌습니다.',
+      viewCount: 96,
+      days: -9,
+      hour: 19
+    },
+    {
+      loginId: 'accessibility_user',
+      category: 'QUESTION',
+      title: '큰 글씨 모드에서 표 보기와 카드 보기 중 어떤 게 편한가요?',
+      content: '커뮤니티 목록을 볼 때 큰 글씨 상태에서는 카드가 편한지 표가 편한지 의견을 듣고 싶습니다.',
+      viewCount: 81,
+      days: -8,
+      hour: 16
+    },
+    {
+      loginId: 'beginner_user',
+      category: 'FREE',
+      title: '처음으로 북마크 기능을 써봤습니다',
+      content: '자주 볼 질문 글을 저장해 두니 마이페이지에서 다시 찾기 쉬웠습니다.',
+      viewCount: 44,
+      days: -7,
+      hour: 17
+    },
+    {
+      loginId: 'dev_user',
+      category: 'QUESTION',
+      title: 'AI mock 응답과 실제 AI 응답을 발표에서 어떻게 구분할까요?',
+      content: '현재는 demo/mock 흐름이라 실제 외부 AI 호출이 없다는 점을 명확하게 말하려고 합니다.',
+      viewCount: 173,
+      days: -6,
+      hour: 10
+    },
+    {
+      loginId: 'study_peer',
+      category: 'STUDY_PROOF',
+      title: '친구 요청 정리하고 주간 목표를 다시 잡았습니다',
+      content: '친구 목록을 확인한 뒤 이번 주에는 짧은 집중 기록을 매일 남기기로 했습니다.',
+      viewCount: 67,
+      days: -5,
+      hour: 12
+    },
+    {
+      loginId: 'community_user',
+      category: 'QUESTION',
+      title: '검색어 기록은 몇 개 정도가 적당할까요?',
+      content: '최근 검색어가 너무 많으면 오히려 복잡해 보여서 5개 정도가 적당한지 고민 중입니다.',
+      viewCount: 101,
+      days: -4,
+      hour: 15
+    },
+    {
+      loginId: 'reward_user',
+      category: 'FREE',
+      title: '상점 아이템 가격 밸런스 의견 받습니다',
+      content: '프로필 이미지와 배경, 칭호 가격 차이가 너무 크지 않도록 조정 기준을 정리해 보고 있습니다.',
+      viewCount: 58,
+      days: -3,
+      hour: 21
+    },
+    {
+      loginId: 'accessibility_user',
+      category: 'STUDY_PROOF',
+      title: '음성 안내 켜고 일정 2개 정리했습니다',
+      content: '오늘은 큰 글씨와 읽어주기를 함께 켜고 일정 화면을 정리했습니다.',
+      viewCount: 73,
+      days: -2,
+      hour: 9
+    },
+    {
+      loginId: 'beginner_user',
+      category: 'QUESTION',
+      title: '마이페이지 활동 통계는 어떤 기준인가요?',
+      content: '좋아요 수가 내가 받은 것인지 내가 누른 것인지 헷갈려서 기준 설명이 있으면 좋겠습니다.',
+      viewCount: 132,
+      days: -1,
+      hour: 18
+    },
+    {
+      loginId: 'friend_user',
+      category: 'FREE',
+      title: '친구 접속 상태 배지는 언제 바뀌나요?',
+      content: 'WebSocket 연결이 끊겼을 때도 화면이 멈추지 않고 다시 확인할 수 있는지 테스트하고 있습니다.',
+      viewCount: 188,
+      days: -1,
+      hour: 20
+    },
+    {
+      loginId: 'raid_user',
+      category: 'STUDY_PROOF',
+      title: '보스 레이드 진행률 90% 구간까지 확인했습니다',
+      content: '파티원별 기여도와 남은 HP가 같이 보이니 수동 QA 흐름을 설명하기 좋았습니다.',
+      viewCount: 241,
+      days: 0,
+      hour: 8
+    },
+    {
+      loginId: 'quest_user',
+      category: 'QUESTION',
+      title: '협동 퀘스트 보상은 언제 수령할 수 있나요?',
+      content: '진행률이 100%가 된 뒤 참여자별로 한 번만 claim되는지 확인하고 싶습니다.',
+      viewCount: 219,
+      days: 0,
+      hour: 13
+    },
+    {
+      loginId: 'team_user_01',
+      category: 'FREE',
+      title: '배포 후 smoke test 순서 공유',
+      content: '로그인, 대시보드, 커뮤니티, 보상, 레이드, 협동 퀘스트, 점검 모드 순서로 직접 눌러보면 좋겠습니다.',
+      viewCount: 176,
+      days: 0,
+      hour: 16
+    },
+    {
+      loginId: 'team_user_02',
+      category: 'STUDY_PROOF',
+      title: '릴리즈 v2.4.0 기준 실시간 기능 QA 완료',
+      content: '커뮤니티 댓글 알림, 친구 접속 상태, 레이드/협동 퀘스트 진행률을 한 번씩 확인했습니다.',
+      viewCount: 205,
+      days: 0,
+      hour: 18
+    }
+  ];
+
+  const expandedPosts = [];
+
+  for (const seed of expandedPostSeeds) {
+    const author = usersByLoginId[seed.loginId];
+    const post = await prisma.boardPost.create({
+      data: {
+        userId: author.id,
+        category: seed.category,
+        title: seed.title,
+        content: seed.content,
+        viewCount: seed.viewCount,
+        reported: false,
+        createdAt: daysFromNow(seed.days, seed.hour, 0)
+      }
+    });
+
+    expandedPosts.push({
+      post,
+      authorLoginId: seed.loginId
+    });
+  }
 
   const answerComment = await prisma.comment.create({
     data: {
@@ -1284,6 +2186,124 @@ async function seedCommunity(prisma, usersByEmail) {
       reported: false
     }
   });
+
+  const reactionUsers = [
+    mainUser,
+    peerUser,
+    friendUser,
+    communityUser,
+    rewardUser,
+    raidUser,
+    questUser,
+    teamUser01,
+    teamUser02,
+    teamUser03,
+    accessUser,
+    beginnerUser
+  ];
+  const expandedComments = [];
+
+  for (let index = 0; index < expandedPosts.length; index += 1) {
+    const { post, authorLoginId } = expandedPosts[index];
+    const commentAuthor = reactionUsers.find((candidate) => candidate.loginId !== authorLoginId) || peerUser;
+    const replyAuthor = reactionUsers.find((candidate) => candidate.id !== commentAuthor.id && candidate.loginId !== authorLoginId) || mainUser;
+    const comment = await prisma.comment.create({
+      data: {
+        postId: post.id,
+        userId: commentAuthor.id,
+        content: index % 2 === 0
+          ? '이 흐름이면 발표 때도 바로 설명하기 좋겠습니다. 북마크해 두겠습니다.'
+          : '실제 화면에서 확인할 수 있는 예시라서 데모 때 쓰기 좋겠습니다.',
+        reported: false,
+        createdAt: daysFromNow(-Math.max(1, 17 - index), 10 + (index % 8), 20)
+      }
+    });
+    const reply = await prisma.comment.create({
+      data: {
+        postId: post.id,
+        userId: replyAuthor.id,
+        parentId: comment.id,
+        content: index % 3 === 0
+          ? '대답글까지 연결해 두면 토론 흐름이 더 잘 보입니다.'
+          : '이 기준으로 한 번 더 정리해 보겠습니다.',
+        reported: false,
+        createdAt: daysFromNow(-Math.max(1, 16 - index), 11 + (index % 7), 35)
+      }
+    });
+
+    expandedComments.push(comment, reply);
+
+    if (index % 4 === 0) {
+      const secondCommentAuthor = reactionUsers.find(
+        (candidate) => candidate.id !== commentAuthor.id && candidate.id !== replyAuthor.id && candidate.loginId !== authorLoginId
+      ) || beginnerUser;
+      expandedComments.push(await prisma.comment.create({
+        data: {
+          postId: post.id,
+          userId: secondCommentAuthor.id,
+          content: '검색과 정렬 테스트에도 도움이 되는 글입니다.',
+          reported: false,
+          createdAt: daysFromNow(-Math.max(1, 15 - index), 18, 5)
+        }
+      }));
+    }
+  }
+
+  for (let index = 0; index < expandedPosts.length; index += 1) {
+    const { post, authorLoginId } = expandedPosts[index];
+    const reactionCount = 2 + (index % 4);
+    const candidates = reactionUsers.filter((candidate) => candidate.loginId !== authorLoginId).slice(0, reactionCount);
+
+    for (let reactionIndex = 0; reactionIndex < candidates.length; reactionIndex += 1) {
+      await prisma.communityReaction.create({
+        data: {
+          postId: post.id,
+          userId: candidates[reactionIndex].id,
+          type: (index + reactionIndex) % 7 === 0 ? 'DISLIKE' : 'LIKE'
+        }
+      });
+    }
+  }
+
+  for (let index = 0; index < expandedPosts.length; index += 1) {
+    const { post, authorLoginId } = expandedPosts[index];
+    const bookmarkUsers = reactionUsers.filter((candidate) => candidate.loginId !== authorLoginId).slice(0, 1 + (index % 3));
+
+    for (const bookmarkUser of bookmarkUsers) {
+      await prisma.communityBookmark.create({
+        data: {
+          postId: post.id,
+          userId: bookmarkUser.id
+        }
+      });
+    }
+  }
+
+  const commentReactionTargets = [answerComment, reportedComment, resourceThanksComment, ...expandedComments];
+
+  for (let index = 0; index < commentReactionTargets.length; index += 1) {
+    const comment = commentReactionTargets[index];
+    const primaryUser = reactionUsers.find((candidate) => candidate.id !== comment.userId) || mainUser;
+
+    await prisma.commentReaction.create({
+      data: {
+        commentId: comment.id,
+        userId: primaryUser.id,
+        type: index % 6 === 0 ? 'DISLIKE' : 'LIKE'
+      }
+    });
+
+    if (index % 5 === 0) {
+      const secondaryUser = reactionUsers.find((candidate) => candidate.id !== comment.userId && candidate.id !== primaryUser.id) || peerUser;
+      await prisma.commentReaction.create({
+        data: {
+          commentId: comment.id,
+          userId: secondaryUser.id,
+          type: 'LIKE'
+        }
+      });
+    }
+  }
 
   await prisma.communityReaction.create({
     data: {
@@ -1466,13 +2486,19 @@ async function seedCommunity(prisma, usersByEmail) {
   });
 }
 
-async function seedChallenge(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedChallenge(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const challenge = await prisma.studyChallenge.create({
     data: {
@@ -1564,11 +2590,12 @@ async function seedChallenge(prisma, usersByEmail) {
   });
 }
 
-async function seedLearningAndAi(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedLearningAndAi(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const architectureNote = await prisma.studyNote.create({
     data: {
@@ -1636,6 +2663,28 @@ async function seedLearningAndAi(prisma, usersByEmail) {
     }
   });
 
+  const pdfMockNote = await prisma.studyNote.create({
+    data: {
+      id: SEED_IDS.notes.pdfMock,
+      userId: mainUser.id,
+      title: 'PDF/OCR Mock 학습 자료 요약',
+      content: '업로드된 PDF와 이미지 OCR 결과라고 가정한 데모 노트입니다. 실제 파일 업로드나 외부 OCR API 호출 없이 요약/퀴즈 흐름을 확인합니다.',
+      subject: '서비스 데모',
+      tags: ['pdf', 'ocr', 'mock']
+    }
+  });
+
+  const audioBriefingNote = await prisma.studyNote.create({
+    data: {
+      id: SEED_IDS.notes.audioBriefing,
+      userId: questUser.id,
+      title: '오늘의 오디오 브리핑 요약',
+      content: '오늘은 협동 퀘스트 기여도 추가, 보스 레이드 진행률 확인, 커뮤니티 새 댓글 알림을 차례로 점검합니다.',
+      subject: '학습 브리핑',
+      tags: ['audio-briefing', 'browser-speech', 'demo']
+    }
+  });
+
   await prisma.aIQuestion.create({
     data: {
       id: SEED_IDS.aiQuestions.architecture,
@@ -1695,6 +2744,26 @@ async function seedLearningAndAi(prisma, usersByEmail) {
       question: '분수 덧셈을 처음 복습하는 학생에게 오늘 할 일을 짧게 알려줘.',
       answer: '오늘은 예제 2개를 천천히 풀고, 틀린 부분 한 줄만 기록하면 충분합니다. 25분만 집중해 보세요.',
       subject: '수학'
+    }
+  });
+  await prisma.aIQuestion.create({
+    data: {
+      id: SEED_IDS.aiQuestions.pdfSummary,
+      userId: mainUser.id,
+      noteId: pdfMockNote.id,
+      question: 'PDF/OCR mock 노트를 기반으로 발표용 핵심 요약을 만들어줘.',
+      answer: '이 데모는 실제 파일 업로드나 외부 OCR 호출 없이, 추출된 텍스트가 있다고 가정하고 요약과 퀴즈 생성 흐름을 확인하는 기능입니다.',
+      subject: '서비스 데모'
+    }
+  });
+  await prisma.aIQuestion.create({
+    data: {
+      id: SEED_IDS.aiQuestions.audioBriefing,
+      userId: questUser.id,
+      noteId: audioBriefingNote.id,
+      question: '오늘의 오디오 브리핑을 20초 분량으로 읽어줄 문장으로 정리해줘.',
+      answer: '오늘은 협동 퀘스트 진행률과 보스 레이드 상태를 확인하고, 커뮤니티 댓글 알림까지 점검합니다. 완료된 항목은 보상 수령 상태도 함께 확인하세요.',
+      subject: '학습 브리핑'
     }
   });
 
@@ -1875,15 +2944,114 @@ async function seedLearningAndAi(prisma, usersByEmail) {
       }
     }
   });
+  await prisma.aIRecommendation.create({
+    data: {
+      id: SEED_IDS.recommendations.audioBriefing,
+      userId: questUser.id,
+      basisJson: {
+        recentQuestProgress: ['협동 퀘스트 95%', '보스 레이드 거의 완료'],
+        briefingSource: 'browser speech demo'
+      },
+      recommendationJson: {
+        title: '오늘의 오디오 브리핑',
+        actions: ['협동 퀘스트 보상 상태 확인', '보스 레이드 남은 HP 확인', '커뮤니티 새 댓글 알림 확인'],
+        note: '외부 TTS API 없이 브라우저 음성 기능으로 읽어주는 데모'
+      }
+    }
+  });
 }
 
-async function seedRewards(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+function dateFromSeedOffset(offset) {
+  return daysFromNow(offset.days, offset.hour, offset.minute);
+}
+
+function normalizeSeedParticipantPair(firstUser, secondUser) {
+  return firstUser.id < secondUser.id
+    ? { participantAId: firstUser.id, participantBId: secondUser.id }
+    : { participantAId: secondUser.id, participantBId: firstUser.id };
+}
+
+async function seedAIChatRooms(prisma, usersByLoginId) {
+  for (const roomSeed of DEV_AI_CHAT_ROOM_SEEDS) {
+    const user = usersByLoginId[roomSeed.loginId];
+
+    const room = await prisma.aIChatRoom.create({
+      data: {
+        userId: user.id,
+        title: roomSeed.title
+      }
+    });
+
+    await prisma.aIChatMessage.createMany({
+      data: roomSeed.messages.map((messageSeed) => ({
+        roomId: room.id,
+        userId: user.id,
+        question: messageSeed.question,
+        answer: messageSeed.answer,
+        isMock: messageSeed.isMock,
+        isTruncated: false,
+        source: messageSeed.source,
+        createdAt: dateFromSeedOffset(messageSeed.scheduledAt)
+      }))
+    });
+  }
+}
+
+async function seedDirectMessages(prisma, usersByLoginId) {
+  for (const threadSeed of DEV_DIRECT_MESSAGE_THREAD_SEEDS) {
+    const participants = threadSeed.participants.map((loginId) => usersByLoginId[loginId]);
+    const pair = normalizeSeedParticipantPair(participants[0], participants[1]);
+    const messageRows = threadSeed.messages.map((messageSeed) => ({
+      senderId: usersByLoginId[messageSeed.senderLoginId].id,
+      content: messageSeed.content,
+      createdAt: dateFromSeedOffset(messageSeed.sentAt)
+    }));
+    const lastMessageAt = messageRows[messageRows.length - 1].createdAt;
+    const firstMessageAt = messageRows[0].createdAt;
+    const readStates = threadSeed.participants.map((loginId) => {
+      const user = usersByLoginId[loginId];
+      const shouldRemainUnread = threadSeed.unreadForLoginIds.includes(loginId);
+      const lastOwnMessage = [...threadSeed.messages].reverse().find((messageSeed) => messageSeed.senderLoginId === loginId);
+
+      return {
+        userId: user.id,
+        lastReadAt: shouldRemainUnread
+          ? lastOwnMessage
+            ? dateFromSeedOffset(lastOwnMessage.sentAt)
+            : minutesAfter(firstMessageAt, -1)
+          : lastMessageAt
+      };
+    });
+
+    await prisma.directMessageThread.create({
+      data: {
+        ...pair,
+        lastMessageAt,
+        createdAt: firstMessageAt,
+        messages: {
+          create: messageRows
+        },
+        readStates: {
+          create: readStates
+        }
+      }
+    });
+  }
+}
+
+async function seedRewards(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   const firstFocusBadge = await prisma.badge.create({
     data: {
@@ -2023,6 +3191,11 @@ async function seedRewards(prisma, usersByEmail) {
     update: { pointBalance: 60 },
     create: { userId: peerUser.id, pointBalance: 60 }
   });
+  const friendAccount = await prisma.rewardAccount.upsert({
+    where: { userId: friendUser.id },
+    update: { pointBalance: 95 },
+    create: { userId: friendUser.id, pointBalance: 95 }
+  });
   const communityAccount = await prisma.rewardAccount.upsert({
     where: { userId: communityUser.id },
     update: { pointBalance: 180 },
@@ -2032,6 +3205,31 @@ async function seedRewards(prisma, usersByEmail) {
     where: { userId: rewardUser.id },
     update: { pointBalance: 120 },
     create: { userId: rewardUser.id, pointBalance: 120 }
+  });
+  const raidAccount = await prisma.rewardAccount.upsert({
+    where: { userId: raidUser.id },
+    update: { pointBalance: 210 },
+    create: { userId: raidUser.id, pointBalance: 210 }
+  });
+  const questAccount = await prisma.rewardAccount.upsert({
+    where: { userId: questUser.id },
+    update: { pointBalance: 160 },
+    create: { userId: questUser.id, pointBalance: 160 }
+  });
+  const teamAccount01 = await prisma.rewardAccount.upsert({
+    where: { userId: teamUser01.id },
+    update: { pointBalance: 140 },
+    create: { userId: teamUser01.id, pointBalance: 140 }
+  });
+  const teamAccount02 = await prisma.rewardAccount.upsert({
+    where: { userId: teamUser02.id },
+    update: { pointBalance: 85 },
+    create: { userId: teamUser02.id, pointBalance: 85 }
+  });
+  const teamAccount03 = await prisma.rewardAccount.upsert({
+    where: { userId: teamUser03.id },
+    update: { pointBalance: 45 },
+    create: { userId: teamUser03.id, pointBalance: 45 }
   });
   const accessAccount = await prisma.rewardAccount.upsert({
     where: { userId: accessUser.id },
@@ -2070,6 +3268,20 @@ async function seedRewards(prisma, usersByEmail) {
       userId: mainUser.id,
       badgeId: routinePencilBadge.id,
       achievedAt: daysFromNow(-1, 22, 0)
+    }
+  });
+  await prisma.userBadge.create({
+    data: {
+      userId: raidUser.id,
+      badgeId: streakBadge.id,
+      achievedAt: daysFromNow(-1, 7, 30)
+    }
+  });
+  await prisma.userBadge.create({
+    data: {
+      userId: questUser.id,
+      badgeId: quizLeafBadge.id,
+      achievedAt: daysFromNow(-1, 20, 0)
     }
   });
 
@@ -2141,6 +3353,40 @@ async function seedRewards(prisma, usersByEmail) {
         userId: beginnerUser.id,
         questId: taskQuest.id,
         progressValue: 1,
+        status: 'IN_PROGRESS'
+      },
+      {
+        userId: raidUser.id,
+        questId: streakQuest.id,
+        progressValue: 480,
+        status: 'ACHIEVED',
+        achievedAt: daysFromNow(-1, 7, 30)
+      },
+      {
+        userId: questUser.id,
+        questId: reviewQuest.id,
+        progressValue: 3,
+        status: 'CLAIMED',
+        achievedAt: daysFromNow(-1, 20, 0),
+        claimedAt: daysFromNow(-1, 20, 10)
+      },
+      {
+        userId: teamUser01.id,
+        questId: taskQuest.id,
+        progressValue: 3,
+        status: 'ACHIEVED',
+        achievedAt: daysFromNow(0, 19, 0)
+      },
+      {
+        userId: teamUser02.id,
+        questId: focusQuest.id,
+        progressValue: 55,
+        status: 'IN_PROGRESS'
+      },
+      {
+        userId: teamUser03.id,
+        questId: focusQuest.id,
+        progressValue: 30,
         status: 'IN_PROGRESS'
       }
     ]
@@ -2237,12 +3483,72 @@ async function seedRewards(prisma, usersByEmail) {
         sourceType: 'SEED',
         sourceId: null,
         createdAt: daysFromNow(0, 17, 30)
+      },
+      {
+        userId: friendUser.id,
+        accountId: friendAccount.id,
+        type: 'ADJUST',
+        amount: 95,
+        reason: '친구 상태 QA용 시작 포인트',
+        sourceType: 'SEED',
+        sourceId: null,
+        createdAt: daysFromNow(0, 15, 30)
+      },
+      {
+        userId: raidUser.id,
+        accountId: raidAccount.id,
+        type: 'EARN',
+        amount: 210,
+        reason: '보스 레이드 참여 데모 포인트',
+        sourceType: 'BOSS_RAID_DEMO',
+        sourceId: null,
+        createdAt: daysFromNow(-1, 8, 0)
+      },
+      {
+        userId: questUser.id,
+        accountId: questAccount.id,
+        type: 'EARN',
+        amount: 160,
+        reason: '협동 퀘스트 보상 데모 포인트',
+        sourceType: 'COLLAB_QUEST_DEMO',
+        sourceId: null,
+        createdAt: daysFromNow(-1, 20, 10)
+      },
+      {
+        userId: teamUser01.id,
+        accountId: teamAccount01.id,
+        type: 'ADJUST',
+        amount: 140,
+        reason: '팀 QA 리더 데모 포인트',
+        sourceType: 'SEED',
+        sourceId: null,
+        createdAt: daysFromNow(0, 19, 0)
+      },
+      {
+        userId: teamUser02.id,
+        accountId: teamAccount02.id,
+        type: 'ADJUST',
+        amount: 85,
+        reason: '협동 퀘스트 검수 데모 포인트',
+        sourceType: 'SEED',
+        sourceId: null,
+        createdAt: daysFromNow(-2, 18, 0)
+      },
+      {
+        userId: teamUser03.id,
+        accountId: teamAccount03.id,
+        type: 'ADJUST',
+        amount: 45,
+        reason: '발표 준비 데모 포인트',
+        sourceType: 'SEED',
+        sourceId: null,
+        createdAt: daysFromNow(-1, 21, 0)
       }
     ]
   });
 }
 
-async function seedPointShop(prisma, usersByEmail) {
+async function seedPointShop(prisma, usersByLoginId) {
   const shopItems = await prisma.shopItem.findMany({
     where: {
       code: {
@@ -2253,7 +3559,7 @@ async function seedPointShop(prisma, usersByEmail) {
   const shopItemsByCode = Object.fromEntries(shopItems.map((item) => [item.code, item]));
 
   for (const purchaseSeed of DEV_SHOP_PURCHASES) {
-    const user = usersByEmail[purchaseSeed.email];
+    const user = usersByLoginId[purchaseSeed.loginId];
 
     if (!user) {
       continue;
@@ -2296,13 +3602,466 @@ async function seedPointShop(prisma, usersByEmail) {
   }
 }
 
-async function seedAccessibility(prisma, usersByEmail) {
-  const mainUser = usersByEmail['dev.user@example.com'];
-  const peerUser = usersByEmail['dev.peer@example.com'];
-  const communityUser = usersByEmail['dev.community@example.com'];
-  const rewardUser = usersByEmail['dev.reward@example.com'];
-  const accessUser = usersByEmail['dev.access@example.com'];
-  const beginnerUser = usersByEmail['dev.beginner@example.com'];
+async function seedBossRaids(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const rewardUser = usersByLoginId['reward_user'];
+
+  const bossBadge = await prisma.badge.create({
+    data: {
+      code: 'SAGAK_BOSS_DAWN_SLAYER',
+      name: '보스 레이드 슬레이어',
+      description: '스터디 보스를 함께 처치한 파티원에게 지급되는 한정 배지',
+      iconUrl: '/assets/badges/sagak-boss-dawn-slayer.png',
+      condition: 'BOSS_RAID_CLEAR'
+    }
+  });
+
+  const dawnBossRaid = await prisma.bossRaid.create({
+    data: {
+      code: 'BOSS_DAWN_PENCIL',
+      name: '새벽 연필 보스',
+      description: '집중 시간과 완료 태스크를 모아 새벽 연필 보스의 HP를 깎는 협동 레이드',
+      imageUrl: '/assets/raids/dawn-pencil-boss.png',
+      maxHp: 360,
+      focusMinuteDamage: 1,
+      taskCompletionDamage: 15,
+      baseRewardPoints: 50,
+      bonusRewardPoolPoints: 120,
+      badgeId: bossBadge.id,
+      startsAt: daysFromNow(-2, 6, 0),
+      endsAt: daysFromNow(5, 23, 0),
+      isActive: true
+    }
+  });
+
+  const midnightBossRaid = await prisma.bossRaid.create({
+    data: {
+      code: 'BOSS_MIDNIGHT_GUARDIAN',
+      name: '심야 수호자',
+      description: '주말 누적 학습량으로 공략하는 다음 단계의 협동 보스',
+      imageUrl: '/assets/raids/midnight-guardian-boss.png',
+      maxHp: 540,
+      focusMinuteDamage: 1,
+      taskCompletionDamage: 18,
+      baseRewardPoints: 70,
+      bonusRewardPoolPoints: 180,
+      startsAt: daysFromNow(1, 6, 0),
+      endsAt: daysFromNow(8, 23, 0),
+      isActive: true
+    }
+  });
+
+  const sampleParty = await prisma.bossRaidParty.create({
+    data: {
+      raidId: dawnBossRaid.id,
+      ownerId: peerUser.id,
+      name: '아침 집중팟',
+      joinCode: 'DAWN01',
+      status: 'OPEN',
+      totalDamage: 180,
+      remainingHp: 180,
+      lastCalculatedAt: daysFromNow(0, 9, 0),
+      members: {
+        create: [
+          { userId: peerUser.id, joinedAt: daysFromNow(-1, 7, 30) },
+          { userId: rewardUser.id, joinedAt: daysFromNow(-1, 7, 45) }
+        ]
+      }
+    }
+  });
+
+  await prisma.bossRaidContribution.createMany({
+    data: [
+      {
+        partyId: sampleParty.id,
+        userId: peerUser.id,
+        focusMinutes: 90,
+        completedTaskCount: 3,
+        totalDamage: 135,
+        lastContributedAt: daysFromNow(0, 9, 0)
+      },
+      {
+        partyId: sampleParty.id,
+        userId: rewardUser.id,
+        focusMinutes: 30,
+        completedTaskCount: 1,
+        totalDamage: 45,
+        lastContributedAt: daysFromNow(0, 9, 0)
+      }
+    ]
+  });
+
+  const almostClearedParty = await prisma.bossRaidParty.create({
+    data: {
+      raidId: midnightBossRaid.id,
+      ownerId: raidUser.id,
+      name: '심야 마감팟',
+      joinCode: 'NIGHT9',
+      status: 'OPEN',
+      totalDamage: 486,
+      remainingHp: 54,
+      lastCalculatedAt: daysFromNow(0, 22, 0),
+      members: {
+        create: [
+          { userId: raidUser.id, joinedAt: daysFromNow(0, 20, 0) },
+          { userId: questUser.id, joinedAt: daysFromNow(0, 20, 10) },
+          { userId: teamUser01.id, joinedAt: daysFromNow(0, 20, 20) }
+        ]
+      }
+    }
+  });
+
+  const clearedParty = await prisma.bossRaidParty.create({
+    data: {
+      raidId: dawnBossRaid.id,
+      ownerId: mainUser.id,
+      name: '새벽 완료팟',
+      joinCode: 'CLEAR1',
+      status: 'CLEARED',
+      totalDamage: 390,
+      remainingHp: 0,
+      lastCalculatedAt: daysFromNow(-1, 8, 30),
+      clearedAt: daysFromNow(-1, 8, 30),
+      members: {
+        create: [
+          { userId: mainUser.id, joinedAt: daysFromNow(-2, 7, 0) },
+          { userId: questUser.id, joinedAt: daysFromNow(-2, 7, 5) },
+          { userId: raidUser.id, joinedAt: daysFromNow(-2, 7, 10) }
+        ]
+      }
+    }
+  });
+
+  await prisma.bossRaidContribution.createMany({
+    data: [
+      {
+        partyId: almostClearedParty.id,
+        userId: raidUser.id,
+        focusMinutes: 180,
+        completedTaskCount: 5,
+        totalDamage: 270,
+        lastContributedAt: daysFromNow(0, 22, 0)
+      },
+      {
+        partyId: almostClearedParty.id,
+        userId: questUser.id,
+        focusMinutes: 96,
+        completedTaskCount: 3,
+        totalDamage: 150,
+        lastContributedAt: daysFromNow(0, 22, 0)
+      },
+      {
+        partyId: almostClearedParty.id,
+        userId: teamUser01.id,
+        focusMinutes: 30,
+        completedTaskCount: 2,
+        totalDamage: 66,
+        lastContributedAt: daysFromNow(0, 21, 40)
+      },
+      {
+        partyId: clearedParty.id,
+        userId: mainUser.id,
+        focusMinutes: 150,
+        completedTaskCount: 4,
+        totalDamage: 210,
+        lastContributedAt: daysFromNow(-1, 8, 30)
+      },
+      {
+        partyId: clearedParty.id,
+        userId: questUser.id,
+        focusMinutes: 90,
+        completedTaskCount: 2,
+        totalDamage: 120,
+        lastContributedAt: daysFromNow(-1, 8, 10)
+      },
+      {
+        partyId: clearedParty.id,
+        userId: raidUser.id,
+        focusMinutes: 45,
+        completedTaskCount: 1,
+        totalDamage: 60,
+        lastContributedAt: daysFromNow(-1, 8, 20)
+      }
+    ]
+  });
+
+  await prisma.bossRaidRewardClaim.createMany({
+    data: [
+      {
+        raidId: dawnBossRaid.id,
+        partyId: clearedParty.id,
+        userId: mainUser.id,
+        baseRewardPoints: 50,
+        bonusRewardPoints: 45,
+        badgeGranted: true,
+        claimedAt: daysFromNow(-1, 8, 45)
+      },
+      {
+        raidId: dawnBossRaid.id,
+        partyId: clearedParty.id,
+        userId: questUser.id,
+        baseRewardPoints: 50,
+        bonusRewardPoints: 35,
+        badgeGranted: false,
+        claimedAt: daysFromNow(-1, 8, 50)
+      }
+    ]
+  });
+
+  await prisma.userBadge.create({
+    data: {
+      userId: mainUser.id,
+      badgeId: bossBadge.id,
+      achievedAt: daysFromNow(-1, 8, 45)
+    }
+  });
+
+  const raidClaimAccounts = await prisma.rewardAccount.findMany({
+    where: {
+      userId: {
+        in: [mainUser.id, questUser.id]
+      }
+    }
+  });
+  const raidAccountByUserId = Object.fromEntries(raidClaimAccounts.map((account) => [account.userId, account]));
+  const mainRaidReward = 95;
+  const questRaidReward = 85;
+
+  await prisma.pointTransaction.createMany({
+    data: [
+      {
+        userId: mainUser.id,
+        accountId: raidAccountByUserId[mainUser.id].id,
+        type: 'EARN',
+        amount: mainRaidReward,
+        reason: '새벽 완료팟 보스 레이드 보상',
+        sourceType: 'BOSS_RAID',
+        sourceId: dawnBossRaid.id,
+        createdAt: daysFromNow(-1, 8, 45)
+      },
+      {
+        userId: questUser.id,
+        accountId: raidAccountByUserId[questUser.id].id,
+        type: 'EARN',
+        amount: questRaidReward,
+        reason: '새벽 완료팟 보스 레이드 보상',
+        sourceType: 'BOSS_RAID',
+        sourceId: dawnBossRaid.id,
+        createdAt: daysFromNow(-1, 8, 50)
+      }
+    ]
+  });
+
+  await prisma.rewardAccount.update({
+    where: { userId: mainUser.id },
+    data: { pointBalance: { increment: mainRaidReward } }
+  });
+  await prisma.rewardAccount.update({
+    where: { userId: questUser.id },
+    data: { pointBalance: { increment: questRaidReward } }
+  });
+}
+
+async function seedCollaborativeQuests(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
+
+  const activeQuest = await prisma.collaborativeQuest.create({
+    data: {
+      id: SEED_IDS.collaborativeQuests.active,
+      title: '발표 전 기능 점검 협동 퀘스트',
+      description: '팀원이 각자 핵심 화면을 눌러보고 발견한 이슈를 기록하는 진행 중 퀘스트',
+      goalValue: 200,
+      currentValue: 65,
+      status: 'ACTIVE',
+      rewardPoints: 120,
+      createdById: questUser.id,
+      startsAt: daysFromNow(-1, 9, 0),
+      endsAt: daysFromNow(5, 23, 0)
+    }
+  });
+
+  const nearlyDoneQuest = await prisma.collaborativeQuest.create({
+    data: {
+      id: SEED_IDS.collaborativeQuests.nearlyDone,
+      title: 'WebSocket smoke test 협동 퀘스트',
+      description: '커뮤니티 댓글, 친구 presence, 레이드, 협동 퀘스트 실시간 이벤트를 함께 확인',
+      goalValue: 100,
+      currentValue: 95,
+      status: 'ACTIVE',
+      rewardPoints: 90,
+      createdById: raidUser.id,
+      startsAt: daysFromNow(-2, 10, 0),
+      endsAt: daysFromNow(2, 23, 0)
+    }
+  });
+
+  const completedQuest = await prisma.collaborativeQuest.create({
+    data: {
+      id: SEED_IDS.collaborativeQuests.completed,
+      title: '커뮤니티 회귀 QA 완료 퀘스트',
+      description: '게시글 검색/정렬/표보기/카드보기/댓글 알림 흐름을 완료한 퀘스트',
+      goalValue: 120,
+      currentValue: 120,
+      status: 'COMPLETED',
+      rewardPoints: 150,
+      createdById: mainUser.id,
+      startsAt: daysFromNow(-7, 9, 0),
+      endsAt: daysFromNow(1, 23, 0),
+      completedAt: daysFromNow(-1, 18, 30)
+    }
+  });
+
+  const expiredQuest = await prisma.collaborativeQuest.create({
+    data: {
+      id: SEED_IDS.collaborativeQuests.expired,
+      title: '지난 주말 짧은 복습 퀘스트',
+      description: '만료 상태와 참여자 기여도 표시를 확인하기 위한 과거 퀘스트',
+      goalValue: 80,
+      currentValue: 20,
+      status: 'EXPIRED',
+      rewardPoints: 40,
+      createdById: friendUser.id,
+      startsAt: daysFromNow(-10, 9, 0),
+      endsAt: daysFromNow(-3, 23, 0)
+    }
+  });
+
+  await prisma.collaborativeQuestParticipant.createMany({
+    data: [
+      { questId: activeQuest.id, userId: questUser.id, contributionValue: 35, joinedAt: daysFromNow(-1, 9, 5) },
+      { questId: activeQuest.id, userId: teamUser01.id, contributionValue: 20, joinedAt: daysFromNow(-1, 10, 0) },
+      { questId: activeQuest.id, userId: friendUser.id, contributionValue: 10, joinedAt: daysFromNow(0, 14, 0) },
+      { questId: nearlyDoneQuest.id, userId: raidUser.id, contributionValue: 55, joinedAt: daysFromNow(-2, 10, 5) },
+      { questId: nearlyDoneQuest.id, userId: teamUser02.id, contributionValue: 40, joinedAt: daysFromNow(-1, 18, 0) },
+      { questId: completedQuest.id, userId: mainUser.id, contributionValue: 60, joinedAt: daysFromNow(-7, 9, 10) },
+      { questId: completedQuest.id, userId: communityUser.id, contributionValue: 35, joinedAt: daysFromNow(-6, 12, 0) },
+      { questId: completedQuest.id, userId: questUser.id, contributionValue: 25, joinedAt: daysFromNow(-5, 20, 0) },
+      { questId: expiredQuest.id, userId: friendUser.id, contributionValue: 12, joinedAt: daysFromNow(-10, 9, 30) },
+      { questId: expiredQuest.id, userId: teamUser03.id, contributionValue: 8, joinedAt: daysFromNow(-9, 18, 0) }
+    ]
+  });
+
+  await prisma.collaborativeQuestContribution.createMany({
+    data: [
+      { questId: activeQuest.id, userId: questUser.id, amount: 20, memo: '협동 퀘스트 화면 목록 QA', createdAt: daysFromNow(-1, 20, 0) },
+      { questId: activeQuest.id, userId: questUser.id, amount: 15, memo: '기여도 추가 후 progress bar 확인', createdAt: daysFromNow(0, 9, 30) },
+      { questId: activeQuest.id, userId: teamUser01.id, amount: 20, memo: '모바일 카드 상태 확인', createdAt: daysFromNow(0, 13, 0) },
+      { questId: activeQuest.id, userId: friendUser.id, amount: 10, memo: '친구 계정으로 참여 상태 확인', createdAt: daysFromNow(0, 15, 0) },
+      { questId: nearlyDoneQuest.id, userId: raidUser.id, amount: 55, memo: '보스 레이드 progress event와 함께 확인', createdAt: daysFromNow(-1, 8, 0) },
+      { questId: nearlyDoneQuest.id, userId: teamUser02.id, amount: 40, memo: 'WebSocket reconnect 후 화면 갱신 확인', createdAt: daysFromNow(0, 18, 0) },
+      { questId: completedQuest.id, userId: mainUser.id, amount: 60, memo: '커뮤니티 목록/상세 회귀 QA', createdAt: daysFromNow(-2, 18, 0) },
+      { questId: completedQuest.id, userId: communityUser.id, amount: 35, memo: '댓글/대댓글 알림 확인', createdAt: daysFromNow(-2, 19, 0) },
+      { questId: completedQuest.id, userId: questUser.id, amount: 25, memo: '보상 claim 버튼 상태 확인', createdAt: daysFromNow(-1, 18, 20) },
+      { questId: expiredQuest.id, userId: friendUser.id, amount: 12, memo: '만료 퀘스트 참여 기록', createdAt: daysFromNow(-8, 11, 0) },
+      { questId: expiredQuest.id, userId: teamUser03.id, amount: 8, memo: '만료 퀘스트 기여도 표시 확인', createdAt: daysFromNow(-7, 21, 0) }
+    ]
+  });
+
+  const mainClaim = await prisma.collaborativeQuestRewardClaim.create({
+    data: {
+      questId: completedQuest.id,
+      userId: mainUser.id,
+      rewardPoints: completedQuest.rewardPoints,
+      claimedAt: daysFromNow(-1, 18, 45)
+    }
+  });
+
+  const communityClaim = await prisma.collaborativeQuestRewardClaim.create({
+    data: {
+      questId: completedQuest.id,
+      userId: communityUser.id,
+      rewardPoints: completedQuest.rewardPoints,
+      claimedAt: daysFromNow(-1, 19, 0)
+    }
+  });
+
+  const claimAccounts = await prisma.rewardAccount.findMany({
+    where: {
+      userId: {
+        in: [mainUser.id, communityUser.id]
+      }
+    }
+  });
+  const accountByUserId = Object.fromEntries(claimAccounts.map((account) => [account.userId, account]));
+
+  await prisma.pointTransaction.createMany({
+    data: [
+      {
+        userId: mainUser.id,
+        accountId: accountByUserId[mainUser.id].id,
+        type: 'EARN',
+        amount: mainClaim.rewardPoints,
+        reason: '커뮤니티 회귀 QA 완료 퀘스트 보상',
+        sourceType: 'COLLABORATIVE_QUEST',
+        sourceId: completedQuest.id,
+        createdAt: mainClaim.claimedAt
+      },
+      {
+        userId: communityUser.id,
+        accountId: accountByUserId[communityUser.id].id,
+        type: 'EARN',
+        amount: communityClaim.rewardPoints,
+        reason: '커뮤니티 회귀 QA 완료 퀘스트 보상',
+        sourceType: 'COLLABORATIVE_QUEST',
+        sourceId: completedQuest.id,
+        createdAt: communityClaim.claimedAt
+      }
+    ]
+  });
+
+  await prisma.rewardAccount.update({
+    where: { userId: mainUser.id },
+    data: { pointBalance: { increment: mainClaim.rewardPoints } }
+  });
+  await prisma.rewardAccount.update({
+    where: { userId: communityUser.id },
+    data: { pointBalance: { increment: communityClaim.rewardPoints } }
+  });
+}
+
+async function seedSystemSettings(prisma) {
+  await prisma.maintenanceSetting.upsert({
+    where: {
+      id: 1
+    },
+    update: {
+      enabled: false,
+      title: '사각사각 업데이트 중',
+      message: '더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.',
+      estimatedEndAt: null
+    },
+    create: {
+      id: 1,
+      enabled: false,
+      title: '사각사각 업데이트 중',
+      message: '더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.',
+      estimatedEndAt: null
+    }
+  });
+}
+
+async function seedAccessibility(prisma, usersByLoginId) {
+  const mainUser = usersByLoginId['dev_user'];
+  const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
+  const communityUser = usersByLoginId['community_user'];
+  const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const accessUser = usersByLoginId['accessibility_user'];
+  const beginnerUser = usersByLoginId['beginner_user'];
 
   await prisma.accessibilityPreference.create({
     data: {
@@ -2377,6 +4136,50 @@ async function seedAccessibility(prisma, usersByEmail) {
       reminderTime: '17:30'
     }
   });
+  await prisma.accessibilityPreference.createMany({
+    data: [
+      {
+        userId: friendUser.id,
+        textScale: 1,
+        highContrast: false,
+        elementaryFriendlyUi: false,
+        voiceInputEnabled: false,
+        voiceOutputEnabled: false,
+        reviewReminderEnabled: true,
+        reminderTime: '15:30'
+      },
+      {
+        userId: raidUser.id,
+        textScale: 1.1,
+        highContrast: false,
+        elementaryFriendlyUi: false,
+        voiceInputEnabled: false,
+        voiceOutputEnabled: true,
+        reviewReminderEnabled: true,
+        reminderTime: '07:30'
+      },
+      {
+        userId: questUser.id,
+        textScale: 1.05,
+        highContrast: false,
+        elementaryFriendlyUi: true,
+        voiceInputEnabled: true,
+        voiceOutputEnabled: true,
+        reviewReminderEnabled: true,
+        reminderTime: '20:00'
+      },
+      {
+        userId: teamUser01.id,
+        textScale: 1,
+        highContrast: true,
+        elementaryFriendlyUi: false,
+        voiceInputEnabled: false,
+        voiceOutputEnabled: false,
+        reviewReminderEnabled: false,
+        reminderTime: null
+      }
+    ]
+  });
 
   await prisma.voiceAccessibilityRequest.createMany({
     data: [
@@ -2418,6 +4221,17 @@ async function seedAccessibility(prisma, usersByEmail) {
         mode: 'TTS',
         voiceType: 'CALM',
         inputText: '오늘은 25분 루틴을 한 번만 시도해 보세요.'
+      },
+      {
+        userId: questUser.id,
+        mode: 'TTS',
+        voiceType: 'BRIGHT',
+        inputText: '협동 퀘스트 진행률이 거의 완료되었습니다. 보상 수령 상태를 확인해 보세요.'
+      },
+      {
+        userId: raidUser.id,
+        mode: 'STT',
+        transcript: '보스 레이드 진행률을 다시 확인해줘'
       }
     ]
   });
@@ -2460,6 +4274,24 @@ async function seedAccessibility(prisma, usersByEmail) {
         type: 'REVIEW',
         message: '복습 알림 - 오늘의 작은 목표를 하나만 완료해 보세요.',
         scheduledAt: daysFromNow(0, 17, 30)
+      },
+      {
+        userId: raidUser.id,
+        type: 'CHALLENGE',
+        message: '레이드 알림 - 심야 마감팟의 남은 HP가 얼마 남지 않았습니다.',
+        scheduledAt: daysFromNow(0, 22, 15)
+      },
+      {
+        userId: questUser.id,
+        type: 'CHALLENGE',
+        message: '협동 퀘스트 알림 - 완료된 퀘스트의 보상 수령 상태를 확인해 보세요.',
+        scheduledAt: daysFromNow(0, 20, 10)
+      },
+      {
+        userId: friendUser.id,
+        type: 'REVIEW',
+        message: '친구 학습 알림 - 친구 목록과 협동 학습 상태를 한 번 확인해 보세요.',
+        scheduledAt: daysFromNow(0, 15, 45)
       }
     ]
   });
@@ -2473,7 +4305,7 @@ async function seedDevelopmentData(prisma) {
     users.push(await upsertSeedUser(prisma, seedUser, passwordHash));
   }
 
-  const usersByEmail = Object.fromEntries(users.map((user) => [user.email, user]));
+  const usersByLoginId = Object.fromEntries(users.map((user) => [user.loginId, user]));
   for (const item of DEV_SHOP_ITEMS) {
     await prisma.shopItem.upsert({
       where: {
@@ -2500,15 +4332,20 @@ async function seedDevelopmentData(prisma) {
   }
 
   await resetSeedData(prisma, users);
-  await seedFriendships(prisma, usersByEmail);
-  const tasks = await seedSchedulesAndTasks(prisma, usersByEmail);
-  await seedFocusAndStatistics(prisma, usersByEmail, tasks);
-  await seedCommunity(prisma, usersByEmail);
-  await seedChallenge(prisma, usersByEmail);
-  await seedLearningAndAi(prisma, usersByEmail);
-  await seedRewards(prisma, usersByEmail);
-  await seedPointShop(prisma, usersByEmail);
-  await seedAccessibility(prisma, usersByEmail);
+  await seedFriendships(prisma, usersByLoginId);
+  await seedDirectMessages(prisma, usersByLoginId);
+  const tasks = await seedSchedulesAndTasks(prisma, usersByLoginId);
+  await seedFocusAndStatistics(prisma, usersByLoginId, tasks);
+  await seedCommunity(prisma, usersByLoginId);
+  await seedChallenge(prisma, usersByLoginId);
+  await seedLearningAndAi(prisma, usersByLoginId);
+  await seedAIChatRooms(prisma, usersByLoginId);
+  await seedRewards(prisma, usersByLoginId);
+  await seedPointShop(prisma, usersByLoginId);
+  await seedBossRaids(prisma, usersByLoginId);
+  await seedCollaborativeQuests(prisma, usersByLoginId);
+  await seedSystemSettings(prisma);
+  await seedAccessibility(prisma, usersByLoginId);
 
   return users;
 }
@@ -2523,7 +4360,7 @@ async function main() {
 
     console.log('[seed:dev] Development seed completed');
     users.forEach((user) => {
-      console.log(`[seed:dev] ${user.email} (${user.role})`);
+      console.log(`[seed:dev] ${user.loginId} (${user.role})`);
     });
   } finally {
     await prisma.$disconnect();
@@ -2538,13 +4375,18 @@ if (require.main === module) {
 }
 
 module.exports = {
+  DEV_AI_CHAT_ROOM_SEEDS,
+  DEV_DIRECT_MESSAGE_THREAD_SEEDS,
   DEV_SEED_PASSWORD,
   DEV_SHOP_ITEMS,
   DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl,
+  seedAIChatRooms,
   seedDevelopmentData,
+  seedDirectMessages,
   seedPointShop,
+  seedBossRaids,
   upsertSeedUser
 };

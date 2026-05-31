@@ -3,14 +3,24 @@ const prisma = require('../utils/prisma');
 const publicUserSelect = {
   id: true,
   name: true,
-  email: true,
+  loginId: true,
   role: true,
   status: true,
   profile: {
     select: {
       profileImageUrl: true,
+      profileBackgroundUrl: true,
+      titleText: true,
       learningGoal: true,
       preferredSubject: true
+    }
+  },
+  shopPurchases: {
+    include: {
+      item: true
+    },
+    orderBy: {
+      purchasedAt: 'desc'
     }
   }
 };
@@ -39,7 +49,7 @@ function findUsersByKeyword(keyword, excludeUserId, take = 12) {
           }
         },
         {
-          email: {
+          loginId: {
             contains: keyword,
             mode: 'insensitive'
           }

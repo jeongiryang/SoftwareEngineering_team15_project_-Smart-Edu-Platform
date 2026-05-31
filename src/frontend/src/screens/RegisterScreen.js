@@ -9,7 +9,7 @@ function getNameFeedback(name) {
   const trimmedName = name.trim();
 
   if (!trimmedName) {
-    return { tone: 'info', message: '이름 또는 닉네임을 입력해 주세요.' };
+    return { tone: 'info', message: '닉네임을 입력해 주세요.' };
   }
 
   if (trimmedName.length < 2) {
@@ -20,21 +20,21 @@ function getNameFeedback(name) {
     return { tone: 'error', message: '30자 이하로 입력해 주세요.' };
   }
 
-  return { tone: 'success', message: '좋은 이름이에요. 계속 진행할 수 있어요.' };
+  return { tone: 'success', message: '좋은 닉네임이에요. 계속 진행할 수 있어요.' };
 }
 
-function getEmailFeedback(email) {
-  const trimmedEmail = email.trim();
+function getLoginIdFeedback(loginId) {
+  const trimmedLoginId = loginId.trim();
 
-  if (!trimmedEmail) {
-    return { tone: 'info', message: '로그인에 사용할 이메일을 입력해 주세요.' };
+  if (!trimmedLoginId) {
+    return { tone: 'info', message: '로그인에 사용할 아이디를 입력해 주세요.' };
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-    return { tone: 'warning', message: '이메일 형식을 확인해 주세요.' };
+  if (!/^[a-z0-9_-]{3,30}$/.test(trimmedLoginId)) {
+    return { tone: 'warning', message: '3~30자의 영문 소문자, 숫자, 밑줄, 하이픈만 사용할 수 있어요.' };
   }
 
-  return { tone: 'success', message: '이메일 형식이 좋아요.' };
+  return { tone: 'success', message: '사용할 수 있는 아이디예요.' };
 }
 
 function getPasswordFeedback(password) {
@@ -46,12 +46,12 @@ function getPasswordFeedback(password) {
     return { tone: 'warning', message: '8자 이상으로 입력해 주세요.' };
   }
 
-  return { tone: 'success', message: '안전하게 사용할 수 있는 길이예요.' };
+  return { tone: 'success', message: '안전하게 사용할 수 있는 비밀번호예요.' };
 }
 
 export default function RegisterScreen({ onAuthenticated, onNavigate }) {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
     try {
       const result = await registerUser({
         name: name.trim(),
-        email: email.trim(),
+        loginId: loginId.trim(),
         password
       });
 
@@ -90,12 +90,12 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
       <View style={[styles.formCard, shadows.card]}>
         <Text style={styles.title}>회원가입</Text>
         <Text style={styles.subtitle}>사각사각에서 나만의 학습 공간을 만드세요.</Text>
-        <Text style={styles.label}>이름</Text>
-        <AccessibleTextInput forceVoiceInput onChangeText={setName} placeholder="이름을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
+        <Text style={styles.label}>닉네임</Text>
+        <AccessibleTextInput enableVoiceInput={false} onChangeText={setName} placeholder="닉네임을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
         <FieldFeedback {...getNameFeedback(name)} />
-        <Text style={styles.label}>이메일</Text>
-        <AccessibleTextInput autoCapitalize="none" forceVoiceInput keyboardType="email-address" onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor={colors.muted} style={styles.input} value={email} />
-        <FieldFeedback {...getEmailFeedback(email)} />
+        <Text style={styles.label}>아이디</Text>
+        <AccessibleTextInput autoCapitalize="none" enableVoiceInput={false} onChangeText={setLoginId} placeholder="dev_user" placeholderTextColor={colors.muted} style={styles.input} value={loginId} />
+        <FieldFeedback {...getLoginIdFeedback(loginId)} />
         <Text style={styles.label}>비밀번호</Text>
         <AccessibleTextInput enableVoiceInput={false} onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
         <FieldFeedback {...getPasswordFeedback(password)} />

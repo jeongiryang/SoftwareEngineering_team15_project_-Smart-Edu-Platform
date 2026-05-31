@@ -10,19 +10,19 @@ entity "UserRepository" as UserRepository
 database "Database" as DB
 entity "AuthSession" as AuthSession
 
-User -> UI: 이메일, 비밀번호, 이름 입력
-UI -> AuthController: signUp(email, password, name) : 사용자 정보 입력 수신 및 유효성 검사
-AuthController -> AuthService: register(email, password, name) : 회원가입 비즈니스 로직 수행
-AuthService -> UserRepository: existsByEmail(email) : 이메일 중복 여부 확인
-UserRepository -> DB: SELECT user WHERE email = ? : 사용자 데이터 DB 조회
+User -> UI: 아이디, 비밀번호, 이름 입력
+UI -> AuthController: signUp(loginId, password, name) : 사용자 정보 입력 수신 및 유효성 검사
+AuthController -> AuthService: register(loginId, password, name) : 회원가입 비즈니스 로직 수행
+AuthService -> UserRepository: existsByLoginId(loginId) : 아이디 중복 여부 확인
+UserRepository -> DB: SELECT user WHERE loginId = ? : 사용자 데이터 DB 조회
 DB --> UserRepository: 사용자 존재 여부
 UserRepository --> AuthService: exists : 중복 여부 결과
 
-alt 이미 가입된 이메일인 경우
-  AuthService --> AuthController: DuplicateEmailException : 이메일 중복 에러 발생
+alt 이미 가입된 아이디인 경우
+  AuthService --> AuthController: DuplicateLoginIdException : 아이디 중복 에러 발생
   AuthController --> UI: 가입 실패 메시지
-  UI --> User: 이메일 중복 안내
-else 가입 가능한 이메일인 경우
+  UI --> User: 아이디 중복 안내
+else 가입 가능한 아이디인 경우
   AuthService -> PasswordEncoder: encode(password) : 비밀번호 암호화
   PasswordEncoder --> AuthService: passwordHash : 암호화된 비밀번호
   AuthService -> UserRepository: save(User) : 사용자 정보 저장
@@ -34,11 +34,11 @@ else 가입 가능한 이메일인 경우
   UI --> User: 로그인 화면 표시
 end
 
-User -> UI: 이메일, 비밀번호 입력
-UI -> AuthController: login(email, password) : 로그인 요청 수신 및 파라미터 검증
-AuthController -> AuthService: authenticate(email, password) : 사용자 인증 비즈니스 로직 수행
-AuthService -> UserRepository: findByEmail(email) : 이메일 기반 사용자 정보 조회
-UserRepository -> DB: SELECT user WHERE email = ? : 사용자 데이터 DB 조회
+User -> UI: 아이디, 비밀번호 입력
+UI -> AuthController: login(loginId, password) : 로그인 요청 수신 및 파라미터 검증
+AuthController -> AuthService: authenticate(loginId, password) : 사용자 인증 비즈니스 로직 수행
+AuthService -> UserRepository: findByLoginId(loginId) : 아이디 기반 사용자 정보 조회
+UserRepository -> DB: SELECT user WHERE loginId = ? : 사용자 데이터 DB 조회
 DB --> UserRepository: user : 사용자 정보 반환
 UserRepository --> AuthService: user : 조회된 사용자 정보
 AuthService -> PasswordEncoder: matches(password, passwordHash) : 비밀번호 일치 확인
@@ -47,7 +47,7 @@ PasswordEncoder --> AuthService: 검증 결과
 alt 인증 실패
   AuthService --> AuthController: AuthenticationException : 계정 정보 불일치 에러 발생
   AuthController --> UI: 로그인 실패 메시지
-  UI --> User: 이메일 또는 비밀번호 확인 안내
+  UI --> User: 아이디 또는 비밀번호 확인 안내
 else 인증 성공
   AuthService -> AuthSession: create(user) : 인증 세션(토큰) 생성
   AuthSession --> AuthService: accessToken, refreshToken : 생성된 인증 토큰

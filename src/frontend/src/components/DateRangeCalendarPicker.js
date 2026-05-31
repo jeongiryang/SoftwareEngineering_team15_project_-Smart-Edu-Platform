@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAY_LABELS = {
+  ko: ['일', '월', '화', '수', '목', '금', '토'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  ja: ['日', '月', '火', '水', '木', '金', '土'],
+  zh: ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+};
 
 function parseDateString(value) {
   if (!value) {
@@ -46,11 +52,15 @@ function buildCalendarDays(visibleMonth, startDate, endDate) {
     const date = new Date(startDateCursor);
     date.setUTCDate(startDateCursor.getUTCDate() + index);
     const dateString = formatDateString(date);
+    const dayOfWeek = date.getUTCDay();
 
     return {
       key: dateString,
       dateString,
       dayNumber: date.getUTCDate(),
+      isSaturday: dayOfWeek === 6,
+      isSunday: dayOfWeek === 0,
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
       isCurrentMonth: date.getUTCMonth() === month,
       isToday: dateString === today,
       isStart: dateString === startDate,
@@ -67,6 +77,7 @@ export default function DateRangeCalendarPicker({
   setSelectedTarget,
   startDate
 }) {
+  const { currentLanguage, translateText } = useLanguage();
   const referenceDate = parseDateString(startDate) || parseDateString(endDate);
   const [visibleMonth, setVisibleMonth] = useState(
     referenceDate || new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))
@@ -84,7 +95,12 @@ export default function DateRangeCalendarPicker({
     () => buildCalendarDays(visibleMonth, startDate, endDate),
     [visibleMonth, startDate, endDate]
   );
-  const monthLabel = `${visibleMonth.getUTCFullYear()}년 ${visibleMonth.getUTCMonth() + 1}월`;
+  const monthLabel = new Intl.DateTimeFormat(languageIntlLocale(currentLanguage), {
+    month: 'long',
+    timeZone: 'UTC',
+    year: 'numeric'
+  }).format(visibleMonth);
+  const weekdayLabels = WEEKDAY_LABELS[currentLanguage] || WEEKDAY_LABELS.ko;
 
   function handleSelect(dateString) {
     if (selectedTarget === 'start') {
@@ -111,10 +127,10 @@ export default function DateRangeCalendarPicker({
         <Text style={styles.monthLabel}>{monthLabel}</Text>
         <View style={styles.actionRow}>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, -1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>이전</Text>
+            <Text style={styles.navButtonText}>{translateText('이전')}</Text>
           </Pressable>
           <Pressable onPress={() => setVisibleMonth((current) => addMonths(current, 1))} style={styles.navButton}>
-            <Text style={styles.navButtonText}>다음</Text>
+            <Text style={styles.navButtonText}>{translateText('다음')}</Text>
           </Pressable>
         </View>
       </View>
@@ -124,7 +140,7 @@ export default function DateRangeCalendarPicker({
           onPress={() => setSelectedTarget('start')}
           style={[styles.targetCard, selectedTarget === 'start' && styles.targetCardActive]}
         >
-          <Text style={styles.targetLabel}>시작 날짜</Text>
+          <Text style={styles.targetLabel}>{translateText('시작 날짜')}</Text>
           <Text style={styles.targetValue}>{startDate}</Text>
         </Pressable>
         <Text style={styles.arrow}>-></Text>
@@ -132,15 +148,22 @@ export default function DateRangeCalendarPicker({
           onPress={() => setSelectedTarget('end')}
           style={[styles.targetCard, selectedTarget === 'end' && styles.targetCardActive]}
         >
-          <Text style={styles.targetLabel}>종료 날짜</Text>
+          <Text style={styles.targetLabel}>{translateText('종료 날짜')}</Text>
           <Text style={styles.targetValue}>{endDate}</Text>
         </Pressable>
       </View>
 
       <View style={styles.weekdayRow}>
-        {WEEKDAY_LABELS.map((weekday) => (
+        {weekdayLabels.map((weekday, index) => (
           <View key={weekday} style={styles.weekdayCell}>
-            <Text style={styles.weekdayText}>{weekday}</Text>
+            <Text style={[
+              styles.weekdayText,
+              index === 0 && styles.sundayText,
+              index === 6 && styles.saturdayText
+            ]}
+            >
+              {weekday}
+            </Text>
           </View>
         ))}
       </View>
@@ -152,6 +175,7 @@ export default function DateRangeCalendarPicker({
             onPress={() => handleSelect(day.dateString)}
             style={[
               styles.dayCell,
+              day.isWeekend && styles.weekendDayCell,
               !day.isCurrentMonth && styles.dayCellMuted,
               day.isInRange && styles.dayInRange,
               (day.isStart || day.isEnd) && styles.dayEdge,
@@ -161,6 +185,8 @@ export default function DateRangeCalendarPicker({
             <Text
               style={[
                 styles.dayText,
+                day.isSunday && styles.sundayText,
+                day.isSaturday && styles.saturdayText,
                 !day.isCurrentMonth && styles.dayTextMuted,
                 day.isToday && styles.todayText,
                 (day.isStart || day.isEnd) && styles.dayEdgeText
@@ -168,13 +194,13 @@ export default function DateRangeCalendarPicker({
             >
               {day.dayNumber}
             </Text>
-            {day.isStart ? <Text style={styles.markerText}>시작</Text> : null}
-            {day.isEnd ? <Text style={styles.markerText}>종료</Text> : null}
+            {day.isStart ? <Text style={styles.markerText}>{translateText('시작')}</Text> : null}
+            {day.isEnd ? <Text style={styles.markerText}>{translateText('종료')}</Text> : null}
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.caption}>시작 날짜를 먼저 고르고, 종료 날짜를 이어서 선택하는 방식입니다.</Text>
+      <Text style={styles.caption}>{translateText('시작 날짜를 먼저 고르고, 종료 날짜를 이어서 선택하는 방식입니다.')}</Text>
     </View>
   );
 }
@@ -268,6 +294,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700'
   },
+  sundayText: {
+    color: colors.danger
+  },
+  saturdayText: {
+    color: colors.blue
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap'
@@ -280,6 +312,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.line
+  },
+  weekendDayCell: {
+    backgroundColor: colors.cream
   },
   dayCellMuted: {
     opacity: 0.35

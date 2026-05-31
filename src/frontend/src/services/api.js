@@ -125,17 +125,17 @@ export function enqueueFocusSession(payload, reason = 'manual') {
   return writeFocusSessionQueue(nextQueue);
 }
 
-export function registerUser({ email, password, name }) {
+export function registerUser({ loginId, password, name }) {
   return request('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name })
+    body: JSON.stringify({ loginId, password, name })
   });
 }
 
-export function loginUser({ email, password }) {
+export function loginUser({ loginId, password }) {
   return request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ loginId, password })
   });
 }
 
@@ -147,6 +147,10 @@ export function getCurrentUser(token) {
   });
 }
 
+export function getSystemStatus() {
+  return request('/system/status');
+}
+
 export function updateCurrentUser(token, payload) {
   return request('/users/me', {
     method: 'PATCH',
@@ -154,6 +158,22 @@ export function updateCurrentUser(token, payload) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(payload)
+  });
+}
+
+export function getMyActivityStats(token) {
+  return request('/users/me/activity', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getPublicProfile(token, userId) {
+  return request(`/users/${encodeURIComponent(userId)}/public-profile`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   });
 }
 
@@ -210,9 +230,65 @@ export function deleteFriend(token, friendId) {
   });
 }
 
+export function getMessageThreads(token) {
+  return request('/messages/threads', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getMessageThread(token, threadId) {
+  return request(`/messages/threads/${threadId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function startMessageThread(token, friendId) {
+  return request('/messages/threads', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ friendId })
+  });
+}
+
+export function sendDirectMessage(token, threadId, content) {
+  return request(`/messages/threads/${threadId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ content })
+  });
+}
+
+export function markMessageThreadRead(token, threadId) {
+  return request(`/messages/threads/${threadId}/read`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
 export function changeCurrentUserPassword(token, payload) {
   return request('/users/me/password', {
     method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteCurrentUser(token, payload) {
+  return request('/users/me', {
+    method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`
     },
@@ -281,6 +357,206 @@ export function unequipShopItem(token, type) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({ type })
+  });
+}
+
+export function getBossRaids(token) {
+  return request('/boss-raids', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getMyBossRaidParties(token) {
+  return request('/boss-raids/parties/me', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getMyBossRaidInvites(token) {
+  return request('/boss-raids/invites/me', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getBossRaidPartyInvites(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/invites`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getPublicBossRaidParties(token, raidId = null) {
+  const query = raidId ? `?raidId=${encodeURIComponent(raidId)}` : '';
+
+  return request(`/boss-raids/parties/public${query}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createBossRaidParty(token, payload) {
+  return request('/boss-raids/parties', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createBossRaidInvite(token, partyId, payload) {
+  return request(`/boss-raids/parties/${partyId}/invites`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function joinBossRaidParty(token, payload) {
+  return request('/boss-raids/parties/join', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function acceptBossRaidInvite(token, inviteId) {
+  return request(`/boss-raids/invites/${inviteId}/accept`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function declineBossRaidInvite(token, inviteId) {
+  return request(`/boss-raids/invites/${inviteId}/decline`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function cancelBossRaidInvite(token, inviteId) {
+  return request(`/boss-raids/invites/${inviteId}/cancel`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function joinPublicBossRaidParty(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/join`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function getBossRaidPartyDetail(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function claimBossRaidReward(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/claim`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function getCollaborativeQuests(token, options = {}) {
+  const query = buildQueryString({
+    includeHidden: options.includeHidden ? 'true' : undefined
+  });
+
+  return request(`/collaborative-quests${query}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getCollaborativeQuestDetail(token, questId) {
+  return request(`/collaborative-quests/${questId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCollaborativeQuest(token, payload) {
+  return request('/collaborative-quests', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function joinCollaborativeQuest(token, questId) {
+  return request(`/collaborative-quests/${questId}/join`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function addCollaborativeQuestContribution(token, questId, payload) {
+  return request(`/collaborative-quests/${questId}/contributions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function claimCollaborativeQuestReward(token, questId) {
+  return request(`/collaborative-quests/${questId}/claim`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function updateCollaborativeQuestVisibility(token, questId, action) {
+  return request(`/collaborative-quests/${questId}/visibility`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ action })
   });
 }
 
@@ -471,6 +747,43 @@ export function askAIQuestion(token, { question, noteId, allowTruncate }) {
   });
 }
 
+export function getAIChatRooms(token) {
+  return request('/ai/chat-rooms', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createAIChatRoom(token, payload = {}) {
+  return request('/ai/chat-rooms', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createAIChatMessage(token, roomId, payload) {
+  return request(`/ai/chat-rooms/${roomId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteAIChatRoom(token, roomId) {
+  return request(`/ai/chat-rooms/${roomId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function getAIRecommendation(token) {
   return request('/ai/recommendations', {
     method: 'POST',
@@ -579,6 +892,34 @@ export function getAdminReports(token) {
     headers: {
       Authorization: `Bearer ${token}`
     }
+  });
+}
+
+export function getAdminMaintenance(token) {
+  return request('/admin/system/maintenance', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function updateAdminMaintenance(token, payload) {
+  return request('/admin/system/maintenance', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function sendAdminNotice(token, payload) {
+  return request('/admin/system/notice', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
   });
 }
 
@@ -696,6 +1037,25 @@ export function createCommunityReaction(token, postId, type) {
 
 export function deleteCommunityReaction(token, postId) {
   return request(`/community/posts/${postId}/reactions`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createCommunityCommentReaction(token, commentId, type) {
+  return request(`/community/comments/${commentId}/reactions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ type })
+  });
+}
+
+export function deleteCommunityCommentReaction(token, commentId) {
+  return request(`/community/comments/${commentId}/reactions`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`

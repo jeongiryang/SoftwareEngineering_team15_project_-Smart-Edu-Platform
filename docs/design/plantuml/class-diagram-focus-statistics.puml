@@ -10,7 +10,7 @@ hide circle
 package "집중 시간/통계 도메인" #FBE9E7 {
   class User <<사용자>> {
     - userId: Long
-    - email: String
+    - loginId: String
   }
 
   class StudyTask <<칸반 태스크>> {

@@ -1,15 +1,15 @@
 const { validationError } = require('./errors');
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LOGIN_ID_PATTERN = /^[a-z0-9_-]{3,30}$/;
 const DEFAULT_MIN_PASSWORD_LENGTH = 8;
 
 function normalizeString(value) {
   return typeof value === 'string' ? value.trim() : value;
 }
 
-function normalizeEmail(email) {
-  const normalizedEmail = normalizeString(email);
-  return typeof normalizedEmail === 'string' ? normalizedEmail.toLowerCase() : normalizedEmail;
+function normalizeLoginId(loginId) {
+  const normalizedLoginId = normalizeString(loginId);
+  return typeof normalizedLoginId === 'string' ? normalizedLoginId.toLowerCase() : normalizedLoginId;
 }
 
 function requireFields(payload, fields, message = 'Required fields are missing') {
@@ -23,9 +23,14 @@ function requireFields(payload, fields, message = 'Required fields are missing')
   }
 }
 
-function validateEmail(email) {
-  if (!EMAIL_PATTERN.test(email)) {
-    throw validationError('Email format is invalid', { field: 'email' });
+function validateLoginId(loginId) {
+  if (typeof loginId !== 'string' || !LOGIN_ID_PATTERN.test(loginId)) {
+    throw validationError('Login ID must be 3-30 lowercase letters, numbers, underscores, or hyphens', {
+      field: 'loginId',
+      allowedPattern: 'a-z, 0-9, _, -',
+      minLength: 3,
+      maxLength: 30
+    });
   }
 }
 
@@ -50,10 +55,10 @@ function parsePositiveInteger(value, field = 'id') {
 
 module.exports = {
   DEFAULT_MIN_PASSWORD_LENGTH,
-  normalizeEmail,
+  normalizeLoginId,
   normalizeString,
   parsePositiveInteger,
   requireFields,
-  validateEmail,
+  validateLoginId,
   validatePassword
 };

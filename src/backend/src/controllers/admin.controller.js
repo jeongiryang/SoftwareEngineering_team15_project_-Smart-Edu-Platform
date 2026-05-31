@@ -1,4 +1,5 @@
 const adminService = require('../services/admin.service');
+const { broadcastRealtimeEventToUsers } = require('../realtime/websocket.server');
 const { sendSuccess } = require('../utils/apiResponse');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { parsePositiveInteger } = require('../utils/validators');
@@ -15,6 +16,12 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   const targetUserId = parsePositiveInteger(userId, 'userId');
 
   const result = await adminService.setUserStatus(adminId, targetUserId, status, reason);
+  broadcastRealtimeEventToUsers([targetUserId], 'account.status.updated', {
+    status: result.user.status,
+    reason: 'ADMIN_STATUS_CHANGE',
+    changedAt: new Date().toISOString(),
+    message: `Account status changed to ${result.user.status}`
+  });
   sendSuccess(res, 200, result);
 });
 

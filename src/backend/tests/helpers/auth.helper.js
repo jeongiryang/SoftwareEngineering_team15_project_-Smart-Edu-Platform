@@ -1,6 +1,7 @@
-function createUniqueEmail(prefix = 'test-user') {
-  const suffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  return `${prefix}-${suffix}@example.com`;
+function createUniqueLoginId(prefix = 'test-user') {
+  const safePrefix = String(prefix).toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 12) || 'test';
+  const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 100000).toString(36)}`;
+  return `${safePrefix}-${suffix}`.slice(0, 30);
 }
 
 function createAuthHeader(token) {
@@ -11,7 +12,7 @@ function createAuthHeader(token) {
 
 function createUserPayload(overrides = {}) {
   return {
-    email: createUniqueEmail('auth-test'),
+    loginId: createUniqueLoginId('auth-test'),
     password: 'password123',
     name: 'Auth Test User',
     ...overrides
@@ -20,6 +21,6 @@ function createUserPayload(overrides = {}) {
 
 module.exports = {
   createAuthHeader,
-  createUniqueEmail,
+  createUniqueLoginId,
   createUserPayload
 };

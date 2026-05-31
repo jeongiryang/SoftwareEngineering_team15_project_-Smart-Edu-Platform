@@ -4,8 +4,9 @@ const { normalizeString, parsePositiveInteger, requireFields } = require('../uti
 
 const POST_CATEGORIES = ['QUESTION', 'FREE', 'STUDY_PROOF'];
 const POST_FIELDS = ['category', 'title', 'content'];
-const POST_SORTS = ['latest', 'oldest'];
-const COMMENT_FIELDS = ['content'];
+const POST_SORTS = ['latest', 'oldest', 'likes', 'views', 'comments'];
+const BOOKMARK_SORTS = ['latest', 'oldest'];
+const COMMENT_FIELDS = ['content', 'parentId'];
 const REACTION_FIELDS = ['type'];
 const REACTION_TYPES = ['LIKE', 'DISLIKE'];
 const BOOKMARK_FIELDS = [];
@@ -97,6 +98,21 @@ function normalizeSort(value) {
   return value;
 }
 
+function normalizeBookmarkSort(value) {
+  if (value === undefined) {
+    return 'latest';
+  }
+
+  if (typeof value !== 'string' || !BOOKMARK_SORTS.includes(value)) {
+    throw validationError(`sort must be one of ${BOOKMARK_SORTS.join(', ')}`, {
+      field: 'sort',
+      allowedValues: BOOKMARK_SORTS
+    });
+  }
+
+  return value;
+}
+
 function parseOptionalPositiveInteger(value, field, defaultValue) {
   if (value === undefined || value === null || value === '') {
     return defaultValue;
@@ -116,12 +132,16 @@ function sanitizePost(post) {
     category: post.category,
     title: post.title,
     content: post.content,
+    viewCount: post.viewCount ?? 0,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     author: post.user
       ? {
           id: post.user.id,
-          name: post.user.name
+          name: post.user.name,
+          profileImageUrl: post.user.profile?.profileImageUrl || null,
+          profileBackgroundUrl: post.user.profile?.profileBackgroundUrl || null,
+          titleText: post.user.profile?.titleText || null
         }
       : null,
     commentCount: post._count?.comments ?? 0
@@ -161,16 +181,58 @@ function sanitizeComment(comment) {
     id: comment.id,
     postId: comment.postId,
     userId: comment.userId,
+    parentId: comment.parentId ?? null,
     content: comment.content,
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
     author: comment.user
       ? {
           id: comment.user.id,
-          name: comment.user.name
+          name: comment.user.name,
+          profileImageUrl: comment.user.profile?.profileImageUrl || null,
+          profileBackgroundUrl: comment.user.profile?.profileBackgroundUrl || null,
+          titleText: comment.user.profile?.titleText || null
         }
-      : null
+      : null,
+    replyCount: comment._count?.replies ?? 0
   };
+}
+
+function buildDefaultCommentReactionSummary() {
+  return {
+    likeCount: 0,
+    dislikeCount: 0,
+    myReaction: null
+  };
+}
+
+function sanitizeCommentWithEngagement(comment, engagementSummary) {
+  const sanitizedComment = sanitizeComment(comment);
+
+  if (!sanitizedComment) {
+    return null;
+  }
+
+  return {
+    ...sanitizedComment,
+    ...buildDefaultCommentReactionSummary(),
+    ...(engagementSummary || {}),
+    replies: Array.isArray(comment.replies)
+      ? comment.replies.map((reply) =>
+          sanitizeCommentWithEngagement(reply, engagementSummary?.replies?.get?.(reply.id))
+        )
+      : []
+  };
+}
+
+function applyCommentEngagement(comment, summaries) {
+  const summary = {
+    ...buildDefaultCommentReactionSummary(),
+    ...(summaries.get(comment.id) || {}),
+    replies: summaries
+  };
+
+  return sanitizeCommentWithEngagement(comment, summary);
 }
 
 function sanitizeReaction(reaction) {
@@ -181,6 +243,7 @@ function sanitizeReaction(reaction) {
   return {
     id: reaction.id,
     postId: reaction.postId,
+    commentId: reaction.commentId,
     userId: reaction.userId,
     type: reaction.type,
     createdAt: reaction.createdAt,
@@ -272,9 +335,15 @@ function buildCommentData(payload = {}) {
     throw validationError('content is required', { field: 'content' });
   }
 
-  return {
+  const data = {
     content: normalizeRequiredStringField(payload.content, 'content')
   };
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'parentId') && payload.parentId !== null) {
+    data.parentId = parsePositiveInteger(payload.parentId, 'parentId');
+  }
+
+  return data;
 }
 
 function buildReactionData(payload = {}) {
@@ -387,7 +456,7 @@ function buildBookmarkListOptions(query = {}) {
     });
   }
 
-  const sort = normalizeSort(query.sort);
+  const sort = normalizeBookmarkSort(query.sort);
 
   return {
     page,
@@ -450,18 +519,20 @@ async function createPost(userId, payload) {
 
 async function getPostById(postId, userId) {
   const id = parsePositiveInteger(postId, 'postId');
-  const post = await communityRepository.findPostById(id);
+  const existingPost = await communityRepository.findPostById(id);
 
-  if (!post) {
+  if (!existingPost) {
     throw notFoundError('Community post not found');
   }
+
+  const post = await communityRepository.incrementPostViewCount(id);
 
   const summaries = await communityRepository.findPostEngagementSummaries([id], userId);
 
   return sanitizePostWithEngagement(post, summaries.get(id));
 }
 
-async function listComments(postId, query) {
+async function listComments(postId, query, userId) {
   const id = parsePositiveInteger(postId, 'postId');
   const post = await communityRepository.findPostById(id);
 
@@ -474,10 +545,15 @@ async function listComments(postId, query) {
     postId: id,
     ...options
   });
+  const commentIds = comments.flatMap((comment) => [
+    comment.id,
+    ...(Array.isArray(comment.replies) ? comment.replies.map((reply) => reply.id) : [])
+  ]);
+  const summaries = await communityRepository.findCommentReactionSummaries(commentIds, userId);
   const totalPages = Math.ceil(total / options.pageSize);
 
   return {
-    comments: comments.map(sanitizeComment),
+    comments: comments.map((comment) => applyCommentEngagement(comment, summaries)),
     pagination: {
       page: options.page,
       pageSize: options.pageSize,
@@ -496,6 +572,20 @@ async function createComment(postId, userId, payload) {
   }
 
   const data = buildCommentData(payload);
+  if (data.parentId) {
+    const parentComment = await communityRepository.findCommentById(data.parentId);
+
+    if (!parentComment || parentComment.postId !== id) {
+      throw notFoundError('Parent comment not found');
+    }
+
+    if (parentComment.parentId) {
+      throw validationError('Replies can only target top-level comments', {
+        field: 'parentId'
+      });
+    }
+  }
+
   const comment = await communityRepository.createComment(id, userId, data);
 
   return sanitizeComment(comment);
@@ -511,6 +601,20 @@ async function createReaction(postId, userId, payload) {
 
   const data = buildReactionData(payload);
   const reaction = await communityRepository.upsertReaction(id, userId, data.type);
+
+  return sanitizeReaction(reaction);
+}
+
+async function createCommentReaction(commentId, userId, payload) {
+  const id = parsePositiveInteger(commentId, 'commentId');
+  const comment = await communityRepository.findCommentById(id);
+
+  if (!comment) {
+    throw notFoundError('Community comment not found');
+  }
+
+  const data = buildReactionData(payload);
+  const reaction = await communityRepository.upsertCommentReaction(id, userId, data.type);
 
   return sanitizeReaction(reaction);
 }
@@ -675,6 +779,23 @@ async function deleteReaction(postId, userId) {
   return { message: 'Community reaction deleted successfully' };
 }
 
+async function deleteCommentReaction(commentId, userId) {
+  const id = parsePositiveInteger(commentId, 'commentId');
+  const comment = await communityRepository.findCommentById(id);
+
+  if (!comment) {
+    throw notFoundError('Community comment not found');
+  }
+
+  const deletedCount = await communityRepository.deleteCommentReaction(id, userId);
+
+  if (deletedCount === 0) {
+    throw notFoundError('Community comment reaction not found');
+  }
+
+  return { message: 'Community comment reaction deleted successfully' };
+}
+
 async function deleteBookmark(postId, userId) {
   const id = parsePositiveInteger(postId, 'postId');
   const post = await communityRepository.findPostById(id);
@@ -709,12 +830,14 @@ module.exports = {
   buildReportData,
   createBookmark,
   createComment,
+  createCommentReaction,
   createCommentReport,
   createPost,
   createPostReport,
   createReaction,
   deleteBookmark,
   deleteComment,
+  deleteCommentReaction,
   deletePost,
   deleteReaction,
   getPostById,

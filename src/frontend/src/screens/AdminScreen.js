@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
+  findNodeHandle,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,13 +14,56 @@ import {
   updateAdminUserStatus,
   getAdminReports,
   moderateAdminPost,
-  moderateAdminComment
+  moderateAdminComment,
+  getAdminMaintenance,
+  sendAdminNotice,
+  updateAdminMaintenance
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
+import { useLanguage } from '../i18n';
 import { PanelSkeleton } from '../components/Skeleton';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
+const noticePreviewLevelStyles = {
+  danger: {
+    borderColor: colors.danger,
+    dotColor: colors.danger,
+    surfaceColor: colors.dangerSoft
+  },
+  info: {
+    borderColor: colors.blue,
+    dotColor: colors.blue,
+    surfaceColor: colors.blueSoft
+  },
+  success: {
+    borderColor: colors.mintDeep,
+    dotColor: colors.mintDeep,
+    surfaceColor: colors.mintSoft
+  },
+  warning: {
+    borderColor: colors.warning,
+    dotColor: colors.warning,
+    surfaceColor: colors.warningSoft
+  }
+};
+
+function formatPreviewEstimatedEnd(value, t) {
+  if (!value) {
+    return t('maintenance.screen.estimatedUnknown', '예상 종료 시간은 아직 확정되지 않았어요.');
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return t('maintenance.screen.estimatedUnknown', '예상 종료 시간은 아직 확정되지 않았어요.');
+  }
+
+  return t('maintenance.screen.estimatedPrefix', '예상 종료') + `: ${date.toLocaleString()}`;
+}
+
 export default function AdminScreen({ onNavigate, token, user }) {
+  const { t } = useLanguage();
+
   // Access Guard check inside component
   if (!user || user.role !== 'ADMIN') {
     return (
@@ -32,7 +77,10 @@ export default function AdminScreen({ onNavigate, token, user }) {
     );
   }
 
-  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'reports' | 'logs'
+  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'reports' | 'logs' | 'preview'
+  const scrollViewRef = useRef(null);
+  const actionPanelTitleRef = useRef(null);
+  const [actionPanelY, setActionPanelY] = useState(null);
 
   // Data States
   const [users, setUsers] = useState([]);
@@ -46,6 +94,25 @@ export default function AdminScreen({ onNavigate, token, user }) {
   const [actionReason, setActionReason] = useState('');
   const [actionStatus, setActionStatus] = useState('SUSPENDED'); // For user status updates
   const [submitting, setSubmitting] = useState(false);
+  const [maintenance, setMaintenance] = useState(null);
+  const [maintenanceDraft, setMaintenanceDraft] = useState({
+    enabled: false,
+    title: '',
+    message: '',
+    estimatedEndAt: ''
+  });
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
+  const [maintenanceFeedback, setMaintenanceFeedback] = useState('');
+  const [maintenanceError, setMaintenanceError] = useState('');
+  const [noticeDraft, setNoticeDraft] = useState({
+    level: 'info',
+    message: '',
+    title: ''
+  });
+  const [noticeSending, setNoticeSending] = useState(false);
+  const [noticeFeedback, setNoticeFeedback] = useState('');
+  const [noticeError, setNoticeError] = useState('');
 
   // Load Data
   async function loadData(keepMessage = false) {
@@ -53,6 +120,10 @@ export default function AdminScreen({ onNavigate, token, user }) {
     if (!keepMessage) {
       setErrorMsg('');
       setSuccessMsg('');
+    }
+    if (activeTab === 'preview') {
+      setLoading(false);
+      return;
     }
     try {
       const reportsPromise = getAdminReports(token);
@@ -74,9 +145,91 @@ export default function AdminScreen({ onNavigate, token, user }) {
     }
   }
 
+  function applyMaintenanceDraft(nextMaintenance) {
+    setMaintenance(nextMaintenance);
+    setMaintenanceDraft({
+      enabled: Boolean(nextMaintenance?.enabled),
+      title: nextMaintenance?.title || '',
+      message: nextMaintenance?.message || '',
+      estimatedEndAt: nextMaintenance?.estimatedEndAt
+        ? new Date(nextMaintenance.estimatedEndAt).toISOString().slice(0, 16)
+        : ''
+    });
+  }
+
+  async function loadMaintenance(keepMessage = false) {
+    setMaintenanceLoading(true);
+    if (!keepMessage) {
+      setMaintenanceFeedback('');
+      setMaintenanceError('');
+    }
+
+    try {
+      const result = await getAdminMaintenance(token);
+      applyMaintenanceDraft(result.maintenance);
+    } catch (err) {
+      setMaintenanceError(err.message || t('admin.maintenance.errors.load', '점검 상태를 불러오지 못했습니다.'));
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  }
+
+  async function handleSaveMaintenance() {
+    setMaintenanceSaving(true);
+    setMaintenanceFeedback('');
+    setMaintenanceError('');
+
+    try {
+      const payload = {
+        enabled: Boolean(maintenanceDraft.enabled),
+        title: maintenanceDraft.title.trim(),
+        message: maintenanceDraft.message.trim(),
+        estimatedEndAt: maintenanceDraft.estimatedEndAt
+          ? new Date(maintenanceDraft.estimatedEndAt).toISOString()
+          : null
+      };
+      const result = await updateAdminMaintenance(token, payload);
+
+      applyMaintenanceDraft(result.maintenance);
+      setMaintenanceFeedback(t('admin.maintenance.messages.saved', '점검 모드 설정을 저장했습니다.'));
+    } catch (err) {
+      setMaintenanceError(err.message || t('admin.maintenance.errors.save', '점검 모드 설정 저장에 실패했습니다.'));
+    } finally {
+      setMaintenanceSaving(false);
+    }
+  }
+
+  async function handleSendNotice() {
+    setNoticeSending(true);
+    setNoticeFeedback('');
+    setNoticeError('');
+
+    try {
+      await sendAdminNotice(token, {
+        level: noticeDraft.level,
+        title: noticeDraft.title.trim(),
+        message: noticeDraft.message.trim()
+      });
+      setNoticeFeedback(t('admin.notice.messages.sent', '실시간 공지를 전송했습니다.'));
+      setNoticeDraft((draft) => ({
+        ...draft,
+        message: '',
+        title: ''
+      }));
+    } catch (err) {
+      setNoticeError(err.message || t('admin.notice.errors.send', '실시간 공지 전송에 실패했습니다.'));
+    } finally {
+      setNoticeSending(false);
+    }
+  }
+
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  useEffect(() => {
+    loadMaintenance();
+  }, []);
 
   // Handle User Status Change
   async function handleUserStatusUpdate() {
@@ -167,6 +320,49 @@ export default function AdminScreen({ onNavigate, token, user }) {
     }
   }
 
+  function getStatusDescription(status) {
+    switch (status) {
+      case 'ACTIVE':
+        return t('admin.userStatus.description.ACTIVE', '로그인과 서비스 이용이 모두 가능한 정상 운영 상태입니다.');
+      case 'SUSPENDED':
+        return t('admin.userStatus.description.SUSPENDED', '운영자가 일시적으로 이용을 제한한 상태입니다. 사유 입력을 권장합니다.');
+      case 'DEACTIVATED':
+        return t('admin.userStatus.description.DEACTIVATED', '탈퇴 또는 비활성 처리된 계정 상태입니다. 일반 서비스 이용이 제한됩니다.');
+      default:
+        return '';
+    }
+  }
+
+  function openUserStatusPanel(item) {
+    setActionTarget({ type: 'user', data: item });
+    setActionStatus(item.status);
+    setActionReason('');
+  }
+
+  useEffect(() => {
+    if (!actionTarget || actionPanelY === null) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollTo?.({
+        y: Math.max(actionPanelY - 18, 0),
+        animated: true
+      });
+
+      try {
+        const targetNode = findNodeHandle(actionPanelTitleRef.current);
+        if (targetNode) {
+          AccessibilityInfo.setAccessibilityFocus(targetNode);
+        }
+      } catch {
+        // Web fallback: scrolling alone keeps the selected panel visible.
+      }
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [actionTarget, actionPanelY]);
+
   function renderEmptyState(title, description) {
     return (
       <View style={styles.emptyState}>
@@ -183,8 +379,100 @@ export default function AdminScreen({ onNavigate, token, user }) {
     );
   }
 
+  function renderPreviewTab() {
+    const maintenanceTitle = maintenanceDraft.title.trim() || t('maintenance.screen.title', '사각사각 업데이트 중');
+    const maintenanceMessage = maintenanceDraft.message.trim()
+      || t('maintenance.screen.message', '더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.');
+    const estimatedText = formatPreviewEstimatedEnd(maintenanceDraft.estimatedEndAt, t);
+    const noticeTitle = noticeDraft.title.trim() || t('realtime.notice.title', '실시간 공지');
+    const noticeMessage = noticeDraft.message.trim()
+      || t('admin.notice.form.messagePlaceholder', '잠시 후 서비스 업데이트가 시작됩니다.');
+    const noticeLevelStyle = noticePreviewLevelStyles[noticeDraft.level] || noticePreviewLevelStyles.info;
+
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>{t('admin.preview.title', '점검·공지 미리보기')}</Text>
+            <Text style={styles.sectionDescription}>
+              {t(
+                'admin.preview.description',
+                '현재 입력한 점검 문구와 공지 내용을 저장 또는 전송 없이 미리 확인합니다.'
+              )}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.previewGrid}>
+          <View style={styles.previewPanel}>
+            <Text style={styles.previewEyebrow}>{t('admin.preview.maintenanceEyebrow', '사용자 점검 화면')}</Text>
+            <Text style={styles.previewPanelTitle}>{t('admin.preview.maintenanceTitle', '점검 화면 미리보기')}</Text>
+            <View style={styles.maintenancePreviewCard}>
+              <View style={styles.previewLogo}>
+                <Text style={styles.previewLogoText}>사</Text>
+              </View>
+              <View style={[
+                styles.previewStatusPill,
+                maintenanceDraft.enabled ? styles.previewStatusPillOn : styles.previewStatusPillOff
+              ]}>
+                <View style={[
+                  styles.previewStatusDot,
+                  maintenanceDraft.enabled ? styles.previewStatusDotOn : styles.previewStatusDotOff
+                ]} />
+                <Text style={[
+                  styles.previewStatusText,
+                  maintenanceDraft.enabled ? styles.previewStatusTextOn : styles.previewStatusTextOff
+                ]}>
+                  {maintenanceDraft.enabled
+                    ? t('admin.maintenance.statusOn', '점검 모드 ON')
+                    : t('admin.maintenance.statusOff', '정상 운영 중')}
+                </Text>
+              </View>
+              <Text style={styles.previewMaintenanceTitle}>{maintenanceTitle}</Text>
+              <Text style={styles.previewMaintenanceMessage}>{maintenanceMessage}</Text>
+              <View style={styles.previewEstimatedBox}>
+                <Text style={styles.previewEstimatedLabel}>{t('maintenance.screen.estimatedLabel', '점검 안내')}</Text>
+                <Text style={styles.previewEstimatedText}>{estimatedText}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.previewPanel}>
+            <Text style={styles.previewEyebrow}>{t('admin.preview.noticeEyebrow', '사용자 공지 배너')}</Text>
+            <Text style={styles.previewPanelTitle}>{t('admin.preview.noticeTitle', '실시간 공지 미리보기')}</Text>
+            <View
+              accessibilityRole="alert"
+              style={[
+                styles.noticePreviewCard,
+                {
+                  backgroundColor: noticeLevelStyle.surfaceColor,
+                  borderColor: noticeLevelStyle.borderColor
+                }
+              ]}
+            >
+              <View style={[styles.noticePreviewDot, { backgroundColor: noticeLevelStyle.dotColor }]} />
+              <View style={styles.noticePreviewCopy}>
+                <Text style={styles.noticePreviewTitle}>{noticeTitle}</Text>
+                <Text style={styles.noticePreviewMessage}>{noticeMessage}</Text>
+              </View>
+              <View style={styles.noticePreviewClose}>
+                <Text style={styles.noticePreviewCloseText}>×</Text>
+              </View>
+            </View>
+            <Text style={styles.previewNote}>
+              {t(
+                'admin.preview.noticeNote',
+                '미리보기는 실제 WebSocket broadcast를 호출하지 않습니다.'
+              )}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -222,6 +510,14 @@ export default function AdminScreen({ onNavigate, token, user }) {
             활동 로그
           </Text>
         </Pressable>
+        <Pressable
+          onPress={() => { setActiveTab('preview'); setActionTarget(null); }}
+          style={(state) => [styles.tabButton, activeTab === 'preview' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'preview' && styles.tabButtonTextActive]}>
+            {t('admin.preview.tab', '미리보기')}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Success/Error Alerts */}
@@ -237,10 +533,265 @@ export default function AdminScreen({ onNavigate, token, user }) {
         </View>
       ) : null}
 
+      <View style={styles.maintenancePanel}>
+        <View style={styles.maintenanceHeader}>
+          <View>
+            <Text style={styles.maintenanceEyebrow}>
+              {t('admin.maintenance.eyebrow', '서비스 상태')}
+            </Text>
+            <Text style={styles.maintenanceTitle}>
+              {t('admin.maintenance.title', '점검 모드 제어')}
+            </Text>
+            <Text style={styles.maintenanceDescription}>
+              {t(
+                'admin.maintenance.description',
+                '일반 사용자는 점검 화면을 보지만, ADMIN은 로그인 후 관리자 화면에 접근할 수 있습니다.'
+              )}
+            </Text>
+          </View>
+          <View style={[
+            styles.maintenanceStatusBadge,
+            maintenanceDraft.enabled ? styles.maintenanceStatusOn : styles.maintenanceStatusOff
+          ]}>
+            <Text style={[
+              styles.maintenanceStatusText,
+              maintenanceDraft.enabled ? styles.maintenanceStatusTextOn : styles.maintenanceStatusTextOff
+            ]}>
+              {maintenanceDraft.enabled
+                ? t('admin.maintenance.statusOn', '점검 모드 ON')
+                : t('admin.maintenance.statusOff', '정상 운영 중')}
+            </Text>
+          </View>
+        </View>
+
+        {maintenanceError ? (
+          <View style={styles.maintenanceErrorBox}>
+            <Text style={styles.alertText}>{maintenanceError}</Text>
+          </View>
+        ) : null}
+        {maintenanceFeedback ? (
+          <View style={styles.maintenanceSuccessBox}>
+            <Text style={styles.alertText}>{maintenanceFeedback}</Text>
+          </View>
+        ) : null}
+
+        {maintenanceLoading ? (
+          <PanelSkeleton rows={2} />
+        ) : (
+          <>
+            <View style={styles.maintenanceToggleRow}>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: maintenanceDraft.enabled }}
+                onPress={() => setMaintenanceDraft((draft) => ({ ...draft, enabled: !draft.enabled }))}
+                style={(state) => [
+                  styles.maintenanceToggle,
+                  maintenanceDraft.enabled && styles.maintenanceToggleActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <View style={[
+                  styles.maintenanceToggleKnob,
+                  maintenanceDraft.enabled && styles.maintenanceToggleKnobActive
+                ]} />
+                <Text style={[
+                  styles.maintenanceToggleText,
+                  maintenanceDraft.enabled && styles.maintenanceToggleTextActive
+                ]}>
+                  {maintenanceDraft.enabled
+                    ? t('admin.maintenance.turnOff', '점검 모드 끄기')
+                    : t('admin.maintenance.turnOn', '점검 모드 켜기')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => loadMaintenance(true)}
+                style={(state) => [styles.refreshBtn, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.refreshBtnText}>
+                  {t('admin.maintenance.reload', '상태 다시 불러오기')}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.maintenanceFormGrid}>
+              <View style={styles.maintenanceField}>
+                <Text style={styles.inputLabel}>{t('admin.maintenance.form.title', '점검 제목')}</Text>
+                <AccessibleTextInput
+                  accessibilityLabel={t('admin.maintenance.form.title', '점검 제목')}
+                  onChangeText={(value) => setMaintenanceDraft((draft) => ({ ...draft, title: value }))}
+                  placeholder={t('admin.maintenance.form.titlePlaceholder', '사각사각 업데이트 중')}
+                  style={styles.maintenanceInput}
+                  value={maintenanceDraft.title}
+                />
+              </View>
+              <View style={styles.maintenanceField}>
+                <Text style={styles.inputLabel}>{t('admin.maintenance.form.estimatedEndAt', '예상 종료 시각')}</Text>
+                <AccessibleTextInput
+                  accessibilityLabel={t('admin.maintenance.form.estimatedEndAt', '예상 종료 시각')}
+                  onChangeText={(value) => setMaintenanceDraft((draft) => ({ ...draft, estimatedEndAt: value }))}
+                  placeholder="2026-05-29T22:00"
+                  style={styles.maintenanceInput}
+                  value={maintenanceDraft.estimatedEndAt}
+                />
+              </View>
+            </View>
+
+            <View style={styles.maintenanceField}>
+              <Text style={styles.inputLabel}>{t('admin.maintenance.form.message', '점검 안내 문구')}</Text>
+              <AccessibleTextInput
+                accessibilityLabel={t('admin.maintenance.form.message', '점검 안내 문구')}
+                multiline
+                numberOfLines={3}
+                onChangeText={(value) => setMaintenanceDraft((draft) => ({ ...draft, message: value }))}
+                placeholder={t(
+                  'admin.maintenance.form.messagePlaceholder',
+                  '더 좋은 학습 경험을 준비하고 있어요. 조금만 기다려주세요.'
+                )}
+                style={[styles.maintenanceInput, styles.maintenanceMessageInput]}
+                value={maintenanceDraft.message}
+              />
+            </View>
+
+            <View style={styles.maintenanceActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={maintenanceSaving || !maintenanceDraft.title.trim() || !maintenanceDraft.message.trim()}
+                onPress={handleSaveMaintenance}
+                style={(state) => [
+                  styles.maintenanceSaveButton,
+                  (maintenanceSaving || !maintenanceDraft.title.trim() || !maintenanceDraft.message.trim()) && styles.disabledBtn,
+                  ...interactiveStateStyles(state, {
+                    disabled: maintenanceSaving || !maintenanceDraft.title.trim() || !maintenanceDraft.message.trim()
+                  })
+                ]}
+              >
+                {maintenanceSaving ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={styles.maintenanceSaveText}>
+                    {t('admin.maintenance.save', '점검 설정 저장')}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </>
+        )}
+      </View>
+
+      <View style={styles.maintenancePanel}>
+        <View style={styles.maintenanceHeader}>
+          <View>
+            <Text style={styles.maintenanceEyebrow}>
+              {t('admin.notice.eyebrow', '실시간 broadcast')}
+            </Text>
+            <Text style={styles.maintenanceTitle}>
+              {t('admin.notice.title', '관리자 실시간 공지')}
+            </Text>
+            <Text style={styles.maintenanceDescription}>
+              {t(
+                'admin.notice.description',
+                '접속 중인 사용자에게 WebSocket으로 즉시 표시되는 공지를 보냅니다. 공지 내용은 자동 번역하지 않습니다.'
+              )}
+            </Text>
+          </View>
+          <View style={[styles.maintenanceStatusBadge, styles.maintenanceStatusOff]}>
+            <Text style={[styles.maintenanceStatusText, styles.maintenanceStatusTextOff]}>
+              {t('admin.notice.status', '즉시 전송')}
+            </Text>
+          </View>
+        </View>
+
+        {noticeError ? (
+          <View style={styles.maintenanceErrorBox}>
+            <Text style={styles.alertText}>{noticeError}</Text>
+          </View>
+        ) : null}
+        {noticeFeedback ? (
+          <View style={styles.maintenanceSuccessBox}>
+            <Text style={styles.alertText}>{noticeFeedback}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.noticeLevelRow}>
+          {['info', 'success', 'warning', 'danger'].map((level) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: noticeDraft.level === level }}
+              key={level}
+              onPress={() => setNoticeDraft((draft) => ({ ...draft, level }))}
+              style={(state) => [
+                styles.noticeLevelButton,
+                noticeDraft.level === level && styles.noticeLevelButtonActive,
+                ...interactiveStateStyles(state)
+              ]}
+            >
+              <Text style={[
+                styles.noticeLevelText,
+                noticeDraft.level === level && styles.noticeLevelTextActive
+              ]}>
+                {t(`admin.notice.level.${level}`, level)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.maintenanceFormGrid}>
+          <View style={styles.maintenanceField}>
+            <Text style={styles.inputLabel}>{t('admin.notice.form.title', '공지 제목')}</Text>
+            <AccessibleTextInput
+              accessibilityLabel={t('admin.notice.form.title', '공지 제목')}
+              onChangeText={(value) => setNoticeDraft((draft) => ({ ...draft, title: value }))}
+              placeholder={t('admin.notice.form.titlePlaceholder', '공지')}
+              style={styles.maintenanceInput}
+              value={noticeDraft.title}
+            />
+          </View>
+          <View style={styles.maintenanceField}>
+            <Text style={styles.inputLabel}>{t('admin.notice.form.message', '공지 메시지')}</Text>
+            <AccessibleTextInput
+              accessibilityLabel={t('admin.notice.form.message', '공지 메시지')}
+              multiline
+              numberOfLines={3}
+              onChangeText={(value) => setNoticeDraft((draft) => ({ ...draft, message: value }))}
+              placeholder={t('admin.notice.form.messagePlaceholder', '잠시 후 서비스 업데이트가 시작됩니다.')}
+              style={[styles.maintenanceInput, styles.maintenanceMessageInput]}
+              value={noticeDraft.message}
+            />
+          </View>
+        </View>
+
+        <View style={styles.maintenanceActions}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={noticeSending || !noticeDraft.title.trim() || !noticeDraft.message.trim()}
+            onPress={handleSendNotice}
+            style={(state) => [
+              styles.maintenanceSaveButton,
+              (noticeSending || !noticeDraft.title.trim() || !noticeDraft.message.trim()) && styles.disabledBtn,
+              ...interactiveStateStyles(state, {
+                disabled: noticeSending || !noticeDraft.title.trim() || !noticeDraft.message.trim()
+              })
+            ]}
+          >
+            {noticeSending ? (
+              <ActivityIndicator color={colors.surface} size="small" />
+            ) : (
+              <Text style={styles.maintenanceSaveText}>
+                {t('admin.notice.send', '공지 보내기')}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      </View>
+
       {/* Action / Input Form Panel (Dynamic Modal) */}
       {actionTarget && (
-        <View style={styles.modalPanel}>
-          <Text style={styles.modalTitle}>
+        <View
+          onLayout={(event) => setActionPanelY(event.nativeEvent.layout.y)}
+          style={styles.modalPanel}
+        >
+          <Text ref={actionPanelTitleRef} accessibilityRole="header" style={styles.modalTitle}>
             {actionTarget.type === 'user' && `${actionTarget.data.name}님 상태 변경`}
             {actionTarget.type === 'post' && `게시글 #${actionTarget.data.id} 관리 조치 (${actionTarget.actionType === 'HIDE' ? '삭제' : '유지'})`}
             {actionTarget.type === 'comment' && `댓글 #${actionTarget.data.id} 관리 조치 (${actionTarget.actionType === 'DELETE' ? '삭제' : '유지'})`}
@@ -248,10 +799,24 @@ export default function AdminScreen({ onNavigate, token, user }) {
 
           {actionTarget.type === 'user' && (
             <View style={styles.modalSelectGroup}>
+              <View style={styles.selectedUserSummary}>
+                <Text style={styles.selectedUserLabel}>
+                  {t('admin.userStatus.selectedUser', '선택한 사용자')}
+                </Text>
+                <Text style={styles.selectedUserName}>
+                  {actionTarget.data.name} · {actionTarget.data.loginId}
+                </Text>
+                <Text style={styles.selectedUserMeta}>
+                  {t('admin.userStatus.currentStatus', '현재 상태')}: {getStatusLabel(actionTarget.data.status)}
+                </Text>
+              </View>
               <Text style={styles.inputLabel}>변경할 상태 선택:</Text>
               <View style={styles.radioRow}>
                 {['ACTIVE', 'SUSPENDED', 'DEACTIVATED'].map((status) => (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: actionStatus === status }}
+                    accessibilityLabel={`${getStatusLabel(status)}. ${getStatusDescription(status)}`}
                     key={status}
                     onPress={() => setActionStatus(status)}
                     style={(state) => [
@@ -266,6 +831,9 @@ export default function AdminScreen({ onNavigate, token, user }) {
                   </Pressable>
                 ))}
               </View>
+              <Text style={styles.statusDescriptionText}>
+                {getStatusDescription(actionStatus)}
+              </Text>
             </View>
           )}
 
@@ -339,7 +907,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       <View style={styles.userCardHeader}>
                         <View>
                           <Text style={styles.userCardName}>{item.name}</Text>
-                          <Text style={styles.userCardEmail}>{item.email}</Text>
+                          <Text style={styles.userCardLoginId}>{item.loginId}</Text>
                         </View>
                         <View style={[styles.badge, getStatusStyle(item.status)]}>
                           <Text style={[styles.badgeText, getStatusTextStyle(item.status)]}>{getStatusLabel(item.status)}</Text>
@@ -348,11 +916,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       <View style={styles.userCardFooter}>
                         <Text style={styles.roleText}>권한: {item.role}</Text>
                         <Pressable
-                          onPress={() => {
-                            setActionTarget({ type: 'user', data: item });
-                            setActionStatus(item.status);
-                            setActionReason('');
-                          }}
+                          onPress={() => openUserStatusPanel(item)}
                           style={(state) => [styles.actionBtn, ...interactiveStateStyles(state)]}
                         >
                           <Text style={styles.actionBtnText}>상태 변경</Text>
@@ -390,7 +954,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       <Text style={styles.reportTitle}>{item.title}</Text>
                       <Text style={styles.reportContent}>{item.content}</Text>
                       <View style={styles.reportInfoRow}>
-                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.email})</Text>
+                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.loginId})</Text>
                       </View>
                       <View style={styles.reportActions}>
                         <Pressable
@@ -431,7 +995,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       </View>
                       <Text style={styles.reportContent}>{item.content}</Text>
                       <View style={styles.reportInfoRow}>
-                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.email})</Text>
+                        <Text style={styles.reportMeta}>작성자: {item.user?.name || '알수없음'} ({item.user?.loginId})</Text>
                       </View>
                       <View style={styles.reportActions}>
                         <Pressable
@@ -481,7 +1045,7 @@ export default function AdminScreen({ onNavigate, token, user }) {
                       </View>
                       <View style={styles.logDetails}>
                         <Text style={styles.logInfoText}>대상 ID: {item.targetId} ({item.targetType})</Text>
-                        <Text style={styles.logInfoText}>처리자: {item.admin?.name || '시스템'} ({item.admin?.email || 'System'})</Text>
+                        <Text style={styles.logInfoText}>처리자: {item.admin?.name || '시스템'} ({item.admin?.loginId || 'System'})</Text>
                         <Text style={styles.logReason}>사유: {item.reason}</Text>
                       </View>
                     </View>
@@ -490,6 +1054,8 @@ export default function AdminScreen({ onNavigate, token, user }) {
               )}
             </View>
           )}
+
+          {activeTab === 'preview' && renderPreviewTab()}
         </View>
       )}
     </ScrollView>
@@ -559,6 +1125,7 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 7,
@@ -568,6 +1135,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
+    minWidth: 130,
     minHeight: 47,
     justifyContent: 'center',
     alignItems: 'center',
@@ -612,6 +1180,195 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500'
   },
+  maintenancePanel: {
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: 22,
+    padding: 22,
+    gap: 14,
+    ...shadows.card
+  },
+  maintenanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 14,
+    flexWrap: 'wrap'
+  },
+  maintenanceEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 4
+  },
+  maintenanceTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900'
+  },
+  maintenanceDescription: {
+    maxWidth: 680,
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginTop: 4
+  },
+  maintenanceStatusBadge: {
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 13
+  },
+  maintenanceStatusOn: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning
+  },
+  maintenanceStatusOff: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.mint
+  },
+  maintenanceStatusText: {
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  maintenanceStatusTextOn: {
+    color: colors.warning
+  },
+  maintenanceStatusTextOff: {
+    color: colors.success
+  },
+  maintenanceErrorBox: {
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 13,
+    padding: 12
+  },
+  maintenanceSuccessBox: {
+    backgroundColor: colors.successSoft,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    borderRadius: 13,
+    padding: 12
+  },
+  maintenanceToggleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10
+  },
+  maintenanceToggle: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingLeft: 6,
+    paddingRight: 14,
+    ...interactions.transition
+  },
+  maintenanceToggleActive: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft
+  },
+  maintenanceToggleKnob: {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  maintenanceToggleKnobActive: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warning
+  },
+  maintenanceToggleText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  maintenanceToggleTextActive: {
+    color: colors.warning
+  },
+  noticeLevelRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  noticeLevelButton: {
+    minHeight: 36,
+    justifyContent: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 13,
+    ...interactions.transition
+  },
+  noticeLevelButtonActive: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  noticeLevelText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  noticeLevelTextActive: {
+    color: colors.blueDeep,
+    fontWeight: '900'
+  },
+  maintenanceFormGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+  maintenanceField: {
+    flex: 1,
+    minWidth: 240,
+    gap: 6
+  },
+  maintenanceInput: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 10,
+    fontSize: 14,
+    backgroundColor: colors.surfaceWarm,
+    color: colors.ink
+  },
+  maintenanceMessageInput: {
+    minHeight: 86,
+    textAlignVertical: 'top'
+  },
+  maintenanceActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
+  },
+  maintenanceSaveButton: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    ...interactions.transition
+  },
+  maintenanceSaveText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900'
+  },
   modalPanel: {
     backgroundColor: colors.surface,
     borderWidth: 1.5,
@@ -635,7 +1392,32 @@ const styles = StyleSheet.create({
     paddingBottom: 8
   },
   modalSelectGroup: {
-    gap: 6
+    gap: 8
+  },
+  selectedUserSummary: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    backgroundColor: colors.blueSoft,
+    padding: 12,
+    gap: 4
+  },
+  selectedUserLabel: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  selectedUserName: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 21
+  },
+  selectedUserMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
   },
   inputLabel: {
     fontSize: 13,
@@ -644,11 +1426,13 @@ const styles = StyleSheet.create({
   },
   radioRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 4
   },
   radioButton: {
     flex: 1,
+    minWidth: 116,
     paddingVertical: 8,
     alignItems: 'center',
     borderRadius: 11,
@@ -669,6 +1453,12 @@ const styles = StyleSheet.create({
   radioTextActive: {
     color: colors.mintDeep,
     fontWeight: '700'
+  },
+  statusDescriptionText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
   },
   reasonInput: {
     borderWidth: 1,
@@ -742,6 +1532,188 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.ink
+  },
+  sectionDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 4
+  },
+  previewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14
+  },
+  previewPanel: {
+    flex: 1,
+    minWidth: 280,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    ...shadows.card
+  },
+  previewEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  previewPanelTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  maintenancePreviewCard: {
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingVertical: 24,
+    paddingHorizontal: 18
+  },
+  previewLogo: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  previewLogoText: {
+    color: colors.blueDeep,
+    fontSize: 24,
+    fontWeight: '900'
+  },
+  previewStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    minHeight: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11
+  },
+  previewStatusPillOn: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  previewStatusPillOff: {
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  previewStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999
+  },
+  previewStatusDotOn: {
+    backgroundColor: colors.mintDeep
+  },
+  previewStatusDotOff: {
+    backgroundColor: colors.muted
+  },
+  previewStatusText: {
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  previewStatusTextOn: {
+    color: colors.mintDeep
+  },
+  previewStatusTextOff: {
+    color: colors.muted
+  },
+  previewMaintenanceTitle: {
+    color: colors.ink,
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 32,
+    textAlign: 'center'
+  },
+  previewMaintenanceMessage: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 22,
+    textAlign: 'center'
+  },
+  previewEstimatedBox: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 4
+  },
+  previewEstimatedLabel: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  previewEstimatedText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19
+  },
+  noticePreviewCard: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    ...shadows.card
+  },
+  noticePreviewDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999
+  },
+  noticePreviewCopy: {
+    flex: 1,
+    gap: 4
+  },
+  noticePreviewTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  noticePreviewMessage: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19
+  },
+  noticePreviewClose: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  noticePreviewCloseText: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 22
+  },
+  previewNote: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
   },
   subSectionTitle: {
     fontSize: 15,
@@ -824,7 +1796,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink
   },
-  userCardEmail: {
+  userCardLoginId: {
     fontSize: 13,
     color: colors.muted,
     marginTop: 2

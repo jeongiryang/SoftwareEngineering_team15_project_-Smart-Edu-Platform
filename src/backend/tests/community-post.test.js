@@ -50,10 +50,10 @@ function mockBuildEngagementSummaries(postIds, userId) {
 }
 
 jest.mock('../src/repositories/user.repository', () => ({
-  createUser: jest.fn(async ({ email, name, passwordHash }) => {
+  createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
       id: mockNextUserId,
-      email,
+      loginId,
       name,
       passwordHash,
       role: 'USER',
@@ -65,7 +65,7 @@ jest.mock('../src/repositories/user.repository', () => ({
 
     return user;
   }),
-  findUserByEmail: jest.fn(async (email) => mockUsers.find((user) => user.email === email) || null),
+  findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
   findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null)
 }));
 
@@ -78,6 +78,7 @@ jest.mock('../src/repositories/community.repository', () => ({
       reported: false,
       ...data,
       commentCount: 0,
+      viewCount: data.viewCount || 0,
       createdAt: now,
       updatedAt: now
     };
@@ -112,6 +113,17 @@ jest.mock('../src/repositories/community.repository', () => ({
 
     return post ? mockBuildRepositoryPost(post) : null;
   }),
+  incrementPostViewCount: jest.fn(async (id) => {
+    const post = mockPosts.find((item) => item.id === Number(id));
+
+    if (!post) {
+      return null;
+    }
+
+    post.viewCount = (post.viewCount || 0) + 1;
+
+    return mockBuildRepositoryPost(post);
+  }),
   findPostEngagementSummaries: jest.fn(async (postIds, userId) =>
     mockBuildEngagementSummaries(postIds, userId)
   ),
@@ -126,10 +138,32 @@ jest.mock('../src/repositories/community.repository', () => ({
 
         return (
           post.title.toLowerCase().includes(normalizedSearch) ||
-          post.content.toLowerCase().includes(normalizedSearch)
+          post.content.toLowerCase().includes(normalizedSearch) ||
+          (mockBuildAuthor(post.userId)?.name || '').toLowerCase().includes(normalizedSearch)
         );
       })
       .sort((a, b) => {
+        if (sort === 'views') {
+          const viewDelta = (b.viewCount || 0) - (a.viewCount || 0);
+
+          return viewDelta || b.createdAt.getTime() - a.createdAt.getTime();
+        }
+
+        if (sort === 'comments') {
+          const commentDelta = (b.commentCount || 0) - (a.commentCount || 0);
+
+          return commentDelta || b.createdAt.getTime() - a.createdAt.getTime();
+        }
+
+        if (sort === 'likes') {
+          const likeCount = (post) =>
+            mockReactions.filter((reaction) => reaction.postId === post.id && reaction.type === 'LIKE')
+              .length;
+          const likeDelta = likeCount(b) - likeCount(a);
+
+          return likeDelta || b.createdAt.getTime() - a.createdAt.getTime();
+        }
+
         const direction = sort === 'oldest' ? 1 : -1;
 
         return direction * (a.createdAt.getTime() - b.createdAt.getTime());
@@ -195,7 +229,7 @@ function expectSafePostPayload(payload) {
   expect(serialized).not.toContain('password');
   expect(serialized).not.toContain('token');
   expect(serialized).not.toContain('JWT');
-  expect(serialized).not.toContain('@example.com');
+  expect(serialized).not.toContain('passwordHash');
 }
 
 beforeEach(() => {
@@ -245,10 +279,10 @@ describe('Community Post API', () => {
         title: '미적분 질문',
         content: '극한 문제 풀이가 궁금합니다.',
         commentCount: 0,
-        author: {
+        author: expect.objectContaining({
           id: user.id,
           name: user.name
-        }
+        })
       })
     );
     expectSafePostPayload(response.body);
@@ -481,6 +515,28 @@ describe('Community Post API', () => {
     expect(response.body.pagination.total).toBe(1);
   });
 
+  it('searches community posts by author name', async () => {
+    const author = await registerTestUser({ name: 'Searchable Author' });
+    const other = await registerTestUser({ name: 'Other Member' });
+    const targetPost = await createTestPost(author.token, {
+      title: 'Routine note',
+      content: 'Daily log'
+    });
+    await createTestPost(other.token, {
+      title: 'Different post',
+      content: 'No matching author'
+    });
+
+    const response = await request(app)
+      .get('/api/community/posts?search=searchable')
+      .set(createAuthHeader(author.token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.posts).toHaveLength(1);
+    expect(response.body.posts[0].id).toBe(targetPost.id);
+    expect(response.body.pagination.total).toBe(1);
+  });
+
   it('applies search with category filter and sort options', async () => {
     const { token } = await registerTestUser();
     await createTestPost(token, {
@@ -547,6 +603,46 @@ describe('Community Post API', () => {
     ]);
   });
 
+  it('sorts community posts by likes, views and comments', async () => {
+    const currentUser = await registerTestUser();
+    const otherUser = await registerTestUser();
+    const lowPost = await createTestPost(currentUser.token, { title: 'Low activity' });
+    const likedPost = await createTestPost(currentUser.token, { title: 'Most liked' });
+    const viewedPost = await createTestPost(currentUser.token, { title: 'Most viewed' });
+    const commentedPost = await createTestPost(currentUser.token, { title: 'Most commented' });
+
+    Object.assign(mockPosts.find((post) => post.id === lowPost.id), { viewCount: 3 });
+    Object.assign(mockPosts.find((post) => post.id === likedPost.id), { viewCount: 5 });
+    Object.assign(mockPosts.find((post) => post.id === viewedPost.id), { viewCount: 20 });
+    Object.assign(mockPosts.find((post) => post.id === commentedPost.id), {
+      commentCount: 4,
+      viewCount: 1
+    });
+
+    mockReactions.push(
+      { postId: likedPost.id, userId: currentUser.user.id, type: 'LIKE' },
+      { postId: likedPost.id, userId: otherUser.user.id, type: 'LIKE' },
+      { postId: lowPost.id, userId: otherUser.user.id, type: 'LIKE' }
+    );
+
+    const likesResponse = await request(app)
+      .get('/api/community/posts?sort=likes')
+      .set(createAuthHeader(currentUser.token));
+    const viewsResponse = await request(app)
+      .get('/api/community/posts?sort=views')
+      .set(createAuthHeader(currentUser.token));
+    const commentsResponse = await request(app)
+      .get('/api/community/posts?sort=comments')
+      .set(createAuthHeader(currentUser.token));
+
+    expect(likesResponse.status).toBe(200);
+    expect(likesResponse.body.posts[0].id).toBe(likedPost.id);
+    expect(viewsResponse.status).toBe(200);
+    expect(viewsResponse.body.posts[0].id).toBe(viewedPost.id);
+    expect(commentsResponse.status).toBe(200);
+    expect(commentsResponse.body.posts[0].id).toBe(commentedPost.id);
+  });
+
   it('reads a single community post', async () => {
     const { token } = await registerTestUser();
     const post = await createTestPost(token, {
@@ -566,9 +662,11 @@ describe('Community Post API', () => {
         category: 'STUDY_PROOF',
         title: '학습 인증',
         content: '오늘 공부 완료',
-        commentCount: 0
+        commentCount: 0,
+        viewCount: 1
       })
     );
+    expect(communityRepository.incrementPostViewCount).toHaveBeenCalledWith(post.id);
     expectSafePostPayload(response.body);
   });
 
@@ -783,6 +881,14 @@ describe('Community Post repository deletePost', () => {
           content: {
             contains: 'calculus',
             mode: 'insensitive'
+          }
+        },
+        {
+          user: {
+            name: {
+              contains: 'calculus',
+              mode: 'insensitive'
+            }
           }
         }
       ]

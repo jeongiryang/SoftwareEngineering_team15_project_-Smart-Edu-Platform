@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -10,6 +10,10 @@ import {
 } from 'react-native';
 import {
   askAIQuestion,
+  createAIChatMessage,
+  createAIChatRoom,
+  deleteAIChatRoom,
+  getAIChatRooms,
   getAIRecommendation,
   summarizeText,
   analyzeWrongAnswer
@@ -18,6 +22,7 @@ import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
 import ReadableText from '../components/ReadableText';
 import { PanelSkeleton } from '../components/Skeleton';
+import { useAccessibility } from '../contexts/AccessibilityContext';
 import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -26,47 +31,33 @@ const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/g
 const MAX_REVIEW_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_REVIEW_FILE_TYPES = [...SUPPORTED_IMAGE_TYPES, 'application/pdf'];
 const AI_MOCK_MODE_STORAGE_KEY = 'smartEdu.aiMockMode';
-const AI_CHAT_ROOMS_STORAGE_KEY = 'smartEdu.aiChatRooms';
-
-function createDefaultChatRoom() {
-  return {
-    id: `room-${Date.now()}`,
-    title: '새 AI 대화',
-    messages: [],
-    updatedAt: new Date().toISOString()
-  };
-}
-
-function readStoredChatRooms() {
-  try {
-    const rawValue = globalThis.localStorage?.getItem(AI_CHAT_ROOMS_STORAGE_KEY);
-    const parsed = rawValue ? JSON.parse(rawValue) : null;
-
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed
-        .filter((room) => room && typeof room.id === 'string')
-        .map((room) => ({
-          id: room.id,
-          title: room.title || 'AI 대화',
-          messages: Array.isArray(room.messages) ? room.messages : [],
-          updatedAt: room.updatedAt || new Date().toISOString()
-        }))
-        .slice(0, 8);
-    }
-  } catch (error) {
-    // Ignore malformed browser storage and fall back to a clean session.
+const AI_AUDIO_BRIEFING_READING_ID = 'ai-audio-briefing';
+const SPEECH_LANG_BY_LANGUAGE = {
+  ko: 'ko-KR',
+  en: 'en-US',
+  ja: 'ja-JP',
+  zh: 'zh-CN'
+};
+const VOICE_LABEL_BY_LANGUAGE = {
+  ADULT_MALE: {
+    ko: '차분한 낮은 톤',
+    en: 'calm low tone',
+    ja: '落ち着いた低めの声',
+    zh: '沉稳低音'
+  },
+  ADULT_FEMALE: {
+    ko: '또렷한 기본 톤',
+    en: 'clear default tone',
+    ja: 'はっきりした標準の声',
+    zh: '清晰默认音色'
+  },
+  CHILD_FRIENDLY: {
+    ko: '밝은 친근한 톤',
+    en: 'bright friendly tone',
+    ja: '明るく親しみやすい声',
+    zh: '明快亲切音色'
   }
-
-  return [createDefaultChatRoom()];
-}
-
-function writeStoredChatRooms(rooms) {
-  try {
-    globalThis.localStorage?.setItem(AI_CHAT_ROOMS_STORAGE_KEY, JSON.stringify(rooms.slice(0, 8)));
-  } catch (error) {
-    // localStorage is unavailable in some native or restricted browser contexts.
-  }
-}
+};
 
 function createRoomTitle(question) {
   const cleanQuestion = String(question || '').replace(/\s+/g, ' ').trim();
@@ -76,6 +67,27 @@ function createRoomTitle(question) {
   }
 
   return cleanQuestion.length > 22 ? `${cleanQuestion.slice(0, 22)}...` : cleanQuestion;
+}
+
+function normalizeChatMessage(message) {
+  return {
+    id: message.id,
+    question: message.question,
+    answer: message.answer,
+    isTruncated: Boolean(message.isTruncated),
+    isMock: Boolean(message.isMock),
+    source: message.source || 'AI_QNA',
+    createdAt: message.createdAt || new Date().toISOString()
+  };
+}
+
+function normalizeChatRoom(room) {
+  return {
+    id: room.id,
+    title: room.title || 'AI 대화',
+    messages: Array.isArray(room.messages) ? room.messages.map(normalizeChatMessage) : [],
+    updatedAt: room.updatedAt || new Date().toISOString()
+  };
 }
 
 function readStoredMockMode() {
@@ -158,6 +170,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `작성한 답: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '작성한 답이 없어 풀이 과정 중심으로 점검합니다.',
       '정답을 바로 외우기보다 왜 그 선택을 했는지 한 단계만 다시 적어 보세요.'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: '브라우저 음성 데모',
+      title: '오늘의 오디오 브리핑',
+      description: '현재 AI 학습 화면의 기록을 짧게 정리해 접근성 목소리 설정으로 읽어줍니다.',
+      play: '브리핑 듣기',
+      stop: '정지',
+      playing: '오디오 브리핑을 재생합니다.',
+      stopped: '오디오 브리핑을 멈췄습니다.',
+      notSupported: '현재 브라우저는 오디오 브리핑 읽어주기를 지원하지 않습니다.',
+      notice: '외부 AI/TTS API를 호출하지 않는 mock/demo 브리핑입니다.',
+      voiceLabel: (voice) => `접근성 목소리 설정: ${voice}`,
+      actionLabel: '오늘의 AI 학습 오디오 브리핑 재생 또는 정지',
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mock 모드가 켜져 있어 외부 AI 호출 없이 데모 응답으로 학습 흐름을 확인 중입니다.' : 'AI 학습 API 흐름을 사용할 준비가 되어 있습니다. 민감정보는 질문에 포함하지 않는 것이 원칙입니다.',
+        chatCount > 0 ? `최근 AI 대화 ${chatCount}개가 이 브리핑에 반영됩니다.` : '아직 AI 질문 기록이 없어 첫 질문부터 가볍게 시작하면 좋습니다.',
+        hasRecommendation ? '맞춤 학습 추천 결과가 있어 오늘의 복습 루틴을 바로 확인할 수 있습니다.' : '맞춤 추천을 한 번 실행하면 오늘의 복습 방향을 더 쉽게 잡을 수 있습니다.',
+        hasSummary ? '문서 요약 결과가 준비되어 있어 핵심 개념을 다시 훑기 좋습니다.' : '긴 글 요약을 사용하면 자료의 핵심 개념을 빠르게 정리할 수 있습니다.',
+        hasWrongAnalysis ? '오답 분석 기록이 있어 헷갈린 풀이 과정을 다시 볼 수 있습니다.' : '오답 원인 분석을 사용하면 취약한 풀이 단계를 확인할 수 있습니다.',
+        hasReviewMock || hasImageInsight ? '첨부 파일 데모 결과는 실제 분석이 아닌 안내용 mock 결과로만 표시됩니다.' : '이미지나 PDF 첨부는 현재 서버 업로드 없이 미리보기와 mock 안내만 제공합니다.'
+      ]
+    },
     errors: {
       token: '로그인 정보가 만료되었을 수 있습니다. 다시 로그인하거나 Mock 모드로 데모 흐름을 확인해 주세요.',
       quota: 'AI 요청 한도나 quota를 초과했을 수 있습니다. 잠시 후 다시 시도하거나 Mock 모드를 켜서 데모를 이어가세요.',
@@ -233,6 +266,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `Your answer: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : 'No answer was entered, so the review focuses on the solving process.',
       'Before memorizing the correct answer, write one step explaining why you chose that answer.'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: 'Browser voice demo',
+      title: "Today's audio briefing",
+      description: 'Summarizes the current AI learning screen and reads it with your accessibility voice setting.',
+      play: 'Play briefing',
+      stop: 'Stop',
+      playing: 'Playing the audio briefing.',
+      stopped: 'Audio briefing stopped.',
+      notSupported: 'This browser does not support audio briefing playback.',
+      notice: 'This is a mock/demo briefing without external AI or TTS API calls.',
+      voiceLabel: (voice) => `Accessibility voice setting: ${voice}`,
+      actionLabel: "Play or stop today's AI learning audio briefing",
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mock mode is on, so the flow uses demo responses without external AI calls.' : 'The AI learning API flow is ready. Do not include sensitive information in prompts.',
+        chatCount > 0 ? `${chatCount} recent AI chat item${chatCount === 1 ? '' : 's'} will be reflected in this briefing.` : 'There are no AI questions yet, so start with one small question.',
+        hasRecommendation ? 'A personalized recommendation is ready for today’s review routine.' : 'Run a recommendation once to make today’s review direction clearer.',
+        hasSummary ? 'A document summary is ready, so you can review the key ideas quickly.' : 'Use long-text summary to organize key ideas from your material.',
+        hasWrongAnalysis ? 'Wrong-answer analysis is ready, so you can revisit the confusing step.' : 'Use wrong-answer analysis to find the weak step in your solution.',
+        hasReviewMock || hasImageInsight ? 'Attachment demo results are shown only as guided mock results, not real analysis.' : 'Image and PDF attachments currently provide preview and mock guidance without server upload.'
+      ]
+    },
     errors: {
       token: 'Your login session may have expired. Log in again or use Mock mode to continue the demo flow.',
       quota: 'The AI request quota or rate limit may have been exceeded. Try again later or enable Mock mode.',
@@ -308,6 +362,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `入力した答え: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '入力した答えがないため、解き方の流れを中心に確認します。',
       '正解を覚える前に、なぜその選択をしたのかを一段階だけ書き直してみましょう。'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: 'ブラウザ音声デモ',
+      title: '今日のオーディオブリーフィング',
+      description: '現在のAI学習画面の記録を短く整理し、アクセシビリティの音声設定で読み上げます。',
+      play: 'ブリーフィングを聞く',
+      stop: '停止',
+      playing: 'オーディオブリーフィングを再生します。',
+      stopped: 'オーディオブリーフィングを停止しました。',
+      notSupported: '現在のブラウザはオーディオブリーフィングの読み上げに対応していません。',
+      notice: '外部AI/TTS APIを呼び出さないmock/demoブリーフィングです。',
+      voiceLabel: (voice) => `アクセシビリティ音声設定: ${voice}`,
+      actionLabel: '今日のAI学習オーディオブリーフィングを再生または停止',
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mockモードがオンのため、外部AI呼び出しなしでデモ応答を使っています。' : 'AI学習APIフローを使う準備ができています。機密情報は質問に含めないことが原則です。',
+        chatCount > 0 ? `最近のAI会話${chatCount}件をこのブリーフィングに反映します。` : 'まだAI質問の記録がないため、小さな質問から始めるとよいです。',
+        hasRecommendation ? 'パーソナル推薦があり、今日の復習ルーティンを確認できます。' : '推薦を一度実行すると、今日の復習方向が見えやすくなります。',
+        hasSummary ? '文書要約が準備されているため、重要概念をすばやく見直せます。' : '長文要約を使うと、資料の重要概念を整理できます。',
+        hasWrongAnalysis ? '誤答分析があり、迷った解き方をもう一度確認できます。' : '誤答原因分析を使うと、弱い解法ステップを確認できます。',
+        hasReviewMock || hasImageInsight ? '添付ファイルのデモ結果は、実際の分析ではなく案内用のMock結果です。' : '画像やPDF添付は現在、サーバーアップロードなしのプレビューとMock案内のみ提供します。'
+      ]
+    },
     errors: {
       token: 'ログイン情報の有効期限が切れた可能性があります。再ログインするか、Mockモードでデモの流れを確認してください。',
       quota: 'AIリクエスト上限またはquotaを超えた可能性があります。しばらくしてから再試行するか、Mockモードをオンにしてください。',
@@ -383,6 +458,27 @@ const AI_LOCALIZED_COPY = {
       userAnswer ? `填写的答案：${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '没有填写答案，因此会以解题过程为中心检查。',
       '不要急着背正确答案，先写下一步你为什么会这样选择。'
     ].join(' '),
+    audioBriefing: {
+      eyebrow: '浏览器语音演示',
+      title: '今日音频简报',
+      description: '把当前 AI 学习页面的记录简短整理，并用无障碍语音设置朗读。',
+      play: '播放简报',
+      stop: '停止',
+      playing: '正在播放音频简报。',
+      stopped: '已停止音频简报。',
+      notSupported: '当前浏览器不支持音频简报朗读。',
+      notice: '这是不调用外部 AI/TTS API 的 mock/demo 简报。',
+      voiceLabel: (voice) => `无障碍语音设置：${voice}`,
+      actionLabel: '播放或停止今日 AI 学习音频简报',
+      lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
+        mockMode ? 'AI Mock 模式已开启，因此会使用演示回复，不调用外部 AI。' : 'AI 学习 API 流程已准备就绪。请不要在问题中包含敏感信息。',
+        chatCount > 0 ? `最近 ${chatCount} 条 AI 对话会反映在这份简报中。` : '目前还没有 AI 提问记录，可以先从一个小问题开始。',
+        hasRecommendation ? '已有个性化推荐，可以直接确认今日复习节奏。' : '执行一次推荐后，今日复习方向会更清楚。',
+        hasSummary ? '已有文档摘要，可以快速回顾核心概念。' : '使用长文摘要可以快速整理资料中的核心概念。',
+        hasWrongAnalysis ? '已有错题分析，可以回顾卡住的解题步骤。' : '使用错题原因分析可以确认薄弱的解题步骤。',
+        hasReviewMock || hasImageInsight ? '附件演示结果只是说明用 mock 结果，不是真实分析。' : '图片和 PDF 附件当前只提供预览和 mock 说明，不会上传到服务器。'
+      ]
+    },
     errors: {
       token: '登录信息可能已过期。请重新登录，或使用 Mock 模式继续演示流程。',
       quota: '可能已超过 AI 请求额度或频率限制。请稍后重试，或开启 Mock 模式继续演示。',
@@ -405,8 +501,124 @@ const AI_LOCALIZED_COPY = {
   }
 };
 
+const AI_CHAT_LAYOUT_COPY = {
+  ko: {
+    title: 'AI 대화방',
+    description: '대화방별 질문 흐름을 저장하고 이어서 확인합니다.',
+    newChat: '새 대화',
+    searchPlaceholder: '대화방 검색',
+    loadingRooms: 'AI 대화방을 불러오는 중입니다.',
+    noRooms: '검색 결과가 없습니다.',
+    messageCount: (count) => `${count}개 대화`,
+    activeMeta: (count) => `${count}개 메시지 저장됨`,
+    deleteRoom: '삭제',
+    deleteCurrent: '현재 대화방 삭제',
+    emptyTitle: '아직 질문 내역이 없습니다.',
+    emptyText: '오늘 헷갈린 개념 하나를 입력하면 대화가 시작됩니다.',
+    readyPrompt: '질문 입력 준비',
+    userLabel: '내 질문',
+    aiLabel: 'AI 답변',
+    mockBadge: 'Mock 응답',
+    truncateBadge: '자동 요약됨',
+    composerTitle: '메시지 입력',
+    composerPlaceholder: '공부하다가 모르는 개념이나 공식, 질문 사항을 입력하세요.',
+    send: '전송',
+    charCount: (current, max) => `${current} / ${max}자`,
+    imageToolsTitle: '첨부·검토 도구',
+    imageToolsDescription: '이미지/OCR/PDF 흐름은 실제 외부 AI 호출 없이 mock/demo로만 확인합니다.'
+  },
+  en: {
+    title: 'AI chat rooms',
+    description: 'Save each question flow by room and continue later.',
+    newChat: 'New chat',
+    searchPlaceholder: 'Search chats',
+    loadingRooms: 'Loading AI chat rooms.',
+    noRooms: 'No matching chat rooms.',
+    messageCount: (count) => `${count} chat item${count === 1 ? '' : 's'}`,
+    activeMeta: (count) => `${count} message${count === 1 ? '' : 's'} saved`,
+    deleteRoom: 'Delete',
+    deleteCurrent: 'Delete current chat',
+    emptyTitle: 'No questions yet.',
+    emptyText: 'Enter one confusing concept to start the conversation.',
+    readyPrompt: 'Prepare a question',
+    userLabel: 'My question',
+    aiLabel: 'AI answer',
+    mockBadge: 'Mock response',
+    truncateBadge: 'Auto summarized',
+    composerTitle: 'Message input',
+    composerPlaceholder: 'Enter a concept, formula, or question you are studying.',
+    send: 'Send',
+    charCount: (current, max) => `${current} / ${max} chars`,
+    imageToolsTitle: 'Attachment and review tools',
+    imageToolsDescription: 'Image, OCR, and PDF flows are checked only with mock/demo results without external AI calls.'
+  },
+  ja: {
+    title: 'AIチャットルーム',
+    description: '質問の流れをルームごとに保存して続けられます。',
+    newChat: '新しい会話',
+    searchPlaceholder: '会話を検索',
+    loadingRooms: 'AIチャットルームを読み込んでいます。',
+    noRooms: '一致する会話がありません。',
+    messageCount: (count) => `${count}件の会話`,
+    activeMeta: (count) => `${count}件のメッセージを保存`,
+    deleteRoom: '削除',
+    deleteCurrent: '現在の会話を削除',
+    emptyTitle: 'まだ質問履歴がありません。',
+    emptyText: '気になる概念を1つ入力すると会話を始められます。',
+    readyPrompt: '質問を準備',
+    userLabel: '自分の質問',
+    aiLabel: 'AI回答',
+    mockBadge: 'Mock応答',
+    truncateBadge: '自動要約',
+    composerTitle: 'メッセージ入力',
+    composerPlaceholder: '学習中に分からない概念、公式、質問を入力してください。',
+    send: '送信',
+    charCount: (current, max) => `${current} / ${max}字`,
+    imageToolsTitle: '添付・確認ツール',
+    imageToolsDescription: '画像/OCR/PDFの流れは外部AI呼び出しなしのmock/demoとして確認します。'
+  },
+  zh: {
+    title: 'AI 对话房间',
+    description: '按房间保存提问流程，并可继续查看。',
+    newChat: '新对话',
+    searchPlaceholder: '搜索对话',
+    loadingRooms: '正在加载 AI 对话房间。',
+    noRooms: '没有匹配的对话房间。',
+    messageCount: (count) => `${count} 条对话`,
+    activeMeta: (count) => `已保存 ${count} 条消息`,
+    deleteRoom: '删除',
+    deleteCurrent: '删除当前对话',
+    emptyTitle: '还没有提问记录。',
+    emptyText: '输入一个不清楚的概念即可开始对话。',
+    readyPrompt: '准备提问',
+    userLabel: '我的问题',
+    aiLabel: 'AI 回答',
+    mockBadge: 'Mock 回复',
+    truncateBadge: '自动摘要',
+    composerTitle: '消息输入',
+    composerPlaceholder: '输入学习中不清楚的概念、公式或问题。',
+    send: '发送',
+    charCount: (current, max) => `${current} / ${max} 字`,
+    imageToolsTitle: '附件与检查工具',
+    imageToolsDescription: '图片、OCR、PDF 流程仅以 mock/demo 结果确认，不调用外部 AI。'
+  }
+};
+
 function getAILocalizedCopy(language) {
   return AI_LOCALIZED_COPY[language] || AI_LOCALIZED_COPY.ko;
+}
+
+function getAIChatLayoutCopy(language) {
+  return AI_CHAT_LAYOUT_COPY[language] || AI_CHAT_LAYOUT_COPY.ko;
+}
+
+function getSpeechLanguage(language) {
+  return SPEECH_LANG_BY_LANGUAGE[language] || SPEECH_LANG_BY_LANGUAGE.ko;
+}
+
+function getVoiceLabel(voiceType, language) {
+  const labels = VOICE_LABEL_BY_LANGUAGE[voiceType] || VOICE_LABEL_BY_LANGUAGE.ADULT_FEMALE;
+  return labels[language] || labels.ko;
 }
 
 function getImageAttachmentFeedback({ attachment, error, language }) {
@@ -517,13 +729,9 @@ function getAIErrorMessage(error, language) {
 
 export default function AILearningScreen({ onNavigate, token, user }) {
   const { currentLanguage } = useLanguage();
+  const { reading, speakText, stopSpeech, voiceType } = useAccessibility();
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
   const previewUrlRef = useRef(null);
-  const initialChatRoomsRef = useRef(null);
-
-  if (!initialChatRoomsRef.current) {
-    initialChatRoomsRef.current = readStoredChatRooms();
-  }
 
   // Loading, Success & Error States
   const [loading, setLoading] = useState(false);
@@ -539,9 +747,11 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
   // Tab 1: AI 학습 질의 (Q&A) States
   const [questionInput, setQuestionInput] = useState('');
-  const [chatRooms, setChatRooms] = useState(initialChatRoomsRef.current);
-  const [activeChatRoomId, setActiveChatRoomId] = useState(initialChatRoomsRef.current[0]?.id);
-  const [recentQnaList, setRecentQnaList] = useState(initialChatRoomsRef.current[0]?.messages || []); // [{ question, answer, isTruncated }]
+  const [chatRooms, setChatRooms] = useState([]);
+  const [activeChatRoomId, setActiveChatRoomId] = useState(null);
+  const [recentQnaList, setRecentQnaList] = useState([]); // [{ question, answer, isTruncated }]
+  const [isChatRoomsLoading, setIsChatRoomsLoading] = useState(false);
+  const [chatRoomSearch, setChatRoomSearch] = useState('');
 
   // Tab 2: 맞춤 학습 추천 (Recommendation) States
   const [recommendationResult, setRecommendationResult] = useState(null); // { recommendedSubject, tips }
@@ -574,8 +784,48 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   }, [isMockMode]);
 
   useEffect(() => {
-    writeStoredChatRooms(chatRooms);
-  }, [chatRooms]);
+    let ignore = false;
+
+    async function loadChatRooms() {
+      if (!token) {
+        return;
+      }
+
+      setIsChatRoomsLoading(true);
+
+      try {
+        const result = await getAIChatRooms(token);
+        let nextRooms = (result.chatRooms || []).map(normalizeChatRoom);
+
+        if (nextRooms.length === 0) {
+          const created = await createAIChatRoom(token);
+          nextRooms = [normalizeChatRoom(created.chatRoom)];
+        }
+
+        if (ignore) {
+          return;
+        }
+
+        setChatRooms(nextRooms);
+        setActiveChatRoomId(nextRooms[0]?.id || null);
+        setRecentQnaList(nextRooms[0]?.messages || []);
+      } catch (error) {
+        if (!ignore) {
+          setErrorMsg('AI 대화방을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        }
+      } finally {
+        if (!ignore) {
+          setIsChatRoomsLoading(false);
+        }
+      }
+    }
+
+    loadChatRooms();
+
+    return () => {
+      ignore = true;
+    };
+  }, [token]);
 
   useEffect(() => () => {
     if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
@@ -740,36 +990,76 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     setSuccessMsg(getAILocalizedCopy(currentLanguage).reviewResultSuccess);
   }
 
-  function addQnaEntry(entry) {
-    const normalizedEntry = {
-      id: `qna-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: new Date().toISOString(),
-      ...entry
-    };
+  async function addQnaEntry(entry) {
+    if (!activeChatRoomId) {
+      throw new Error('AI chat room is not ready');
+    }
 
-    setRecentQnaList((prev) => [normalizedEntry, ...prev]);
-    setChatRooms((prevRooms) => prevRooms.map((room) => {
-      if (room.id !== activeChatRoomId) {
-        return room;
-      }
+    const result = await createAIChatMessage(token, activeChatRoomId, {
+      question: entry.question,
+      answer: entry.answer,
+      isTruncated: entry.isTruncated === true,
+      isMock: entry.isMock === true,
+      source: entry.isImageInsight ? 'IMAGE_INSIGHT' : (entry.isMock ? 'MOCK_QNA' : 'AI_QNA'),
+      allowTruncate: true
+    });
+    const nextRoom = normalizeChatRoom(result.chatRoom);
+    const normalizedEntry = normalizeChatMessage(result.message);
 
-      const nextMessages = [normalizedEntry, ...(room.messages || [])].slice(0, 20);
-      return {
-        ...room,
-        title: room.messages?.length ? room.title : createRoomTitle(entry.question),
-        messages: nextMessages,
-        updatedAt: normalizedEntry.createdAt
-      };
-    }));
+    setRecentQnaList(nextRoom.messages);
+    setChatRooms((prevRooms) => {
+      const otherRooms = prevRooms.filter((room) => room.id !== nextRoom.id);
+      return [nextRoom, ...otherRooms].slice(0, 8);
+    });
+
+    return normalizedEntry;
   }
 
-  function createChatRoom() {
-    const nextRoom = createDefaultChatRoom();
-    setChatRooms((prevRooms) => [nextRoom, ...prevRooms].slice(0, 8));
-    setActiveChatRoomId(nextRoom.id);
-    setRecentQnaList([]);
+  async function createChatRoom() {
     resetFeedback();
-    setSuccessMsg('새 AI 대화방을 열었습니다.');
+    setIsChatRoomsLoading(true);
+
+    try {
+      const result = await createAIChatRoom(token);
+      const nextRoom = normalizeChatRoom(result.chatRoom);
+
+      setChatRooms((prevRooms) => [nextRoom, ...prevRooms].slice(0, 8));
+      setActiveChatRoomId(nextRoom.id);
+      setRecentQnaList([]);
+      setSuccessMsg('새 AI 대화방을 열었습니다.');
+    } catch (error) {
+      setErrorMsg('AI 대화방을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsChatRoomsLoading(false);
+    }
+  }
+
+  async function handleDeleteChatRoom(roomId) {
+    resetFeedback();
+
+    try {
+      await deleteAIChatRoom(token, roomId);
+      const remainingRooms = chatRooms.filter((room) => room.id !== roomId);
+
+      if (remainingRooms.length === 0) {
+        const result = await createAIChatRoom(token);
+        const nextRoom = normalizeChatRoom(result.chatRoom);
+        setChatRooms([nextRoom]);
+        setActiveChatRoomId(nextRoom.id);
+        setRecentQnaList([]);
+      } else {
+        setChatRooms(remainingRooms);
+
+        if (roomId === activeChatRoomId) {
+          setActiveChatRoomId(remainingRooms[0].id);
+          setRecentQnaList(remainingRooms[0].messages || []);
+        }
+      }
+
+      setSuccessMsg('AI 대화방을 삭제했습니다.');
+    } catch (error) {
+      setErrorMsg('AI 대화방을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
   }
 
   function selectChatRoom(roomId) {
@@ -783,7 +1073,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     resetFeedback();
   }
 
-  function showMockImageInsight() {
+  async function showMockImageInsight() {
     if (!imageAttachment) {
       setImageUploadError(getAILocalizedCopy(currentLanguage).selectImageFirst);
       return;
@@ -792,13 +1082,19 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     const copy = getAILocalizedCopy(currentLanguage);
 
     resetFeedback();
-    addQnaEntry({
-      question: copy.imageInsightQuestion(imageAttachment.name),
-      answer: copy.imageInsightAnswer,
-      isTruncated: false,
-      isMock: true
-    });
-    setSuccessMsg(copy.imageInsightSuccess);
+
+    try {
+      await addQnaEntry({
+        question: copy.imageInsightQuestion(imageAttachment.name),
+        answer: copy.imageInsightAnswer,
+        isTruncated: false,
+        isImageInsight: true,
+        isMock: true
+      });
+      setSuccessMsg(copy.imageInsightSuccess);
+    } catch (error) {
+      setErrorMsg('AI 대화방에 이미지 안내를 저장하지 못했습니다.');
+    }
   }
 
   // Navigation guard fallback inside the view
@@ -829,7 +1125,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
     try {
       if (isMockMode) {
-        addQnaEntry({
+        await addQnaEntry({
           question: questionText,
           answer: createMockQuestionAnswer(questionText, currentLanguage),
           isTruncated: false,
@@ -847,7 +1143,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       });
 
       const qnaRecord = response.question;
-      addQnaEntry({
+      await addQnaEntry({
         question: qnaRecord.question,
         answer: qnaRecord.answer,
         isTruncated: qnaRecord.isTruncated,
@@ -991,6 +1287,54 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   }
 
   const activeChatRoom = chatRooms.find((room) => room.id === activeChatRoomId) || chatRooms[0];
+  const aiCopy = getAILocalizedCopy(currentLanguage);
+  const chatCopy = getAIChatLayoutCopy(currentLanguage);
+  const filteredChatRooms = useMemo(() => {
+    const query = chatRoomSearch.replace(/\s+/g, ' ').trim().toLowerCase();
+
+    if (!query) {
+      return chatRooms;
+    }
+
+    return chatRooms.filter((room) => {
+      const title = String(room.title || '').toLowerCase();
+      const messagePreview = (room.messages || [])
+        .map((message) => `${message.question || ''} ${message.answer || ''}`)
+        .join(' ')
+        .toLowerCase();
+
+      return title.includes(query) || messagePreview.includes(query);
+    });
+  }, [chatRoomSearch, chatRooms]);
+  const hasImageInsight = recentQnaList.some((item) => item.isImageInsight);
+  const audioBriefingLines = aiCopy.audioBriefing.lines({
+    mockMode: isMockMode,
+    chatCount: recentQnaList.length,
+    hasRecommendation: Boolean(recommendationResult),
+    hasSummary: Boolean(summaryResult),
+    hasWrongAnalysis: Boolean(wrongAnalysisResult),
+    hasReviewMock: Boolean(reviewMockResult),
+    hasImageInsight
+  });
+  const audioBriefingText = audioBriefingLines.join(' ');
+  const isAudioBriefingPlaying = reading.active && reading.id === AI_AUDIO_BRIEFING_READING_ID;
+
+  async function handleAudioBriefingPress() {
+    resetFeedback();
+
+    if (isAudioBriefingPlaying) {
+      stopSpeech();
+      setSuccessMsg(aiCopy.audioBriefing.stopped);
+      return;
+    }
+
+    const started = await speakText(audioBriefingText, {
+      readingId: AI_AUDIO_BRIEFING_READING_ID,
+      lang: getSpeechLanguage(currentLanguage)
+    });
+
+    setSuccessMsg(started ? aiCopy.audioBriefing.playing : aiCopy.audioBriefing.notSupported);
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -1032,6 +1376,43 @@ export default function AILearningScreen({ onNavigate, token, user }) {
             {isMockMode ? 'Mock 사용 중' : 'Mock 켜기'}
           </Text>
         </Pressable>
+      </View>
+
+      <View style={styles.audioBriefingCard}>
+        <View style={styles.audioBriefingHeader}>
+          <View style={styles.audioBriefingCopy}>
+            <Text style={styles.audioBriefingEyebrow}>{aiCopy.audioBriefing.eyebrow}</Text>
+            <Text style={styles.audioBriefingTitle}>{aiCopy.audioBriefing.title}</Text>
+            <Text style={styles.audioBriefingText}>{aiCopy.audioBriefing.description}</Text>
+            <Text style={styles.audioBriefingMeta}>
+              {aiCopy.audioBriefing.voiceLabel(getVoiceLabel(voiceType, currentLanguage))}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={aiCopy.audioBriefing.actionLabel}
+            accessibilityState={{ selected: isAudioBriefingPlaying }}
+            onPress={handleAudioBriefingPress}
+            style={(state) => [
+              styles.audioBriefingButton,
+              isAudioBriefingPlaying && styles.audioBriefingButtonActive,
+              ...interactiveStateStyles(state)
+            ]}
+          >
+            <Text style={[
+              styles.audioBriefingButtonText,
+              isAudioBriefingPlaying && styles.audioBriefingButtonTextActive
+            ]}>
+              {isAudioBriefingPlaying ? aiCopy.audioBriefing.stop : aiCopy.audioBriefing.play}
+            </Text>
+          </Pressable>
+        </View>
+        <View style={styles.audioBriefingLineList}>
+          {audioBriefingLines.map((line) => (
+            <Text key={line} style={styles.audioBriefingLine}>• {line}</Text>
+          ))}
+        </View>
+        <Text style={styles.audioBriefingNotice}>{aiCopy.audioBriefing.notice}</Text>
       </View>
 
       <View style={styles.transparencyPanel}>
@@ -1116,257 +1497,312 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       <View style={styles.panelBody}>
         {/* TAB 1: AI 학습 질의 */}
         {activeTab === 'qna' && (
-          <View style={styles.tabContent}>
-            <View style={styles.chatRoomPanel}>
+          <View style={styles.aiChatShell}>
+            <View style={styles.chatSidebar}>
               <View style={styles.chatRoomHeader}>
-                <View>
-                  <Text style={styles.chatRoomTitle}>AI 대화방</Text>
-                  <Text style={styles.chatRoomDesc}>
-                    최근 질문 흐름을 대화방 단위로 나눠 봅니다. 현재는 브라우저에 저장되는 1차 구조입니다.
-                  </Text>
+                <View style={styles.chatRoomTitleGroup}>
+                  <Text style={styles.chatRoomTitle}>{chatCopy.title}</Text>
+                  <Text style={styles.chatRoomDesc}>{chatCopy.description}</Text>
                 </View>
                 <Pressable
                   accessibilityRole="button"
                   onPress={createChatRoom}
-                  style={(state) => [styles.newChatButton, ...interactiveStateStyles(state)]}
+                  disabled={isChatRoomsLoading}
+                  style={(state) => [styles.newChatButton, ...interactiveStateStyles(state, { disabled: isChatRoomsLoading })]}
                 >
-                  <Text style={styles.newChatButtonText}>새 대화</Text>
+                  <Text style={styles.newChatButtonText}>{chatCopy.newChat}</Text>
                 </Pressable>
               </View>
-              <View style={styles.chatRoomList}>
-                {chatRooms.map((room) => (
-                  <Pressable
-                    key={room.id}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: room.id === activeChatRoomId }}
-                    onPress={() => selectChatRoom(room.id)}
-                    style={(state) => [
-                      styles.chatRoomChip,
-                      room.id === activeChatRoomId && styles.chatRoomChipActive,
-                      ...interactiveStateStyles(state)
-                    ]}
-                  >
-                    <Text style={[styles.chatRoomChipTitle, room.id === activeChatRoomId && styles.chatRoomChipTitleActive]}>
-                      {room.title}
-                    </Text>
-                    <Text style={[styles.chatRoomChipMeta, room.id === activeChatRoomId && styles.chatRoomChipMetaActive]}>
-                      {(room.messages || []).length}개 대화
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.formCard}>
-              <View style={styles.formHeader}>
-                <Text style={styles.formTitle}>AI에게 질문하기</Text>
-                <Text style={styles.charCounter}>
-                  {questionInput.length} / {MAX_QUESTION_LENGTH}자
-                </Text>
-              </View>
               <AccessibleTextInput
-                placeholder="공부하다가 모르는 개념이나 공식, 질문 사항을 입력하세요."
+                value={chatRoomSearch}
+                onChangeText={setChatRoomSearch}
+                placeholder={chatCopy.searchPlaceholder}
                 placeholderTextColor={colors.muted}
-                value={questionInput}
-                onChangeText={setQuestionInput}
-                style={styles.textInput}
-                multiline
-                numberOfLines={4}
-                maxLength={MAX_QUESTION_LENGTH}
-                editable={!loading}
+                style={styles.chatSearchInput}
+                editable={!isChatRoomsLoading}
+                accessibilityLabel={chatCopy.searchPlaceholder}
               />
-
-              <View style={styles.imagePanel}>
-                <View style={styles.imagePanelHeader}>
-                  <View style={styles.imagePanelCopy}>
-                    <Text style={styles.imagePanelTitle}>이미지 첨부 1차 검토</Text>
-                    <Text style={styles.imagePanelText}>
-                      PNG, JPG, WEBP, GIF 파일을 최대 {formatFileSize(MAX_IMAGE_SIZE_BYTES)}까지 미리보기로 첨부할 수 있습니다.
-                    </Text>
-                  </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={openImagePicker}
-                    style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
-                  >
-                    <Text style={styles.imageAttachButtonText}>이미지 선택</Text>
-                  </Pressable>
-                </View>
-
-                <Text style={styles.privacyNotice}>
-                  민감정보가 포함된 사진은 첨부하지 마세요. 현재 이미지는 서버에 저장되지 않고 실제 AI Vision 분석도 수행하지 않습니다.
-                </Text>
-
-                <FieldFeedback {...getImageAttachmentFeedback({ attachment: imageAttachment, error: imageUploadError, language: currentLanguage })} />
-
-                {imageAttachment ? (
-                  <View style={styles.imagePreviewCard}>
-                    <Image source={{ uri: imageAttachment.previewUrl }} style={styles.imagePreview} />
-                    <View style={styles.imageMeta}>
-                      <Text style={styles.imageName}>{imageAttachment.name}</Text>
-                      <Text style={styles.imageInfo}>
-                        {imageAttachment.type} · {formatFileSize(imageAttachment.size)}
-                      </Text>
-                      <Text style={styles.imageMockText}>
-                        이 첨부는 mock/demo 흐름 확인용입니다. 질문 제출 시 이미지 파일은 AI API로 전송되지 않습니다.
-                      </Text>
-                      <View style={styles.imageActionRow}>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={showMockImageInsight}
-                          style={(state) => [styles.imageMockButton, ...interactiveStateStyles(state)]}
-                        >
-                          <Text style={styles.imageMockButtonText}>데모 분석 안내 보기</Text>
-                        </Pressable>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={clearImageAttachment}
-                          style={(state) => [styles.imageRemoveButton, ...interactiveStateStyles(state)]}
-                        >
-                          <Text style={styles.imageRemoveButtonText}>첨부 제거</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  </View>
-                ) : null}
-              </View>
-
-              <View style={styles.reviewPanel}>
-                <View style={styles.imagePanelHeader}>
-                  <View style={styles.imagePanelCopy}>
-                    <Text style={styles.imagePanelTitle}>OCR/PDF 노트·퀴즈 생성 검토</Text>
-                    <Text style={styles.imagePanelText}>
-                      이미지 또는 PDF를 선택해 자동 노트와 퀴즈 생성 흐름을 mock/demo로 확인합니다. 실제 OCR, PDF 파싱, 외부 AI 호출, 서버 업로드는 아직 수행하지 않습니다.
-                    </Text>
-                  </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="OCR PDF 검토 파일 선택"
-                    onPress={openReviewFilePicker}
-                    style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
-                  >
-                    <Text style={styles.imageAttachButtonText}>파일 선택</Text>
-                  </Pressable>
-                </View>
-
-                <Text style={styles.privacyNotice}>
-                  민감정보가 포함된 학습 자료는 첨부하지 마세요. 이번 1차 UI는 Issue #160 검토용이며, 실제 StudyNote/Quiz 저장은 후속 구현 범위입니다.
-                </Text>
-
-                <FieldFeedback {...getReviewAttachmentFeedback({ attachment: reviewAttachment, error: reviewUploadError, language: currentLanguage })} />
-
-                {reviewAttachment ? (
-                  <View style={styles.reviewFileCard}>
-                    {reviewAttachment.previewUrl ? (
-                      <Image source={{ uri: reviewAttachment.previewUrl }} style={styles.imagePreview} />
-                    ) : (
-                      <View style={styles.reviewFileIcon}>
-                        <Text style={styles.reviewFileIconText}>PDF</Text>
-                      </View>
-                    )}
-                    <View style={styles.imageMeta}>
-                      <Text style={styles.imageName}>{reviewAttachment.name}</Text>
-                      <Text style={styles.imageInfo}>
-                        {reviewAttachment.type} · {formatFileSize(reviewAttachment.size)}
-                      </Text>
-                      <Text style={styles.imageMockText}>
-                        파일은 브라우저에서만 선택되며 서버에 업로드되지 않습니다. 아래 버튼은 실제 OCR 결과가 아닌 데모 예시를 보여줍니다.
-                      </Text>
-                      <View style={styles.imageActionRow}>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={showMockReviewResult}
-                          style={(state) => [styles.imageMockButton, ...interactiveStateStyles(state)]}
-                        >
-                          <Text style={styles.imageMockButtonText}>데모 노트·퀴즈 보기</Text>
-                        </Pressable>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={clearReviewAttachment}
-                          style={(state) => [styles.imageRemoveButton, ...interactiveStateStyles(state)]}
-                        >
-                          <Text style={styles.imageRemoveButtonText}>첨부 제거</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  </View>
-                ) : null}
-
-                {reviewMockResult ? (
-                  <View style={styles.reviewResultCard}>
-                    <View style={styles.resultHeaderRow}>
-                      <Text style={styles.summaryCardTitle}>{reviewMockResult.noteTitle}</Text>
-                      <Text style={styles.mockBadge}>Mock 결과</Text>
-                    </View>
-                    <View style={styles.reviewResultSection}>
-                      <Text style={styles.reviewResultSubtitle}>예시 노트 요약</Text>
-                      {reviewMockResult.summary.map((line, index) => (
-                        <Text key={index} style={styles.reviewBullet}>• {line}</Text>
-                      ))}
-                    </View>
-                    <View style={styles.reviewResultSection}>
-                      <Text style={styles.reviewResultSubtitle}>예시 퀴즈</Text>
-                      {reviewMockResult.quizzes.map((quiz, index) => (
-                        <View key={index} style={styles.quizCard}>
-                          <Text style={styles.quizQuestion}>Q{index + 1}. {quiz.question}</Text>
-                          <Text style={styles.quizAnswer}>A. {quiz.answer}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ) : null}
-              </View>
-              <Pressable
-                disabled={loading || !questionInput.trim()}
-                onPress={handleQuestionSubmit}
-                style={(state) => [
-                  styles.submitBtn,
-                  (loading || !questionInput.trim()) && styles.disabledBtn,
-                  ...interactiveStateStyles(state, { disabled: loading || !questionInput.trim() })
-                ]}
-              >
-                {loading ? (
-                  <ActivityIndicator color={colors.surface} size="small" />
+              {isChatRoomsLoading ? (
+                <Text style={styles.chatRoomLoadingText}>{chatCopy.loadingRooms}</Text>
+              ) : null}
+              <ScrollView style={styles.chatRoomList} contentContainerStyle={styles.chatRoomListContent}>
+                {filteredChatRooms.length === 0 ? (
+                  <Text style={styles.chatRoomEmptyText}>{chatCopy.noRooms}</Text>
                 ) : (
-                  <Text style={styles.submitBtnText}>질문 제출하기</Text>
+                  filteredChatRooms.map((room) => {
+                    const selected = room.id === activeChatRoomId;
+                    return (
+                      <Pressable
+                        key={room.id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        onPress={() => selectChatRoom(room.id)}
+                        style={(state) => [
+                          styles.chatRoomChip,
+                          selected && styles.chatRoomChipActive,
+                          ...interactiveStateStyles(state)
+                        ]}
+                      >
+                        <View style={styles.chatRoomChipCopy}>
+                          <Text style={[styles.chatRoomChipTitle, selected && styles.chatRoomChipTitleActive]} numberOfLines={1}>
+                            {room.title}
+                          </Text>
+                          <Text style={[styles.chatRoomChipMeta, selected && styles.chatRoomChipMetaActive]}>
+                            {chatCopy.messageCount((room.messages || []).length)}
+                          </Text>
+                        </View>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`${room.title} ${chatCopy.deleteRoom}`}
+                          onPress={(event) => {
+                            event?.stopPropagation?.();
+                            handleDeleteChatRoom(room.id);
+                          }}
+                          style={(state) => [styles.chatRoomInlineDeleteButton, ...interactiveStateStyles(state)]}
+                        >
+                          <Text style={styles.chatRoomInlineDeleteText}>×</Text>
+                        </Pressable>
+                      </Pressable>
+                    );
+                  })
                 )}
-              </Pressable>
+              </ScrollView>
             </View>
 
-            {/* Q&A Recent List */}
-            <View style={styles.resultSection}>
-              <Text style={styles.resultTitle}>
-                {activeChatRoom?.title || 'AI 대화'} 대화 내역 ({recentQnaList.length})
-              </Text>
-              {recentQnaList.length === 0 ? (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyTitle}>아직 질문 내역이 없습니다.</Text>
-                  <Text style={styles.emptyText}>오늘 헷갈린 개념 하나를 짧게 적으면 답변 흐름을 바로 시작할 수 있습니다.</Text>
+            <View style={styles.chatMain}>
+              <View style={styles.chatMainHeader}>
+                <View style={styles.chatMainTitleGroup}>
+                  <Text style={styles.chatMainTitle}>{activeChatRoom?.title || chatCopy.title}</Text>
+                  <Text style={styles.chatMainMeta}>{chatCopy.activeMeta(recentQnaList.length)}</Text>
+                </View>
+                {activeChatRoom ? (
                   <Pressable
                     accessibilityRole="button"
-                    onPress={() => setQuestionInput('오늘 헷갈린 개념: ')}
-                    style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
+                    onPress={() => handleDeleteChatRoom(activeChatRoom.id)}
+                    style={(state) => [styles.chatRoomDeleteButton, ...interactiveStateStyles(state)]}
                   >
-                    <Text style={styles.emptyActionText}>질문 입력 준비</Text>
+                    <Text style={styles.chatRoomDeleteButtonText}>{chatCopy.deleteCurrent}</Text>
                   </Pressable>
-                </View>
-              ) : (
-                recentQnaList.map((item, idx) => (
-                  <View key={idx} style={styles.qnaCard}>
-                    <View style={styles.qnaHeader}>
-                      <Text style={styles.qnaLabelUser}>Q. 내 질문</Text>
-                      <View style={styles.badgeRow}>
-                        {item.isMock && <Text style={styles.mockBadge}>Mock 응답</Text>}
-                        {item.isTruncated && <Text style={styles.truncateBadge}>자동 요약됨</Text>}
+                ) : null}
+              </View>
+
+              <ScrollView style={styles.messageListPanel} contentContainerStyle={styles.messageListContent}>
+                {recentQnaList.length === 0 ? (
+                  <View style={styles.emptyCard}>
+                    <Text style={styles.emptyTitle}>{chatCopy.emptyTitle}</Text>
+                    <Text style={styles.emptyText}>{chatCopy.emptyText}</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setQuestionInput('오늘 헷갈린 개념: ')}
+                      style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
+                    >
+                      <Text style={styles.emptyActionText}>{chatCopy.readyPrompt}</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  recentQnaList.map((item, idx) => (
+                    <View key={item.id || idx} style={styles.messagePair}>
+                      <View style={[styles.messageBubble, styles.messageBubbleUser]}>
+                        <Text style={styles.qnaLabelUser}>{chatCopy.userLabel}</Text>
+                        <Text style={styles.qnaTextUser}>{item.question}</Text>
+                      </View>
+                      <View style={[styles.messageBubble, styles.messageBubbleAi]}>
+                        <View style={styles.qnaHeader}>
+                          <Text style={styles.qnaLabelAi}>{chatCopy.aiLabel}</Text>
+                          <View style={styles.badgeRow}>
+                            {item.isMock && <Text style={styles.mockBadge}>{chatCopy.mockBadge}</Text>}
+                            {item.isTruncated && <Text style={styles.truncateBadge}>{chatCopy.truncateBadge}</Text>}
+                          </View>
+                        </View>
+                        <ReadableText style={styles.qnaTextAi}>{item.answer}</ReadableText>
                       </View>
                     </View>
-                    <Text style={styles.qnaTextUser}>{item.question}</Text>
-                    <View style={styles.divider} />
-                    <Text style={styles.qnaLabelAi}>A. AI 답변</Text>
-                    <ReadableText style={styles.qnaTextAi}>{item.answer}</ReadableText>
+                  ))
+                )}
+              </ScrollView>
+
+              <View style={styles.chatComposerCard}>
+                <View style={styles.formHeader}>
+                  <Text style={styles.formTitle}>{chatCopy.composerTitle}</Text>
+                  <Text style={styles.charCounter}>
+                    {chatCopy.charCount(questionInput.length, MAX_QUESTION_LENGTH)}
+                  </Text>
+                </View>
+                <AccessibleTextInput
+                  placeholder={chatCopy.composerPlaceholder}
+                  placeholderTextColor={colors.muted}
+                  value={questionInput}
+                  onChangeText={setQuestionInput}
+                  style={styles.chatComposerInput}
+                  multiline
+                  numberOfLines={3}
+                  maxLength={MAX_QUESTION_LENGTH}
+                  editable={!loading}
+                />
+                <Pressable
+                  disabled={loading || isChatRoomsLoading || !activeChatRoomId || !questionInput.trim()}
+                  onPress={handleQuestionSubmit}
+                  style={(state) => [
+                    styles.chatSendButton,
+                    (loading || isChatRoomsLoading || !activeChatRoomId || !questionInput.trim()) && styles.disabledBtn,
+                    ...interactiveStateStyles(state, { disabled: loading || isChatRoomsLoading || !activeChatRoomId || !questionInput.trim() })
+                  ]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={colors.surface} size="small" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>{chatCopy.send}</Text>
+                  )}
+                </Pressable>
+              </View>
+
+              <View style={styles.chatToolPanel}>
+                <View style={styles.chatToolHeader}>
+                  <Text style={styles.imagePanelTitle}>{chatCopy.imageToolsTitle}</Text>
+                  <Text style={styles.imagePanelText}>{chatCopy.imageToolsDescription}</Text>
+                </View>
+
+                <View style={styles.imagePanel}>
+                  <View style={styles.imagePanelHeader}>
+                    <View style={styles.imagePanelCopy}>
+                      <Text style={styles.imagePanelTitle}>이미지 첨부 1차 검토</Text>
+                      <Text style={styles.imagePanelText}>
+                        PNG, JPG, WEBP, GIF 파일을 최대 {formatFileSize(MAX_IMAGE_SIZE_BYTES)}까지 미리보기로 첨부할 수 있습니다.
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={openImagePicker}
+                      style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
+                    >
+                      <Text style={styles.imageAttachButtonText}>이미지 선택</Text>
+                    </Pressable>
                   </View>
-                ))
-              )}
+
+                  <Text style={styles.privacyNotice}>
+                    민감정보가 포함된 사진은 첨부하지 마세요. 현재 이미지는 서버에 저장되지 않고 실제 AI Vision 분석도 수행하지 않습니다.
+                  </Text>
+
+                  <FieldFeedback {...getImageAttachmentFeedback({ attachment: imageAttachment, error: imageUploadError, language: currentLanguage })} />
+
+                  {imageAttachment ? (
+                    <View style={styles.imagePreviewCard}>
+                      <Image source={{ uri: imageAttachment.previewUrl }} style={styles.imagePreview} />
+                      <View style={styles.imageMeta}>
+                        <Text style={styles.imageName}>{imageAttachment.name}</Text>
+                        <Text style={styles.imageInfo}>
+                          {imageAttachment.type} · {formatFileSize(imageAttachment.size)}
+                        </Text>
+                        <Text style={styles.imageMockText}>
+                          이 첨부는 mock/demo 흐름 확인용입니다. 질문 제출 시 이미지 파일은 AI API로 전송되지 않습니다.
+                        </Text>
+                        <View style={styles.imageActionRow}>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={showMockImageInsight}
+                            style={(state) => [styles.imageMockButton, ...interactiveStateStyles(state)]}
+                          >
+                            <Text style={styles.imageMockButtonText}>데모 분석 안내 보기</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={clearImageAttachment}
+                            style={(state) => [styles.imageRemoveButton, ...interactiveStateStyles(state)]}
+                          >
+                            <Text style={styles.imageRemoveButtonText}>첨부 제거</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View style={styles.reviewPanel}>
+                  <View style={styles.imagePanelHeader}>
+                    <View style={styles.imagePanelCopy}>
+                      <Text style={styles.imagePanelTitle}>OCR/PDF 노트·퀴즈 생성 검토</Text>
+                      <Text style={styles.imagePanelText}>
+                        이미지 또는 PDF를 선택해 자동 노트와 퀴즈 생성 흐름을 mock/demo로 확인합니다. 실제 OCR, PDF 파싱, 외부 AI 호출, 서버 업로드는 아직 수행하지 않습니다.
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="OCR PDF 검토 파일 선택"
+                      onPress={openReviewFilePicker}
+                      style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
+                    >
+                      <Text style={styles.imageAttachButtonText}>파일 선택</Text>
+                    </Pressable>
+                  </View>
+
+                  <Text style={styles.privacyNotice}>
+                    민감정보가 포함된 학습 자료는 첨부하지 마세요. 이번 1차 UI는 Issue #160 검토용이며, 실제 StudyNote/Quiz 저장은 후속 구현 범위입니다.
+                  </Text>
+
+                  <FieldFeedback {...getReviewAttachmentFeedback({ attachment: reviewAttachment, error: reviewUploadError, language: currentLanguage })} />
+
+                  {reviewAttachment ? (
+                    <View style={styles.reviewFileCard}>
+                      {reviewAttachment.previewUrl ? (
+                        <Image source={{ uri: reviewAttachment.previewUrl }} style={styles.imagePreview} />
+                      ) : (
+                        <View style={styles.reviewFileIcon}>
+                          <Text style={styles.reviewFileIconText}>PDF</Text>
+                        </View>
+                      )}
+                      <View style={styles.imageMeta}>
+                        <Text style={styles.imageName}>{reviewAttachment.name}</Text>
+                        <Text style={styles.imageInfo}>
+                          {reviewAttachment.type} · {formatFileSize(reviewAttachment.size)}
+                        </Text>
+                        <Text style={styles.imageMockText}>
+                          파일은 브라우저에서만 선택되며 서버에 업로드되지 않습니다. 아래 버튼은 실제 OCR 결과가 아닌 데모 예시를 보여줍니다.
+                        </Text>
+                        <View style={styles.imageActionRow}>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={showMockReviewResult}
+                            style={(state) => [styles.imageMockButton, ...interactiveStateStyles(state)]}
+                          >
+                            <Text style={styles.imageMockButtonText}>데모 노트·퀴즈 보기</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={clearReviewAttachment}
+                            style={(state) => [styles.imageRemoveButton, ...interactiveStateStyles(state)]}
+                          >
+                            <Text style={styles.imageRemoveButtonText}>첨부 제거</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {reviewMockResult ? (
+                    <View style={styles.reviewResultCard}>
+                      <View style={styles.resultHeaderRow}>
+                        <Text style={styles.summaryCardTitle}>{reviewMockResult.noteTitle}</Text>
+                        <Text style={styles.mockBadge}>Mock 결과</Text>
+                      </View>
+                      <View style={styles.reviewResultSection}>
+                        <Text style={styles.reviewResultSubtitle}>예시 노트 요약</Text>
+                        {reviewMockResult.summary.map((line, index) => (
+                          <Text key={index} style={styles.reviewBullet}>• {line}</Text>
+                        ))}
+                      </View>
+                      <View style={styles.reviewResultSection}>
+                        <Text style={styles.reviewResultSubtitle}>예시 퀴즈</Text>
+                        {reviewMockResult.quizzes.map((quiz, index) => (
+                          <View key={index} style={styles.quizCard}>
+                            <Text style={styles.quizQuestion}>Q{index + 1}. {quiz.question}</Text>
+                            <Text style={styles.quizAnswer}>A. {quiz.answer}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -1661,6 +2097,88 @@ const styles = StyleSheet.create({
   mockToggleTextActive: {
     color: colors.surface
   },
+  audioBriefingCard: {
+    gap: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.surfaceWarm,
+    padding: 18,
+    ...shadows.card,
+    ...interactions.transition
+  },
+  audioBriefingHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14
+  },
+  audioBriefingCopy: {
+    flex: 1,
+    minWidth: 260,
+    gap: 6
+  },
+  audioBriefingEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  audioBriefingTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  audioBriefingText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600'
+  },
+  audioBriefingMeta: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800'
+  },
+  audioBriefingButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blueDeep,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  audioBriefingButtonActive: {
+    backgroundColor: colors.blueDeep,
+    borderColor: colors.blueDeep
+  },
+  audioBriefingButtonText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  audioBriefingButtonTextActive: {
+    color: colors.surface
+  },
+  audioBriefingLineList: {
+    gap: 8
+  },
+  audioBriefingLine: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600'
+  },
+  audioBriefingNotice: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
+  },
   transparencyPanel: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1764,6 +2282,23 @@ const styles = StyleSheet.create({
   tabContent: {
     gap: 16
   },
+  aiChatShell: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 16
+  },
+  chatSidebar: {
+    width: 300,
+    maxWidth: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    gap: 12,
+    ...shadows.card,
+    ...interactions.transition
+  },
   chatRoomPanel: {
     backgroundColor: colors.surface,
     borderRadius: 20,
@@ -1780,6 +2315,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12
+  },
+  chatRoomTitleGroup: {
+    flex: 1,
+    minWidth: 160,
+    gap: 4
   },
   chatRoomTitle: {
     color: colors.ink,
@@ -1808,27 +2348,57 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900'
   },
-  chatRoomList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
-  },
-  chatRoomChip: {
-    minHeight: 48,
-    minWidth: 150,
+  chatSearchInput: {
+    minHeight: 42,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 12,
+    color: colors.ink,
+    fontSize: 13
+  },
+  chatRoomLoadingText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  chatRoomList: {
+    maxHeight: 410
+  },
+  chatRoomListContent: {
+    gap: 8,
+    paddingBottom: 4
+  },
+  chatRoomEmptyText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700',
+    paddingVertical: 8
+  },
+  chatRoomChip: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 11,
     paddingVertical: 9,
-    justifyContent: 'center',
-    gap: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
     ...interactions.transition
   },
   chatRoomChipActive: {
     borderColor: colors.mint,
     backgroundColor: colors.mintSoft
+  },
+  chatRoomChipCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3
   },
   chatRoomChipTitle: {
     color: colors.ink,
@@ -1845,6 +2415,148 @@ const styles = StyleSheet.create({
   },
   chatRoomChipMetaActive: {
     color: colors.mintDeep
+  },
+  chatRoomInlineDeleteButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatRoomInlineDeleteText: {
+    color: colors.danger,
+    fontSize: 17,
+    fontWeight: '900',
+    lineHeight: 20
+  },
+  chatRoomDeleteButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: 2,
+    minHeight: 34,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatRoomDeleteButtonText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  chatMain: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: colors.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: 'hidden',
+    ...shadows.card,
+    ...interactions.transition
+  },
+  chatMainHeader: {
+    minHeight: 72,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  chatMainTitleGroup: {
+    flex: 1,
+    minWidth: 220,
+    gap: 4
+  },
+  chatMainTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  chatMainMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  messageListPanel: {
+    minHeight: 320,
+    maxHeight: 560,
+    backgroundColor: colors.cream
+  },
+  messageListContent: {
+    padding: 18,
+    gap: 14
+  },
+  messagePair: {
+    gap: 10
+  },
+  messageBubble: {
+    maxWidth: '88%',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    gap: 7
+  },
+  messageBubbleUser: {
+    alignSelf: 'flex-end',
+    backgroundColor: colors.blueSoft,
+    borderColor: colors.blue
+  },
+  messageBubbleAi: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surface,
+    borderColor: colors.mint
+  },
+  chatComposerCard: {
+    padding: 16,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  chatComposerInput: {
+    minHeight: 76,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 13,
+    color: colors.ink,
+    fontSize: 14,
+    textAlignVertical: 'top'
+  },
+  chatSendButton: {
+    alignSelf: 'flex-end',
+    minWidth: 104,
+    minHeight: 42,
+    backgroundColor: colors.blue,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.blue,
+    ...interactions.transition
+  },
+  chatToolPanel: {
+    padding: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    backgroundColor: colors.surface
+  },
+  chatToolHeader: {
+    gap: 5
   },
   formCard: {
     backgroundColor: colors.surface,

@@ -1,4 +1,6 @@
 const {
+  DEV_AI_CHAT_ROOM_SEEDS,
+  DEV_DIRECT_MESSAGE_THREAD_SEEDS,
   DEV_SEED_PASSWORD,
   DEV_SHOP_ITEMS,
   DEV_SHOP_PURCHASES,
@@ -7,12 +9,15 @@ const {
   looksLikeProductionUrl
 } = require('../scripts/seed-dev');
 
+const fs = require('fs');
+const path = require('path');
+
 describe('development seed script', () => {
   it('defines regular and admin development users only', () => {
     expect(DEV_SEED_USERS).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          email: 'dev.user@example.com',
+          loginId: 'dev_user',
           role: 'USER',
           status: 'ACTIVE',
           profile: expect.objectContaining({
@@ -21,7 +26,7 @@ describe('development seed script', () => {
           })
         }),
         expect.objectContaining({
-          email: 'dev.admin@example.com',
+          loginId: 'admin_user',
           role: 'ADMIN',
           status: 'ACTIVE',
           profile: expect.objectContaining({
@@ -32,6 +37,36 @@ describe('development seed script', () => {
       ])
     );
     expect(DEV_SEED_PASSWORD).toEqual(expect.any(String));
+  });
+
+  it('defines extended demo users required by latest seed modules', () => {
+    const loginIds = DEV_SEED_USERS.map((user) => user.loginId);
+
+    expect(loginIds).toEqual(
+      expect.arrayContaining([
+        'friend_user',
+        'raid_user',
+        'quest_user',
+        'team_user_01',
+        'team_user_02',
+        'team_user_03'
+      ])
+    );
+  });
+
+  it('declares extended reward seed users before reward data uses them', () => {
+    const seedScript = fs.readFileSync(path.join(__dirname, '../scripts/seed-dev.js'), 'utf8');
+    const seedRewardsSection = seedScript.match(
+      /async function seedRewards\(prisma, usersByLoginId\) \{[\s\S]*?\nasync function seedPointShop/
+    )?.[0];
+
+    expect(seedRewardsSection).toEqual(expect.any(String));
+    expect(seedRewardsSection).toContain("const friendUser = usersByLoginId['friend_user'];");
+    expect(seedRewardsSection).toContain("const raidUser = usersByLoginId['raid_user'];");
+    expect(seedRewardsSection).toContain("const questUser = usersByLoginId['quest_user'];");
+    expect(seedRewardsSection).toContain("const teamUser01 = usersByLoginId['team_user_01'];");
+    expect(seedRewardsSection).toContain("const teamUser02 = usersByLoginId['team_user_02'];");
+    expect(seedRewardsSection).toContain("const teamUser03 = usersByLoginId['team_user_03'];");
   });
 
   it('defines default shop seed items for profile customization', () => {
@@ -60,12 +95,61 @@ describe('development seed script', () => {
     expect(DEV_SHOP_PURCHASES).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          email: 'dev.user@example.com',
+          loginId: 'dev_user',
           itemCodes: expect.arrayContaining(['PROFILE_AVATAR_SKY', 'PROFILE_BACKGROUND_DAWN', 'TITLE_EARLY_BIRD'])
         }),
         expect.objectContaining({
-          email: 'dev.reward@example.com',
+          loginId: 'reward_user',
           itemCodes: expect.arrayContaining(['PROFILE_AVATAR_FOREST', 'PROFILE_BACKGROUND_MINT', 'TITLE_TASK_MASTER'])
+        })
+      ])
+    );
+  });
+
+  it('defines demo AI chat room seeds for persisted chat history', () => {
+    expect(DEV_AI_CHAT_ROOM_SEEDS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          loginId: 'dev_user',
+          title: expect.any(String),
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              question: expect.any(String),
+              answer: expect.any(String),
+              source: 'AI_QNA',
+              isMock: true
+            })
+          ])
+        }),
+        expect.objectContaining({
+          loginId: 'quest_user',
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              source: 'AI_QNA',
+              isMock: true
+            })
+          ])
+        })
+      ])
+    );
+  });
+
+  it('defines demo direct message threads with unread states', () => {
+    expect(DEV_DIRECT_MESSAGE_THREAD_SEEDS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          participants: ['dev_user', 'study_peer'],
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              senderLoginId: 'study_peer',
+              content: expect.any(String)
+            })
+          ]),
+          unreadForLoginIds: expect.arrayContaining(['dev_user'])
+        }),
+        expect.objectContaining({
+          participants: ['community_user', 'quest_user'],
+          unreadForLoginIds: expect.arrayContaining(['community_user'])
         })
       ])
     );

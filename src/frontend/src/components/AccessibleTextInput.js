@@ -17,6 +17,7 @@ export default function AccessibleTextInput({
   enableVoiceInput = true,
   forceVoiceInput = false,
   onChangeText,
+  rightAccessory,
   secureTextEntry,
   value,
   ...props
@@ -136,8 +137,14 @@ export default function AccessibleTextInput({
             hasVoiceInputResult && styles.voiceInputResult
           ]}
         />
+        {rightAccessory ? (
+          <View style={styles.rightAccessory}>
+            {rightAccessory}
+          </View>
+        ) : null}
         {shouldShowVoiceButton ? (
           <Pressable
+            accessibilityRole="button"
             onPress={listening ? stopListening : startListening}
             style={[styles.voiceButton, listening && styles.voiceButtonActive]}
           >
@@ -175,6 +182,10 @@ const styles = StyleSheet.create({
   },
   flexInput: {
     flex: 1
+  },
+  rightAccessory: {
+    alignSelf: 'stretch',
+    justifyContent: 'center'
   },
   voiceInputResult: {
     backgroundColor: colors.mintSoft,
