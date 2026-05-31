@@ -24,6 +24,43 @@ import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
 import { LanguageProvider, useLanguage, useWebTextLocalization } from './src/i18n';
 import { readIntroAutoPlayEnabled } from './src/constants/introPreference';
 
+const pencilCursorImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgdmlld0JveD0iMCAwIDQ0IDQ0Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0NCAwKSBzY2FsZSgtMSAxKSI+PGcgdHJhbnNmb3JtPSJyb3RhdGUoLTM1IDIyIDIyKSI+PHJlY3QgeD0iOCIgeT0iMTgiIHdpZHRoPSIyMyIgaGVpZ2h0PSI4IiByeD0iMyIgZmlsbD0iIzczQzlCRCIgc3Ryb2tlPSIjMTczQjYzIiBzdHJva2Utd2lkdGg9IjIiLz48cmVjdCB4PSI0IiB5PSIxOCIgd2lkdGg9IjYiIGhlaWdodD0iOCIgcng9IjIiIGZpbGw9IiNGM0Q0QTAiIHN0cm9rZT0iIzE3M0I2MyIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTMxIDE4TDQwIDIyTDMxIDI2WiIgZmlsbD0iI0ZGRjFEOSIgc3Ryb2tlPSIjMTczQjYzIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMzggMjFMNDIgMjJMMzggMjNaIiBmaWxsPSIjMTgzMjQ2Ii8+PC9nPjwvZz48L3N2Zz4=`;
+const globalCursorCss = `
+  [role="button"],
+  [role="button"]:hover,
+  [role="button"]:active,
+  [role="button"]:focus,
+  [role="link"],
+  [role="link"]:hover,
+  [role="link"]:active,
+  [role="checkbox"],
+  [role="switch"],
+  a,
+  a:hover,
+  a:active,
+  button,
+  button:hover,
+  button:active,
+  .sagak-hover-zoom,
+  .sagak-hover-zoom:hover,
+  .sagak-hover-zoom:active,
+  .sagak-report-stack,
+  .sagak-report-stack:hover,
+  .sagak-report-stack:active {
+    cursor: url('${pencilCursorImage}') 2 22, pointer !important;
+  }
+
+  /* Prevent text selection and cursor overriding inside buttons */
+  [role="button"] *,
+  [role="link"] *,
+  a *,
+  button *,
+  .sagak-hover-zoom *,
+  .sagak-report-stack * {
+    cursor: inherit !important;
+  }
+`;
+
 const screens = {
   home: LandingScreen,
   login: LoginScreen,
@@ -465,6 +502,7 @@ function AppChrome({
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <style dangerouslySetInnerHTML={{ __html: globalCursorCss }} />
       <StatusBar
         barStyle={isDarkSurface ? 'light-content' : 'dark-content'}
         backgroundColor={palette.surface}

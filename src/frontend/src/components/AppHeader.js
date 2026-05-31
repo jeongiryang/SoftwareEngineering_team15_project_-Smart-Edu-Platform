@@ -9,6 +9,20 @@ import { readIntroAutoPlayEnabled, saveIntroAutoPlayEnabled } from '../constants
 const icon = require('../assets/sagaksagak-app-icon.png');
 const BGM_ENABLED_STORAGE_KEY = 'sagakLandingBgmEnabled';
 const BGM_TOGGLE_EVENT = 'sagak:bgm-toggle';
+const pencilCursorSvg = encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+    <g transform="translate(44 0) scale(-1 1)">
+      <g transform="rotate(-35 22 22)">
+        <rect x="8" y="18" width="23" height="8" rx="3" fill="#73C9BD" stroke="#173B63" stroke-width="2"/>
+        <rect x="4" y="18" width="6" height="8" rx="2" fill="#F3D4A0" stroke="#173B63" stroke-width="2"/>
+        <path d="M31 18L40 22L31 26Z" fill="#FFF1D9" stroke="#173B63" stroke-width="2"/>
+        <path d="M38 21L42 22L38 23Z" fill="#183246"/>
+      </g>
+    </g>
+  </svg>`
+);
+const pencilCursor = `url("data:image/svg+xml,${pencilCursorSvg}") 38 22, auto`;
+
 function readBgmEnabled() {
   try {
     return globalThis.localStorage?.getItem(BGM_ENABLED_STORAGE_KEY) === 'true';
@@ -155,7 +169,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
                 onClick={() => handleSelectLanguage(lang.code)}
                 style={{
                   padding: '10px 16px',
-                  cursor: 'pointer',
+                  cursor: pencilCursor,
                   borderRadius: '8px',
                   color: isDarkSurface ? '#F8FAFC' : '#15202B',
                   fontWeight: currentLanguage === lang.code ? '700' : '500',
@@ -376,7 +390,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 16,
     padding: 4,
-    cursor: 'pointer',
+    cursor: pencilCursor,
     ...interactions.transition
   },
   brandHover: {
@@ -414,7 +428,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
-    cursor: 'pointer',
+    cursor: pencilCursor,
   },
   navItemActive: {
     backgroundColor: 'rgba(92, 198, 184, 0.1)',
@@ -445,7 +459,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    cursor: 'pointer',
+    cursor: pencilCursor,
     ...interactions.transition
   },
   utilityText: {
@@ -486,7 +500,7 @@ const styles = StyleSheet.create({
   textButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    cursor: 'pointer',
+    cursor: pencilCursor,
     ...interactions.transition
   },
   textButtonText: {
@@ -502,7 +516,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 999,
-    cursor: 'pointer',
+    cursor: pencilCursor,
     ...interactions.transition
   },
   primaryText: {
@@ -517,7 +531,7 @@ const styles = StyleSheet.create({
   },
   hamburgerButton: {
     padding: 8,
-    cursor: 'pointer'
+    cursor: pencilCursor
   },
   drawer: {
     position: 'absolute',
@@ -549,7 +563,7 @@ const styles = StyleSheet.create({
   drawerLoginButton: {
     marginTop: 12,
     paddingVertical: 8,
-    cursor: 'pointer'
+    cursor: pencilCursor
   },
   userLabel: {
     fontSize: 14,

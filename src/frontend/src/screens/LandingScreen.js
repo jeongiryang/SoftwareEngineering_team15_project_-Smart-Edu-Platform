@@ -23,7 +23,8 @@ const pencilCursorSvg = encodeURIComponent(
     </g>
   </svg>`
 );
-const pencilCursorImage = `data:image/svg+xml,${pencilCursorSvg}`;
+const pencilCursorImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgdmlld0JveD0iMCAwIDQ0IDQ0Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0NCAwKSBzY2FsZSgtMSAxKSI+PGcgdHJhbnNmb3JtPSJyb3RhdGUoLTM1IDIyIDIyKSI+PHJlY3QgeD0iOCIgeT0iMTgiIHdpZHRoPSIyMyIgaGVpZ2h0PSI4IiByeD0iMyIgZmlsbD0iIzczQzlCRCIgc3Ryb2tlPSIjMTczQjYzIiBzdHJva2Utd2lkdGg9IjIiLz48cmVjdCB4PSI0IiB5PSIxOCIgd2lkdGg9IjYiIGhlaWdodD0iOCIgcng9IjIiIGZpbGw9IiNGM0Q0QTAiIHN0cm9rZT0iIzE3M0I2MyIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTMxIDE4TDQwIDIyTDMxIDI2WiIgZmlsbD0iI0ZGRjFEOSIgc3Ryb2tlPSIjMTczQjYzIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMzggMjFMNDIgMjJMMzggMjNaIiBmaWxsPSIjMTgzMjQ2Ii8+PC9nPjwvZz48L3N2Zz4=`;
+const pencilCursor = `url('${pencilCursorImage}') 2 22, pointer`;
 const githubSvgStyle = {
   display: 'block',
   flexShrink: 0
@@ -1904,10 +1905,33 @@ function moveHeroSlide(direction) {
 }
 
 const styles = StyleSheet.create({
+  trustCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 24,
+    gap: 20,
+    flex: 1,
+  },
+  projectCardInner: {
+    padding: 24,
+    flex: 1,
+  },
+  recordMainCardInner: {
+    padding: 26,
+    flex: 1,
+  },
+  recordMiniCardInner: {
+    padding: 22,
+    flex: 1,
+  },
+
   trustCardsContainer: {
     gap: 16,
   },
   trustCard: {
+    cursor: pencilCursor,
+    overflow: 'hidden',
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 24,
@@ -2038,6 +2062,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(21, 32, 43, 0.04)',
   },
   planMock: {
+    cursor: pencilCursor,
     width: '100%',
     maxWidth: 400,
   },
@@ -2103,6 +2128,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   chatMock: {
+    cursor: pencilCursor,
     width: '100%',
     padding: 24,
     backgroundColor: '#F8FAFC',
@@ -2178,6 +2204,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   noteMock: {
+    cursor: pencilCursor,
     width: '100%',
     maxWidth: 420,
     backgroundColor: '#FFFDF6',
@@ -3033,6 +3060,7 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   visualCard: {
+    cursor: pencilCursor,
     width: '100%',
     maxWidth: 385,
     minHeight: 430,
@@ -3203,6 +3231,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   projectCard: {
+    cursor: pencilCursor,
     flexGrow: 1,
     flexBasis: 250,
     minWidth: 240,
@@ -3435,6 +3464,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   recordMainCard: {
+    cursor: pencilCursor,
     flex: 1.25,
     minWidth: 290,
     borderRadius: 24,
@@ -3499,9 +3529,11 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   recordMiniCardMint: {
+    cursor: pencilCursor,
     backgroundColor: '#E8FAF6',
   },
   recordMiniCardCream: {
+    cursor: pencilCursor,
     backgroundColor: '#FFF5D6',
   },
   recordMiniLabel: {
