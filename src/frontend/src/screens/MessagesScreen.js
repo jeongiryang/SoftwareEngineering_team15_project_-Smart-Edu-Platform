@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import { PanelSkeleton } from '../components/Skeleton';
@@ -60,7 +60,7 @@ function EmptyPanel({ actionLabel, description, onPress, title }) {
   );
 }
 
-export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token, user }) {
+export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendRealtimeEvent, token, user }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
@@ -72,12 +72,62 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token
   const [busyKey, setBusyKey] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [typingFriendName, setTypingFriendName] = useState('');
+  const lastTypingSentAtRef = useRef(0);
+  const messagesScrollRef = useRef(null);
+  const typingClearTimerRef = useRef(null);
+  const typingStopTimerRef = useRef(null);
 
   const selectedThreadMessages = selectedThread?.messages || [];
   const selectedFriend = selectedThread?.friend || null;
   const acceptedFriends = useMemo(() => friends.map((friendship) => friendship.user).filter(Boolean), [friends]);
   const threadFriendIds = useMemo(() => new Set(threads.map((thread) => Number(thread.friend?.id)).filter(Boolean)), [threads]);
   const availableFriends = acceptedFriends.filter((friend) => !threadFriendIds.has(Number(friend.id)));
+
+  const clearTypingFriend = useCallback(() => {
+    if (typingClearTimerRef.current) {
+      clearTimeout(typingClearTimerRef.current);
+      typingClearTimerRef.current = null;
+    }
+
+    setTypingFriendName('');
+  }, []);
+
+  const sendTypingState = useCallback((isTyping, { force = false } = {}) => {
+    if (!selectedThreadId || typeof sendRealtimeEvent !== 'function') {
+      return false;
+    }
+
+    const now = Date.now();
+    if (isTyping && !force && now - lastTypingSentAtRef.current < 1500) {
+      return false;
+    }
+
+    lastTypingSentAtRef.current = now;
+    return sendRealtimeEvent({
+      type: 'directMessage.typing',
+      payload: {
+        threadId: selectedThreadId,
+        isTyping
+      }
+    });
+  }, [selectedThreadId, sendRealtimeEvent]);
+
+  const scrollMessagesToEnd = useCallback(() => {
+    const scrollRef = messagesScrollRef.current;
+
+    if (!scrollRef?.scrollToEnd) {
+      return;
+    }
+
+    const runScroll = () => scrollRef.scrollToEnd({ animated: true });
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(runScroll);
+    } else {
+      setTimeout(runScroll, 0);
+    }
+  }, []);
 
   const loadThreads = useCallback(async () => {
     if (!token) {
@@ -199,8 +249,73 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token
       if (eventThreadId && eventThreadId === Number(selectedThreadId)) {
         loadSelectedThread(eventThreadId, { markRead: false }).catch(() => {});
       }
+      return;
     }
-  }, [loadSelectedThread, loadThreads, realtimeEvent, selectedThreadId, t, user?.id]);
+
+    if (realtimeEvent.type === 'directMessage.typing') {
+      const eventThreadId = Number(realtimeEvent.payload?.threadId);
+      const eventUserId = Number(realtimeEvent.payload?.userId);
+
+      if (!eventThreadId || eventThreadId !== Number(selectedThreadId) || eventUserId === Number(user?.id)) {
+        return;
+      }
+
+      if (!realtimeEvent.payload?.isTyping) {
+        clearTypingFriend();
+        return;
+      }
+
+      const nextTypingName = getFriendName(selectedFriend);
+      setTypingFriendName(nextTypingName);
+
+      if (typingClearTimerRef.current) {
+        clearTimeout(typingClearTimerRef.current);
+      }
+
+      typingClearTimerRef.current = setTimeout(() => {
+        setTypingFriendName('');
+        typingClearTimerRef.current = null;
+      }, 3500);
+    }
+  }, [clearTypingFriend, loadSelectedThread, loadThreads, realtimeEvent, selectedFriend, selectedThreadId, t, user?.id]);
+
+  useEffect(() => {
+    scrollMessagesToEnd();
+  }, [scrollMessagesToEnd, selectedThreadMessages.length, typingFriendName]);
+
+  useEffect(() => () => {
+    if (typingClearTimerRef.current) {
+      clearTimeout(typingClearTimerRef.current);
+    }
+
+    if (typingStopTimerRef.current) {
+      clearTimeout(typingStopTimerRef.current);
+    }
+  }, []);
+
+  function handleMessageDraftChange(nextDraft) {
+    setMessageDraft(nextDraft);
+
+    if (!selectedThreadId) {
+      return;
+    }
+
+    if (nextDraft.trim()) {
+      sendTypingState(true);
+
+      if (typingStopTimerRef.current) {
+        clearTimeout(typingStopTimerRef.current);
+      }
+
+      typingStopTimerRef.current = setTimeout(() => {
+        sendTypingState(false, { force: true });
+        typingStopTimerRef.current = null;
+      }, 2000);
+      return;
+    }
+
+    sendTypingState(false, { force: true });
+  }
 
   async function handleSelectThread(threadId) {
     if (!threadId || busyKey) {
@@ -210,6 +325,8 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token
     setBusyKey(`select-${threadId}`);
     setError('');
     setNotice('');
+    clearTypingFriend();
+    sendTypingState(false, { force: true });
     setSelectedThreadId(threadId);
 
     try {
@@ -258,6 +375,7 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token
     setBusyKey('send');
     setError('');
     setNotice('');
+    sendTypingState(false, { force: true });
 
     try {
       await sendDirectMessage(token, selectedThreadId, content);
@@ -389,7 +507,12 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token
                 </View>
               </View>
 
-              <View style={styles.messages}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                ref={messagesScrollRef}
+                style={styles.messagesScroll}
+                contentContainerStyle={styles.messages}
+              >
                 {selectedThreadMessages.length ? selectedThreadMessages.map((message) => {
                   const mine = Number(message.senderId) === Number(user?.id);
 
@@ -410,7 +533,16 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token
                     title={t('messages.emptyConversationTitle', '대화가 비어 있습니다.')}
                   />
                 )}
-              </View>
+                {typingFriendName ? (
+                  <View style={styles.typingBubbleRow}>
+                    <View style={styles.typingBubble}>
+                      <Text style={styles.typingText}>
+                        {t('messages.typingIndicator', '사각사각 작성 중...')}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+              </ScrollView>
 
               <View style={styles.composer}>
                 <AccessibleTextInput
@@ -418,7 +550,7 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, token
                   containerStyle={styles.composerInputWrap}
                   enableVoiceInput={false}
                   multiline
-                  onChangeText={setMessageDraft}
+                  onChangeText={handleMessageDraftChange}
                   placeholder={t('messages.composerPlaceholder', '친구에게 보낼 쪽지를 입력하세요.')}
                   style={styles.composerInput}
                   value={messageDraft}
@@ -661,8 +793,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 2
   },
-  messages: {
+  messagesScroll: {
     minHeight: 360,
+    maxHeight: 440
+  },
+  messages: {
+    flexGrow: 1,
+    minHeight: 360,
+    paddingRight: 4,
     gap: 10
   },
   messageBubbleRow: {
@@ -710,6 +848,23 @@ const styles = StyleSheet.create({
   },
   messageTimeMine: {
     color: colors.blueSoft
+  },
+  typingBubbleRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start'
+  },
+  typingBubble: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    paddingHorizontal: 13,
+    paddingVertical: 8
+  },
+  typingText: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900'
   },
   composer: {
     borderTopWidth: 1,

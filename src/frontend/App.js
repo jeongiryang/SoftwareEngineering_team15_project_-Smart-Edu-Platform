@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import AppHeader from './src/components/AppHeader';
 import ConfirmModal from './src/components/ConfirmModal';
@@ -295,6 +295,7 @@ function AppRoot() {
   const [latestRealtimeEvent, setLatestRealtimeEvent] = useState(null);
   const [accountStatusEvent, setAccountStatusEvent] = useState(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const realtimeClientRef = useRef(null);
 
   const activeScreenName = (currentScreen === 'admin' && user?.role !== 'ADMIN') ? 'dashboard' : currentScreen;
   const Screen = screens[activeScreenName] || LandingScreen;
@@ -427,6 +428,14 @@ function AppRoot() {
     }
   }, [refreshMessageUnreadCount]);
 
+  const sendRealtimeEvent = useCallback((message) => {
+    if (!realtimeClientRef.current) {
+      return false;
+    }
+
+    return realtimeClientRef.current.send(message);
+  }, []);
+
   useEffect(() => {
     const realtimeClient = createRealtimeClient({
       getAuthToken: () => token,
@@ -434,10 +443,14 @@ function AppRoot() {
       onStatusChange: setRealtimeStatus
     });
 
+    realtimeClientRef.current = realtimeClient;
     realtimeClient.connect();
 
     return () => {
       realtimeClient.disconnect();
+      if (realtimeClientRef.current === realtimeClient) {
+        realtimeClientRef.current = null;
+      }
     };
   }, [handleRealtimeMessage, token]);
 
@@ -626,6 +639,7 @@ function AppRoot() {
             onNavigate={navigateTo}
             onUserUpdate={setUser}
             realtimeEvent={latestRealtimeEvent}
+            sendRealtimeEvent={sendRealtimeEvent}
             token={token}
             user={user}
           />

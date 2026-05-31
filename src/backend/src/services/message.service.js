@@ -225,7 +225,26 @@ async function markThreadRead(userId, threadId) {
   };
 }
 
+async function getDirectMessageTypingRecipients(userId, threadId) {
+  const id = parsePositiveInteger(threadId, 'threadId');
+  const thread = await messageRepository.findMessageThreadSummaryById(id);
+
+  if (!thread) {
+    throw notFoundError('Direct message thread not found');
+  }
+
+  ensureThreadParticipant(thread, userId);
+  await ensureAcceptedFriendship(userId, getFriendFromThread(thread, userId).id);
+
+  return {
+    threadId: id,
+    senderId: userId,
+    participantIds: getParticipantIds(thread)
+  };
+}
+
 module.exports = {
+  getDirectMessageTypingRecipients,
   getMessageThread,
   listMessageThreads,
   markThreadRead,

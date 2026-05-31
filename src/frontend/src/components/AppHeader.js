@@ -6,6 +6,16 @@ import { colors, interactions, interactiveStateStyles } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 
+function formatUnreadBadge(count) {
+  const numericCount = Math.max(Number(count) || 0, 0);
+
+  if (numericCount > 99) {
+    return '99+';
+  }
+
+  return String(numericCount);
+}
+
 const authenticatedNavGroups = [
   {
     key: 'study',
@@ -56,6 +66,7 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
     ? '고대비'
     : mode === 'dark' ? '다크' : '라이트');
   const displayName = user?.nickname || user?.name || user?.displayName || translateText('사용자');
+  const unreadBadgeText = formatUnreadBadge(messageUnreadCount);
 
   function NavItem({ label, screen }) {
     const active = activeScreen === screen;
@@ -191,7 +202,7 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
           {authenticated ? (
             <>
               <Pressable
-                accessibilityLabel={`${translateText('쪽지')} ${messageUnreadCount > 0 ? `${messageUnreadCount} ${t('messages.unreadCount', '읽지 않음')}` : ''}`}
+                accessibilityLabel={`${translateText('쪽지')} ${messageUnreadCount > 0 ? `${unreadBadgeText} ${t('messages.unreadCount', '읽지 않음')}` : ''}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: activeScreen === 'messages' }}
                 onPress={() => onNavigate('messages')}
@@ -205,9 +216,7 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
                 <MessageIcon active={activeScreen === 'messages'} />
                 {messageUnreadCount > 0 ? (
                   <View style={styles.iconBadge}>
-                    <Text style={styles.iconBadgeText}>
-                      {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
-                    </Text>
+                    <Text style={styles.iconBadgeText}>{unreadBadgeText}</Text>
                   </View>
                 ) : null}
               </Pressable>
