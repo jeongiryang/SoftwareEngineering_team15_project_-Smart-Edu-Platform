@@ -70,6 +70,43 @@ const getMyBossRaidPartiesController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, { parties });
 });
 
+const getMyBossRaidInvitesController = asyncHandler(async (req, res) => {
+  const invites = await bossRaidService.getMyBossRaidInvites(req.user.id);
+
+  sendSuccess(res, 200, { invites });
+});
+
+const getBossRaidPartyInvitesController = asyncHandler(async (req, res) => {
+  const invites = await bossRaidService.getBossRaidPartyInvites(req.user.id, req.params.partyId);
+
+  sendSuccess(res, 200, { invites });
+});
+
+const createBossRaidInviteController = asyncHandler(async (req, res) => {
+  const invite = await bossRaidService.createBossRaidInvite(req.user.id, req.params.partyId, req.body);
+
+  sendCreated(res, { invite });
+});
+
+const acceptBossRaidInviteController = asyncHandler(async (req, res) => {
+  const party = await bossRaidService.acceptBossRaidInvite(req.user.id, req.params.inviteId);
+
+  broadcastBossRaidPartyEvent('bossRaid.progress.updated', party);
+  sendSuccess(res, 200, { party });
+});
+
+const declineBossRaidInviteController = asyncHandler(async (req, res) => {
+  const invite = await bossRaidService.declineBossRaidInvite(req.user.id, req.params.inviteId);
+
+  sendSuccess(res, 200, { invite });
+});
+
+const cancelBossRaidInviteController = asyncHandler(async (req, res) => {
+  const invite = await bossRaidService.cancelBossRaidInvite(req.user.id, req.params.inviteId);
+
+  sendSuccess(res, 200, { invite });
+});
+
 const getBossRaidPartyDetailController = asyncHandler(async (req, res) => {
   const party = await bossRaidService.getBossRaidPartyDetail(req.user.id, req.params.partyId);
 
@@ -88,9 +125,15 @@ const claimBossRaidRewardController = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  acceptBossRaidInvite: acceptBossRaidInviteController,
+  cancelBossRaidInvite: cancelBossRaidInviteController,
   claimBossRaidReward: claimBossRaidRewardController,
+  createBossRaidInvite: createBossRaidInviteController,
   createBossRaidParty: createBossRaidPartyController,
+  declineBossRaidInvite: declineBossRaidInviteController,
   getBossRaidPartyDetail: getBossRaidPartyDetailController,
+  getBossRaidPartyInvites: getBossRaidPartyInvitesController,
+  getMyBossRaidInvites: getMyBossRaidInvitesController,
   getMyBossRaidParties: getMyBossRaidPartiesController,
   joinPublicBossRaidParty: joinPublicBossRaidPartyController,
   joinBossRaidParty: joinBossRaidPartyController,

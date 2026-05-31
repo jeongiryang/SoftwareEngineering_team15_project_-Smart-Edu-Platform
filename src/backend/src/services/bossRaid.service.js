@@ -1,4 +1,5 @@
 const bossRaidRepository = require('../repositories/bossRaid.repository');
+const userRepository = require('../repositories/user.repository');
 const {
   conflictError,
   notFoundError,
@@ -67,6 +68,19 @@ function sanitizeAppearance(user) {
   };
 }
 
+function sanitizeUserSummary(user) {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    loginId: user.loginId,
+    appearance: sanitizeAppearance(user)
+  };
+}
+
 function sanitizeParty(party, currentUserId = null) {
   const remainingHp = Math.max(party.raid.maxHp - party.totalDamage, 0);
   const totalMembers = party.members.length;
@@ -96,6 +110,20 @@ function sanitizeParty(party, currentUserId = null) {
     })),
     contributions: party.contributions.map(sanitizeContribution),
     currentUserContribution: currentContribution ? sanitizeContribution(currentContribution) : null
+  };
+}
+
+function sanitizeInvite(invite, currentUserId = null) {
+  return {
+    id: invite.id,
+    partyId: invite.partyId,
+    status: invite.status,
+    createdAt: invite.createdAt,
+    updatedAt: invite.updatedAt,
+    respondedAt: invite.respondedAt || null,
+    inviter: sanitizeUserSummary(invite.inviter),
+    invitee: sanitizeUserSummary(invite.invitee),
+    party: invite.party ? sanitizeParty(invite.party, currentUserId) : null
   };
 }
 
@@ -194,6 +222,12 @@ function ensurePartyIsJoinable(party) {
 
   if (party.raid.endsAt && party.raid.endsAt < new Date()) {
     throw conflictError('Boss raid is already closed');
+  }
+}
+
+function ensureOwnerCanManageInvites(party, userId) {
+  if (party.ownerId !== userId) {
+    throw conflictError('Only the boss raid party owner can manage invites');
   }
 }
 
@@ -356,6 +390,147 @@ async function joinPublicBossRaidParty(userId, partyId) {
   return sanitizeParty(refreshedParty, userId);
 }
 
+async function getMyBossRaidInvites(userId) {
+  const invites = await bossRaidRepository.findBossRaidInvitesForUser(userId);
+
+  return invites.map((invite) => sanitizeInvite(invite, userId));
+}
+
+async function getBossRaidPartyInvites(userId, partyId) {
+  const id = parsePositiveInteger(partyId, 'partyId');
+  const party = await bossRaidRepository.findBossRaidPartyById(id);
+
+  if (!party) {
+    throw notFoundError('Boss raid party not found');
+  }
+
+  ensureOwnerCanManageInvites(party, userId);
+
+  const invites = await bossRaidRepository.findBossRaidInvitesForParty(id);
+
+  return invites.map((invite) => sanitizeInvite(invite, userId));
+}
+
+async function createBossRaidInvite(userId, partyId, payload = {}) {
+  const id = parsePositiveInteger(partyId, 'partyId');
+  const loginId = normalizeString(payload.loginId);
+
+  if (!loginId) {
+    throw validationError('loginId is required', { field: 'loginId' });
+  }
+
+  const party = await bossRaidRepository.findBossRaidPartyById(id);
+
+  if (!party) {
+    throw notFoundError('Boss raid party not found');
+  }
+
+  ensureOwnerCanManageInvites(party, userId);
+  ensurePartyIsJoinable(party);
+
+  const invitee = await userRepository.findUserByLoginId(loginId);
+
+  if (!invitee) {
+    throw notFoundError('Invitee user not found');
+  }
+
+  if (invitee.id === userId) {
+    throw conflictError('You cannot invite yourself to your own boss raid party');
+  }
+
+  const alreadyMember = party.members.some((member) => member.userId === invitee.id);
+
+  if (alreadyMember) {
+    throw conflictError('User already joined this boss raid party');
+  }
+
+  const existingParty = await bossRaidRepository.findUserBossRaidPartyForRaid(invitee.id, party.raidId);
+
+  if (existingParty) {
+    throw conflictError('User already joined a party for this boss raid');
+  }
+
+  const existingInvite = await bossRaidRepository.findBossRaidInviteForPartyAndUser(id, invitee.id);
+
+  if (existingInvite?.status === 'PENDING') {
+    throw conflictError('Boss raid invite is already pending for this user');
+  }
+
+  const invite = await bossRaidRepository.upsertBossRaidInvite({
+    partyId: id,
+    inviterId: userId,
+    inviteeId: invitee.id
+  });
+
+  return sanitizeInvite(invite, userId);
+}
+
+async function acceptBossRaidInvite(userId, inviteId) {
+  const id = parsePositiveInteger(inviteId, 'inviteId');
+  const invite = await bossRaidRepository.findBossRaidInviteById(id);
+
+  if (!invite || invite.inviteeId !== userId) {
+    throw notFoundError('Boss raid invite not found');
+  }
+
+  if (invite.status !== 'PENDING') {
+    throw conflictError('Boss raid invite is not pending');
+  }
+
+  ensurePartyIsJoinable(invite.party);
+
+  const existingParty = await bossRaidRepository.findUserBossRaidPartyForRaid(userId, invite.party.raidId);
+
+  if (existingParty) {
+    throw conflictError('You already joined a party for this boss raid');
+  }
+
+  const acceptedParty = await bossRaidRepository.acceptBossRaidInvite({
+    inviteId: id,
+    partyId: invite.partyId,
+    userId
+  });
+  const refreshedParty = await recalculatePartyProgressIfNeeded(acceptedParty);
+
+  return sanitizeParty(refreshedParty, userId);
+}
+
+async function declineBossRaidInvite(userId, inviteId) {
+  const id = parsePositiveInteger(inviteId, 'inviteId');
+  const invite = await bossRaidRepository.findBossRaidInviteById(id);
+
+  if (!invite || invite.inviteeId !== userId) {
+    throw notFoundError('Boss raid invite not found');
+  }
+
+  if (invite.status !== 'PENDING') {
+    throw conflictError('Boss raid invite is not pending');
+  }
+
+  const updatedInvite = await bossRaidRepository.updateBossRaidInviteStatus(id, 'DECLINED');
+
+  return sanitizeInvite(updatedInvite, userId);
+}
+
+async function cancelBossRaidInvite(userId, inviteId) {
+  const id = parsePositiveInteger(inviteId, 'inviteId');
+  const invite = await bossRaidRepository.findBossRaidInviteById(id);
+
+  if (!invite) {
+    throw notFoundError('Boss raid invite not found');
+  }
+
+  ensureOwnerCanManageInvites(invite.party, userId);
+
+  if (invite.status !== 'PENDING') {
+    throw conflictError('Only pending boss raid invites can be cancelled');
+  }
+
+  const updatedInvite = await bossRaidRepository.updateBossRaidInviteStatus(id, 'CANCELLED');
+
+  return sanitizeInvite(updatedInvite, userId);
+}
+
 async function getMyBossRaidParties(userId) {
   const parties = await bossRaidRepository.findUserBossRaidParties(userId);
   const refreshedParties = [];
@@ -474,10 +649,16 @@ async function claimBossRaidReward(userId, partyId) {
 }
 
 module.exports = {
+  acceptBossRaidInvite,
+  cancelBossRaidInvite,
   claimBossRaidReward,
   createBossRaidParty,
+  createBossRaidInvite,
+  declineBossRaidInvite,
   getBossRaidPartyDetail,
+  getBossRaidPartyInvites,
   getBossRaids,
+  getMyBossRaidInvites,
   getMyBossRaidParties,
   getPublicBossRaidParties,
   joinPublicBossRaidParty,

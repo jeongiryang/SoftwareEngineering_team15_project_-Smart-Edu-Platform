@@ -376,6 +376,22 @@ export function getMyBossRaidParties(token) {
   });
 }
 
+export function getMyBossRaidInvites(token) {
+  return request('/boss-raids/invites/me', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function getBossRaidPartyInvites(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/invites`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function getPublicBossRaidParties(token, raidId = null) {
   const query = raidId ? `?raidId=${encodeURIComponent(raidId)}` : '';
 
@@ -396,6 +412,16 @@ export function createBossRaidParty(token, payload) {
   });
 }
 
+export function createBossRaidInvite(token, partyId, payload) {
+  return request(`/boss-raids/parties/${partyId}/invites`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
 export function joinBossRaidParty(token, payload) {
   return request('/boss-raids/parties/join', {
     method: 'POST',
@@ -403,6 +429,36 @@ export function joinBossRaidParty(token, payload) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(payload)
+  });
+}
+
+export function acceptBossRaidInvite(token, inviteId) {
+  return request(`/boss-raids/invites/${inviteId}/accept`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function declineBossRaidInvite(token, inviteId) {
+  return request(`/boss-raids/invites/${inviteId}/decline`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function cancelBossRaidInvite(token, inviteId) {
+  return request(`/boss-raids/invites/${inviteId}/cancel`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
   });
 }
 

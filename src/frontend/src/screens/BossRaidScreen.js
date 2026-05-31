@@ -9,10 +9,16 @@ import {
   View
 } from 'react-native';
 import {
+  acceptBossRaidInvite,
+  cancelBossRaidInvite,
   claimBossRaidReward,
+  createBossRaidInvite,
   createBossRaidParty,
+  declineBossRaidInvite,
+  getBossRaidPartyInvites,
   getBossRaidPartyDetail,
   getBossRaids,
+  getMyBossRaidInvites,
   getMyBossRaidParties,
   getPublicBossRaidParties,
   joinPublicBossRaidParty,
@@ -103,12 +109,15 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
   const [raids, setRaids] = useState([]);
   const [parties, setParties] = useState([]);
   const [publicParties, setPublicParties] = useState([]);
+  const [myInvites, setMyInvites] = useState([]);
+  const [partyInvites, setPartyInvites] = useState([]);
   const [selectedRaidId, setSelectedRaidId] = useState(null);
   const [selectedPartyId, setSelectedPartyId] = useState(null);
   const [selectedParty, setSelectedParty] = useState(null);
   const [createPartyName, setCreatePartyName] = useState('');
   const [partyVisibility, setPartyVisibility] = useState('PUBLIC');
   const [joinCode, setJoinCode] = useState('');
+  const [inviteLoginId, setInviteLoginId] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -128,10 +137,11 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       setError('');
 
       try {
-        const [raidResponse, partyResponse, publicPartyResponse] = await Promise.all([
+        const [raidResponse, partyResponse, publicPartyResponse, inviteResponse] = await Promise.all([
           getBossRaids(token),
           getMyBossRaidParties(token),
-          getPublicBossRaidParties(token)
+          getPublicBossRaidParties(token),
+          getMyBossRaidInvites(token)
         ]);
 
         if (!active) {
@@ -141,6 +151,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
         setRaids(raidResponse.raids || []);
         setParties(partyResponse.parties || []);
         setPublicParties(publicPartyResponse.parties || []);
+        setMyInvites(inviteResponse.invites || []);
 
         setSelectedRaidId((currentRaidId) => currentRaidId || raidResponse.raids?.[0]?.id || null);
         setSelectedPartyId((currentPartyId) => currentPartyId || partyResponse.parties?.[0]?.id || null);
@@ -178,6 +189,16 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
 
         if (active) {
           setSelectedParty(response.party);
+
+          if (response.party?.owner?.id === user?.id) {
+            const inviteResponse = await getBossRaidPartyInvites(token, selectedPartyId);
+
+            if (active) {
+              setPartyInvites(inviteResponse.invites || []);
+            }
+          } else {
+            setPartyInvites([]);
+          }
         }
       } catch (detailError) {
         if (active) {
@@ -191,7 +212,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     return () => {
       active = false;
     };
-  }, [selectedPartyId, t, token]);
+  }, [selectedPartyId, t, token, user?.id]);
 
   useEffect(() => {
     if (!realtimeEvent?.type?.startsWith('bossRaid.')) {
@@ -243,14 +264,16 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
   }, [realtimeEvent, selectedPartyId, t]);
 
   async function refreshParties(nextSelectedPartyId = selectedPartyId) {
-    const [partyResponse, publicPartyResponse] = await Promise.all([
+    const [partyResponse, publicPartyResponse, inviteResponse] = await Promise.all([
       getMyBossRaidParties(token),
-      getPublicBossRaidParties(token)
+      getPublicBossRaidParties(token),
+      getMyBossRaidInvites(token)
     ]);
     const nextParties = partyResponse.parties || [];
 
     setParties(nextParties);
     setPublicParties(publicPartyResponse.parties || []);
+    setMyInvites(inviteResponse.invites || []);
 
     if (!nextParties.length) {
       setSelectedPartyId(null);
@@ -335,6 +358,87 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       await refreshParties(response.party.id);
     } catch (joinError) {
       setError(joinError.message || t('bossRaid.errors.joinParty', '?뚰떚 李멸????ㅽ뙣?덉뒿?덈떎.'));
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleSendInvite() {
+    if (!selectedParty || !inviteLoginId.trim()) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await createBossRaidInvite(token, selectedParty.id, {
+        loginId: inviteLoginId.trim()
+      });
+
+      setInviteLoginId('');
+      setMessage(interpolate(
+        t('bossRaid.invites.sent', '{loginId}님에게 보스 레이드 초대를 보냈습니다.'),
+        { loginId: response.invite.invitee?.loginId || inviteLoginId.trim() }
+      ));
+      const inviteResponse = await getBossRaidPartyInvites(token, selectedParty.id);
+      setPartyInvites(inviteResponse.invites || []);
+    } catch (inviteError) {
+      setError(inviteError.message || t('bossRaid.errors.invite', '보스 레이드 초대 처리에 실패했습니다.'));
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleAcceptInvite(inviteId) {
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await acceptBossRaidInvite(token, inviteId);
+
+      setSelectedPartyId(response.party.id);
+      setMessage(interpolate(
+        t('bossRaid.invites.accepted', '"{name}" 파티 초대를 수락했습니다.'),
+        { name: response.party.name }
+      ));
+      await refreshParties(response.party.id);
+    } catch (inviteError) {
+      setError(inviteError.message || t('bossRaid.errors.invite', '보스 레이드 초대 처리에 실패했습니다.'));
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDeclineInvite(inviteId) {
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      await declineBossRaidInvite(token, inviteId);
+      setMyInvites((currentInvites) => currentInvites.filter((invite) => invite.id !== inviteId));
+      setMessage(t('bossRaid.invites.declined', '보스 레이드 초대를 거절했습니다.'));
+    } catch (inviteError) {
+      setError(inviteError.message || t('bossRaid.errors.invite', '보스 레이드 초대 처리에 실패했습니다.'));
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleCancelInvite(inviteId) {
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      await cancelBossRaidInvite(token, inviteId);
+      setPartyInvites((currentInvites) => currentInvites.filter((invite) => invite.id !== inviteId));
+      setMessage(t('bossRaid.invites.cancelled', '보스 레이드 초대를 취소했습니다.'));
+    } catch (inviteError) {
+      setError(inviteError.message || t('bossRaid.errors.invite', '보스 레이드 초대 처리에 실패했습니다.'));
     } finally {
       setActionLoading(false);
     }
@@ -451,6 +555,52 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
           })}
         </View>
       </View>
+
+      {myInvites.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('bossRaid.sections.invites', '받은 보스 레이드 초대')}</Text>
+          <View style={styles.partyList}>
+            {myInvites.map((invite) => (
+              <View key={invite.id} style={styles.inviteCard}>
+                <View style={styles.publicPartyCopy}>
+                  <Text style={styles.partyChipTitle}>{invite.party?.name}</Text>
+                  <Text style={styles.partyChipMeta}>
+                    {invite.party?.raid?.name} · {invite.inviter?.name || invite.inviter?.loginId}
+                  </Text>
+                </View>
+                <View style={styles.inviteActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={actionLoading}
+                    onPress={() => handleAcceptInvite(invite.id)}
+                    style={({ pressed }) => [
+                      styles.secondaryButton,
+                      styles.inviteActionButton,
+                      actionLoading && styles.disabledButton,
+                      pressed && !actionLoading && styles.secondaryButtonPressed
+                    ]}
+                  >
+                    <Text style={styles.secondaryButtonText}>{t('bossRaid.invites.accept', '수락')}</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={actionLoading}
+                    onPress={() => handleDeclineInvite(invite.id)}
+                    style={({ pressed }) => [
+                      styles.dangerOutlineButton,
+                      styles.inviteActionButton,
+                      actionLoading && styles.disabledButton,
+                      pressed && !actionLoading && styles.secondaryButtonPressed
+                    ]}
+                  >
+                    <Text style={styles.dangerOutlineButtonText}>{t('bossRaid.invites.decline', '거절')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.actionRow}>
         <View style={styles.actionPanel}>
@@ -686,6 +836,68 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
               ))}
             </View>
           </View>
+
+          {selectedParty.owner?.id === user?.id && selectedParty.status === 'OPEN' ? (
+            <View style={styles.invitePanel}>
+              <View>
+                <Text style={styles.cardTitle}>{t('bossRaid.invites.manageTitle', '파티 초대 관리')}</Text>
+                <Text style={styles.panelDescription}>
+                  {t('bossRaid.invites.manageDescription', '비공개 파티는 초대받은 사용자나 참여 코드를 가진 사용자만 참가할 수 있습니다.')}
+                </Text>
+              </View>
+              <View style={styles.inviteFormRow}>
+                <TextInput
+                  autoCapitalize="none"
+                  onChangeText={setInviteLoginId}
+                  placeholder={t('bossRaid.invites.loginIdPlaceholder', '초대할 loginId')}
+                  placeholderTextColor={colors.muted}
+                  style={[styles.input, styles.inviteInput]}
+                  value={inviteLoginId}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={actionLoading || !inviteLoginId.trim()}
+                  onPress={handleSendInvite}
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    styles.inviteSendButton,
+                    (actionLoading || !inviteLoginId.trim()) && styles.disabledButton,
+                    pressed && !actionLoading && styles.secondaryButtonPressed
+                  ]}
+                >
+                  <Text style={styles.secondaryButtonText}>{t('bossRaid.invites.send', '초대 보내기')}</Text>
+                </Pressable>
+              </View>
+              {partyInvites.length > 0 ? (
+                <View style={styles.inviteList}>
+                  {partyInvites.map((invite) => (
+                    <View key={`sent-${invite.id}`} style={styles.sentInviteRow}>
+                      <Text style={styles.partyChipMeta}>
+                        {invite.invitee?.name || invite.invitee?.loginId} · {invite.status}
+                      </Text>
+                      {invite.status === 'PENDING' ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          disabled={actionLoading}
+                          onPress={() => handleCancelInvite(invite.id)}
+                          style={({ pressed }) => [
+                            styles.dangerOutlineButton,
+                            styles.inviteCancelButton,
+                            actionLoading && styles.disabledButton,
+                            pressed && !actionLoading && styles.secondaryButtonPressed
+                          ]}
+                        >
+                          <Text style={styles.dangerOutlineButtonText}>{t('bossRaid.invites.cancel', '초대 취소')}</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.partyChipMeta}>{t('bossRaid.invites.emptySent', '아직 보낸 초대가 없습니다.')}</Text>
+              )}
+            </View>
+          ) : null}
 
           <View style={styles.rewardPanel}>
             <View>
@@ -1025,6 +1237,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800'
   },
+  dangerOutlineButton: {
+    minHeight: 48,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  dangerOutlineButtonText: {
+    color: colors.danger,
+    fontSize: 15,
+    fontWeight: '800'
+  },
   partyList: {
     gap: 12
   },
@@ -1045,6 +1271,70 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 220,
     gap: 4
+  },
+  inviteCard: {
+    alignItems: 'center',
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.mintSoft,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  inviteActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  inviteActionButton: {
+    minHeight: 40,
+    minWidth: 86,
+    paddingHorizontal: 12
+  },
+  invitePanel: {
+    borderRadius: radii.card,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.mintDeep,
+    padding: 18,
+    gap: 12
+  },
+  inviteFormRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    alignItems: 'center'
+  },
+  inviteInput: {
+    flex: 1,
+    minWidth: 180
+  },
+  inviteSendButton: {
+    minHeight: 48,
+    minWidth: 130,
+    paddingHorizontal: 14
+  },
+  inviteList: {
+    gap: 8
+  },
+  sentInviteRow: {
+    alignItems: 'center',
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  inviteCancelButton: {
+    minHeight: 34,
+    paddingHorizontal: 12
   },
   partyChip: {
     borderRadius: radii.control,
