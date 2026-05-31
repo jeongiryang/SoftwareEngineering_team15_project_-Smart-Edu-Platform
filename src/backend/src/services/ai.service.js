@@ -7,7 +7,8 @@ const {
   deleteAIChatRoom,
   findAIChatRoomByIdAndUserId,
   findAIChatRoomsByUserId,
-  findStudyNoteByIdAndUserId
+  findStudyNoteByIdAndUserId,
+  updateAIChatRoom
 } = require('../repositories/ai.repository');
 const { findSchedulesByUserId } = require('../repositories/schedule.repository');
 const { findTasksByUserId } = require('../repositories/task.repository');
@@ -250,6 +251,7 @@ function sanitizeAIChatRoom(room) {
   return {
     id: room.id,
     title: room.title || 'AI 대화',
+    isPinned: Boolean(room.isPinned),
     createdAt: room.createdAt,
     updatedAt: room.updatedAt,
     messages: (room.messages || []).map(sanitizeAIChatMessage)
@@ -268,6 +270,44 @@ function normalizeOptionalTitle(payload = {}) {
   }
 
   return title;
+}
+
+function normalizeRequiredChatTitle(payload = {}) {
+  const title = normalizeString(payload.title);
+
+  if (!title) {
+    throw validationError('title is required');
+  }
+
+  if (title.length > MAX_CHAT_TITLE_LENGTH) {
+    throw buildLengthError('title', title.length, MAX_CHAT_TITLE_LENGTH);
+  }
+
+  return title;
+}
+
+function buildAIChatRoomUpdateData(payload = {}) {
+  assertObjectPayload(payload);
+
+  const data = {};
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'title')) {
+    data.title = normalizeRequiredChatTitle(payload);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'isPinned')) {
+    if (typeof payload.isPinned !== 'boolean') {
+      throw validationError('isPinned must be a boolean');
+    }
+
+    data.isPinned = payload.isPinned;
+  }
+
+  if (Object.keys(data).length === 0) {
+    throw validationError('At least one AI chat room field must be provided');
+  }
+
+  return data;
 }
 
 async function listAIChatRooms(userId) {
@@ -323,6 +363,14 @@ async function addAIChatRoomMessage(userId, rawRoomId, payload = {}) {
     message: sanitizeAIChatMessage(result.message),
     chatRoom: sanitizeAIChatRoom(result.room)
   };
+}
+
+async function updateUserAIChatRoom(userId, rawRoomId, payload = {}) {
+  const room = await assertOwnedAIChatRoom(userId, rawRoomId);
+  const data = buildAIChatRoomUpdateData(payload);
+  const updatedRoom = await updateAIChatRoom(room.id, data);
+
+  return sanitizeAIChatRoom(updatedRoom);
 }
 
 async function deleteUserAIChatRoom(userId, rawRoomId) {
@@ -499,5 +547,6 @@ module.exports = {
   addAIChatRoomMessage,
   deleteUserAIChatRoom,
   listAIChatRooms,
+  updateUserAIChatRoom,
   rateLimitMap
 };

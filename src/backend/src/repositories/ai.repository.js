@@ -36,7 +36,10 @@ function findAIChatRoomsByUserId(userId) {
         take: 20
       }
     },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [
+      { isPinned: 'desc' },
+      { updatedAt: 'desc' }
+    ],
     take: 8
   });
 }
@@ -101,6 +104,19 @@ function createAIChatMessage(userId, roomId, data) {
   });
 }
 
+function updateAIChatRoom(roomId, data) {
+  return prisma.aIChatRoom.update({
+    where: { id: roomId },
+    data,
+    include: {
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }
+    }
+  });
+}
+
 function deleteAIChatRoom(roomId) {
   return prisma.aIChatRoom.delete({
     where: { id: roomId }
@@ -153,5 +169,6 @@ module.exports = {
   findAIQuestionsByUserId,
   findAIRecommendationsByUserId,
   findStudyNoteByIdAndUserId,
-  findWrongAnswerNotesByUserId
+  findWrongAnswerNotesByUserId,
+  updateAIChatRoom
 };

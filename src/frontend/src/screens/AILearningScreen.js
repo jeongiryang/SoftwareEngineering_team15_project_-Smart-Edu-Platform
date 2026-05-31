@@ -16,7 +16,8 @@ import {
   getAIChatRooms,
   getAIRecommendation,
   summarizeText,
-  analyzeWrongAnswer
+  analyzeWrongAnswer,
+  updateAIChatRoom
 } from '../services/api';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
@@ -85,9 +86,27 @@ function normalizeChatRoom(room) {
   return {
     id: room.id,
     title: room.title || 'AI 대화',
+    isPinned: Boolean(room.isPinned),
     messages: Array.isArray(room.messages) ? room.messages.map(normalizeChatMessage) : [],
     updatedAt: room.updatedAt || new Date().toISOString()
   };
+}
+
+function sortChatRooms(rooms) {
+  return [...rooms].sort((a, b) => {
+    const pinnedDiff = Number(b.isPinned) - Number(a.isPinned);
+
+    if (pinnedDiff !== 0) {
+      return pinnedDiff;
+    }
+
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+
+function applyChatRoomUpdate(rooms, nextRoom) {
+  const otherRooms = rooms.filter((room) => room.id !== nextRoom.id);
+  return sortChatRooms([nextRoom, ...otherRooms]).slice(0, 8);
 }
 
 function readStoredMockMode() {
@@ -511,8 +530,24 @@ const AI_CHAT_LAYOUT_COPY = {
     noRooms: '검색 결과가 없습니다.',
     messageCount: (count) => `${count}개 대화`,
     activeMeta: (count) => `${count}개 메시지 저장됨`,
+    pinnedRooms: '고정한 대화',
+    recentRooms: '최근 대화',
+    collapseSidebar: '대화방 접기',
+    expandSidebar: '대화방 펼치기',
+    sidebarRailLabel: 'AI 대화방 빠른 메뉴',
+    renameRoom: '이름 변경',
+    renamePlaceholder: '대화방 이름',
+    saveTitle: '저장',
+    cancelEdit: '취소',
+    pinRoom: '상단 고정',
+    unpinRoom: '고정 해제',
+    pinnedBadge: '고정',
     deleteRoom: '삭제',
     deleteCurrent: '현재 대화방 삭제',
+    deleteConfirm: '이 AI 대화방을 삭제할까요?',
+    renameRequired: '대화방 이름을 입력해 주세요.',
+    roomUpdated: 'AI 대화방 설정을 저장했습니다.',
+    roomUpdateFailed: 'AI 대화방 설정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
     emptyTitle: '아직 질문 내역이 없습니다.',
     emptyText: '오늘 헷갈린 개념 하나를 입력하면 대화가 시작됩니다.',
     readyPrompt: '질문 입력 준비',
@@ -536,8 +571,24 @@ const AI_CHAT_LAYOUT_COPY = {
     noRooms: 'No matching chat rooms.',
     messageCount: (count) => `${count} chat item${count === 1 ? '' : 's'}`,
     activeMeta: (count) => `${count} message${count === 1 ? '' : 's'} saved`,
+    pinnedRooms: 'Pinned chats',
+    recentRooms: 'Recent chats',
+    collapseSidebar: 'Collapse chat sidebar',
+    expandSidebar: 'Expand chat sidebar',
+    sidebarRailLabel: 'AI chat quick menu',
+    renameRoom: 'Rename',
+    renamePlaceholder: 'Chat room title',
+    saveTitle: 'Save',
+    cancelEdit: 'Cancel',
+    pinRoom: 'Pin to top',
+    unpinRoom: 'Unpin',
+    pinnedBadge: 'Pinned',
     deleteRoom: 'Delete',
     deleteCurrent: 'Delete current chat',
+    deleteConfirm: 'Delete this AI chat room?',
+    renameRequired: 'Enter a chat room title.',
+    roomUpdated: 'AI chat room settings saved.',
+    roomUpdateFailed: 'Could not save AI chat room settings. Try again shortly.',
     emptyTitle: 'No questions yet.',
     emptyText: 'Enter one confusing concept to start the conversation.',
     readyPrompt: 'Prepare a question',
@@ -561,8 +612,24 @@ const AI_CHAT_LAYOUT_COPY = {
     noRooms: '一致する会話がありません。',
     messageCount: (count) => `${count}件の会話`,
     activeMeta: (count) => `${count}件のメッセージを保存`,
+    pinnedRooms: '固定した会話',
+    recentRooms: '最近の会話',
+    collapseSidebar: '会話一覧を折りたたむ',
+    expandSidebar: '会話一覧を開く',
+    sidebarRailLabel: 'AIチャットのクイックメニュー',
+    renameRoom: '名前を変更',
+    renamePlaceholder: '会話名',
+    saveTitle: '保存',
+    cancelEdit: 'キャンセル',
+    pinRoom: '上部に固定',
+    unpinRoom: '固定を解除',
+    pinnedBadge: '固定',
     deleteRoom: '削除',
     deleteCurrent: '現在の会話を削除',
+    deleteConfirm: 'このAIチャットルームを削除しますか？',
+    renameRequired: '会話名を入力してください。',
+    roomUpdated: 'AIチャットルーム設定を保存しました。',
+    roomUpdateFailed: 'AIチャットルーム設定を保存できませんでした。しばらくしてから再試行してください。',
     emptyTitle: 'まだ質問履歴がありません。',
     emptyText: '気になる概念を1つ入力すると会話を始められます。',
     readyPrompt: '質問を準備',
@@ -586,8 +653,24 @@ const AI_CHAT_LAYOUT_COPY = {
     noRooms: '没有匹配的对话房间。',
     messageCount: (count) => `${count} 条对话`,
     activeMeta: (count) => `已保存 ${count} 条消息`,
+    pinnedRooms: '置顶对话',
+    recentRooms: '最近对话',
+    collapseSidebar: '收起对话侧边栏',
+    expandSidebar: '展开对话侧边栏',
+    sidebarRailLabel: 'AI 对话快捷菜单',
+    renameRoom: '重命名',
+    renamePlaceholder: '对话房间名称',
+    saveTitle: '保存',
+    cancelEdit: '取消',
+    pinRoom: '置顶',
+    unpinRoom: '取消置顶',
+    pinnedBadge: '置顶',
     deleteRoom: '删除',
     deleteCurrent: '删除当前对话',
+    deleteConfirm: '要删除这个 AI 对话房间吗？',
+    renameRequired: '请输入对话房间名称。',
+    roomUpdated: '已保存 AI 对话房间设置。',
+    roomUpdateFailed: '无法保存 AI 对话房间设置。请稍后再试。',
     emptyTitle: '还没有提问记录。',
     emptyText: '输入一个不清楚的概念即可开始对话。',
     readyPrompt: '准备提问',
@@ -752,6 +835,11 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const [recentQnaList, setRecentQnaList] = useState([]); // [{ question, answer, isTruncated }]
   const [isChatRoomsLoading, setIsChatRoomsLoading] = useState(false);
   const [chatRoomSearch, setChatRoomSearch] = useState('');
+  const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
+  const [editingChatRoomId, setEditingChatRoomId] = useState(null);
+  const [editingChatRoomTitle, setEditingChatRoomTitle] = useState('');
+  const [savingChatRoomId, setSavingChatRoomId] = useState(null);
+  const questionCompositionRef = useRef(false);
 
   // Tab 2: 맞춤 학습 추천 (Recommendation) States
   const [recommendationResult, setRecommendationResult] = useState(null); // { recommendedSubject, tips }
@@ -795,7 +883,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
       try {
         const result = await getAIChatRooms(token);
-        let nextRooms = (result.chatRooms || []).map(normalizeChatRoom);
+        let nextRooms = sortChatRooms((result.chatRooms || []).map(normalizeChatRoom));
 
         if (nextRooms.length === 0) {
           const created = await createAIChatRoom(token);
@@ -1007,10 +1095,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     const normalizedEntry = normalizeChatMessage(result.message);
 
     setRecentQnaList(nextRoom.messages);
-    setChatRooms((prevRooms) => {
-      const otherRooms = prevRooms.filter((room) => room.id !== nextRoom.id);
-      return [nextRoom, ...otherRooms].slice(0, 8);
-    });
+    setChatRooms((prevRooms) => applyChatRoomUpdate(prevRooms, nextRoom));
 
     return normalizedEntry;
   }
@@ -1023,7 +1108,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       const result = await createAIChatRoom(token);
       const nextRoom = normalizeChatRoom(result.chatRoom);
 
-      setChatRooms((prevRooms) => [nextRoom, ...prevRooms].slice(0, 8));
+      setChatRooms((prevRooms) => sortChatRooms([nextRoom, ...prevRooms]).slice(0, 8));
       setActiveChatRoomId(nextRoom.id);
       setRecentQnaList([]);
       setSuccessMsg('새 AI 대화방을 열었습니다.');
@@ -1036,6 +1121,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
   async function handleDeleteChatRoom(roomId) {
     resetFeedback();
+
+    if (globalThis.confirm && !globalThis.confirm(chatCopy.deleteConfirm)) {
+      return;
+    }
 
     try {
       await deleteAIChatRoom(token, roomId);
@@ -1062,6 +1151,65 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     }
   }
 
+  function beginRenameChatRoom(room) {
+    setEditingChatRoomId(room.id);
+    setEditingChatRoomTitle(room.title || '');
+    resetFeedback();
+  }
+
+  function cancelRenameChatRoom() {
+    setEditingChatRoomId(null);
+    setEditingChatRoomTitle('');
+  }
+
+  async function saveChatRoomTitle(roomId) {
+    const title = editingChatRoomTitle.replace(/\s+/g, ' ').trim();
+
+    if (!title) {
+      setErrorMsg(chatCopy.renameRequired);
+      return;
+    }
+
+    setSavingChatRoomId(roomId);
+    resetFeedback();
+
+    try {
+      const result = await updateAIChatRoom(token, roomId, { title });
+      const nextRoom = normalizeChatRoom(result.chatRoom);
+
+      setChatRooms((prevRooms) => applyChatRoomUpdate(prevRooms, nextRoom));
+      if (activeChatRoomId === nextRoom.id) {
+        setRecentQnaList(nextRoom.messages || []);
+      }
+      cancelRenameChatRoom();
+      setSuccessMsg(chatCopy.roomUpdated);
+    } catch (error) {
+      setErrorMsg(chatCopy.roomUpdateFailed);
+    } finally {
+      setSavingChatRoomId(null);
+    }
+  }
+
+  async function toggleChatRoomPin(room) {
+    setSavingChatRoomId(room.id);
+    resetFeedback();
+
+    try {
+      const result = await updateAIChatRoom(token, room.id, { isPinned: !room.isPinned });
+      const nextRoom = normalizeChatRoom(result.chatRoom);
+
+      setChatRooms((prevRooms) => applyChatRoomUpdate(prevRooms, nextRoom));
+      if (activeChatRoomId === nextRoom.id) {
+        setRecentQnaList(nextRoom.messages || []);
+      }
+      setSuccessMsg(chatCopy.roomUpdated);
+    } catch (error) {
+      setErrorMsg(chatCopy.roomUpdateFailed);
+    } finally {
+      setSavingChatRoomId(null);
+    }
+  }
+
   function selectChatRoom(roomId) {
     const targetRoom = chatRooms.find((room) => room.id === roomId);
     if (!targetRoom) {
@@ -1070,7 +1218,24 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
     setActiveChatRoomId(roomId);
     setRecentQnaList(targetRoom.messages || []);
+    setEditingChatRoomId(null);
+    setEditingChatRoomTitle('');
     resetFeedback();
+  }
+
+  function handleQuestionKeyDown(event) {
+    const nativeEvent = event?.nativeEvent || event;
+
+    if (questionCompositionRef.current || nativeEvent?.isComposing) {
+      return;
+    }
+
+    if (nativeEvent?.key === 'Enter' && !nativeEvent.shiftKey) {
+      event?.preventDefault?.();
+      if (!loading && !isChatRoomsLoading && activeChatRoomId && questionInput.trim()) {
+        handleQuestionSubmit();
+      }
+    }
   }
 
   async function showMockImageInsight() {
@@ -1293,10 +1458,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     const query = chatRoomSearch.replace(/\s+/g, ' ').trim().toLowerCase();
 
     if (!query) {
-      return chatRooms;
+      return sortChatRooms(chatRooms);
     }
 
-    return chatRooms.filter((room) => {
+    return sortChatRooms(chatRooms).filter((room) => {
       const title = String(room.title || '').toLowerCase();
       const messagePreview = (room.messages || [])
         .map((message) => `${message.question || ''} ${message.answer || ''}`)
@@ -1306,6 +1471,120 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       return title.includes(query) || messagePreview.includes(query);
     });
   }, [chatRoomSearch, chatRooms]);
+  const pinnedChatRooms = filteredChatRooms.filter((room) => room.isPinned);
+  const recentChatRooms = filteredChatRooms.filter((room) => !room.isPinned);
+  const visibleChatRoomSections = [
+    { key: 'pinned', title: chatCopy.pinnedRooms, rooms: pinnedChatRooms },
+    { key: 'recent', title: chatCopy.recentRooms, rooms: recentChatRooms }
+  ].filter((section) => section.rooms.length > 0);
+  const activeChatRoomIsSaving = activeChatRoom && savingChatRoomId === activeChatRoom.id;
+
+  function renderChatRoomRow(room) {
+    const selected = room.id === activeChatRoomId;
+    const isEditing = editingChatRoomId === room.id;
+    const isSaving = savingChatRoomId === room.id;
+
+    return (
+      <View
+        key={room.id}
+        style={[
+          styles.chatRoomChip,
+          selected && styles.chatRoomChipActive,
+          room.isPinned && styles.chatRoomChipPinned
+        ]}
+      >
+        {isEditing ? (
+          <View style={styles.chatRoomEditPanel}>
+            <AccessibleTextInput
+              enableVoiceInput={false}
+              value={editingChatRoomTitle}
+              onChangeText={setEditingChatRoomTitle}
+              placeholder={chatCopy.renamePlaceholder}
+              placeholderTextColor={colors.muted}
+              style={styles.chatRoomEditInput}
+              accessibilityLabel={chatCopy.renamePlaceholder}
+              editable={!isSaving}
+            />
+            <View style={styles.chatRoomEditActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSaving}
+                onPress={() => saveChatRoomTitle(room.id)}
+                style={(state) => [styles.chatRoomMiniButton, ...interactiveStateStyles(state, { disabled: isSaving })]}
+              >
+                <Text style={styles.chatRoomMiniButtonText}>{chatCopy.saveTitle}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSaving}
+                onPress={cancelRenameChatRoom}
+                style={(state) => [styles.chatRoomMiniGhostButton, ...interactiveStateStyles(state, { disabled: isSaving })]}
+              >
+                <Text style={styles.chatRoomMiniGhostText}>{chatCopy.cancelEdit}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() => selectChatRoom(room.id)}
+              style={(state) => [styles.chatRoomSelectArea, ...interactiveStateStyles(state)]}
+            >
+              <View style={styles.chatRoomChipCopy}>
+                <View style={styles.chatRoomChipTitleRow}>
+                  {room.isPinned ? <Text style={styles.chatRoomPinMark}>◆</Text> : null}
+                  <Text style={[styles.chatRoomChipTitle, selected && styles.chatRoomChipTitleActive]} numberOfLines={1}>
+                    {room.title}
+                  </Text>
+                </View>
+                <Text style={[styles.chatRoomChipMeta, selected && styles.chatRoomChipMetaActive]}>
+                  {chatCopy.messageCount((room.messages || []).length)}
+                </Text>
+              </View>
+            </Pressable>
+            <View style={styles.chatRoomActionCluster}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${room.title} ${room.isPinned ? chatCopy.unpinRoom : chatCopy.pinRoom}`}
+                disabled={isSaving}
+                onPress={() => toggleChatRoomPin(room)}
+                style={(state) => [
+                  styles.chatRoomIconButton,
+                  room.isPinned && styles.chatRoomIconButtonActive,
+                  ...interactiveStateStyles(state, { disabled: isSaving })
+                ]}
+              >
+                <Text style={[styles.chatRoomIconText, room.isPinned && styles.chatRoomIconTextActive]}>
+                  {room.isPinned ? '◆' : '◇'}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${room.title} ${chatCopy.renameRoom}`}
+                disabled={isSaving}
+                onPress={() => beginRenameChatRoom(room)}
+                style={(state) => [styles.chatRoomIconButton, ...interactiveStateStyles(state, { disabled: isSaving })]}
+              >
+                <Text style={styles.chatRoomIconText}>✎</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${room.title} ${chatCopy.deleteRoom}`}
+                disabled={isSaving}
+                onPress={() => handleDeleteChatRoom(room.id)}
+                style={(state) => [styles.chatRoomInlineDeleteButton, ...interactiveStateStyles(state, { disabled: isSaving })]}
+              >
+                <Text style={styles.chatRoomInlineDeleteText}>🗑</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
+      </View>
+    );
+  }
+
   const hasImageInsight = recentQnaList.some((item) => item.isImageInsight);
   const audioBriefingLines = aiCopy.audioBriefing.lines({
     mockMode: isMockMode,
@@ -1498,91 +1777,155 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         {/* TAB 1: AI 학습 질의 */}
         {activeTab === 'qna' && (
           <View style={styles.aiChatShell}>
-            <View style={styles.chatSidebar}>
+            <View style={[styles.chatSidebar, isChatSidebarCollapsed && styles.chatSidebarCollapsed]}>
               <View style={styles.chatRoomHeader}>
-                <View style={styles.chatRoomTitleGroup}>
-                  <Text style={styles.chatRoomTitle}>{chatCopy.title}</Text>
-                  <Text style={styles.chatRoomDesc}>{chatCopy.description}</Text>
-                </View>
+                {!isChatSidebarCollapsed ? (
+                  <View style={styles.chatRoomTitleGroup}>
+                    <Text style={styles.chatRoomTitle}>{chatCopy.title}</Text>
+                    <Text style={styles.chatRoomDesc}>{chatCopy.description}</Text>
+                  </View>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
-                  onPress={createChatRoom}
-                  disabled={isChatRoomsLoading}
-                  style={(state) => [styles.newChatButton, ...interactiveStateStyles(state, { disabled: isChatRoomsLoading })]}
+                  accessibilityLabel={isChatSidebarCollapsed ? chatCopy.expandSidebar : chatCopy.collapseSidebar}
+                  onPress={() => setIsChatSidebarCollapsed((prev) => !prev)}
+                  style={(state) => [styles.chatSidebarToggle, ...interactiveStateStyles(state)]}
                 >
-                  <Text style={styles.newChatButtonText}>{chatCopy.newChat}</Text>
+                  <Text style={styles.chatSidebarToggleText}>{isChatSidebarCollapsed ? '☰' : '‹'}</Text>
                 </Pressable>
+                {!isChatSidebarCollapsed ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={createChatRoom}
+                    disabled={isChatRoomsLoading}
+                    style={(state) => [styles.newChatButton, ...interactiveStateStyles(state, { disabled: isChatRoomsLoading })]}
+                  >
+                    <Text style={styles.newChatButtonText}>{chatCopy.newChat}</Text>
+                  </Pressable>
+                ) : null}
               </View>
-              <AccessibleTextInput
-                value={chatRoomSearch}
-                onChangeText={setChatRoomSearch}
-                placeholder={chatCopy.searchPlaceholder}
-                placeholderTextColor={colors.muted}
-                style={styles.chatSearchInput}
-                editable={!isChatRoomsLoading}
-                accessibilityLabel={chatCopy.searchPlaceholder}
-              />
-              {isChatRoomsLoading ? (
-                <Text style={styles.chatRoomLoadingText}>{chatCopy.loadingRooms}</Text>
-              ) : null}
-              <ScrollView style={styles.chatRoomList} contentContainerStyle={styles.chatRoomListContent}>
-                {filteredChatRooms.length === 0 ? (
-                  <Text style={styles.chatRoomEmptyText}>{chatCopy.noRooms}</Text>
-                ) : (
-                  filteredChatRooms.map((room) => {
-                    const selected = room.id === activeChatRoomId;
-                    return (
-                      <Pressable
-                        key={room.id}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        onPress={() => selectChatRoom(room.id)}
-                        style={(state) => [
-                          styles.chatRoomChip,
-                          selected && styles.chatRoomChipActive,
-                          ...interactiveStateStyles(state)
-                        ]}
-                      >
-                        <View style={styles.chatRoomChipCopy}>
-                          <Text style={[styles.chatRoomChipTitle, selected && styles.chatRoomChipTitleActive]} numberOfLines={1}>
-                            {room.title}
-                          </Text>
-                          <Text style={[styles.chatRoomChipMeta, selected && styles.chatRoomChipMetaActive]}>
-                            {chatCopy.messageCount((room.messages || []).length)}
-                          </Text>
+
+              {isChatSidebarCollapsed ? (
+                <View accessibilityLabel={chatCopy.sidebarRailLabel} style={styles.chatSidebarRail}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={chatCopy.newChat}
+                    disabled={isChatRoomsLoading}
+                    onPress={createChatRoom}
+                    style={(state) => [styles.chatRailButton, ...interactiveStateStyles(state, { disabled: isChatRoomsLoading })]}
+                  >
+                    <Text style={styles.chatRailButtonText}>＋</Text>
+                  </Pressable>
+                  <Text style={styles.chatRailCount}>{filteredChatRooms.length}</Text>
+                  {activeChatRoom?.isPinned ? <Text style={styles.chatRailPinned}>{chatCopy.pinnedBadge}</Text> : null}
+                </View>
+              ) : (
+                <>
+                  <AccessibleTextInput
+                    value={chatRoomSearch}
+                    onChangeText={setChatRoomSearch}
+                    placeholder={chatCopy.searchPlaceholder}
+                    placeholderTextColor={colors.muted}
+                    style={styles.chatSearchInput}
+                    editable={!isChatRoomsLoading}
+                    accessibilityLabel={chatCopy.searchPlaceholder}
+                  />
+                  {isChatRoomsLoading ? (
+                    <Text style={styles.chatRoomLoadingText}>{chatCopy.loadingRooms}</Text>
+                  ) : null}
+                  <ScrollView style={styles.chatRoomList} contentContainerStyle={styles.chatRoomListContent}>
+                    {filteredChatRooms.length === 0 ? (
+                      <Text style={styles.chatRoomEmptyText}>{chatCopy.noRooms}</Text>
+                    ) : (
+                      visibleChatRoomSections.map((section) => (
+                        <View key={section.key} style={styles.chatRoomSection}>
+                          <Text style={styles.chatRoomSectionTitle}>{section.title}</Text>
+                          {section.rooms.map(renderChatRoomRow)}
                         </View>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={`${room.title} ${chatCopy.deleteRoom}`}
-                          onPress={(event) => {
-                            event?.stopPropagation?.();
-                            handleDeleteChatRoom(room.id);
-                          }}
-                          style={(state) => [styles.chatRoomInlineDeleteButton, ...interactiveStateStyles(state)]}
-                        >
-                          <Text style={styles.chatRoomInlineDeleteText}>×</Text>
-                        </Pressable>
-                      </Pressable>
-                    );
-                  })
-                )}
-              </ScrollView>
+                      ))
+                    )}
+                  </ScrollView>
+                </>
+              )}
             </View>
 
             <View style={styles.chatMain}>
               <View style={styles.chatMainHeader}>
                 <View style={styles.chatMainTitleGroup}>
-                  <Text style={styles.chatMainTitle}>{activeChatRoom?.title || chatCopy.title}</Text>
+                  {activeChatRoom && editingChatRoomId === activeChatRoom.id ? (
+                    <View style={styles.chatMainRenameRow}>
+                      <AccessibleTextInput
+                        enableVoiceInput={false}
+                        value={editingChatRoomTitle}
+                        onChangeText={setEditingChatRoomTitle}
+                        placeholder={chatCopy.renamePlaceholder}
+                        placeholderTextColor={colors.muted}
+                        style={styles.chatMainRenameInput}
+                        editable={!activeChatRoomIsSaving}
+                        accessibilityLabel={chatCopy.renamePlaceholder}
+                      />
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={activeChatRoomIsSaving}
+                        onPress={() => saveChatRoomTitle(activeChatRoom.id)}
+                        style={(state) => [styles.chatRoomMiniButton, ...interactiveStateStyles(state, { disabled: activeChatRoomIsSaving })]}
+                      >
+                        <Text style={styles.chatRoomMiniButtonText}>{chatCopy.saveTitle}</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={activeChatRoomIsSaving}
+                        onPress={cancelRenameChatRoom}
+                        style={(state) => [styles.chatRoomMiniGhostButton, ...interactiveStateStyles(state, { disabled: activeChatRoomIsSaving })]}
+                      >
+                        <Text style={styles.chatRoomMiniGhostText}>{chatCopy.cancelEdit}</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <View style={styles.chatMainTitleRow}>
+                      {activeChatRoom?.isPinned ? <Text style={styles.chatMainPinBadge}>{chatCopy.pinnedBadge}</Text> : null}
+                      <Text style={styles.chatMainTitle}>{activeChatRoom?.title || chatCopy.title}</Text>
+                    </View>
+                  )}
                   <Text style={styles.chatMainMeta}>{chatCopy.activeMeta(recentQnaList.length)}</Text>
                 </View>
                 {activeChatRoom ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => handleDeleteChatRoom(activeChatRoom.id)}
-                    style={(state) => [styles.chatRoomDeleteButton, ...interactiveStateStyles(state)]}
-                  >
-                    <Text style={styles.chatRoomDeleteButtonText}>{chatCopy.deleteCurrent}</Text>
-                  </Pressable>
+                  <View style={styles.chatMainActionRow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={activeChatRoomIsSaving}
+                      onPress={() => beginRenameChatRoom(activeChatRoom)}
+                      style={(state) => [styles.chatMainActionButton, ...interactiveStateStyles(state, { disabled: activeChatRoomIsSaving })]}
+                    >
+                      <Text style={styles.chatMainActionText}>✎ {chatCopy.renameRoom}</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={activeChatRoomIsSaving}
+                      onPress={() => toggleChatRoomPin(activeChatRoom)}
+                      style={(state) => [
+                        styles.chatMainActionButton,
+                        activeChatRoom.isPinned && styles.chatMainActionButtonActive,
+                        ...interactiveStateStyles(state, { disabled: activeChatRoomIsSaving })
+                      ]}
+                    >
+                      <Text style={[
+                        styles.chatMainActionText,
+                        activeChatRoom.isPinned && styles.chatMainActionTextActive
+                      ]}>
+                        {activeChatRoom.isPinned ? `◆ ${chatCopy.unpinRoom}` : `◇ ${chatCopy.pinRoom}`}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={chatCopy.deleteCurrent}
+                      disabled={activeChatRoomIsSaving}
+                      onPress={() => handleDeleteChatRoom(activeChatRoom.id)}
+                      style={(state) => [styles.chatRoomDeleteButton, ...interactiveStateStyles(state, { disabled: activeChatRoomIsSaving })]}
+                    >
+                      <Text style={styles.chatRoomDeleteButtonText}>🗑 {chatCopy.deleteRoom}</Text>
+                    </Pressable>
+                  </View>
                 ) : null}
               </View>
 
@@ -1633,10 +1976,18 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   placeholderTextColor={colors.muted}
                   value={questionInput}
                   onChangeText={setQuestionInput}
+                  onCompositionStart={() => {
+                    questionCompositionRef.current = true;
+                  }}
+                  onCompositionEnd={() => {
+                    questionCompositionRef.current = false;
+                  }}
+                  onKeyDown={handleQuestionKeyDown}
                   style={styles.chatComposerInput}
                   multiline
                   numberOfLines={3}
                   maxLength={MAX_QUESTION_LENGTH}
+                  blurOnSubmit={false}
                   editable={!loading}
                 />
                 <Pressable
@@ -2284,6 +2635,7 @@ const styles = StyleSheet.create({
   },
   aiChatShell: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'stretch',
     gap: 16
   },
@@ -2298,6 +2650,11 @@ const styles = StyleSheet.create({
     gap: 12,
     ...shadows.card,
     ...interactions.transition
+  },
+  chatSidebarCollapsed: {
+    width: 76,
+    paddingHorizontal: 12,
+    alignItems: 'center'
   },
   chatRoomPanel: {
     backgroundColor: colors.surface,
@@ -2331,6 +2688,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 4
+  },
+  chatSidebarToggle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatSidebarToggleText: {
+    color: colors.blueDeep,
+    fontSize: 21,
+    fontWeight: '900',
+    lineHeight: 23
+  },
+  chatSidebarRail: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 12
+  },
+  chatRailButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatRailButtonText: {
+    color: colors.blueDeep,
+    fontSize: 20,
+    fontWeight: '900'
+  },
+  chatRailCount: {
+    minWidth: 34,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    textAlign: 'center'
+  },
+  chatRailPinned: {
+    color: colors.mintDeep,
+    fontSize: 10,
+    fontWeight: '900',
+    textAlign: 'center'
   },
   newChatButton: {
     minHeight: 40,
@@ -2370,6 +2782,17 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingBottom: 4
   },
+  chatRoomSection: {
+    gap: 8,
+    marginBottom: 8
+  },
+  chatRoomSectionTitle: {
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0,
+    paddingHorizontal: 4
+  },
   chatRoomEmptyText: {
     color: colors.muted,
     fontSize: 12,
@@ -2395,10 +2818,30 @@ const styles = StyleSheet.create({
     borderColor: colors.mint,
     backgroundColor: colors.mintSoft
   },
+  chatRoomChipPinned: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  chatRoomSelectArea: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 32,
+    justifyContent: 'center'
+  },
   chatRoomChipCopy: {
     flex: 1,
     minWidth: 0,
     gap: 3
+  },
+  chatRoomChipTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5
+  },
+  chatRoomPinMark: {
+    color: colors.blueDeep,
+    fontSize: 10,
+    fontWeight: '900'
   },
   chatRoomChipTitle: {
     color: colors.ink,
@@ -2416,6 +2859,35 @@ const styles = StyleSheet.create({
   chatRoomChipMetaActive: {
     color: colors.mintDeep
   },
+  chatRoomActionCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5
+  },
+  chatRoomIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatRoomIconButtonActive: {
+    backgroundColor: colors.blue,
+    borderColor: colors.blue
+  },
+  chatRoomIconText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 16
+  },
+  chatRoomIconTextActive: {
+    color: colors.surface
+  },
   chatRoomInlineDeleteButton: {
     width: 28,
     height: 28,
@@ -2429,9 +2901,60 @@ const styles = StyleSheet.create({
   },
   chatRoomInlineDeleteText: {
     color: colors.danger,
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '900',
     lineHeight: 20
+  },
+  chatRoomEditPanel: {
+    flex: 1,
+    width: '100%',
+    gap: 8
+  },
+  chatRoomEditInput: {
+    minHeight: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.surface,
+    color: colors.ink,
+    fontSize: 13,
+    paddingHorizontal: 10
+  },
+  chatRoomEditActions: {
+    flexDirection: 'row',
+    gap: 6
+  },
+  chatRoomMiniButton: {
+    minHeight: 32,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blue,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatRoomMiniButtonText: {
+    color: colors.surface,
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  chatRoomMiniGhostButton: {
+    minHeight: 32,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatRoomMiniGhostText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900'
   },
   chatRoomDeleteButton: {
     alignSelf: 'flex-start',
@@ -2479,6 +3002,21 @@ const styles = StyleSheet.create({
     minWidth: 220,
     gap: 4
   },
+  chatMainTitleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8
+  },
+  chatMainPinBadge: {
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft,
+    color: colors.blueDeep,
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 4
+  },
   chatMainTitle: {
     color: colors.ink,
     fontSize: 18,
@@ -2488,6 +3026,53 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     fontWeight: '700'
+  },
+  chatMainRenameRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8
+  },
+  chatMainRenameInput: {
+    minWidth: 220,
+    minHeight: 40,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.surface,
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800',
+    paddingHorizontal: 12
+  },
+  chatMainActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8
+  },
+  chatMainActionButton: {
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatMainActionButtonActive: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blue
+  },
+  chatMainActionText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  chatMainActionTextActive: {
+    color: colors.surface
   },
   messageListPanel: {
     minHeight: 320,
