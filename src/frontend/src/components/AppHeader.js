@@ -23,6 +23,7 @@ const authenticatedNavGroups = [
     items: [
       { label: '대시보드', screen: 'dashboard' },
       { label: '통계', screen: 'statistics' },
+      { label: '집중 시간', screen: 'focusTimer' },
       { label: 'AI 학습', screen: 'aiLearning' },
       { label: '일정', screen: 'schedule' },
       { label: '칸반', screen: 'taskBoard' }
