@@ -13,7 +13,8 @@ import {
   createCollaborativeQuest,
   getCollaborativeQuestDetail,
   getCollaborativeQuests,
-  joinCollaborativeQuest
+  joinCollaborativeQuest,
+  updateCollaborativeQuestVisibility
 } from '../services/api';
 import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { languageIntlLocale, useLanguage } from '../i18n';
@@ -204,38 +205,86 @@ const UI_LABELS = {
   ko: {
     autoReward: '추천 보상 적용',
     hideCompleted: '완료 숨기기',
+    showArchived: '숨김·보관 포함',
     showJoinedOnly: '내 참여만 보기',
     filteredEmpty: '현재 조건에 맞는 협동 퀘스트가 없습니다.',
     minutesPreset: '{value}분',
     recommendedContribution: '추천 기여 {value}',
-    rewardHint: '목표 수치 기준 추천 보상: {value}P'
+    rewardHint: '목표 수치 기준 추천 보상: {value}P',
+    hideQuest: '내 목록에서 숨기기',
+    archiveQuest: '보관하기',
+    restoreQuest: '목록으로 복원',
+    hiddenBadge: '숨김',
+    archivedBadge: '보관됨',
+    hiddenSuccess: '내 목록에서 숨겼습니다.',
+    archivedSuccess: '협동 퀘스트를 보관했습니다.',
+    restoredSuccess: '협동 퀘스트를 목록으로 복원했습니다.',
+    visibilityHint: '숨김/보관은 내 목록에만 적용되며 다른 참여자의 진행률과 보상에는 영향을 주지 않습니다.',
+    activeHideHint: '진행 중 퀘스트는 삭제하지 않고 내 목록에서만 숨길 수 있습니다.',
+    archiveHint: '완료 또는 종료된 퀘스트는 보관함으로 옮길 수 있습니다.'
   },
   en: {
     autoReward: 'Use suggested reward',
     hideCompleted: 'Hide completed',
+    showArchived: 'Include hidden/archive',
     showJoinedOnly: 'My quests only',
     filteredEmpty: 'No collaborative quests match the current filters.',
     minutesPreset: '{value} min',
     recommendedContribution: 'Suggested contribution {value}',
-    rewardHint: 'Suggested reward from goal: {value} pts'
+    rewardHint: 'Suggested reward from goal: {value} pts',
+    hideQuest: 'Hide from my list',
+    archiveQuest: 'Archive',
+    restoreQuest: 'Restore to list',
+    hiddenBadge: 'Hidden',
+    archivedBadge: 'Archived',
+    hiddenSuccess: 'Hidden from your list.',
+    archivedSuccess: 'Collaborative quest archived.',
+    restoredSuccess: 'Collaborative quest restored to your list.',
+    visibilityHint: 'Hide/archive only affects your list and does not affect other participants, progress, or rewards.',
+    activeHideHint: 'Active quests are not deleted; they can only be hidden from your list.',
+    archiveHint: 'Completed or closed quests can be moved to the archive.'
   },
   ja: {
     autoReward: 'おすすめ報酬を適用',
     hideCompleted: '完了を隠す',
+    showArchived: '非表示・保管を含める',
     showJoinedOnly: '参加中のみ',
     filteredEmpty: '条件に合う協同クエストがありません。',
     minutesPreset: '{value}分',
     recommendedContribution: 'おすすめ貢献 {value}',
-    rewardHint: '目標基準のおすすめ報酬: {value} pt'
+    rewardHint: '目標基準のおすすめ報酬: {value} pt',
+    hideQuest: '自分の一覧から隠す',
+    archiveQuest: '保管する',
+    restoreQuest: '一覧に戻す',
+    hiddenBadge: '非表示',
+    archivedBadge: '保管済み',
+    hiddenSuccess: '自分の一覧から隠しました。',
+    archivedSuccess: '協同クエストを保管しました。',
+    restoredSuccess: '協同クエストを一覧に戻しました。',
+    visibilityHint: '非表示・保管は自分の一覧にだけ適用され、他の参加者の進行率や報酬には影響しません。',
+    activeHideHint: '進行中のクエストは削除せず、自分の一覧からのみ隠せます。',
+    archiveHint: '完了または終了したクエストは保管できます。'
   },
   zh: {
     autoReward: '使用推荐奖励',
     hideCompleted: '隐藏已完成',
+    showArchived: '包含隐藏/归档',
     showJoinedOnly: '仅看已参加',
     filteredEmpty: '没有符合当前筛选的协作任务。',
     minutesPreset: '{value}分钟',
     recommendedContribution: '推荐贡献 {value}',
-    rewardHint: '按目标推荐奖励：{value} 点'
+    rewardHint: '按目标推荐奖励：{value} 点',
+    hideQuest: '从我的列表隐藏',
+    archiveQuest: '归档',
+    restoreQuest: '恢复到列表',
+    hiddenBadge: '已隐藏',
+    archivedBadge: '已归档',
+    hiddenSuccess: '已从你的列表隐藏。',
+    archivedSuccess: '协作任务已归档。',
+    restoredSuccess: '协作任务已恢复到列表。',
+    visibilityHint: '隐藏/归档只影响你的列表，不影响其他参与者、进度或奖励。',
+    activeHideHint: '进行中的任务不会删除，只能从你的列表隐藏。',
+    archiveHint: '已完成或已结束的任务可以移入归档。'
   }
 };
 
@@ -297,6 +346,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
   const [realtimeMessage, setRealtimeMessage] = useState('');
   const [hideCompleted, setHideCompleted] = useState(false);
   const [showJoinedOnly, setShowJoinedOnly] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const selectedSummary = useMemo(
     () => quests.find((quest) => quest.id === selectedQuestId) || quests[0] || null,
@@ -308,22 +358,26 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
         return false;
       }
 
+      if (!showArchived && (quest.currentUserHidden || quest.currentUserArchived)) {
+        return false;
+      }
+
       if (showJoinedOnly && !quest.hasJoined) {
         return false;
       }
 
       return true;
     }),
-    [hideCompleted, quests, showJoinedOnly]
+    [hideCompleted, quests, showArchived, showJoinedOnly]
   );
   const suggestedRewardPoints = getSuggestedRewardPoints(form.goalValue);
 
-  async function loadQuests(preferredQuestId = selectedQuestId) {
+  async function loadQuests(preferredQuestId = selectedQuestId, includeHidden = showArchived) {
     setLoading(true);
     setError('');
 
     try {
-      const response = await getCollaborativeQuests(token);
+      const response = await getCollaborativeQuests(token, { includeHidden });
       const nextQuests = response.quests || [];
       setQuests(nextQuests);
 
@@ -340,6 +394,12 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function toggleArchivedView() {
+    const nextValue = !showArchived;
+    setShowArchived(nextValue);
+    await loadQuests(selectedQuestId, nextValue);
   }
 
   useEffect(() => {
@@ -516,6 +576,31 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
     }
   }
 
+  async function handleVisibilityAction(questId, action) {
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await updateCollaborativeQuestVisibility(token, questId, action);
+      const nextQuest = response.quest;
+      const keepSelected = action === 'RESTORE' || showArchived;
+      setSelectedQuest(keepSelected ? nextQuest : null);
+      await loadQuests(keepSelected ? nextQuest.id : null, showArchived);
+      setMessage(
+        action === 'ARCHIVE'
+          ? uiText('archivedSuccess')
+          : action === 'HIDE'
+            ? uiText('hiddenSuccess')
+            : uiText('restoredSuccess')
+      );
+    } catch (visibilityError) {
+      setError(visibilityError.message || 'Collaborative quest visibility update failed');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   const displayQuest = selectedQuest || selectedSummary;
   const progressPercent = Math.round(Number(displayQuest?.progressPercent || 0));
 
@@ -631,6 +716,19 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                   {uiText('showJoinedOnly')}
                 </Text>
               </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={toggleArchivedView}
+                style={(state) => [
+                  styles.filterChip,
+                  showArchived && styles.filterChipActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text style={[styles.filterChipText, showArchived && styles.filterChipTextActive]}>
+                  {uiText('showArchived')}
+                </Text>
+              </Pressable>
             </View>
             {!loading && quests.length > 0 && visibleQuests.length === 0 ? (
               <Text style={styles.muted}>{uiText('filteredEmpty')}</Text>
@@ -653,7 +751,14 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                   >
                     <View style={styles.questCardHeader}>
                       <Text style={styles.questCardTitle}>{quest.title}</Text>
-                      <StatusChip label={statusLabel(quest.status, copy)} status={quest.status} />
+                      <View style={styles.statusStack}>
+                        {quest.currentUserArchived ? (
+                          <StatusChip label={uiText('archivedBadge')} status="EXPIRED" />
+                        ) : quest.currentUserHidden ? (
+                          <StatusChip label={uiText('hiddenBadge')} status="EXPIRED" />
+                        ) : null}
+                        <StatusChip label={statusLabel(quest.status, copy)} status={quest.status} />
+                      </View>
                     </View>
                     <Text style={styles.questCardMeta}>
                       {copy('goalStatus', {
@@ -703,6 +808,58 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                 </View>
                 <StatusChip label={statusLabel(displayQuest.status, copy)} status={displayQuest.status} />
               </View>
+              {displayQuest.hasJoined ? (
+                <View style={styles.visibilityPanel}>
+                  <Text style={styles.muted}>{uiText('visibilityHint')}</Text>
+                  <Text style={styles.muted}>
+                    {displayQuest.status === 'COMPLETED' || displayQuest.status === 'EXPIRED'
+                      ? uiText('archiveHint')
+                      : uiText('activeHideHint')}
+                  </Text>
+                  <View style={styles.visibilityActions}>
+                    {displayQuest.currentUserArchived || displayQuest.currentUserHidden ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={actionLoading}
+                        onPress={() => handleVisibilityAction(displayQuest.id, 'RESTORE')}
+                        style={(state) => [
+                          styles.secondaryButton,
+                          actionLoading && styles.disabledButton,
+                          ...interactiveStateStyles(state, { disabled: actionLoading })
+                        ]}
+                      >
+                        <Text style={styles.secondaryButtonText}>{uiText('restoreQuest')}</Text>
+                      </Pressable>
+                    ) : displayQuest.status === 'COMPLETED' || displayQuest.status === 'EXPIRED' ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={actionLoading}
+                        onPress={() => handleVisibilityAction(displayQuest.id, 'ARCHIVE')}
+                        style={(state) => [
+                          styles.secondaryButton,
+                          actionLoading && styles.disabledButton,
+                          ...interactiveStateStyles(state, { disabled: actionLoading })
+                        ]}
+                      >
+                        <Text style={styles.secondaryButtonText}>{uiText('archiveQuest')}</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={actionLoading}
+                        onPress={() => handleVisibilityAction(displayQuest.id, 'HIDE')}
+                        style={(state) => [
+                          styles.secondaryButton,
+                          actionLoading && styles.disabledButton,
+                          ...interactiveStateStyles(state, { disabled: actionLoading })
+                        ]}
+                      >
+                        <Text style={styles.secondaryButtonText}>{uiText('hideQuest')}</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              ) : null}
               <View style={styles.progressHero}>
                 <Text style={styles.progressValue}>{copy('percent', { value: progressPercent })}</Text>
                 <Text style={styles.progressCaption}>
@@ -1102,6 +1259,26 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: colors.mintDeep
+  },
+  statusStack: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    justifyContent: 'flex-end'
+  },
+  visibilityPanel: {
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 8
+  },
+  visibilityActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
   },
   questCard: {
     borderRadius: radii.card,

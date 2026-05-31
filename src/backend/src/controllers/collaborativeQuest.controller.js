@@ -39,7 +39,7 @@ function broadcastCollaborativeQuestEvent(type, quest) {
 }
 
 const listCollaborativeQuestsController = asyncHandler(async (req, res) => {
-  const quests = await collaborativeQuestService.getCollaborativeQuests(req.user.id);
+  const quests = await collaborativeQuestService.getCollaborativeQuests(req.user.id, req.query);
 
   sendSuccess(res, 200, { quests });
 });
@@ -91,11 +91,22 @@ const claimCollaborativeQuestRewardController = asyncHandler(async (req, res) =>
   sendSuccess(res, 200, { reward });
 });
 
+const updateCollaborativeQuestVisibilityController = asyncHandler(async (req, res) => {
+  const quest = await collaborativeQuestService.updateCollaborativeQuestVisibility(
+    req.user.id,
+    req.params.questId,
+    req.body
+  );
+
+  sendSuccess(res, 200, { quest });
+});
+
 module.exports = {
   addCollaborativeQuestContribution: addCollaborativeQuestContributionController,
   claimCollaborativeQuestReward: claimCollaborativeQuestRewardController,
   createCollaborativeQuest: createCollaborativeQuestController,
   getCollaborativeQuestDetail: getCollaborativeQuestDetailController,
   joinCollaborativeQuest: joinCollaborativeQuestController,
-  listCollaborativeQuests: listCollaborativeQuestsController
+  listCollaborativeQuests: listCollaborativeQuestsController,
+  updateCollaborativeQuestVisibility: updateCollaborativeQuestVisibilityController
 };

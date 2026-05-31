@@ -5,7 +5,8 @@ const {
   createCollaborativeQuest,
   getCollaborativeQuestDetail,
   joinCollaborativeQuest,
-  listCollaborativeQuests
+  listCollaborativeQuests,
+  updateCollaborativeQuestVisibility
 } = require('../controllers/collaborativeQuest.controller');
 const { authMiddleware } = require('../middleware/auth.middleware');
 
@@ -17,5 +18,6 @@ router.post('/', authMiddleware, createCollaborativeQuest);
 router.post('/:questId/join', authMiddleware, joinCollaborativeQuest);
 router.post('/:questId/contributions', authMiddleware, addCollaborativeQuestContribution);
 router.post('/:questId/claim', authMiddleware, claimCollaborativeQuestReward);
+router.patch('/:questId/visibility', authMiddleware, updateCollaborativeQuestVisibility);
 
 module.exports = router;

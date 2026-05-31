@@ -17,6 +17,7 @@ const MAX_REWARD_POINTS = 100000;
 const MAX_CONTRIBUTION_AMOUNT = 10000;
 const DEFAULT_CONTRIBUTION_STEP = 10;
 const REWARD_POINTS_PER_GOAL_UNIT = 0.3;
+const VISIBILITY_ACTIONS = new Set(['HIDE', 'ARCHIVE', 'RESTORE']);
 
 function normalizeOptionalText(value, maxLength, field) {
   const normalized = normalizeString(value);
@@ -84,6 +85,20 @@ function parseOptionalDate(value, field) {
   return parsed;
 }
 
+function parseBooleanFlag(value) {
+  return value === true || value === 'true' || value === '1' || value === 1;
+}
+
+function parseVisibilityAction(value) {
+  const action = normalizeString(value).toUpperCase();
+
+  if (!VISIBILITY_ACTIONS.has(action)) {
+    throw validationError('action must be HIDE, ARCHIVE, or RESTORE', { field: 'action' });
+  }
+
+  return action;
+}
+
 function ensureQuestTitle(title) {
   const normalizedTitle = normalizeString(title);
 
@@ -141,6 +156,8 @@ function sanitizeParticipant(participant) {
     loginId: participant.user?.loginId,
     appearance: sanitizeAppearance(participant.user),
     contributionValue: participant.contributionValue,
+    hiddenAt: participant.hiddenAt || null,
+    archivedAt: participant.archivedAt || null,
     joinedAt: participant.joinedAt
   };
 }
@@ -193,6 +210,10 @@ function sanitizeQuest(quest, currentUserId = null) {
     participants: (quest.participants || []).map(sanitizeParticipant),
     recentContributions: (quest.contributions || []).map(sanitizeContribution),
     currentUserContributionValue: currentParticipant?.contributionValue || 0,
+    currentUserHidden: Boolean(currentParticipant?.hiddenAt),
+    currentUserArchived: Boolean(currentParticipant?.archivedAt),
+    currentUserHiddenAt: currentParticipant?.hiddenAt || null,
+    currentUserArchivedAt: currentParticipant?.archivedAt || null,
     hasJoined,
     hasClaimed,
     isExpired,
@@ -212,10 +233,43 @@ function ensureQuestIsActive(quest) {
   }
 }
 
-async function getCollaborativeQuests(userId) {
-  const quests = await collaborativeQuestRepository.findCollaborativeQuests();
+async function getCollaborativeQuests(userId, options = {}) {
+  const quests = await collaborativeQuestRepository.findCollaborativeQuests({
+    userId,
+    includeHidden: parseBooleanFlag(options.includeHidden)
+  });
 
   return quests.map((quest) => sanitizeQuest(quest, userId));
+}
+
+async function updateCollaborativeQuestVisibility(userId, questId, payload) {
+  const id = parsePositiveInteger(questId, 'questId');
+  const action = parseVisibilityAction(payload.action);
+  const quest = await collaborativeQuestRepository.findCollaborativeQuestById(id);
+
+  if (!quest) {
+    throw notFoundError('Collaborative quest not found');
+  }
+
+  const currentParticipant = quest.participants.find((participant) => participant.userId === userId);
+
+  if (!currentParticipant) {
+    throw conflictError('Join this collaborative quest before changing visibility');
+  }
+
+  if (action === 'ARCHIVE' && !['COMPLETED', 'EXPIRED'].includes(quest.status)) {
+    throw conflictError('Only completed or expired collaborative quests can be archived');
+  }
+
+  const now = new Date();
+  const participant = await collaborativeQuestRepository.updateCollaborativeQuestParticipantVisibility({
+    questId: id,
+    userId,
+    hiddenAt: action === 'HIDE' ? now : null,
+    archivedAt: action === 'ARCHIVE' ? now : null
+  });
+
+  return sanitizeQuest(participant.quest, userId);
 }
 
 async function getCollaborativeQuestDetail(userId, questId) {
@@ -364,5 +418,6 @@ module.exports = {
   getCollaborativeQuestDetail,
   getCollaborativeQuests,
   joinCollaborativeQuest,
-  sanitizeQuest
+  sanitizeQuest,
+  updateCollaborativeQuestVisibility
 };
