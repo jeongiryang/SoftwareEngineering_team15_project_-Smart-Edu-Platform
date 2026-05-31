@@ -434,12 +434,12 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                   ...interactiveStateStyles(state, { kind: 'card' })
                 ]}
               >
-                <BossImage imageUrl={raid.imageUrl} name={raid.name} />
+                <BossImage imageUrl={raid.imageUrl} name={translateText(raid.name)} />
                 <View style={styles.raidCardHeader}>
-                  <Text style={styles.raidCardTitle}>{raid.name}</Text>
+                  <Text style={styles.raidCardTitle}>{translateText(raid.name)}</Text>
                   {raid.hasJoinedParty ? <RaidStatusChip status="OPEN" t={t} /> : null}
                 </View>
-                <Text style={styles.raidCardDescription}>{raid.description}</Text>
+                <Text style={styles.raidCardDescription}>{translateText(raid.description)}</Text>
                 <Text style={styles.raidCardMeta}>
                   {interpolate(t('bossRaid.raidCard.meta', 'HP {hp} · 기본 보상 {points}P'), {
                     hp: formatNumber(raid.maxHp, locale),
