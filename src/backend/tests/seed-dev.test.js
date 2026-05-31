@@ -9,6 +9,9 @@ const {
   looksLikeProductionUrl
 } = require('../scripts/seed-dev');
 
+const fs = require('fs');
+const path = require('path');
+
 describe('development seed script', () => {
   it('defines regular and admin development users only', () => {
     expect(DEV_SEED_USERS).toEqual(
@@ -34,6 +37,36 @@ describe('development seed script', () => {
       ])
     );
     expect(DEV_SEED_PASSWORD).toEqual(expect.any(String));
+  });
+
+  it('defines extended demo users required by latest seed modules', () => {
+    const loginIds = DEV_SEED_USERS.map((user) => user.loginId);
+
+    expect(loginIds).toEqual(
+      expect.arrayContaining([
+        'friend_user',
+        'raid_user',
+        'quest_user',
+        'team_user_01',
+        'team_user_02',
+        'team_user_03'
+      ])
+    );
+  });
+
+  it('declares extended reward seed users before reward data uses them', () => {
+    const seedScript = fs.readFileSync(path.join(__dirname, '../scripts/seed-dev.js'), 'utf8');
+    const seedRewardsSection = seedScript.match(
+      /async function seedRewards\(prisma, usersByLoginId\) \{[\s\S]*?\nasync function seedPointShop/
+    )?.[0];
+
+    expect(seedRewardsSection).toEqual(expect.any(String));
+    expect(seedRewardsSection).toContain("const friendUser = usersByLoginId['friend_user'];");
+    expect(seedRewardsSection).toContain("const raidUser = usersByLoginId['raid_user'];");
+    expect(seedRewardsSection).toContain("const questUser = usersByLoginId['quest_user'];");
+    expect(seedRewardsSection).toContain("const teamUser01 = usersByLoginId['team_user_01'];");
+    expect(seedRewardsSection).toContain("const teamUser02 = usersByLoginId['team_user_02'];");
+    expect(seedRewardsSection).toContain("const teamUser03 = usersByLoginId['team_user_03'];");
   });
 
   it('defines default shop seed items for profile customization', () => {
