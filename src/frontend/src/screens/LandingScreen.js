@@ -27,6 +27,79 @@ const availableFeatureKeys = [
     labelKey: 'landing.feature.community.label',
     titleKey: 'landing.feature.community.title',
     descriptionKey: 'landing.feature.community.description'
+  },
+  {
+    labelKey: 'landing.feature.focus.label',
+    titleKey: 'landing.feature.focus.title',
+    descriptionKey: 'landing.feature.focus.description'
+  },
+  {
+    labelKey: 'landing.feature.social.label',
+    titleKey: 'landing.feature.social.title',
+    descriptionKey: 'landing.feature.social.description'
+  },
+  {
+    labelKey: 'landing.feature.reward.label',
+    titleKey: 'landing.feature.reward.title',
+    descriptionKey: 'landing.feature.reward.description'
+  },
+  {
+    labelKey: 'landing.feature.raid.label',
+    titleKey: 'landing.feature.raid.title',
+    descriptionKey: 'landing.feature.raid.description'
+  },
+  {
+    labelKey: 'landing.feature.coop.label',
+    titleKey: 'landing.feature.coop.title',
+    descriptionKey: 'landing.feature.coop.description'
+  },
+  {
+    labelKey: 'landing.feature.accessibility.label',
+    titleKey: 'landing.feature.accessibility.title',
+    descriptionKey: 'landing.feature.accessibility.description'
+  },
+  {
+    labelKey: 'landing.feature.admin.label',
+    titleKey: 'landing.feature.admin.title',
+    descriptionKey: 'landing.feature.admin.description'
+  }
+];
+
+const showcaseKeys = [
+  {
+    eyebrowKey: 'landing.showcase.learn.eyebrow',
+    titleKey: 'landing.showcase.learn.title',
+    descriptionKey: 'landing.showcase.learn.description',
+    keywordKey: 'landing.showcase.learn.keyword',
+    metricKey: 'landing.showcase.learn.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.organize.eyebrow',
+    titleKey: 'landing.showcase.organize.title',
+    descriptionKey: 'landing.showcase.organize.description',
+    keywordKey: 'landing.showcase.organize.keyword',
+    metricKey: 'landing.showcase.organize.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.connect.eyebrow',
+    titleKey: 'landing.showcase.connect.title',
+    descriptionKey: 'landing.showcase.connect.description',
+    keywordKey: 'landing.showcase.connect.keyword',
+    metricKey: 'landing.showcase.connect.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.challenge.eyebrow',
+    titleKey: 'landing.showcase.challenge.title',
+    descriptionKey: 'landing.showcase.challenge.description',
+    keywordKey: 'landing.showcase.challenge.keyword',
+    metricKey: 'landing.showcase.challenge.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.operate.eyebrow',
+    titleKey: 'landing.showcase.operate.title',
+    descriptionKey: 'landing.showcase.operate.description',
+    keywordKey: 'landing.showcase.operate.keyword',
+    metricKey: 'landing.showcase.operate.metric'
   }
 ];
 
@@ -79,6 +152,7 @@ function GitHubMark() {
 
 export default function LandingScreen({ onNavigate }) {
   const { t } = useLanguage();
+  const [scrollY, setScrollY] = useState(0);
   const [githubTooltipState, setGithubTooltipState] = useState({
     focused: false,
     hovered: false
@@ -86,10 +160,30 @@ export default function LandingScreen({ onNavigate }) {
   const showGithubTooltip = githubTooltipState.focused || githubTooltipState.hovered;
   const writingWord = t('landing.hero.writingWord', '사각사각');
   const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
+  const introProgress = Math.min(scrollY / 360, 1);
+  const activeShowcaseIndex = Math.max(0, Math.min(showcaseKeys.length - 1, Math.floor((scrollY - 430) / 260)));
+
+  const handleLandingScroll = (event) => {
+    setScrollY(event.nativeEvent?.contentOffset?.y || 0);
+  };
 
   return (
-    <ScrollView dataSet={{ sagakI18nIgnore: 'true' }} style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.hero}>
+    <ScrollView
+      dataSet={{ sagakI18nIgnore: 'true' }}
+      onScroll={handleLandingScroll}
+      scrollEventThrottle={80}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
+      <View
+        style={[
+          styles.hero,
+          {
+            opacity: 1 - introProgress * 0.08,
+            transform: [{ translateY: introProgress * -14 }]
+          }
+        ]}
+      >
         <View style={styles.heroCopy}>
           <View style={styles.pill}>
             <Text style={styles.pillText}>{t('landing.hero.pill', '개인화 학습 관리 플랫폼')}</Text>
@@ -133,6 +227,11 @@ export default function LandingScreen({ onNavigate }) {
           </View>
         </View>
         <View style={[styles.visualCard, shadows.card]}>
+          <View style={styles.introOrbit}>
+            <Text style={styles.introOrbitText}>AI</Text>
+            <Text style={styles.introOrbitText}>LIVE</Text>
+            <Text style={styles.introOrbitText}>QUEST</Text>
+          </View>
           <Image source={icon} style={styles.heroIcon} />
           <View style={styles.miniPanel}>
             <View style={styles.dot} />
@@ -158,15 +257,66 @@ export default function LandingScreen({ onNavigate }) {
           const featureDescription = t(feature.descriptionKey);
 
           return (
-          <Pressable
-            accessibilityLabel={`${featureLabel}: ${featureTitle}`}
-            key={feature.titleKey}
-            style={(state) => [styles.featureCard, shadows.card, ...interactiveStateStyles(state, { kind: 'card' })]}
-          >
-            <Text style={styles.featureLabel}>{featureLabel}</Text>
-            <Text style={styles.featureTitle}>{featureTitle}</Text>
-            <Text style={styles.featureDescription}>{featureDescription}</Text>
-          </Pressable>
+            <Pressable
+              accessibilityLabel={`${featureLabel}: ${featureTitle}`}
+              key={feature.titleKey}
+              style={(state) => [styles.featureCard, shadows.card, ...interactiveStateStyles(state, { kind: 'card' })]}
+            >
+              <Text style={styles.featureLabel}>{featureLabel}</Text>
+              <Text style={styles.featureTitle}>{featureTitle}</Text>
+              <Text style={styles.featureDescription}>{featureDescription}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.showcase}>
+        <View style={styles.sectionHeading}>
+          <Text style={styles.sectionEyebrow}>SCROLL TOUR</Text>
+          <Text style={styles.sectionTitle}>{t('landing.showcase.title', '스크롤로 만나는 실제 기능 흐름')}</Text>
+          <Text style={styles.sectionDescription}>
+            {t('landing.showcase.description', 'PR #264의 방향을 최신 기능 구성에 맞춰 정리한 소개 섹션입니다.')}
+          </Text>
+        </View>
+        {showcaseKeys.map((item, index) => {
+          const isActive = index === activeShowcaseIndex;
+
+          return (
+            <View
+              key={item.titleKey}
+              style={[
+                styles.showcaseRow,
+                index % 2 === 1 && styles.showcaseRowReverse,
+                isActive ? styles.showcaseRowActive : styles.showcaseRowRest
+              ]}
+            >
+              <Text
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                style={[styles.showcaseKeyword, isActive && styles.showcaseKeywordActive]}
+              >
+                {t(item.keywordKey)}
+              </Text>
+              <View style={styles.showcaseCopy}>
+                <Text style={styles.showcaseEyebrow}>{t(item.eyebrowKey)}</Text>
+                <Text style={styles.showcaseTitle}>{t(item.titleKey)}</Text>
+                <Text style={styles.showcaseDescription}>{t(item.descriptionKey)}</Text>
+              </View>
+              <View style={[styles.showcaseMockup, shadows.card]}>
+                <View style={styles.mockupTopRow}>
+                  <View style={styles.mockupDot} />
+                  <View style={styles.mockupLineStrong} />
+                </View>
+                <Text style={styles.mockupMetric}>{t(item.metricKey)}</Text>
+                <View style={styles.mockupProgressTrack}>
+                  <View style={[styles.mockupProgressFill, { width: `${58 + index * 8}%` }]} />
+                </View>
+                <View style={styles.mockupChipRow}>
+                  <View style={styles.mockupChip} />
+                  <View style={[styles.mockupChip, styles.mockupChipAlt]} />
+                </View>
+              </View>
+            </View>
           );
         })}
       </View>
@@ -328,6 +478,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24
   },
+  introOrbit: {
+    position: 'absolute',
+    top: 18,
+    left: 18,
+    right: 18,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8
+  },
+  introOrbitText: {
+    color: colors.blue,
+    backgroundColor: colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0
+  },
   heroIcon: {
     height: 238,
     width: '70%',
@@ -426,6 +598,141 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
     lineHeight: 22
+  },
+  showcase: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 64
+  },
+  showcaseRow: {
+    width: '100%',
+    maxWidth: 1180,
+    minHeight: 260,
+    paddingHorizontal: 18,
+    paddingVertical: 24,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 22,
+    position: 'relative',
+    transitionDuration: '220ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'ease-out'
+  },
+  showcaseRowReverse: {
+    flexDirection: 'row-reverse'
+  },
+  showcaseRowActive: {
+    opacity: 1,
+    transform: [{ translateY: 0 }]
+  },
+  showcaseRowRest: {
+    opacity: 0.72,
+    transform: [{ translateY: 14 }]
+  },
+  showcaseKeyword: {
+    position: 'absolute',
+    right: 20,
+    top: 8,
+    color: colors.blueSoft,
+    fontSize: 56,
+    fontWeight: '900',
+    letterSpacing: 0,
+    opacity: 0.42
+  },
+  showcaseKeywordActive: {
+    color: colors.mintSoft,
+    opacity: 0.9
+  },
+  showcaseCopy: {
+    flex: 1,
+    minWidth: 260,
+    maxWidth: 520,
+    zIndex: 1
+  },
+  showcaseEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 10
+  },
+  showcaseTitle: {
+    color: colors.ink,
+    fontSize: 26,
+    lineHeight: 36,
+    fontWeight: '900',
+    letterSpacing: 0
+  },
+  showcaseDescription: {
+    color: colors.muted,
+    fontSize: 15,
+    lineHeight: 25,
+    marginTop: 12
+  },
+  showcaseMockup: {
+    width: '100%',
+    maxWidth: 390,
+    minWidth: 260,
+    minHeight: 210,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 22,
+    justifyContent: 'center',
+    gap: 18,
+    zIndex: 1
+  },
+  mockupTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12
+  },
+  mockupDot: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 9,
+    borderColor: colors.mint
+  },
+  mockupLineStrong: {
+    flex: 1,
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft
+  },
+  mockupMetric: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900'
+  },
+  mockupProgressTrack: {
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: colors.cream,
+    overflow: 'hidden'
+  },
+  mockupProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.mint
+  },
+  mockupChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  mockupChip: {
+    width: 96,
+    height: 30,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft
+  },
+  mockupChipAlt: {
+    width: 132,
+    backgroundColor: colors.blueSoft
   },
   flow: {
     width: '100%',
