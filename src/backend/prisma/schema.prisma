@@ -883,12 +883,16 @@ model CollaborativeQuestParticipant {
   questId           Int                @map("quest_id")
   userId            Int                @map("user_id")
   contributionValue Int                @default(0) @map("contribution_value")
+  hiddenAt          DateTime?          @map("hidden_at")
+  archivedAt        DateTime?          @map("archived_at")
   joinedAt          DateTime           @default(now()) @map("joined_at")
   quest             CollaborativeQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([questId, userId])
   @@index([userId])
+  @@index([userId, hiddenAt])
+  @@index([userId, archivedAt])
   @@map("collaborative_quest_participants")
 }
 

@@ -42,14 +42,49 @@ const QUEST_INCLUDE = {
   }
 };
 
-function findCollaborativeQuests() {
+function findCollaborativeQuests({ userId, includeHidden = false } = {}) {
   return prisma.collaborativeQuest.findMany({
+    where: includeHidden || !userId
+      ? undefined
+      : {
+          NOT: {
+            participants: {
+              some: {
+                userId,
+                OR: [
+                  { hiddenAt: { not: null } },
+                  { archivedAt: { not: null } }
+                ]
+              }
+            }
+          }
+        },
     include: QUEST_INCLUDE,
     orderBy: [
       { status: 'asc' },
       { updatedAt: 'desc' },
       { id: 'desc' }
     ]
+  });
+}
+
+function updateCollaborativeQuestParticipantVisibility({ questId, userId, hiddenAt, archivedAt }) {
+  return prisma.collaborativeQuestParticipant.update({
+    where: {
+      questId_userId: {
+        questId,
+        userId
+      }
+    },
+    data: {
+      hiddenAt,
+      archivedAt
+    },
+    include: {
+      quest: {
+        include: QUEST_INCLUDE
+      }
+    }
   });
 }
 
@@ -287,5 +322,6 @@ module.exports = {
   claimCollaborativeQuestReward,
   createCollaborativeQuest,
   findCollaborativeQuestById,
-  findCollaborativeQuests
+  findCollaborativeQuests,
+  updateCollaborativeQuestParticipantVisibility
 };

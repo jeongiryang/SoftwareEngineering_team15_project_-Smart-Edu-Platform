@@ -4215,12 +4215,17 @@ Request Body:
 - 기여도 추가와 보상 수령은 현재 로그인 사용자 기준으로 처리하며, `userId`를 body로 받아 신뢰하지 않음.
 - 완료 전 보상 수령, 미참여자 기여/보상 수령, 중복 보상 수령은 차단함.
 - 진행률 변경 성공 시 WebSocket `collabQuest.progress.updated`, 완료 시 `collabQuest.completed` event를 참여자에게 전달함.
+- 숨김/보관은 `CollaborativeQuestParticipant` 기준의 사용자별 상태로 처리함. 다른 참여자, 전체 진행률, 보상 claim 상태에는 영향을 주지 않음.
 
 #### 9.10.1 협동 퀘스트 목록 조회
 
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `GET` | `/api/collaborative-quests` | 협동 퀘스트 목록과 내 참여/보상 수령 상태 조회 |
+
+Query:
+
+- `includeHidden=true`: 현재 사용자가 숨김/보관 처리한 협동 퀘스트까지 함께 조회함.
 
 Response 주요 필드:
 
@@ -4231,6 +4236,8 @@ Response 주요 필드:
 - `recommendedRewardPoints`, `recommendedContributionAmount`
 - `participantCount`, `participants`
 - `hasJoined`, `hasClaimed`, `canJoin`, `canContribute`, `canClaim`
+- `currentUserHidden`, `currentUserArchived`
+- `currentUserHiddenAt`, `currentUserArchivedAt`
 
 #### 9.10.2 협동 퀘스트 상세 조회
 
@@ -4297,6 +4304,33 @@ Request Body:
 - `CollaborativeQuestRewardClaim`의 `questId + userId` unique 제약으로 중복 수령을 방지함.
 - 포인트 보상은 `RewardAccount`와 `PointTransaction`에 `sourceType: "COLLABORATIVE_QUEST"`로 기록함.
 
+#### 9.10.7 협동 퀘스트 숨김/보관 상태 변경
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `PATCH` | `/api/collaborative-quests/:questId/visibility` | 현재 사용자 기준으로 협동 퀘스트를 숨김, 보관, 복원 |
+
+Request Body:
+
+```json
+{
+  "action": "HIDE"
+}
+```
+
+`action` 값:
+
+- `HIDE`: 진행 중 퀘스트를 내 목록에서 숨김. 참여자/기여도/보상 정보는 유지함.
+- `ARCHIVE`: 완료 또는 종료된 퀘스트를 내 보관 상태로 전환함.
+- `RESTORE`: 숨김/보관 상태를 해제하고 기본 목록에 다시 표시함.
+
+정책:
+
+- 현재 로그인 사용자가 참여한 협동 퀘스트만 숨김/보관/복원 가능함.
+- `ARCHIVE`는 `COMPLETED` 또는 `EXPIRED` 상태에서만 허용함.
+- 진행 중 퀘스트는 삭제하지 않고 `HIDE`로만 내 목록에서 제외함.
+- 상태 변경은 사용자별 `CollaborativeQuestParticipant.hiddenAt`, `archivedAt`에만 기록되며 다른 참여자에게 영향을 주지 않음.
+
 ### 9.11 docs 기준 기능 구현 상태 재점검
 
 아래 표는 요구사항 문서, 설계 문서, 회의록, 현재 main 구현 상태를 함께 대조한 결과임. docs에 근거가 있는 기능은 계획된 기능으로 유지하며, 아직 구현되지 않은 항목은 `미구현` 또는 `부분 구현`으로 표시함.
@@ -4344,7 +4378,7 @@ Request Body:
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 스터디 보스 레이드 API 단일 테스트 | 1 suite / 8 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js` | 협동 퀘스트 API 단일 테스트 | 1 suite / 13 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js` | 협동 퀘스트 API 단일 테스트 | 1 suite / 21 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 서비스 점검 모드 및 관리자 공지 API 단일 테스트 | 1 suite / 10 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/realtime-websocket.test.js` | WebSocket frame/helper 단일 테스트 | 1 suite / 3 tests passed |
 | `npx jest tests/ai.test.js` | AI API 통합 테스트 | `src/backend`에서 실행. 자동 테스트는 실제 외부 AI API를 호출하지 않음 |

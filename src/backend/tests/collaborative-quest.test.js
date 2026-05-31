@@ -29,6 +29,8 @@ function mockBuildQuest(overrides = {}) {
         questId: 1,
         userId: 1,
         contributionValue: 40,
+        hiddenAt: null,
+        archivedAt: null,
         joinedAt: createdAt,
         user: baseUser
       }
@@ -80,6 +82,8 @@ jest.mock('../src/repositories/collaborativeQuest.repository', () => ({
           questId: 1,
           userId: 1,
           contributionValue: 55,
+          hiddenAt: null,
+          archivedAt: null,
           joinedAt: new Date('2026-05-30T01:00:00Z'),
           user: {
             id: 1,
@@ -98,6 +102,8 @@ jest.mock('../src/repositories/collaborativeQuest.repository', () => ({
         questId,
         userId,
         contributionValue: 0,
+        hiddenAt: null,
+        archivedAt: null,
         joinedAt: new Date('2026-05-30T01:10:00Z'),
         user: {
           id: userId,
@@ -157,10 +163,12 @@ jest.mock('../src/repositories/collaborativeQuest.repository', () => ({
       },
       participants: [
         {
-          questId: 1,
-          userId: createdById,
-          contributionValue: 0,
-          joinedAt: new Date('2026-05-30T01:00:00Z'),
+            questId: 1,
+            userId: createdById,
+            contributionValue: 0,
+            hiddenAt: null,
+            archivedAt: null,
+            joinedAt: new Date('2026-05-30T01:00:00Z'),
           user: {
             id: createdById,
             name: 'Quest User',
@@ -173,7 +181,34 @@ jest.mock('../src/repositories/collaborativeQuest.repository', () => ({
   findCollaborativeQuestById: jest.fn(async (questId) =>
     questId === 1 ? mockBuildQuest() : null
   ),
-  findCollaborativeQuests: jest.fn(async () => [mockBuildQuest()])
+  findCollaborativeQuests: jest.fn(async () => [mockBuildQuest()]),
+  updateCollaborativeQuestParticipantVisibility: jest.fn(async ({ questId, userId, hiddenAt, archivedAt }) => ({
+    id: 1,
+    questId,
+    userId,
+    contributionValue: 40,
+    hiddenAt,
+    archivedAt,
+    joinedAt: new Date('2026-05-30T01:00:00Z'),
+    quest: mockBuildQuest({
+      id: questId,
+      participants: [
+        {
+          questId,
+          userId,
+          contributionValue: 40,
+          hiddenAt,
+          archivedAt,
+          joinedAt: new Date('2026-05-30T01:00:00Z'),
+          user: {
+            id: userId,
+            name: 'Quest User',
+            loginId: 'quest_user'
+          }
+        }
+      ]
+    })
+  }))
 }));
 
 jest.mock('../src/realtime/websocket.server', () => ({
@@ -211,7 +246,8 @@ describe('Collaborative Quest API', () => {
   it.each([
     { method: 'get', path: '/api/collaborative-quests' },
     { method: 'post', path: '/api/collaborative-quests' },
-    { method: 'post', path: '/api/collaborative-quests/1/contributions' }
+    { method: 'post', path: '/api/collaborative-quests/1/contributions' },
+    { method: 'patch', path: '/api/collaborative-quests/1/visibility' }
   ])('rejects unauthenticated $method $path requests', async ({ method, path }) => {
     const response = await request(app)[method](path).send({});
 
@@ -238,6 +274,22 @@ describe('Collaborative Quest API', () => {
       })
     );
     expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+  });
+
+  it('passes includeHidden query when listing archived or hidden collaborative quests', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/collaborative-quests?includeHidden=true')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(collaborativeQuestRepository.findCollaborativeQuests).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeHidden: true,
+        userId: 1
+      })
+    );
   });
 
   it('creates a collaborative quest and broadcasts progress to participants', async () => {
@@ -463,6 +515,116 @@ describe('Collaborative Quest API', () => {
       .post('/api/collaborative-quests/1/claim')
       .set(createAuthHeader(token))
       .send({});
+
+    expect(response.status).toBe(409);
+  });
+
+  it('hides an active collaborative quest only for the current participant', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/collaborative-quests/1/visibility')
+      .set(createAuthHeader(token))
+      .send({
+        action: 'HIDE'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.quest).toEqual(
+      expect.objectContaining({
+        currentUserHidden: true,
+        currentUserArchived: false,
+        hasJoined: true
+      })
+    );
+    expect(collaborativeQuestRepository.updateCollaborativeQuestParticipantVisibility).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questId: 1,
+        userId: 1,
+        hiddenAt: expect.any(Date),
+        archivedAt: null
+      })
+    );
+  });
+
+  it('archives a completed collaborative quest without deleting progress or claims', async () => {
+    collaborativeQuestRepository.findCollaborativeQuestById.mockResolvedValueOnce(
+      mockBuildQuest({
+        currentValue: 100,
+        status: 'COMPLETED',
+        completedAt: new Date('2026-05-30T02:00:00Z')
+      })
+    );
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/collaborative-quests/1/visibility')
+      .set(createAuthHeader(token))
+      .send({
+        action: 'ARCHIVE'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.quest.currentUserArchived).toBe(true);
+    expect(response.body.quest.currentValue).toBe(40);
+    expect(collaborativeQuestRepository.updateCollaborativeQuestParticipantVisibility).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questId: 1,
+        userId: 1,
+        hiddenAt: null,
+        archivedAt: expect.any(Date)
+      })
+    );
+  });
+
+  it('restores a hidden or archived collaborative quest to the current user list', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/collaborative-quests/1/visibility')
+      .set(createAuthHeader(token))
+      .send({
+        action: 'RESTORE'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.quest.currentUserHidden).toBe(false);
+    expect(response.body.quest.currentUserArchived).toBe(false);
+    expect(collaborativeQuestRepository.updateCollaborativeQuestParticipantVisibility).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hiddenAt: null,
+        archivedAt: null
+      })
+    );
+  });
+
+  it('blocks archiving an active collaborative quest', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/collaborative-quests/1/visibility')
+      .set(createAuthHeader(token))
+      .send({
+        action: 'ARCHIVE'
+      });
+
+    expect(response.status).toBe(409);
+  });
+
+  it('blocks visibility changes for non-participants', async () => {
+    collaborativeQuestRepository.findCollaborativeQuestById.mockResolvedValueOnce(
+      mockBuildQuest({
+        participants: []
+      })
+    );
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .patch('/api/collaborative-quests/1/visibility')
+      .set(createAuthHeader(token))
+      .send({
+        action: 'HIDE'
+      });
 
     expect(response.status).toBe(409);
   });

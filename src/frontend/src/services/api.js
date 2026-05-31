@@ -434,8 +434,12 @@ export function claimBossRaidReward(token, partyId) {
   });
 }
 
-export function getCollaborativeQuests(token) {
-  return request('/collaborative-quests', {
+export function getCollaborativeQuests(token, options = {}) {
+  const query = buildQueryString({
+    includeHidden: options.includeHidden ? 'true' : undefined
+  });
+
+  return request(`/collaborative-quests${query}`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -487,6 +491,16 @@ export function claimCollaborativeQuestReward(token, questId) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({})
+  });
+}
+
+export function updateCollaborativeQuestVisibility(token, questId, action) {
+  return request(`/collaborative-quests/${questId}/visibility`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ action })
   });
 }
 
