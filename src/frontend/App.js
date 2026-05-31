@@ -918,7 +918,7 @@ function AppChrome({
     }
   }, [activeScreenName, speakText]);
 
-  const showHeader = activeScreenName !== 'home' || introPassed;
+  const shouldShowHeader = showHeader && (activeScreenName !== 'home' || introPassed);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -927,7 +927,7 @@ function AppChrome({
         barStyle={isDarkSurface ? 'light-content' : 'dark-content'}
         backgroundColor={palette.surface}
       />
-      {showHeader ? (
+      {shouldShowHeader ? (
         <AppHeader
           activeScreen={activeScreenName}
           messageUnreadCount={messageUnreadCount}

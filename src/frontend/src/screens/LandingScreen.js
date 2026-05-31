@@ -260,11 +260,27 @@ const availableFeatureKeys = [
     descriptionKey: 'landing.feature.plan.description'
   },
   {
+    labelKey: 'landing.feature.timer.label',
+    titleKey: 'landing.feature.timer.title',
+    descriptionKey: 'landing.feature.timer.description'
+  },
+  {
     labelKey: 'landing.feature.community.label',
     titleKey: 'landing.feature.community.title',
     descriptionKey: 'landing.feature.community.description'
+  },
+  {
+    labelKey: 'landing.feature.coop.label',
+    titleKey: 'landing.feature.coop.title',
+    descriptionKey: 'landing.feature.coop.description'
+  },
+  {
+    labelKey: 'landing.feature.shop.label',
+    titleKey: 'landing.feature.shop.title',
+    descriptionKey: 'landing.feature.shop.description'
   }
 ];
+
 
 const flowStepKeys = [
   'landing.flow.step1',
@@ -368,6 +384,9 @@ const sectionVisualKeywords = {
   question: 'ASK',
   summary: 'SUMMARY',
   report: 'REVIEW',
+  social: 'SOCIAL',
+  coop: 'COOP',
+  reward: 'REWARD',
   trust: 'TRUST'
 };
 
@@ -390,8 +409,8 @@ const projectCopySets = {
         description: '큰 글씨, 고대비, TTS/STT, 커뮤니티와 보상 흐름까지 고려해 연령과 목적이 달라도 이어 쓸 수 있게 설계했습니다.'
       },
       {
-        title: '운영 가능한 플랫폼',
-        description: '게시판, 신고, 관리자, 데이터 보호 기준을 문서화해 수업 프로젝트 데모 이후에도 확장 가능한 구조를 남겼습니다.'
+        title: '나만의 학습 프로필',
+        description: '포인트로 프로필 이미지, 배경, 배지를 꾸미고 접속한 친구에게 나의 학습 성취를 보여주세요.'
       }
     ]
   },
@@ -413,8 +432,8 @@ const projectCopySets = {
         description: 'Large text, high contrast, TTS/STT, community, and rewards support different ages and learning goals.'
       },
       {
-        title: 'A platform ready to operate',
-        description: 'Board moderation, reports, admin roles, and data protection are documented for growth beyond the class demo.'
+        title: 'My learning profile',
+        description: 'Use points to customize profile image, background, and badge, and show your achievements to online friends.'
       }
     ]
   },
@@ -436,8 +455,8 @@ const projectCopySets = {
         description: '大きな文字、高コントラスト、TTS/STT、コミュニティ、報酬まで考慮し、年齢や目的が違っても使い続けられるようにします。'
       },
       {
-        title: '運用できるプラットフォーム',
-        description: '掲示板、通報、管理者、データ保護の基準を文書化し、授業デモ後の拡張余地も残しています。'
+        title: '自分だけの学習プロフィール',
+        description: 'ポイントでプロフィール画像、背景、バッジをカスタマイズして、オンラインの友達に学習の成果を見せましょう。'
       }
     ]
   },
@@ -459,8 +478,8 @@ const projectCopySets = {
         description: '大字、高对比度、TTS/STT、社区和奖励流程，让不同年龄和目标的用户都能持续使用。'
       },
       {
-        title: '可运营的平台结构',
-        description: '帖子、举报、管理员和数据保护标准已文档化，为课程演示之后的扩展保留空间。'
+        title: '我的学习个人资料',
+        description: '用积分自定义头像、背景和徽章，向在线的朋友展示你的学习成就。'
       }
     ]
   }
@@ -581,7 +600,7 @@ const topHeroSlides = [
     key: 'record',
     eyebrow: 'RECORD',
     title: '공부의 흔적을\n사각사각 쌓아가세요',
-    description: '오늘 저장한 노트, 질문, 오답과 집중 시간을 실제 학습 기록처럼 한눈에 확인합니다.',
+    description: '오늘 저장한 노트, 질문, 오답과 오늘 기록을 실제 학습 기록처럼 한눈에 확인합니다.',
     cta: '무료로 시작하기',
     action: 'register'
   },
@@ -591,6 +610,30 @@ const topHeroSlides = [
     title: '긴 내용은 핵심만\n선명하게 남기세요',
     description: '미적분 핵심 개념처럼 실제 요약 결과와 키워드 태그가 노트 카드에 남습니다.',
     cta: '요약 예시 보기',
+    action: 'register'
+  },
+  {
+    key: 'social',
+    eyebrow: 'COMMUNITY',
+    title: '함께 공부하는\n학습 커뮤니티',
+    description: '친구들과 실시간 쪽지를 주고받고 접속 상태를 확인하며 동기부여를 얻으세요.',
+    cta: '커뮤니티 둘러보기',
+    action: 'register'
+  },
+  {
+    key: 'coop',
+    eyebrow: 'BOSS RAID & QUEST',
+    title: '친구와 함께 깨는\n협동 퀘스트',
+    description: '혼자서 하기 힘든 공부, 목표를 세워 같이 깨고 레이드 보스도 처치해봐요.',
+    cta: '퀘스트 시작하기',
+    action: 'register'
+  },
+  {
+    key: 'reward',
+    eyebrow: 'POINT SHOP',
+    title: '공부한 만큼 쌓이는\n포인트와 보상',
+    description: '포인트를 모아 나만의 프로필을 꾸미고, 학습 성취감을 높여보세요.',
+    cta: '보상 확인하기',
     action: 'register'
   }
 ];
@@ -612,7 +655,7 @@ const topHeroCopySets = {
     record: {
       eyebrow: 'RECORD',
       title: '공부의 흔적을\n사각사각 쌓아가세요',
-      description: '오늘 저장한 노트, 질문, 오답과 집중 시간을 실제 학습 기록처럼 한눈에 확인합니다.',
+      description: '오늘 저장한 노트, 질문, 오답과 오늘 기록을 실제 학습 기록처럼 한눈에 확인합니다.',
       cta: '무료로 시작하기'
     },
     summary: {
@@ -736,7 +779,15 @@ const exampleCopySets = {
     correctAnswer: '정답',
     wrongReason: '틀린 이유',
     wrongReasonText: '개념 A와 B의 차이를 혼동했습니다. 다시 복습을 추천합니다.',
-    trustTag: 'TRUST'
+    trustTag: 'TRUST',
+    socialTitle: '친구 3명 접속중',
+    socialMessage1: '이량: 새벽 집중팟 코드 DAWN01임!',
+    socialMessage2: '지환: 나 지금 수학 과제 거의 다했어',
+    coopBoss: '🔥 스터디 보스 레이드',
+    coopHealth: '보스 남은 체력 4,500 / 10,000',
+    rewardPoints: '현재 포인트: 1,250 P',
+    rewardItem1: '👑 금테두리 프로필',
+    rewardItem2: '✨ 불꽃 이펙트 배지'
   },
   en: {
     topHeroPlanRows: ['09:00 Math concept review', '11:30 30 English words', '14:00 Data structure task', '20:00 Wrong-answer notes'],
@@ -771,7 +822,15 @@ const exampleCopySets = {
     correctAnswer: 'Correct answer',
     wrongReason: 'Why it was wrong',
     wrongReasonText: 'You mixed up the difference between concepts A and B. A quick review is recommended.',
-    trustTag: 'TRUST'
+    trustTag: 'TRUST',
+    socialTitle: '3 friends online',
+    socialMessage1: 'Iryang: Dawn focus party code is DAWN01!',
+    socialMessage2: 'Jihwan: I almost finished my math homework',
+    coopBoss: '🔥 Study Boss Raid',
+    coopHealth: 'Boss remaining HP 4,500 / 10,000',
+    rewardPoints: 'Current Points: 1,250 P',
+    rewardItem1: '👑 Gold border profile',
+    rewardItem2: '✨ Fire effect badge'
   },
   ja: {
     topHeroPlanRows: ['09:00 数学概念の復習', '11:30 英単語30個', '14:00 データ構造課題', '20:00 誤答ノート'],
@@ -806,7 +865,15 @@ const exampleCopySets = {
     correctAnswer: '正解',
     wrongReason: '間違えた理由',
     wrongReasonText: '概念AとBの違いを混同しました。もう一度復習することをおすすめします。',
-    trustTag: 'TRUST'
+    trustTag: 'TRUST',
+    socialTitle: '友達3人がオンライン',
+    socialMessage1: 'Iryang: 集中パーティのコードはDAWN01です！',
+    socialMessage2: 'Jihwan: 数学の宿題がほぼ終わりました',
+    coopBoss: '🔥 スタディボスレイド',
+    coopHealth: 'ボスの残りHP 4,500 / 10,000',
+    rewardPoints: '現在のポイント: 1,250 P',
+    rewardItem1: '👑 金枠のプロフィール',
+    rewardItem2: '✨ 炎エフェクトバッジ'
   },
   zh: {
     topHeroPlanRows: ['09:00 复习数学概念', '11:30 英语单词30个', '14:00 数据结构作业', '20:00 错题笔记'],
@@ -840,8 +907,16 @@ const exampleCopySets = {
     myAnswer: '我的答案',
     correctAnswer: '正确答案',
     wrongReason: '错误原因',
-    wrongReasonText: '你混淆了概念 A 和 B 的差异。建议再次复习。',
-    trustTag: 'TRUST'
+    wrongReasonText: '混淆了概念A和B的区别。建议再次复习。',
+    trustTag: 'TRUST',
+    socialTitle: '3位朋友在线',
+    socialMessage1: 'Iryang: 凌晨集中派对代码是DAWN01！',
+    socialMessage2: 'Jihwan: 我的数学作业快写完了',
+    coopBoss: '🔥 学习Boss突袭',
+    coopHealth: 'Boss剩余血量 4,500 / 10,000',
+    rewardPoints: '当前积分: 1,250 P',
+    rewardItem1: '👑 金色边框个人资料',
+    rewardItem2: '✨ 火焰特效徽章'
   }
 };
 
@@ -928,6 +1003,54 @@ function TopHeroMockup({ copy, kind }) {
             <Text style={styles.topHeroMockupRowText}>{item}</Text>
           </View>
         ))}
+      </View>
+    );
+  }
+
+  if (kind === 'social') {
+    return (
+      <View className="sagak-hover-zoom" style={[styles.topHeroMockup, styles.topHeroMockupSocial]}>
+        <View style={styles.topHeroMockupHeader}>
+          <Text style={styles.topHeroMockupTitle}>{copy.socialTitle || ''}</Text>
+          <Text style={styles.topHeroMockupBadge}>🟢</Text>
+        </View>
+        <View style={styles.topHeroMockupRow}>
+          <Text style={styles.topHeroMockupRowText}>{copy.socialMessage1 || ''}</Text>
+        </View>
+        <View style={styles.topHeroMockupRow}>
+          <Text style={styles.topHeroMockupRowText}>{copy.socialMessage2 || ''}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (kind === 'coop') {
+    return (
+      <View className="sagak-hover-zoom" style={[styles.topHeroMockup, styles.topHeroMockupCoop]}>
+        <Text style={styles.topHeroMockupTitle}>{copy.coopBoss || ''}</Text>
+        <View style={styles.topHeroMockupProgressBar}>
+          <View style={[styles.topHeroMockupProgressFill, { width: '55%', backgroundColor: '#ff6b6b' }]} />
+        </View>
+        <Text style={[styles.topHeroMockupRowText, { textAlign: 'center', marginTop: 12 }]}>{copy.coopHealth || ''}</Text>
+      </View>
+    );
+  }
+
+  if (kind === 'reward') {
+    return (
+      <View className="sagak-hover-zoom" style={[styles.topHeroMockup, styles.topHeroMockupReward]}>
+        <View style={styles.topHeroMockupHeader}>
+          <Text style={styles.topHeroMockupTitle}>포인트 상점</Text>
+          <Text style={styles.topHeroMockupBadge}>{copy.rewardPoints || ''}</Text>
+        </View>
+        <View style={styles.topHeroMockupRow}>
+          <View style={styles.topHeroMockupCheckDone} />
+          <Text style={styles.topHeroMockupRowText}>{copy.rewardItem1 || ''}</Text>
+        </View>
+        <View style={styles.topHeroMockupRow}>
+          <View style={styles.topHeroMockupCheckDone} />
+          <Text style={styles.topHeroMockupRowText}>{copy.rewardItem2 || ''}</Text>
+        </View>
       </View>
     );
   }
@@ -1825,6 +1948,71 @@ function moveHeroSlide(direction) {
         </View>
       </View>
 
+      {/* 5. 신규: SOCIAL 섹션 */}
+      <View nativeID="social" className="keyword-section social-section sagak-fade-up" onLayout={(event) => handleSectionLayout('social', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.social} motion={sectionKeywordMotions.social} style={styles.bgSocial} />
+        <View style={styles.newSectionInner}>
+          <View style={styles.newTextCol}>
+            <Text style={styles.newSectionTitle}>함께 공부하는 학습 커뮤니티</Text>
+            <Text style={styles.newSectionDesc}>혼자 하는 공부의 외로움을 넘어서, 친구들과 실시간 쪽지를 나누고 접속 상태를 확인하며 동기부여를 얻으세요.</Text>
+          </View>
+          <View style={styles.newVisualCol}>
+            <View className="sagak-hover-zoom" style={[styles.mockCard, styles.reportCardMain, { borderColor: '#BDE0FE', borderWidth: 2, height: 'auto', paddingBottom: 24 }]}>
+              <View style={styles.reportHeader}>
+                <Text style={styles.reportTitle}>실시간 쪽지함</Text>
+                <Text style={styles.reportScore}>WebSocket</Text>
+              </View>
+              <View style={styles.reportRow}><Text style={styles.reportLabel}>{exampleCopy.socialMessage1 || ''}</Text></View>
+              <View style={styles.reportRow}><Text style={styles.reportLabel}>{exampleCopy.socialMessage2 || ''}</Text></View>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* 6. 신규: COOP 섹션 */}
+      <View nativeID="coop" className="keyword-section coop-section sagak-fade-up delay-1" onLayout={(event) => handleSectionLayout('coop', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.coop} motion={sectionKeywordMotions.coop} style={styles.bgCoop} />
+        <View style={[styles.newSectionInner, { flexDirection: 'row-reverse' }]}>
+          <View style={styles.newTextCol}>
+            <Text style={styles.newSectionTitle}>같이 목표를 달성하는 쾌감</Text>
+            <Text style={styles.newSectionDesc}>등록된 보스 레이드에 참여하고, 팀원과 직접 협동 퀘스트를 만들어 함께 목표를 달성하고 포인트를 받으세요.</Text>
+          </View>
+          <View style={styles.newVisualCol}>
+            <View className="sagak-hover-zoom" style={[styles.mockCard, styles.reportCardMain, { borderColor: '#FFC8C8', borderWidth: 2, height: 'auto', paddingBottom: 24 }]}>
+              <View style={styles.reportHeader}>
+                <Text style={styles.reportTitle}>{exampleCopy.coopBoss || ''}</Text>
+                <Text style={styles.reportScore}>HP 진행률</Text>
+              </View>
+              <View style={[styles.topHeroMockupProgressBar, { height: 16, backgroundColor: '#f0f0f0', marginTop: 20 }]}>
+                <View style={[styles.topHeroMockupProgressFill, { width: '55%', backgroundColor: '#ff6b6b' }]} />
+              </View>
+              <Text style={{ textAlign: 'center', marginTop: 12, color: '#333', fontSize: 13, fontWeight: '500' }}>{exampleCopy.coopHealth || ''}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* 7. 신규: REWARD 섹션 */}
+      <View nativeID="reward" className="keyword-section reward-section sagak-fade-up delay-2" onLayout={(event) => handleSectionLayout('reward', event)} style={styles.newSection}>
+        <SectionKeyword label={currentSectionKeywords.reward} motion={sectionKeywordMotions.reward} style={styles.bgReward} />
+        <View style={styles.newSectionInner}>
+          <View style={styles.newTextCol}>
+            <Text style={styles.newSectionTitle}>노력한 만큼 쌓이는 보상</Text>
+            <Text style={styles.newSectionDesc}>퀘스트와 목표 달성으로 모은 포인트로 나만의 프로필을 꾸미고, 학습 성취감을 높여보세요.</Text>
+          </View>
+          <View style={styles.newVisualCol}>
+            <View className="sagak-hover-zoom" style={[styles.mockCard, styles.reportCardMain, { borderColor: '#FFE4B5', borderWidth: 2, height: 'auto', paddingBottom: 24 }]}>
+              <View style={styles.reportHeader}>
+                <Text style={styles.reportTitle}>포인트 상점</Text>
+                <Text style={styles.reportScore}>{exampleCopy.rewardPoints || ''}</Text>
+              </View>
+              <View style={styles.reportRow}><Text style={styles.reportLabel}>{exampleCopy.rewardItem1 || ''}</Text></View>
+              <View style={styles.reportRow}><Text style={styles.reportLabel}>{exampleCopy.rewardItem2 || ''}</Text></View>
+            </View>
+          </View>
+        </View>
+      </View>
+
       {/* 5. 신뢰/TRUST 섹션 */}
       <View nativeID="trust" className="trust-section sagak-fade-up delay-2" onLayout={(event) => handleSectionLayout('trust', event)} style={styles.newSection}>
         <SectionKeyword label={currentSectionKeywords.trust} motion={sectionKeywordMotions.trust} style={styles.bgTrust} />
@@ -2047,9 +2235,15 @@ const styles = StyleSheet.create({
   bgReport: {
     top: '50%',
   },
-  bgTrust: {
-    top: '50%',
-  },
+  bgTrust: {},
+  bgSocial: {},
+  bgCoop: {},
+  bgReward: {},
+  topHeroMockupSocial: { borderColor: '#BDE0FE', backgroundColor: '#F0F8FF' },
+  topHeroMockupCoop: { borderColor: '#FFC8C8', backgroundColor: '#FFF0F0' },
+  topHeroMockupReward: { borderColor: '#FFE4B5', backgroundColor: '#FFFDF0' },
+  topHeroMockupProgressBar: { width: '100%', height: 8, backgroundColor: '#e0e0e0', borderRadius: 4, overflow: 'hidden' },
+  topHeroMockupProgressFill: { height: '100%', borderRadius: 4 },
   mockCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
