@@ -1,6 +1,10 @@
 const {
+  addAIChatRoomMessage,
   askAIQuestion,
+  createUserAIChatRoom,
+  deleteUserAIChatRoom,
   generateAIRecommendation,
+  listAIChatRooms,
   summarizeText,
   analyzeWrongAnswer
 } = require('../services/ai.service');
@@ -27,9 +31,33 @@ const analyzeWrongAnswerController = asyncHandler(async (req, res) => {
   sendCreated(res, { wrongAnswerNote: record });
 });
 
+const listChatRoomsController = asyncHandler(async (req, res) => {
+  const chatRooms = await listAIChatRooms(req.user.id);
+  sendSuccess(res, 200, { chatRooms });
+});
+
+const createChatRoomController = asyncHandler(async (req, res) => {
+  const chatRoom = await createUserAIChatRoom(req.user.id, req.body || {});
+  sendCreated(res, { chatRoom });
+});
+
+const createChatMessageController = asyncHandler(async (req, res) => {
+  const result = await addAIChatRoomMessage(req.user.id, req.params.roomId, req.body);
+  sendCreated(res, result);
+});
+
+const deleteChatRoomController = asyncHandler(async (req, res) => {
+  const result = await deleteUserAIChatRoom(req.user.id, req.params.roomId);
+  sendSuccess(res, 200, result);
+});
+
 module.exports = {
+  addChatRoomMessage: createChatMessageController,
   askQuestion: askQuestionController,
+  createChatRoom: createChatRoomController,
+  deleteChatRoom: deleteChatRoomController,
   getRecommendation: getRecommendationController,
+  listChatRooms: listChatRoomsController,
   summarize: summarizeController,
   analyzeWrongAnswer: analyzeWrongAnswerController
 };

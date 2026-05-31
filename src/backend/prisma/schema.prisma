@@ -142,6 +142,8 @@ model User {
   notifications           Notification[]
   notes                   StudyNote[]
   aiQuestions             AIQuestion[]
+  aiChatRooms             AIChatRoom[]
+  aiChatMessages          AIChatMessage[]
   wrongAnswerNotes        WrongAnswerNote[]
   quizzes                 Quiz[]
   aiRecommendations       AIRecommendation[]
@@ -297,6 +299,37 @@ model AIQuestion {
   note      StudyNote? @relation(fields: [noteId], references: [id], onDelete: SetNull)
 
   @@map("ai_questions")
+}
+
+model AIChatRoom {
+  id        Int             @id @default(autoincrement())
+  userId    Int             @map("user_id")
+  title     String          @default("AI 대화")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AIChatMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("ai_chat_rooms")
+}
+
+model AIChatMessage {
+  id          Int        @id @default(autoincrement())
+  roomId      Int        @map("room_id")
+  userId      Int        @map("user_id")
+  question    String
+  answer      String
+  isMock      Boolean    @default(false) @map("is_mock")
+  isTruncated Boolean    @default(false) @map("is_truncated")
+  source      String     @default("AI_QNA")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  room        AIChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_chat_messages")
 }
 
 model WrongAnswerNote {

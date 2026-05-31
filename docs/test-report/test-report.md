@@ -200,7 +200,7 @@ PR별 자동 검증 결과는 GitHub PR의 `Checks` 탭과 저장소 `Actions` �
 
 유닛 테스트는 service 함수, validation, 인증 로직, 통계 계산 로직처럼 입력과 출력이 명확한 단위를 중심으로 작성함.
 
-현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 집중 시간/통계, 보상, 포인트 상점, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록/사용자 신고, 관리자 커뮤니티 신고 처리, 관리자 보상, 관리자, AI 학습 지원 API와 공통 helper 검증을 포함함. 커뮤니티 프론트 화면 테스트는 후속으로 확장함.
+현재 백엔드 테스트는 health check, 인증, 사용자/프로필, 학습 일정/태스크, 학습 노트, 집중 시간/통계, 보상, 포인트 상점, 커뮤니티 게시글/댓글/반응/북마크/내 북마크 목록/사용자 신고, 관리자 커뮤니티 신고 처리, 관리자 보상, 관리자, AI 학습 지원 API, AI 대화방 API와 공통 helper 검증을 포함함. 커뮤니티 프론트 화면 테스트는 후속으로 확장함.
 
 ### 3.2 통합 테스트 전략
 
@@ -291,14 +291,14 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(28 suites / 491 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(29 suites / 499 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트. `SUSPENDED`/`DEACTIVATED` 계정 login 403 차단과 기존 token 보호 API 401 차단 검증 포함 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
 | Error Middleware focused test | `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js` | 통과 | Prisma 런타임 오류 사용자 친화적 처리 단일 테스트 기준 1 suite / 6 tests passed |
 | User profile API test | `GET /api/users/me`, `GET /api/users/me/activity`, `GET /api/users/:userId/public-profile`, `PATCH /api/users/me`, `PATCH /api/users/me/password`, `DELETE /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트. 계정 메타데이터, 공개 프로필 안전 응답, 커뮤니티 활동 통계, 계정 닉네임 수정, 현재 비밀번호 확인 후 비밀번호 변경, 회원 탈퇴 soft delete, 탈퇴 후 token/login 차단, unsupported field 차단, 민감정보 미노출 검증 포함 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
-| AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers` | 통과 | `src/backend/tests/ai.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429 검증 포함 |
+| AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers`, `/api/ai/chat-rooms` | 통과 | `src/backend/tests/ai.test.js`, `src/backend/tests/ai-chat-room.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429, 대화방 소유권/삭제/메시지 저장 검증 포함 |
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
 | Admin Community Report API test | `GET /api/admin/community/reports`, `PATCH /api/admin/community/reports/:reportId` | 통과 | `src/backend/tests/admin-community-report.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, status/targetType/page/pageSize validation, 신고 기각/처리, 이미 처리된 신고 409, reported flag 동기화, 민감정보 미노출 검증 포함 |
 | Admin Community Report focused test | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 통과 | 관리자 커뮤니티 신고 처리 API 단일 테스트 기준 1 suite / 29 tests passed |
@@ -353,13 +353,13 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
-| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(28 suites / 491 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
-| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(28 suites / 491 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
+| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(29 suites / 499 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(29 suites / 499 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
 | Boss Raid API 검증 | 스터디 보스 레이드 MVP API 검증 | 통과 | `npm test`(24 suites / 435 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 8 tests passed) 통과 |
 | Collaborative Quest API 검증 | 협동 퀘스트 실시간 진행률 API 검증 | 통과 | `npm test`(27 suites / 461 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js`(1 suite / 13 tests passed) 통과 |
-| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(28 suites / 472 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 11 tests passed) 통과 |
+| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(29 suites / 499 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 11 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 

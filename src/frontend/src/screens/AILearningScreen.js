@@ -10,6 +10,10 @@ import {
 } from 'react-native';
 import {
   askAIQuestion,
+  createAIChatMessage,
+  createAIChatRoom,
+  deleteAIChatRoom,
+  getAIChatRooms,
   getAIRecommendation,
   summarizeText,
   analyzeWrongAnswer
@@ -27,7 +31,6 @@ const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/g
 const MAX_REVIEW_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_REVIEW_FILE_TYPES = [...SUPPORTED_IMAGE_TYPES, 'application/pdf'];
 const AI_MOCK_MODE_STORAGE_KEY = 'smartEdu.aiMockMode';
-const AI_CHAT_ROOMS_STORAGE_KEY = 'smartEdu.aiChatRooms';
 const AI_AUDIO_BRIEFING_READING_ID = 'ai-audio-briefing';
 const SPEECH_LANG_BY_LANGUAGE = {
   ko: 'ko-KR',
@@ -56,46 +59,6 @@ const VOICE_LABEL_BY_LANGUAGE = {
   }
 };
 
-function createDefaultChatRoom() {
-  return {
-    id: `room-${Date.now()}`,
-    title: '새 AI 대화',
-    messages: [],
-    updatedAt: new Date().toISOString()
-  };
-}
-
-function readStoredChatRooms() {
-  try {
-    const rawValue = globalThis.localStorage?.getItem(AI_CHAT_ROOMS_STORAGE_KEY);
-    const parsed = rawValue ? JSON.parse(rawValue) : null;
-
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed
-        .filter((room) => room && typeof room.id === 'string')
-        .map((room) => ({
-          id: room.id,
-          title: room.title || 'AI 대화',
-          messages: Array.isArray(room.messages) ? room.messages : [],
-          updatedAt: room.updatedAt || new Date().toISOString()
-        }))
-        .slice(0, 8);
-    }
-  } catch (error) {
-    // Ignore malformed browser storage and fall back to a clean session.
-  }
-
-  return [createDefaultChatRoom()];
-}
-
-function writeStoredChatRooms(rooms) {
-  try {
-    globalThis.localStorage?.setItem(AI_CHAT_ROOMS_STORAGE_KEY, JSON.stringify(rooms.slice(0, 8)));
-  } catch (error) {
-    // localStorage is unavailable in some native or restricted browser contexts.
-  }
-}
-
 function createRoomTitle(question) {
   const cleanQuestion = String(question || '').replace(/\s+/g, ' ').trim();
 
@@ -104,6 +67,27 @@ function createRoomTitle(question) {
   }
 
   return cleanQuestion.length > 22 ? `${cleanQuestion.slice(0, 22)}...` : cleanQuestion;
+}
+
+function normalizeChatMessage(message) {
+  return {
+    id: message.id,
+    question: message.question,
+    answer: message.answer,
+    isTruncated: Boolean(message.isTruncated),
+    isMock: Boolean(message.isMock),
+    source: message.source || 'AI_QNA',
+    createdAt: message.createdAt || new Date().toISOString()
+  };
+}
+
+function normalizeChatRoom(room) {
+  return {
+    id: room.id,
+    title: room.title || 'AI 대화',
+    messages: Array.isArray(room.messages) ? room.messages.map(normalizeChatMessage) : [],
+    updatedAt: room.updatedAt || new Date().toISOString()
+  };
 }
 
 function readStoredMockMode() {
@@ -641,11 +625,6 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   const { reading, speakText, stopSpeech, voiceType } = useAccessibility();
   const [activeTab, setActiveTab] = useState('qna'); // 'qna' | 'recommend' | 'summarize' | 'wrong'
   const previewUrlRef = useRef(null);
-  const initialChatRoomsRef = useRef(null);
-
-  if (!initialChatRoomsRef.current) {
-    initialChatRoomsRef.current = readStoredChatRooms();
-  }
 
   // Loading, Success & Error States
   const [loading, setLoading] = useState(false);
@@ -661,9 +640,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
   // Tab 1: AI 학습 질의 (Q&A) States
   const [questionInput, setQuestionInput] = useState('');
-  const [chatRooms, setChatRooms] = useState(initialChatRoomsRef.current);
-  const [activeChatRoomId, setActiveChatRoomId] = useState(initialChatRoomsRef.current[0]?.id);
-  const [recentQnaList, setRecentQnaList] = useState(initialChatRoomsRef.current[0]?.messages || []); // [{ question, answer, isTruncated }]
+  const [chatRooms, setChatRooms] = useState([]);
+  const [activeChatRoomId, setActiveChatRoomId] = useState(null);
+  const [recentQnaList, setRecentQnaList] = useState([]); // [{ question, answer, isTruncated }]
+  const [isChatRoomsLoading, setIsChatRoomsLoading] = useState(false);
 
   // Tab 2: 맞춤 학습 추천 (Recommendation) States
   const [recommendationResult, setRecommendationResult] = useState(null); // { recommendedSubject, tips }
@@ -696,8 +676,48 @@ export default function AILearningScreen({ onNavigate, token, user }) {
   }, [isMockMode]);
 
   useEffect(() => {
-    writeStoredChatRooms(chatRooms);
-  }, [chatRooms]);
+    let ignore = false;
+
+    async function loadChatRooms() {
+      if (!token) {
+        return;
+      }
+
+      setIsChatRoomsLoading(true);
+
+      try {
+        const result = await getAIChatRooms(token);
+        let nextRooms = (result.chatRooms || []).map(normalizeChatRoom);
+
+        if (nextRooms.length === 0) {
+          const created = await createAIChatRoom(token);
+          nextRooms = [normalizeChatRoom(created.chatRoom)];
+        }
+
+        if (ignore) {
+          return;
+        }
+
+        setChatRooms(nextRooms);
+        setActiveChatRoomId(nextRooms[0]?.id || null);
+        setRecentQnaList(nextRooms[0]?.messages || []);
+      } catch (error) {
+        if (!ignore) {
+          setErrorMsg('AI 대화방을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        }
+      } finally {
+        if (!ignore) {
+          setIsChatRoomsLoading(false);
+        }
+      }
+    }
+
+    loadChatRooms();
+
+    return () => {
+      ignore = true;
+    };
+  }, [token]);
 
   useEffect(() => () => {
     if (previewUrlRef.current && globalThis.URL?.revokeObjectURL) {
@@ -862,36 +882,76 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     setSuccessMsg(getAILocalizedCopy(currentLanguage).reviewResultSuccess);
   }
 
-  function addQnaEntry(entry) {
-    const normalizedEntry = {
-      id: `qna-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: new Date().toISOString(),
-      ...entry
-    };
+  async function addQnaEntry(entry) {
+    if (!activeChatRoomId) {
+      throw new Error('AI chat room is not ready');
+    }
 
-    setRecentQnaList((prev) => [normalizedEntry, ...prev]);
-    setChatRooms((prevRooms) => prevRooms.map((room) => {
-      if (room.id !== activeChatRoomId) {
-        return room;
-      }
+    const result = await createAIChatMessage(token, activeChatRoomId, {
+      question: entry.question,
+      answer: entry.answer,
+      isTruncated: entry.isTruncated === true,
+      isMock: entry.isMock === true,
+      source: entry.isImageInsight ? 'IMAGE_INSIGHT' : (entry.isMock ? 'MOCK_QNA' : 'AI_QNA'),
+      allowTruncate: true
+    });
+    const nextRoom = normalizeChatRoom(result.chatRoom);
+    const normalizedEntry = normalizeChatMessage(result.message);
 
-      const nextMessages = [normalizedEntry, ...(room.messages || [])].slice(0, 20);
-      return {
-        ...room,
-        title: room.messages?.length ? room.title : createRoomTitle(entry.question),
-        messages: nextMessages,
-        updatedAt: normalizedEntry.createdAt
-      };
-    }));
+    setRecentQnaList(nextRoom.messages);
+    setChatRooms((prevRooms) => {
+      const otherRooms = prevRooms.filter((room) => room.id !== nextRoom.id);
+      return [nextRoom, ...otherRooms].slice(0, 8);
+    });
+
+    return normalizedEntry;
   }
 
-  function createChatRoom() {
-    const nextRoom = createDefaultChatRoom();
-    setChatRooms((prevRooms) => [nextRoom, ...prevRooms].slice(0, 8));
-    setActiveChatRoomId(nextRoom.id);
-    setRecentQnaList([]);
+  async function createChatRoom() {
     resetFeedback();
-    setSuccessMsg('새 AI 대화방을 열었습니다.');
+    setIsChatRoomsLoading(true);
+
+    try {
+      const result = await createAIChatRoom(token);
+      const nextRoom = normalizeChatRoom(result.chatRoom);
+
+      setChatRooms((prevRooms) => [nextRoom, ...prevRooms].slice(0, 8));
+      setActiveChatRoomId(nextRoom.id);
+      setRecentQnaList([]);
+      setSuccessMsg('새 AI 대화방을 열었습니다.');
+    } catch (error) {
+      setErrorMsg('AI 대화방을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsChatRoomsLoading(false);
+    }
+  }
+
+  async function handleDeleteChatRoom(roomId) {
+    resetFeedback();
+
+    try {
+      await deleteAIChatRoom(token, roomId);
+      const remainingRooms = chatRooms.filter((room) => room.id !== roomId);
+
+      if (remainingRooms.length === 0) {
+        const result = await createAIChatRoom(token);
+        const nextRoom = normalizeChatRoom(result.chatRoom);
+        setChatRooms([nextRoom]);
+        setActiveChatRoomId(nextRoom.id);
+        setRecentQnaList([]);
+      } else {
+        setChatRooms(remainingRooms);
+
+        if (roomId === activeChatRoomId) {
+          setActiveChatRoomId(remainingRooms[0].id);
+          setRecentQnaList(remainingRooms[0].messages || []);
+        }
+      }
+
+      setSuccessMsg('AI 대화방을 삭제했습니다.');
+    } catch (error) {
+      setErrorMsg('AI 대화방을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
   }
 
   function selectChatRoom(roomId) {
@@ -905,7 +965,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     resetFeedback();
   }
 
-  function showMockImageInsight() {
+  async function showMockImageInsight() {
     if (!imageAttachment) {
       setImageUploadError(getAILocalizedCopy(currentLanguage).selectImageFirst);
       return;
@@ -914,14 +974,19 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     const copy = getAILocalizedCopy(currentLanguage);
 
     resetFeedback();
-    addQnaEntry({
-      question: copy.imageInsightQuestion(imageAttachment.name),
-      answer: copy.imageInsightAnswer,
-      isTruncated: false,
-      isImageInsight: true,
-      isMock: true
-    });
-    setSuccessMsg(copy.imageInsightSuccess);
+
+    try {
+      await addQnaEntry({
+        question: copy.imageInsightQuestion(imageAttachment.name),
+        answer: copy.imageInsightAnswer,
+        isTruncated: false,
+        isImageInsight: true,
+        isMock: true
+      });
+      setSuccessMsg(copy.imageInsightSuccess);
+    } catch (error) {
+      setErrorMsg('AI 대화방에 이미지 안내를 저장하지 못했습니다.');
+    }
   }
 
   // Navigation guard fallback inside the view
@@ -952,7 +1017,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
     try {
       if (isMockMode) {
-        addQnaEntry({
+        await addQnaEntry({
           question: questionText,
           answer: createMockQuestionAnswer(questionText, currentLanguage),
           isTruncated: false,
@@ -970,7 +1035,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       });
 
       const qnaRecord = response.question;
-      addQnaEntry({
+      await addQnaEntry({
         question: qnaRecord.question,
         answer: qnaRecord.answer,
         isTruncated: qnaRecord.isTruncated,
@@ -1312,17 +1377,21 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 <View>
                   <Text style={styles.chatRoomTitle}>AI 대화방</Text>
                   <Text style={styles.chatRoomDesc}>
-                    최근 질문 흐름을 대화방 단위로 나눠 봅니다. 현재는 브라우저에 저장되는 1차 구조입니다.
+                    최근 질문 흐름을 대화방 단위로 나눠 저장합니다. 로그인한 계정 기준으로 DB에 보관됩니다.
                   </Text>
                 </View>
                 <Pressable
                   accessibilityRole="button"
                   onPress={createChatRoom}
+                  disabled={isChatRoomsLoading}
                   style={(state) => [styles.newChatButton, ...interactiveStateStyles(state)]}
                 >
                   <Text style={styles.newChatButtonText}>새 대화</Text>
                 </Pressable>
               </View>
+              {isChatRoomsLoading ? (
+                <Text style={styles.chatRoomLoadingText}>AI 대화방을 불러오는 중입니다.</Text>
+              ) : null}
               <View style={styles.chatRoomList}>
                 {chatRooms.map((room) => (
                   <Pressable
@@ -1345,6 +1414,15 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   </Pressable>
                 ))}
               </View>
+              {activeChatRoom ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => handleDeleteChatRoom(activeChatRoom.id)}
+                  style={(state) => [styles.chatRoomDeleteButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.chatRoomDeleteButtonText}>현재 대화방 삭제</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             <View style={styles.formCard}>
@@ -1507,12 +1585,12 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 ) : null}
               </View>
               <Pressable
-                disabled={loading || !questionInput.trim()}
+                disabled={loading || isChatRoomsLoading || !activeChatRoomId || !questionInput.trim()}
                 onPress={handleQuestionSubmit}
                 style={(state) => [
                   styles.submitBtn,
-                  (loading || !questionInput.trim()) && styles.disabledBtn,
-                  ...interactiveStateStyles(state, { disabled: loading || !questionInput.trim() })
+                  (loading || isChatRoomsLoading || !activeChatRoomId || !questionInput.trim()) && styles.disabledBtn,
+                  ...interactiveStateStyles(state, { disabled: loading || isChatRoomsLoading || !activeChatRoomId || !questionInput.trim() })
                 ]}
               >
                 {loading ? (
@@ -2080,6 +2158,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900'
   },
+  chatRoomLoadingText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700'
+  },
   chatRoomList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2117,6 +2200,23 @@ const styles = StyleSheet.create({
   },
   chatRoomChipMetaActive: {
     color: colors.mintDeep
+  },
+  chatRoomDeleteButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: 2,
+    minHeight: 34,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  chatRoomDeleteButtonText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '900'
   },
   formCard: {
     backgroundColor: colors.surface,
