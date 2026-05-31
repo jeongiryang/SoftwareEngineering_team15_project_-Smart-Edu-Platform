@@ -60,7 +60,7 @@ function EmptyPanel({ actionLabel, description, onPress, title }) {
   );
 }
 
-export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendRealtimeEvent, token, user }) {
+export default function MessagesScreen({ onMessagesChanged, onNavigate, realtimeEvent, routeParams, sendRealtimeEvent, token, user }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
@@ -75,6 +75,8 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendR
   const [typingFriendName, setTypingFriendName] = useState('');
   const lastTypingSentAtRef = useRef(0);
   const messagesScrollRef = useRef(null);
+  const routeFriendHandledRef = useRef('');
+  const composingRef = useRef(false);
   const typingClearTimerRef = useRef(null);
   const typingStopTimerRef = useRef(null);
 
@@ -317,6 +319,31 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendR
     sendTypingState(false, { force: true });
   }
 
+  function handleViewProfile(friendId) {
+    if (!friendId) {
+      return;
+    }
+
+    onNavigate?.('publicProfile', { params: { userId: friendId } });
+  }
+
+  function handleComposerKeyPress(event) {
+    const nativeEvent = event?.nativeEvent || {};
+    const isEnter = nativeEvent.key === 'Enter' || event?.key === 'Enter';
+    const isShiftEnter = Boolean(nativeEvent.shiftKey || event?.shiftKey);
+    const isComposing = Boolean(nativeEvent.isComposing || event?.isComposing || composingRef.current);
+
+    if (!isEnter || isShiftEnter || isComposing) {
+      return;
+    }
+
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    nativeEvent.preventDefault?.();
+    nativeEvent.stopPropagation?.();
+    handleSendMessage();
+  }
+
   async function handleSelectThread(threadId) {
     if (!threadId || busyKey) {
       return;
@@ -389,6 +416,35 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendR
       setBusyKey('');
     }
   }
+
+  useEffect(() => {
+    const friendId = Number(routeParams?.friendId);
+
+    if (!token || loading || busyKey || !friendId) {
+      return;
+    }
+
+    const routeKey = String(friendId);
+
+    if (routeFriendHandledRef.current === routeKey) {
+      return;
+    }
+
+    const existingThread = threads.find((thread) => Number(thread.friend?.id) === friendId);
+    const canStartThread = acceptedFriends.some((friend) => Number(friend.id) === friendId);
+
+    if (!existingThread && !canStartThread) {
+      return;
+    }
+
+    routeFriendHandledRef.current = routeKey;
+
+    if (existingThread?.id) {
+      handleSelectThread(existingThread.id);
+    } else {
+      handleStartThread(friendId);
+    }
+  }, [acceptedFriends, busyKey, loading, routeParams?.friendId, threads, token]);
 
   if (loading) {
     return (
@@ -495,7 +551,12 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendR
         <View style={styles.conversationPanel}>
           {selectedThread ? (
             <>
-              <View style={styles.conversationHeader}>
+              <Pressable
+                accessibilityLabel={t('messages.viewFriendProfile', '친구 공개 프로필 보기')}
+                accessibilityRole="button"
+                onPress={() => handleViewProfile(selectedFriend?.id)}
+                style={(state) => [styles.conversationHeader, ...interactiveStateStyles(state)]}
+              >
                 <MessageAvatar name={getFriendName(selectedFriend)} online={onlineFriendIds.has(Number(selectedFriend?.id))} />
                 <View>
                   <Text style={styles.conversationTitle}>{getFriendName(selectedFriend)}</Text>
@@ -505,7 +566,7 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendR
                       : t('messages.offline', '오프라인')}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
 
               <ScrollView
                 keyboardShouldPersistTaps="handled"
@@ -550,7 +611,15 @@ export default function MessagesScreen({ onMessagesChanged, realtimeEvent, sendR
                   containerStyle={styles.composerInputWrap}
                   enableVoiceInput={false}
                   multiline
+                  blurOnSubmit={false}
+                  onCompositionEnd={() => {
+                    composingRef.current = false;
+                  }}
+                  onCompositionStart={() => {
+                    composingRef.current = true;
+                  }}
                   onChangeText={handleMessageDraftChange}
+                  onKeyPress={handleComposerKeyPress}
                   placeholder={t('messages.composerPlaceholder', '친구에게 보낼 쪽지를 입력하세요.')}
                   style={styles.composerInput}
                   value={messageDraft}

@@ -270,6 +270,22 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
     }
   }
 
+  function handleOpenProfile(friendId) {
+    if (!friendId) {
+      return;
+    }
+
+    onNavigate?.('publicProfile', { params: { userId: friendId } });
+  }
+
+  function handleOpenMessage(friendId) {
+    if (!friendId) {
+      return;
+    }
+
+    onNavigate?.('messages', { params: { friendId } });
+  }
+
   function renderFriendCard(item) {
     const friend = item.user;
     const isOnline = onlineFriendIds.has(Number(friend?.id));
@@ -279,12 +295,16 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
       <View key={item.id} style={[styles.friendCard, shadows.card]}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => onNavigate?.('publicProfile', { params: { userId: friend?.id } })}
+          onPress={() => handleOpenProfile(friend?.id)}
           style={(state) => [styles.avatarButton, ...interactiveStateStyles(state)]}
         >
           <ProfileAvatar appearance={appearance} name={friend?.name} size="md" />
         </Pressable>
-        <View style={styles.friendCopy}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => handleOpenProfile(friend?.id)}
+          style={(state) => [styles.friendCopyButton, ...interactiveStateStyles(state)]}
+        >
           <Text style={styles.friendName}>{friend?.name || '학습 친구'}</Text>
           {friend?.titleText ? (
             <ProfileTitleChip animated title={friend.titleText} translateText={(value) => value} />
@@ -294,26 +314,35 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
             <View style={[styles.presenceDot, isOnline ? styles.presenceDotOnline : styles.presenceDotOffline]} />
             <Text style={styles.presenceText}>{isOnline ? '온라인' : '오프라인'}</Text>
           </View>
+        </Pressable>
+        <View style={styles.friendActions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => handleOpenMessage(friend?.id)}
+            style={(state) => [styles.primarySmallButton, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.primarySmallText}>쪽지</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => handleOpenProfile(friend?.id)}
+            style={(state) => [styles.secondarySmallButton, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.secondarySmallText}>프로필</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busyKey === `delete-${friend?.id}`}
+            onPress={() => handleDeleteFriend(friend?.id)}
+            style={(state) => [
+              styles.ghostButton,
+              busyKey === `delete-${friend?.id}` && styles.disabledButton,
+              ...interactiveStateStyles(state, { disabled: busyKey === `delete-${friend?.id}` })
+            ]}
+          >
+            <Text style={styles.ghostButtonText}>삭제</Text>
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          disabled={busyKey === `delete-${friend?.id}`}
-          onPress={() => handleDeleteFriend(friend?.id)}
-          style={(state) => [
-            styles.ghostButton,
-            busyKey === `delete-${friend?.id}` && styles.disabledButton,
-            ...interactiveStateStyles(state, { disabled: busyKey === `delete-${friend?.id}` })
-          ]}
-        >
-          <Text style={styles.ghostButtonText}>삭제</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onNavigate?.('publicProfile', { params: { userId: friend?.id } })}
-          style={(state) => [styles.secondarySmallButton, ...interactiveStateStyles(state)]}
-        >
-          <Text style={styles.secondarySmallText}>프로필</Text>
-        </Pressable>
       </View>
     );
   }
@@ -495,7 +524,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>친구 목록</Text>
-                <Text style={styles.sectionSubtitle}>DM, 그룹, 차단 기능은 후속 범위로 두고 1차 MVP는 관계 관리에 집중합니다.</Text>
+                <Text style={styles.sectionSubtitle}>친구 카드에서 쪽지를 바로 시작하거나 공개 프로필을 확인할 수 있습니다.</Text>
               </View>
               <View style={styles.countBadge}>
                 <Text style={styles.countBadgeText}>{friends.length}명</Text>
@@ -735,12 +764,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     padding: 16,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 12,
     ...interactions.transition
   },
   avatarButton: {
     borderRadius: 999
+  },
+  friendCopyButton: {
+    flex: 1,
+    minWidth: 150,
+    gap: 4,
+    borderRadius: 14
   },
   friendCopy: {
     flex: 1,
@@ -790,6 +826,14 @@ const styles = StyleSheet.create({
     color: colors.blueDeep,
     fontSize: 11,
     fontWeight: '900'
+  },
+  friendActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginLeft: 'auto'
   },
   statusBadge: {
     borderRadius: 999,
