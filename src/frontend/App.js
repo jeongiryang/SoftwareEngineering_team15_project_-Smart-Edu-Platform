@@ -11,6 +11,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import ProfileDashboardScreen from './src/screens/ProfileDashboardScreen';
 import StatisticsScreen from './src/screens/StatisticsScreen';
+import FocusTimerScreen from './src/screens/FocusTimerScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import MessagesScreen from './src/screens/MessagesScreen';
 import AILearningScreen from './src/screens/AILearningScreen';
@@ -37,6 +38,7 @@ const screens = {
   dashboard: DashboardScreen,
   profile: ProfileDashboardScreen,
   statistics: StatisticsScreen,
+  focusTimer: FocusTimerScreen,
   friends: FriendsScreen,
   messages: MessagesScreen,
   aiLearning: AILearningScreen,
@@ -52,7 +54,7 @@ const screens = {
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'messages', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest', 'publicProfile'];
+const authScreens = ['dashboard', 'profile', 'statistics', 'focusTimer', 'friends', 'messages', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest', 'publicProfile'];
 const restrictedAccountStatuses = ['SUSPENDED', 'DEACTIVATED'];
 
 const screenPaths = {
@@ -62,6 +64,7 @@ const screenPaths = {
   dashboard: '/dashboard',
   profile: '/profile',
   statistics: '/statistics',
+  focusTimer: '/focus',
   friends: '/friends',
   messages: '/messages',
   aiLearning: '/ai',

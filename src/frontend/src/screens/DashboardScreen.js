@@ -169,8 +169,10 @@ const featureCards = [
   },
   {
     label: '집중 시간',
-    summary: '집중 세션 기록과 타이머 화면은 준비 중입니다. 연결되면 대시보드에서 바로 이동할 수 있습니다.',
-    status: '준비 중'
+    summary: '스톱워치와 타이머로 지금 집중하는 시간을 기록하고 통계에 반영할 수 있습니다.',
+    status: '연결 완료',
+    screen: 'focusTimer',
+    tone: 'mint'
   },
   {
     label: '학습 통계',
