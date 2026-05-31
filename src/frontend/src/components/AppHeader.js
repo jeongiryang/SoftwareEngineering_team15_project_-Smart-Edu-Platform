@@ -260,6 +260,10 @@ function HeaderSettingsMenu({
   translateText
 }) {
   const [open, setOpen] = useState(false);
+  const [triggerState, setTriggerState] = useState({
+    focused: false,
+    hovered: false
+  });
   const betaLabel = t('language.betaBadge', 'Beta');
   const selectorLabel = t('language.selectorLabel', '언어 선택');
   const currentLanguageLabel = t('language.currentLabel', '현재 언어');
@@ -274,6 +278,7 @@ function HeaderSettingsMenu({
   const highContrastNotice = effectiveMode === 'highContrast'
     ? translateText('고대비')
     : currentThemeLabel;
+  const showSettingsTooltip = !open && (triggerState.focused || triggerState.hovered);
 
   function handleToggle() {
     onOpen?.();
@@ -293,6 +298,10 @@ function HeaderSettingsMenu({
         accessibilityLabel={`${settingsLabel}: ${currentLanguageLabel} ${currentLanguageSummary}, ${modeLabel} ${highContrastNotice}`}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
+        onBlur={() => setTriggerState((current) => ({ ...current, focused: false }))}
+        onFocus={() => setTriggerState((current) => ({ ...current, focused: true }))}
+        onHoverIn={() => setTriggerState((current) => ({ ...current, hovered: true }))}
+        onHoverOut={() => setTriggerState((current) => ({ ...current, hovered: false }))}
         onPress={handleToggle}
         style={(state) => [
           styles.settingsTrigger,
@@ -303,10 +312,17 @@ function HeaderSettingsMenu({
         title={settingsLabel}
       >
         <SettingsIcon />
-        <Text style={styles.settingsTriggerText}>{settingsLabel}</Text>
-        <Text style={styles.settingsSummary}>{`${currentLanguageSummary} · ${currentThemeLabel}`}</Text>
-        <View style={[styles.chevron, open && styles.chevronOpen]} />
       </Pressable>
+      <View
+        pointerEvents="none"
+        style={[styles.settingsTooltip, showSettingsTooltip && styles.settingsTooltipVisible]}
+      >
+        <Text style={styles.settingsTooltipTitle}>{settingsLabel}</Text>
+        <Text style={styles.settingsTooltipText}>
+          {`${currentLanguageLabel}: ${currentLanguageSummary}`}
+        </Text>
+        <Text style={styles.settingsTooltipText}>{`${modeLabel}: ${highContrastNotice}`}</Text>
+      </View>
       {open ? (
         <View accessibilityRole="menu" style={styles.settingsMenu}>
           <View style={styles.settingsSection} dataSet={{ sagakI18nIgnore: 'true' }}>
@@ -684,8 +700,9 @@ const styles = StyleSheet.create({
     zIndex: 90
   },
   settingsTrigger: {
+    width: 42,
     minHeight: 38,
-    paddingHorizontal: 11,
+    paddingHorizontal: 0,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.line,
@@ -693,8 +710,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
-    maxWidth: 236,
     ...interactions.transition
   },
   settingsTriggerOpen: {
@@ -704,16 +719,42 @@ const styles = StyleSheet.create({
   settingsTriggerHover: {
     backgroundColor: colors.surface
   },
-  settingsTriggerText: {
+  settingsTooltip: {
+    position: 'absolute',
+    top: 44,
+    right: 0,
+    width: 224,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 4,
+    opacity: 0,
+    transform: [{ translateY: -4 }],
+    zIndex: 95,
+    gap: 3,
+    ...interactions.transition
+  },
+  settingsTooltipVisible: {
+    opacity: 1,
+    transform: [{ translateY: 0 }]
+  },
+  settingsTooltipTitle: {
     color: colors.blueDeep,
     fontSize: 12,
     fontWeight: '900'
   },
-  settingsSummary: {
+  settingsTooltipText: {
     color: colors.muted,
     fontSize: 11,
     fontWeight: '700',
-    maxWidth: 116
+    lineHeight: 15
   },
   settingsMenu: {
     position: 'absolute',
