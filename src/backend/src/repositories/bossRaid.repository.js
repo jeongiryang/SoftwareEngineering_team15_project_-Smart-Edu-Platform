@@ -117,6 +117,32 @@ function findUserBossRaidPartyForRaid(userId, raidId) {
   });
 }
 
+function findPublicBossRaidParties(raidId = null) {
+  return prisma.bossRaidParty.findMany({
+    where: {
+      isPublic: true,
+      status: 'OPEN',
+      ...(raidId
+        ? {
+            raidId
+          }
+        : {}),
+      raid: {
+        isActive: true,
+        OR: [
+          { endsAt: null },
+          { endsAt: { gte: new Date() } }
+        ]
+      }
+    },
+    include: PARTY_INCLUDE,
+    orderBy: [
+      { updatedAt: 'desc' },
+      { id: 'desc' }
+    ]
+  });
+}
+
 function findBossRaidRewardClaim(raidId, userId) {
   return prisma.bossRaidRewardClaim.findUnique({
     where: {
@@ -128,13 +154,14 @@ function findBossRaidRewardClaim(raidId, userId) {
   });
 }
 
-function createBossRaidParty({ raidId, ownerId, name, joinCode }) {
+function createBossRaidParty({ raidId, ownerId, name, joinCode, isPublic = true }) {
   return prisma.bossRaidParty.create({
     data: {
       raidId,
       ownerId,
       name,
       joinCode,
+      isPublic,
       members: {
         create: {
           userId: ownerId
@@ -343,6 +370,7 @@ module.exports = {
   findBossRaidPartyById,
   findBossRaidPartyByJoinCode,
   findBossRaidRewardClaim,
+  findPublicBossRaidParties,
   findUserBossRaidParties,
   findUserBossRaidPartyForRaid,
   getBossRaidMemberMetrics,

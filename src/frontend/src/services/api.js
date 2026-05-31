@@ -376,6 +376,16 @@ export function getMyBossRaidParties(token) {
   });
 }
 
+export function getPublicBossRaidParties(token, raidId = null) {
+  const query = raidId ? `?raidId=${encodeURIComponent(raidId)}` : '';
+
+  return request(`/boss-raids/parties/public${query}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function createBossRaidParty(token, payload) {
   return request('/boss-raids/parties', {
     method: 'POST',
@@ -393,6 +403,16 @@ export function joinBossRaidParty(token, payload) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(payload)
+  });
+}
+
+export function joinPublicBossRaidParty(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/join`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
   });
 }
 

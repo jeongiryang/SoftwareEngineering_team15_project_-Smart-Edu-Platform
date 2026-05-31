@@ -78,6 +78,8 @@ function sanitizeParty(party, currentUserId = null) {
     id: party.id,
     name: party.name,
     joinCode: party.joinCode,
+    isPublic: party.isPublic !== false,
+    inviteMode: party.isPublic === false ? 'PRIVATE' : 'PUBLIC',
     status: party.status,
     totalDamage: party.totalDamage,
     remainingHp,
@@ -119,6 +121,36 @@ function ensureJoinCode(joinCode) {
   }
 
   return normalizedJoinCode;
+}
+
+function parsePartyVisibility(payload = {}) {
+  if (Object.prototype.hasOwnProperty.call(payload, 'isPublic')) {
+    return payload.isPublic !== false;
+  }
+
+  const normalizedVisibility = normalizeString(payload.visibility)?.toUpperCase();
+
+  if (!normalizedVisibility) {
+    return true;
+  }
+
+  if (normalizedVisibility === 'PUBLIC') {
+    return true;
+  }
+
+  if (normalizedVisibility === 'PRIVATE') {
+    return false;
+  }
+
+  throw validationError('visibility must be PUBLIC or PRIVATE', { field: 'visibility' });
+}
+
+function parseOptionalRaidId(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  return parsePositiveInteger(value, 'raidId');
 }
 
 function buildJoinCode() {
@@ -243,6 +275,7 @@ async function getBossRaids(userId) {
 async function createBossRaidParty(userId, payload) {
   const raidId = parsePositiveInteger(payload.raidId, 'raidId');
   const name = ensurePartyName(payload.name);
+  const isPublic = parsePartyVisibility(payload);
   const raid = await bossRaidRepository.findBossRaidById(raidId);
 
   ensureActiveRaid(raid);
@@ -258,7 +291,8 @@ async function createBossRaidParty(userId, payload) {
     raidId,
     ownerId: userId,
     name,
-    joinCode
+    joinCode,
+    isPublic
   });
 
   const refreshedParty = await recalculatePartyProgressIfNeeded(party);
@@ -266,11 +300,45 @@ async function createBossRaidParty(userId, payload) {
   return sanitizeParty(refreshedParty, userId);
 }
 
+async function getPublicBossRaidParties(userId, payload = {}) {
+  const raidId = parseOptionalRaidId(payload.raidId);
+  const parties = await bossRaidRepository.findPublicBossRaidParties(raidId);
+  const refreshedParties = [];
+
+  for (const party of parties) {
+    refreshedParties.push(await recalculatePartyProgressIfNeeded(party));
+  }
+
+  return refreshedParties.map((party) => sanitizeParty(party, userId));
+}
+
 async function joinBossRaidParty(userId, payload) {
   const joinCode = ensureJoinCode(payload.joinCode);
   const party = await bossRaidRepository.findBossRaidPartyByJoinCode(joinCode);
 
   if (!party) {
+    throw notFoundError('Boss raid party not found');
+  }
+
+  ensurePartyIsJoinable(party);
+
+  const existingParty = await bossRaidRepository.findUserBossRaidPartyForRaid(userId, party.raidId);
+
+  if (existingParty) {
+    throw conflictError('You already joined a party for this boss raid');
+  }
+
+  const joinedParty = await bossRaidRepository.addBossRaidPartyMember(party.id, userId);
+  const refreshedParty = await recalculatePartyProgressIfNeeded(joinedParty);
+
+  return sanitizeParty(refreshedParty, userId);
+}
+
+async function joinPublicBossRaidParty(userId, partyId) {
+  const id = parsePositiveInteger(partyId, 'partyId');
+  const party = await bossRaidRepository.findBossRaidPartyById(id);
+
+  if (!party || party.isPublic === false) {
     throw notFoundError('Boss raid party not found');
   }
 
@@ -411,6 +479,8 @@ module.exports = {
   getBossRaidPartyDetail,
   getBossRaids,
   getMyBossRaidParties,
+  getPublicBossRaidParties,
+  joinPublicBossRaidParty,
   joinBossRaidParty,
   sanitizeParty,
   sanitizeRaid

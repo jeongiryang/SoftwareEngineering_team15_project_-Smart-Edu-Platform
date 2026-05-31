@@ -15,6 +15,8 @@ const MAX_MEMO_LENGTH = 160;
 const MAX_GOAL_VALUE = 100000;
 const MAX_REWARD_POINTS = 100000;
 const MAX_CONTRIBUTION_AMOUNT = 10000;
+const DEFAULT_CONTRIBUTION_STEP = 10;
+const REWARD_POINTS_PER_GOAL_UNIT = 0.3;
 
 function normalizeOptionalText(value, maxLength, field) {
   const normalized = normalizeString(value);
@@ -48,6 +50,24 @@ function parseNonNegativeBoundedInteger(value, field, maxValue) {
   }
 
   return parsed;
+}
+
+function calculateDefaultRewardPoints(goalValue) {
+  const rewardPoints = Math.ceil(goalValue * REWARD_POINTS_PER_GOAL_UNIT);
+
+  return Math.min(Math.max(rewardPoints, 10), MAX_REWARD_POINTS);
+}
+
+function calculateRecommendedContributionAmount(goalValue) {
+  return Math.min(Math.max(Math.ceil(goalValue / DEFAULT_CONTRIBUTION_STEP), 10), 50);
+}
+
+function parseRewardPoints(value, goalValue) {
+  if (value === undefined || value === null || value === '') {
+    return calculateDefaultRewardPoints(goalValue);
+  }
+
+  return parseNonNegativeBoundedInteger(value, 'rewardPoints', MAX_REWARD_POINTS);
 }
 
 function parseOptionalDate(value, field) {
@@ -161,6 +181,8 @@ function sanitizeQuest(quest, currentUserId = null) {
     progressPercent: Math.round(progressRate * 1000) / 10,
     status: quest.status,
     rewardPoints: quest.rewardPoints,
+    recommendedRewardPoints: calculateDefaultRewardPoints(quest.goalValue),
+    recommendedContributionAmount: calculateRecommendedContributionAmount(quest.goalValue),
     startsAt: quest.startsAt,
     endsAt: quest.endsAt,
     completedAt: quest.completedAt,
@@ -211,7 +233,7 @@ async function createCollaborativeQuest(userId, payload) {
   const title = ensureQuestTitle(payload.title);
   const description = normalizeOptionalText(payload.description, MAX_DESCRIPTION_LENGTH, 'description');
   const goalValue = parsePositiveBoundedInteger(payload.goalValue, 'goalValue', MAX_GOAL_VALUE);
-  const rewardPoints = parseNonNegativeBoundedInteger(payload.rewardPoints, 'rewardPoints', MAX_REWARD_POINTS);
+  const rewardPoints = parseRewardPoints(payload.rewardPoints, goalValue);
   const endsAt = parseOptionalDate(payload.endsAt, 'endsAt');
 
   if (endsAt && endsAt <= new Date()) {

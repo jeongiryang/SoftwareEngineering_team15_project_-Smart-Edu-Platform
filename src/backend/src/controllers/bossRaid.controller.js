@@ -51,6 +51,19 @@ const joinBossRaidPartyController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, { party });
 });
 
+const listPublicBossRaidPartiesController = asyncHandler(async (req, res) => {
+  const parties = await bossRaidService.getPublicBossRaidParties(req.user.id, req.query);
+
+  sendSuccess(res, 200, { parties });
+});
+
+const joinPublicBossRaidPartyController = asyncHandler(async (req, res) => {
+  const party = await bossRaidService.joinPublicBossRaidParty(req.user.id, req.params.partyId);
+
+  broadcastBossRaidPartyEvent('bossRaid.progress.updated', party);
+  sendSuccess(res, 200, { party });
+});
+
 const getMyBossRaidPartiesController = asyncHandler(async (req, res) => {
   const parties = await bossRaidService.getMyBossRaidParties(req.user.id);
 
@@ -79,6 +92,8 @@ module.exports = {
   createBossRaidParty: createBossRaidPartyController,
   getBossRaidPartyDetail: getBossRaidPartyDetailController,
   getMyBossRaidParties: getMyBossRaidPartiesController,
+  joinPublicBossRaidParty: joinPublicBossRaidPartyController,
   joinBossRaidParty: joinBossRaidPartyController,
+  listPublicBossRaidParties: listPublicBossRaidPartiesController,
   listBossRaids: listBossRaidsController
 };
