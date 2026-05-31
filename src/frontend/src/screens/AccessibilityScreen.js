@@ -29,6 +29,8 @@ const defaultPreference = {
   reminderTime: ''
 };
 const TEXT_SCALE_OPTIONS = [1, 1.2, 1.4, 1.6, 1.8, 2];
+const MAGNIFIER_MODE_STORAGE_KEY = 'sagaksagak:magnifier-mode';
+const MAGNIFIER_MODE_EVENT = 'sagak-magnifier-change';
 const KID_TEXT_SCALE_LABELS = {
   1: '보통',
   1.2: '조금 크게',
@@ -37,6 +39,23 @@ const KID_TEXT_SCALE_LABELS = {
   1.8: '더 크게',
   2: '가장 크게'
 };
+
+function readStoredMagnifierMode() {
+  try {
+    return globalThis.localStorage?.getItem(MAGNIFIER_MODE_STORAGE_KEY) === 'true';
+  } catch (error) {
+    return false;
+  }
+}
+
+function writeStoredMagnifierMode(enabled) {
+  try {
+    globalThis.localStorage?.setItem(MAGNIFIER_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
+    globalThis.window?.dispatchEvent?.(new Event(MAGNIFIER_MODE_EVENT));
+  } catch (error) {
+    // localStorage is unavailable in some native/test runtimes; the local state still updates.
+  }
+}
 const DRAFT_STORAGE_KEY = 'smartEduAccessibilityDraft';
 const voiceGuideSteps = [
   {
@@ -234,6 +253,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
   const defaultReminderDateTime = useMemo(() => getDefaultReminderDateTime(), []);
   const todayDate = useMemo(() => getDefaultReminderDateTime().date, []);
   const [preference, setPreference] = useState(globalPreference || defaultPreference);
+  const [magnifierMode, setMagnifierMode] = useState(readStoredMagnifierMode);
   const [ttsText, setTtsText] = useState(draft.ttsText || '');
   const [voiceType, setVoiceType] = useState(draft.voiceType || 'ADULT_FEMALE');
   const [transcript, setTranscript] = useState('');
@@ -326,6 +346,13 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
     saveTimeoutRef.current = setTimeout(() => {
       savePreference(nextPreference);
     }, 500);
+  }
+
+  function toggleMagnifierMode() {
+    const nextMagnifierMode = !magnifierMode;
+
+    setMagnifierMode(nextMagnifierMode);
+    writeStoredMagnifierMode(nextMagnifierMode);
   }
 
   async function handleReminder() {
@@ -522,6 +549,30 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                   </Text>
                 </Pressable>
               ))}
+            </View>
+            <View style={[styles.magnifierCard, magnifierMode && styles.magnifierCardActive]}>
+              <View style={styles.magnifierCopy}>
+                <Text style={[styles.magnifierTitle, scaledStyles]}>
+                  돋보기 모드
+                </Text>
+                <Text style={styles.helperText}>
+                  고령자와 저시력 사용자를 위해 화면 전체 글자와 UI를 최소 1.35x로 확대합니다.
+                </Text>
+              </View>
+              <Pressable
+                onPress={toggleMagnifierMode}
+                style={(state) => [
+                  styles.scaleButton,
+                  magnifierMode && styles.activeButton,
+                  ...interactiveStateStyles(state)
+                ]}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: magnifierMode }}
+              >
+                <Text style={[styles.scaleButtonText, magnifierMode && styles.activeButtonText]}>
+                  {magnifierMode ? '켜짐' : '켜기'}
+                </Text>
+              </Pressable>
             </View>
             <ToggleRow
               active={preference.highContrast}
@@ -1025,6 +1076,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8
+  },
+  magnifierCard: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceWarm,
+    borderColor: colors.line,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    padding: 12
+  },
+  magnifierCardActive: {
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mintDeep
+  },
+  magnifierCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 180
+  },
+  magnifierTitle: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '900'
   },
   voiceGrid: {
     flexDirection: 'row',

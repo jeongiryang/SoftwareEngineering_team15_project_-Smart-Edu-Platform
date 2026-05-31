@@ -80,6 +80,16 @@ const pathScreens = Object.entries(screenPaths).reduce((acc, [screen, path]) => 
   acc[path] = screen;
   return acc;
 }, {});
+const MAGNIFIER_MODE_STORAGE_KEY = 'sagaksagak:magnifier-mode';
+const MAGNIFIER_MODE_EVENT = 'sagak-magnifier-change';
+
+function readStoredMagnifierMode() {
+  try {
+    return globalThis.localStorage?.getItem(MAGNIFIER_MODE_STORAGE_KEY) === 'true';
+  } catch (error) {
+    return false;
+  }
+}
 
 function canUseBrowserHistory() {
   return Boolean(globalThis.window?.history && globalThis.window?.location);
@@ -149,7 +159,7 @@ function syncBrowserPath(screen, { replace = false, params = null, preserveSearc
   globalThis.window.history[method]({ screen, params }, '', `${nextPath}${nextSearch}`);
 }
 
-function applyGlobalAccessibilityPreference(preference, user) {
+function applyGlobalAccessibilityPreference(preference, user, magnifierMode = false) {
   const documentRef = globalThis.document;
 
   if (!documentRef) {
@@ -160,7 +170,8 @@ function applyGlobalAccessibilityPreference(preference, user) {
     documentRef.getElementById('root') ||
     documentRef.getElementById('main') ||
     documentRef.body?.firstElementChild;
-  const textScale = user ? Math.min(Math.max(Number(preference.textScale) || 1, 1), 2) : 1;
+  const storedTextScale = Math.min(Math.max(Number(preference.textScale) || 1, 1), 2);
+  const textScale = user ? Math.min(Math.max(storedTextScale, magnifierMode ? 1.35 : 1), 2) : 1;
   const elementaryMode = Boolean(user && preference.elementaryFriendlyUi);
 
   if (root?.style) {
@@ -171,6 +182,7 @@ function applyGlobalAccessibilityPreference(preference, user) {
   if (documentRef.body) {
     documentRef.body.dataset.sagakTextScale = String(textScale);
     documentRef.body.dataset.sagakElementaryUi = elementaryMode ? 'true' : 'false';
+    documentRef.body.dataset.sagakMagnifierMode = magnifierMode && user ? 'true' : 'false';
   }
 
   return () => {
@@ -182,6 +194,7 @@ function applyGlobalAccessibilityPreference(preference, user) {
     if (documentRef.body) {
       delete documentRef.body.dataset.sagakTextScale;
       delete documentRef.body.dataset.sagakElementaryUi;
+      delete documentRef.body.dataset.sagakMagnifierMode;
     }
   };
 }
@@ -748,6 +761,7 @@ function AppChrome({
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
   const { currentLanguage, translateText } = useLanguage();
   const [readTextError, setReadTextError] = useState('');
+  const [magnifierMode, setMagnifierMode] = useState(readStoredMagnifierMode);
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
 
   useWebTextLocalization(currentLanguage, translateText);
@@ -757,9 +771,29 @@ function AppChrome({
   }, [preference.highContrast, setHighContrastActive]);
 
   useEffect(
-    () => applyGlobalAccessibilityPreference(preference, user),
-    [preference.elementaryFriendlyUi, preference.textScale, user]
+    () => applyGlobalAccessibilityPreference(preference, user, magnifierMode),
+    [magnifierMode, preference.elementaryFriendlyUi, preference.textScale, user]
   );
+
+  useEffect(() => {
+    const windowRef = globalThis.window;
+
+    if (!windowRef?.addEventListener) {
+      return undefined;
+    }
+
+    function handleMagnifierModeChange() {
+      setMagnifierMode(readStoredMagnifierMode());
+    }
+
+    windowRef.addEventListener(MAGNIFIER_MODE_EVENT, handleMagnifierModeChange);
+    windowRef.addEventListener('storage', handleMagnifierModeChange);
+
+    return () => {
+      windowRef.removeEventListener(MAGNIFIER_MODE_EVENT, handleMagnifierModeChange);
+      windowRef.removeEventListener('storage', handleMagnifierModeChange);
+    };
+  }, []);
 
   useEffect(() => {
     const documentRef = globalThis.document;
