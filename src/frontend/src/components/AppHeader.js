@@ -1,26 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Globe2, Menu, Moon, PenLine, Sun, X, Volume2, VolumeX } from 'lucide-react';
+import { Globe2, Menu, Moon, Sun, X, Volume2, VolumeX } from 'lucide-react';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles } from '../styles/theme';
+import { readIntroAutoPlayEnabled, saveIntroAutoPlayEnabled } from '../constants/introPreference';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 const BGM_ENABLED_STORAGE_KEY = 'sagakLandingBgmEnabled';
 const BGM_TOGGLE_EVENT = 'sagak:bgm-toggle';
-const INTRO_REPLAY_EVENT = 'sagak:intro-replay';
-const pencilCursorSvg = encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
-    <g transform="rotate(-35 22 22)">
-      <rect x="8" y="18" width="23" height="8" rx="3" fill="#73C9BD" stroke="#173B63" stroke-width="2"/>
-      <rect x="4" y="18" width="6" height="8" rx="2" fill="#F3D4A0" stroke="#173B63" stroke-width="2"/>
-      <path d="M31 18L40 22L31 26Z" fill="#FFF1D9" stroke="#173B63" stroke-width="2"/>
-      <path d="M38 21L42 22L38 23Z" fill="#183246"/>
-    </g>
-  </svg>`
-);
-const pencilCursor = `url("data:image/svg+xml,${pencilCursorSvg}") 38 22, auto`;
-
 function readBgmEnabled() {
   try {
     return globalThis.localStorage?.getItem(BGM_ENABLED_STORAGE_KEY) === 'true';
@@ -48,6 +36,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
   const { effectiveMode, mode, toggleThemeMode } = useThemeMode();
   const { currentLanguage, setLanguage, supportedLanguages, translateText } = useLanguage();
   const [bgmEnabled, setBgmEnabled] = useState(readBgmEnabled);
+  const [introAutoPlayEnabled, setIntroAutoPlayEnabled] = useState(readIntroAutoPlayEnabled);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width <= 1024;
@@ -70,19 +59,10 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
     dispatchBgmEvent(nextEnabled);
   }
 
-  function replayIntro() {
-    setDrawerOpen(false);
-    setLangDropdownOpen(false);
-
-    if (activeScreen !== 'home') {
-      onNavigate('home');
-    }
-
-    if (Platform.OS === 'web' && globalThis.window?.dispatchEvent) {
-      setTimeout(() => {
-        globalThis.window.dispatchEvent(new CustomEvent(INTRO_REPLAY_EVENT));
-      }, activeScreen === 'home' ? 0 : 120);
-    }
+  function toggleIntroAutoPlay() {
+    const nextEnabled = !introAutoPlayEnabled;
+    setIntroAutoPlayEnabled(nextEnabled);
+    saveIntroAutoPlayEnabled(nextEnabled);
   }
 
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
@@ -101,6 +81,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
     return (
       <Pressable
         accessibilityRole="button"
+        className="sagak-pencil-interactive"
         onPress={() => { onNavigate(screen); setDrawerOpen(false); }}
         style={(state) => [
           styles.navItem,
@@ -118,6 +99,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
     return (
       <Pressable
         accessibilityRole="button"
+        className="sagak-pencil-interactive"
         onPress={() => {
           setDrawerOpen(false);
           if (activeScreen !== 'home') {
@@ -143,16 +125,25 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
 
   const Utilities = () => (
     <>
-      <Pressable accessibilityLabel="인트로 다시 보기" accessibilityRole="button" onPress={replayIntro} style={(state) => [styles.utilityButton, ...interactiveStateStyles(state)]}>
-        <PenLine size={18} color={isDarkSurface ? '#F8FAFC' : '#15202B'} strokeWidth={1.8} />
-        {isMobile && <Text style={[styles.utilityText, isDarkSurface && styles.utilityTextDark]}>Intro</Text>}
+      <Pressable
+        accessibilityLabel={`새로고침 시 인트로 자동 재생 ${introAutoPlayEnabled ? '켜짐' : '꺼짐'}`}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: introAutoPlayEnabled }}
+        className="sagak-pencil-interactive"
+        onPress={toggleIntroAutoPlay}
+        style={(state) => [styles.utilityButton, introAutoPlayEnabled && styles.utilityButtonActive, ...interactiveStateStyles(state)]}
+      >
+        <Text style={[styles.utilityText, isDarkSurface && styles.utilityTextDark]}>Intro</Text>
+        <View style={[styles.introSwitchTrack, introAutoPlayEnabled && styles.introSwitchTrackActive]}>
+          <View style={[styles.introSwitchKnob, introAutoPlayEnabled && styles.introSwitchKnobActive]} />
+        </View>
       </Pressable>
-      <Pressable onPress={toggleBgm} style={(state) => [styles.utilityButton, ...interactiveStateStyles(state)]}>
+      <Pressable className="sagak-pencil-interactive" onPress={toggleBgm} style={(state) => [styles.utilityButton, ...interactiveStateStyles(state)]}>
         {bgmEnabled ? <Volume2 size={18} color={isDarkSurface ? '#F8FAFC' : '#15202B'} strokeWidth={1.8} /> : <VolumeX size={18} color={isDarkSurface ? '#A7B0BE' : '#6B7280'} strokeWidth={1.8} />}
         {isMobile && <Text style={[styles.utilityText, isDarkSurface && styles.utilityTextDark]}>BGM</Text>}
       </Pressable>
       <View className="lang-wrapper" style={{position: 'relative', zIndex: 200}}>
-        <Pressable onPress={toggleLanguage} style={(state) => [styles.utilityButton, ...interactiveStateStyles(state)]}>
+        <Pressable className="sagak-pencil-interactive" onPress={toggleLanguage} style={(state) => [styles.utilityButton, ...interactiveStateStyles(state)]}>
           <Globe2 size={18} color={isDarkSurface ? '#F8FAFC' : '#15202B'} strokeWidth={1.8} />
           <Text style={[styles.utilityText, isDarkSurface && styles.utilityTextDark]}>{currentLanguageLabel}</Text>
         </Pressable>
@@ -164,7 +155,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
                 onClick={() => handleSelectLanguage(lang.code)}
                 style={{
                   padding: '10px 16px',
-                  cursor: pencilCursor,
+                  cursor: 'pointer',
                   borderRadius: '8px',
                   color: isDarkSurface ? '#F8FAFC' : '#15202B',
                   fontWeight: currentLanguage === lang.code ? '700' : '500',
@@ -179,7 +170,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
           </div>
         )}
       </View>
-      <Pressable onPress={toggleThemeMode} style={(state) => [styles.utilityButton, ...interactiveStateStyles(state)]}>
+      <Pressable className="sagak-pencil-interactive" onPress={toggleThemeMode} style={(state) => [styles.utilityButton, ...interactiveStateStyles(state)]}>
         {mode === 'dark' ? (
           <Moon size={18} color="#F8FAFC" strokeWidth={1.8} />
         ) : (
@@ -233,6 +224,7 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
         <View style={styles.headerInner}>
           <Pressable
             accessibilityRole="button"
+            className="sagak-pencil-interactive"
             onPress={() => onNavigate(authenticated ? 'dashboard' : 'home')}
             style={(state) => [styles.brand, state.hovered && styles.brandHover, ...interactiveStateStyles(state)]}
           >
@@ -275,16 +267,16 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
                 {authenticated ? (
                   <>
                     <Text style={[styles.userLabel, isDarkSurface && styles.userLabelDark]}>{user?.nickname || user?.name || translateText('사용자')}</Text>
-                    <Pressable onPress={onLogout} style={(state) => [styles.textButton, ...interactiveStateStyles(state)]}>
+                    <Pressable className="sagak-pencil-interactive" onPress={onLogout} style={(state) => [styles.textButton, ...interactiveStateStyles(state)]}>
                       <Text style={[styles.textButtonText, isDarkSurface && styles.textButtonTextDark]}>{translateText('로그아웃')}</Text>
                     </Pressable>
                   </>
                 ) : (
                   <>
-                    <Pressable onPress={() => onNavigate('login')} style={(state) => [styles.textButton, ...interactiveStateStyles(state)]}>
+                    <Pressable className="sagak-pencil-interactive" onPress={() => onNavigate('login')} style={(state) => [styles.textButton, ...interactiveStateStyles(state)]}>
                       <Text style={[styles.textButtonText, isDarkSurface && styles.textButtonTextDark]}>{translateText('로그인')}</Text>
                     </Pressable>
-                    <Pressable onPress={() => onNavigate('register')} style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}>
+                    <Pressable className="sagak-pencil-interactive" onPress={() => onNavigate('register')} style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}>
                       <Text style={styles.primaryText}>{translateText('무료로 시작하기')}</Text>
                     </Pressable>
                   </>
@@ -296,11 +288,11 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
           {isMobile && (
             <View style={styles.mobileActions}>
               {!authenticated && (
-                <Pressable onPress={() => onNavigate('register')} style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}>
+                <Pressable className="sagak-pencil-interactive" onPress={() => onNavigate('register')} style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}>
                   <Text style={styles.primaryText}>{translateText('무료로 시작하기')}</Text>
                 </Pressable>
               )}
-              <Pressable onPress={() => setDrawerOpen(!drawerOpen)} style={(state) => [styles.hamburgerButton, ...interactiveStateStyles(state)]}>
+              <Pressable className="sagak-pencil-interactive" onPress={() => setDrawerOpen(!drawerOpen)} style={(state) => [styles.hamburgerButton, ...interactiveStateStyles(state)]}>
                 {drawerOpen ? <X size={24} color={isDarkSurface ? '#F8FAFC' : '#15202B'} /> : <Menu size={24} color={isDarkSurface ? '#F8FAFC' : '#15202B'} />}
               </Pressable>
             </View>
@@ -336,11 +328,11 @@ export default function AppHeader({ activeScreen, onLogout, onNavigate, user, in
             <View style={styles.drawerUtils}>
               <Utilities />
               {authenticated ? (
-                <Pressable onPress={onLogout} style={styles.drawerLoginButton}>
+                <Pressable className="sagak-pencil-interactive" onPress={onLogout} style={styles.drawerLoginButton}>
                   <Text style={[styles.textButtonText, isDarkSurface && styles.textButtonTextDark]}>{translateText('로그아웃')}</Text>
                 </Pressable>
               ) : (
-                <Pressable onPress={() => { onNavigate('login'); setDrawerOpen(false); }} style={styles.drawerLoginButton}>
+                <Pressable className="sagak-pencil-interactive" onPress={() => { onNavigate('login'); setDrawerOpen(false); }} style={styles.drawerLoginButton}>
                   <Text style={[styles.textButtonText, isDarkSurface && styles.textButtonTextDark]}>{translateText('로그인')}</Text>
                 </Pressable>
               )}
@@ -384,7 +376,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 16,
     padding: 4,
-    cursor: pencilCursor,
+    cursor: 'pointer',
     ...interactions.transition
   },
   brandHover: {
@@ -422,7 +414,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
-    cursor: pencilCursor,
+    cursor: 'pointer',
   },
   navItemActive: {
     backgroundColor: 'rgba(92, 198, 184, 0.1)',
@@ -453,7 +445,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    cursor: pencilCursor,
+    cursor: 'pointer',
     ...interactions.transition
   },
   utilityText: {
@@ -464,10 +456,37 @@ const styles = StyleSheet.create({
   utilityTextDark: {
     color: '#F8FAFC'
   },
+  utilityButtonActive: {
+    borderColor: 'rgba(15, 118, 110, 0.42)',
+    backgroundColor: 'rgba(115, 201, 189, 0.12)'
+  },
+  introSwitchTrack: {
+    backgroundColor: 'rgba(107, 114, 128, 0.26)',
+    borderRadius: 11,
+    height: 22,
+    padding: 3,
+    width: 40
+  },
+  introSwitchTrackActive: {
+    backgroundColor: '#5CC6B8'
+  },
+  introSwitchKnob: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    height: 16,
+    shadowColor: '#15202B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.18,
+    shadowRadius: 2,
+    width: 16
+  },
+  introSwitchKnobActive: {
+    marginLeft: 18
+  },
   textButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    cursor: pencilCursor,
+    cursor: 'pointer',
     ...interactions.transition
   },
   textButtonText: {
@@ -483,7 +502,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 999,
-    cursor: pencilCursor,
+    cursor: 'pointer',
     ...interactions.transition
   },
   primaryText: {
@@ -498,7 +517,7 @@ const styles = StyleSheet.create({
   },
   hamburgerButton: {
     padding: 8,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   drawer: {
     position: 'absolute',
@@ -530,7 +549,7 @@ const styles = StyleSheet.create({
   drawerLoginButton: {
     marginTop: 12,
     paddingVertical: 8,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   userLabel: {
     fontSize: 14,

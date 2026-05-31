@@ -2,75 +2,70 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
+import { readIntroAutoPlayEnabled } from '../constants/introPreference';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 const GITHUB_REPOSITORY_URL = 'https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform';
 const GITHUB_ICON_COLOR = '#24292f';
 const BGM_ENABLED_STORAGE_KEY = 'sagakLandingBgmEnabled';
-const INTRO_REPLAY_EVENT = 'sagak:intro-replay';
+const INTRO_DURATION_MS = 8600;
+const INTRO_WRITE_START_SECONDS = 4.62;
+const INTRO_WRITE_DURATION_SECONDS = 3.36;
 const pencilCursorSvg = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
-    <g transform="rotate(-35 22 22)">
-      <rect x="8" y="18" width="23" height="8" rx="3" fill="#73C9BD" stroke="#173B63" stroke-width="2"/>
-      <rect x="4" y="18" width="6" height="8" rx="2" fill="#F3D4A0" stroke="#173B63" stroke-width="2"/>
-      <path d="M31 18L40 22L31 26Z" fill="#FFF1D9" stroke="#173B63" stroke-width="2"/>
-      <path d="M38 21L42 22L38 23Z" fill="#183246"/>
+    <g transform="translate(44 0) scale(-1 1)">
+      <g transform="rotate(-35 22 22)">
+        <rect x="8" y="18" width="23" height="8" rx="3" fill="#73C9BD" stroke="#173B63" stroke-width="2"/>
+        <rect x="4" y="18" width="6" height="8" rx="2" fill="#F3D4A0" stroke="#173B63" stroke-width="2"/>
+        <path d="M31 18L40 22L31 26Z" fill="#FFF1D9" stroke="#173B63" stroke-width="2"/>
+        <path d="M38 21L42 22L38 23Z" fill="#183246"/>
+      </g>
     </g>
   </svg>`
 );
-const pencilCursor = `url("data:image/svg+xml,${pencilCursorSvg}") 38 22, auto`;
+const pencilCursorImage = `data:image/svg+xml,${pencilCursorSvg}`;
 const githubSvgStyle = {
   display: 'block',
   flexShrink: 0
 };
 
 const webLandingAnimationCss = `
-@keyframes sagakPencilSweep {
-  0% { transform: translate3d(-46%, -22%, 0) rotate(-18deg); opacity: 0; }
-  12% { opacity: 1; }
-  44% { transform: translate3d(18%, 4%, 0) rotate(-10deg); opacity: 1; }
-  72% { transform: translate3d(74%, 38%, 0) rotate(8deg); opacity: 1; }
-  100% { transform: translate3d(122%, 4%, 0) rotate(16deg); opacity: 0; }
-}
-
-@keyframes sagakLineReveal {
-  0%, 16% { transform: scaleX(0); opacity: 0; }
-  38% { opacity: 1; }
-  100% { transform: scaleX(1); opacity: 1; }
-}
-
 @keyframes sagakIntroRise {
   0% { transform: translateY(22px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
 
-@keyframes sagakIntroFade {
-  0%, 8% { opacity: 0; transform: translateY(16px); }
-  28%, 78% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0.72; transform: translateY(-8px); }
-}
-
-@keyframes sagakCardFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes sagakIntroStroke {
-  0% { stroke-dashoffset: 720; opacity: 0; }
-  12% { opacity: 1; }
-  58% { stroke-dashoffset: 0; opacity: 1; }
-  100% { stroke-dashoffset: -120; opacity: 0.55; }
-}
-
-@keyframes sagakIntroToolPop {
-  0%, 18% { opacity: 0; transform: translateY(18px) scale(0.92); filter: blur(3px); }
-  34%, 78% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-  100% { opacity: 0.52; transform: translateY(-10px) scale(0.98); filter: blur(1px); }
-}
-
 @keyframes sagakIntroOut {
-  0%, 76% { opacity: 1; transform: translateY(0); }
+  0%, 96% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-18px); pointer-events: none; }
+}
+
+@keyframes sagakIntroParticleAssemble {
+  0%, 5% {
+    opacity: 0;
+    transform: translate3d(var(--scatter-x), var(--scatter-y), 0) scale(0.45);
+  }
+  18% { opacity: 0.74; }
+  35%, 53% {
+    opacity: 0.98;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  55%, 100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sagakIntroTrace {
+  0%, 53.6% { opacity: 0; }
+  53.8%, 95% { opacity: 0.96; }
+  100% { opacity: 0; }
+}
+
+@keyframes sagakIntroSolidPencil {
+  0%, 53.2% { opacity: 0; }
+  53.7%, 95% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 @keyframes sagakKeywordFocus {
@@ -85,17 +80,13 @@ const webLandingAnimationCss = `
   animation: sagakIntroRise 720ms ease-out both;
 }
 
-[data-sagak-intro-logo="true"] {
-  animation: sagakIntroFade 3600ms ease-in-out infinite;
-}
-
 [data-sagak-story-section="true"] {
   min-height: 100vh;
   scroll-snap-align: start;
 }
 
 [data-sagak-intro-screen="true"] {
-  animation: sagakIntroOut 5200ms ease-in-out both;
+  animation: sagakIntroOut ${INTRO_DURATION_MS}ms ease-in-out both;
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
@@ -104,15 +95,74 @@ const webLandingAnimationCss = `
 }
 
 .sagak-pencil-interactive,
-.sagak-pencil-interactive * {
-  cursor: ${pencilCursor} !important;
+.sagak-pencil-interactive *,
+.sagak-hover-zoom,
+.sagak-hover-zoom *,
+.sagak-landing-scroll button,
+.sagak-landing-scroll button *,
+.sagak-landing-scroll [role="button"],
+.sagak-landing-scroll [role="button"] *,
+.sagak-landing-scroll [role="link"],
+.sagak-landing-scroll [role="link"] *,
+.sagak-landing-scroll [role="switch"],
+.sagak-landing-scroll [role="switch"] *,
+.sagak-landing-scroll a,
+.sagak-landing-scroll a *,
+.sagak-header-visible button,
+.sagak-header-visible button *,
+.sagak-header-visible [role="button"],
+.sagak-header-visible [role="button"] *,
+.language-dropdown,
+.language-dropdown * {
+  cursor: none !important;
 }
 
 .keyword-bg {
   font-size: clamp(140px, 22vw, 360px) !important;
-  -webkit-text-stroke: 1px rgba(238, 185, 98, 0.45);
-  text-stroke: 1px rgba(238, 185, 98, 0.45);
+  z-index: 40 !important;
+  color: rgba(67, 73, 81, 0.48) !important;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
   mix-blend-mode: multiply;
+}
+
+.keyword-section,
+.report-section,
+.trust-section {
+  isolation: isolate;
+}
+
+.sagak-hover-zoom {
+  transition: transform 420ms cubic-bezier(.2, .72, .25, 1), box-shadow 420ms ease-out;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.sagak-hover-zoom:hover,
+.sagak-hover-zoom:focus-within {
+  transform: translateY(-5px) scale(1.06);
+  box-shadow: 0 24px 54px rgba(21, 32, 43, 0.15);
+}
+
+.sagak-pencil-follower {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  z-index: 2147483646;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 120ms cubic-bezier(.2, .72, .25, 1), opacity 140ms ease-out;
+  will-change: transform, opacity;
+}
+
+.sagak-pencil-follower img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.92;
+  filter: drop-shadow(0 6px 7px rgba(23, 59, 99, 0.18));
 }
 
 .value-keyword-scroll-section {
@@ -133,19 +183,27 @@ const webLandingAnimationCss = `
   letter-spacing: 0;
 }
 
-.sagak-intro-film svg path {
-  stroke-dasharray: 720;
-  animation: sagakIntroStroke 5200ms cubic-bezier(.4, 0, .2, 1) infinite;
+.sagak-intro-particle {
+  animation: sagakIntroParticleAssemble ${INTRO_DURATION_MS}ms cubic-bezier(.2, .72, .25, 1) both;
+  animation-delay: var(--particle-delay);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.sagak-intro-tool {
-  animation: sagakIntroToolPop 5200ms ease-in-out infinite;
+.sagak-intro-trace {
+  animation: sagakIntroTrace ${INTRO_DURATION_MS}ms ease-in-out both;
 }
 
-.sagak-intro-tool:nth-child(2) { animation-delay: 240ms; }
-.sagak-intro-tool:nth-child(3) { animation-delay: 480ms; }
-.sagak-intro-tool:nth-child(4) { animation-delay: 720ms; }
-.sagak-intro-tool:nth-child(5) { animation-delay: 960ms; }
+.sagak-intro-solid-pencil {
+  animation: sagakIntroSolidPencil ${INTRO_DURATION_MS}ms cubic-bezier(.2, .72, .25, 1) both;
+}
+
+.sagak-intro-equation {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow: 0 0 12px rgba(115, 201, 189, 0.22);
+}
 
 [data-sagak-story-section="true"] [data-sagak-preview-frame="true"] {
   transition: transform 220ms ease-out, box-shadow 220ms ease-out;
@@ -168,34 +226,23 @@ const webLandingAnimationCss = `
   opacity: 0.86;
 }
 
-[data-sagak-pencil="true"] {
-  animation: sagakPencilSweep 3600ms ease-in-out infinite;
-}
-
-[data-sagak-write-line="true"] {
-  animation: sagakLineReveal 3600ms ease-out infinite;
-  transform-origin: left center;
-}
-
-[data-sagak-float-card="true"] {
-  animation: sagakCardFloat 5200ms ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   [data-sagak-intro-copy="true"],
   [data-sagak-scroll-section="true"],
-  [data-sagak-intro-logo="true"],
-  [data-sagak-pencil="true"],
-  [data-sagak-write-line="true"],
   [data-sagak-preview-frame="true"],
   [data-sagak-story-keyword="true"],
-  [data-sagak-float-card="true"],
   .value-keyword,
-  .sagak-intro-film svg path,
-  .sagak-intro-tool {
+	  .sagak-hover-zoom,
+	  .sagak-intro-particle,
+	  .sagak-intro-trace,
+	  .sagak-intro-solid-pencil {
     animation: none !important;
     transform: none !important;
     filter: none !important;
+  }
+
+  .sagak-pencil-follower {
+    transition: none !important;
   }
 }
 `;
@@ -314,39 +361,13 @@ const trustItems = [
   'landing.trust.item3'
 ];
 
-const sectionKeywordSets = {
-  ko: {
-    record: '기록',
-    plan: '계획',
-    question: '질문',
-    summary: '요약',
-    report: '오답',
-    trust: '신뢰'
-  },
-  en: {
-    record: 'Record',
-    plan: 'Plan',
-    question: 'Ask',
-    summary: 'Summarize',
-    report: 'Review',
-    trust: 'Trust'
-  },
-  ja: {
-    record: '記録',
-    plan: '計画',
-    question: '質問',
-    summary: '要約',
-    report: '誤答',
-    trust: '信頼'
-  },
-  zh: {
-    record: '记录',
-    plan: '计划',
-    question: '提问',
-    summary: '总结',
-    report: '错题',
-    trust: '信任'
-  }
+const sectionVisualKeywords = {
+  record: 'RECORD',
+  plan: 'PLAN',
+  question: 'ASK',
+  summary: 'SUMMARY',
+  report: 'REVIEW',
+  trust: 'TRUST'
 };
 
 const projectCopySets = {
@@ -862,7 +883,7 @@ function TopHeroCarousel({ activeIndex, onNext, onPrevious, onSelect, onNavigate
 function TopHeroMockup({ copy, kind }) {
   if (kind === 'plan') {
     return (
-      <View style={[styles.topHeroMockup, styles.topHeroMockupPlan]}>
+      <View className="sagak-hover-zoom" style={[styles.topHeroMockup, styles.topHeroMockupPlan]}>
         <View style={styles.topHeroMockupHeader}>
           <Text style={styles.topHeroMockupTitle}>{copy.month}</Text>
           <Text style={styles.topHeroMockupBadge}>D-12</Text>
@@ -879,7 +900,7 @@ function TopHeroMockup({ copy, kind }) {
 
   if (kind === 'question') {
     return (
-      <View style={[styles.topHeroMockup, styles.topHeroMockupChat]}>
+      <View className="sagak-hover-zoom" style={[styles.topHeroMockup, styles.topHeroMockupChat]}>
         <View style={styles.topHeroQuestionBubble}>
           <Text style={styles.topHeroQuestionText}>{copy.topHeroQuestion}</Text>
         </View>
@@ -897,7 +918,7 @@ function TopHeroMockup({ copy, kind }) {
 
   if (kind === 'summary') {
     return (
-      <View style={[styles.topHeroMockup, styles.topHeroMockupSummary]}>
+      <View className="sagak-hover-zoom" style={[styles.topHeroMockup, styles.topHeroMockupSummary]}>
         <Text style={styles.topHeroMockupTitle}>{copy.summaryDone}</Text>
         <Text style={styles.topHeroSummarySubject}>{copy.summarySubject}</Text>
         {copy.topHeroSummaryRows.map((item) => (
@@ -911,7 +932,7 @@ function TopHeroMockup({ copy, kind }) {
   }
 
   return (
-    <View style={[styles.topHeroMockup, styles.topHeroMockupRecord]}>
+    <View className="sagak-hover-zoom" style={[styles.topHeroMockup, styles.topHeroMockupRecord]}>
       <View style={styles.topHeroMockupHeader}>
         <Text style={styles.topHeroMockupTitle}>{copy.recordTitle}</Text>
         <Text style={styles.topHeroMockupBadge}>{copy.recordStreak}</Text>
@@ -927,9 +948,61 @@ function TopHeroMockup({ copy, kind }) {
 }
 
 
-function CinematicIntroVideo({ onComplete, onSkip }) {
+function createIntroLogoParticles() {
+  const particles = [];
+  const mathTokens = ['f(x)', 'x^2', 'dy/dx', '∫', 'Σ', 'lim', '√x', 'π', 'a_n', 'Δ', 'log', 'y='];
+
+  function addParticle(x, y, fill, fontSize = 10) {
+    const index = particles.length;
+    const angle = (index * 137.5 * Math.PI) / 180;
+    const distance = 150 + (index % 11) * 22;
+
+    particles.push({
+      delay: (index % 19) * 24,
+      fill,
+      fontSize,
+      id: `intro-particle-${index}`,
+      label: mathTokens[index % mathTokens.length],
+      scatterX: Math.round(Math.cos(angle) * distance),
+      scatterY: Math.round(Math.sin(angle) * distance * 0.72),
+      x,
+      y
+    });
+  }
+
+  function addLine(x1, y1, x2, y2, count, fill, fontSize = 10, offsets = [0]) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy) || 1;
+    const normalX = -dy / length;
+    const normalY = dx / length;
+
+    offsets.forEach((offset) => {
+      for (let index = 0; index < count; index += 1) {
+        const progress = count === 1 ? 0 : index / (count - 1);
+        addParticle(
+          x1 + dx * progress + normalX * offset,
+          y1 + dy * progress + normalY * offset,
+          fill,
+          fontSize
+        );
+      }
+    });
+  }
+
+  addLine(704, 238, 526, 410, 25, '#73C9BD', 10, [-18, -6, 6, 18]);
+  addLine(718, 224, 686, 255, 8, '#F3D4A0', 9, [-15, -5, 5, 15]);
+  addLine(526, 410, 478, 456, 13, '#FFF1D9', 9, [-12, 0, 12]);
+  addLine(486, 448, 468, 466, 6, '#6EA6E8', 8, [-5, 5]);
+
+  return particles;
+}
+
+const introLogoParticles = createIntroLogoParticles();
+
+function CinematicIntroVideo({ onComplete }) {
   useEffect(() => {
-    const timer = setTimeout(onComplete, 5200);
+    const timer = setTimeout(onComplete, INTRO_DURATION_MS);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
@@ -938,55 +1011,79 @@ function CinematicIntroVideo({ onComplete, onSkip }) {
       <View style={styles.introFilm} className="sagak-intro-film">
         {Platform.OS === 'web' && (
           <svg aria-hidden="true" viewBox="0 0 1200 720" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-            <path d="M76 508 C222 382 314 444 438 344 C566 240 654 280 758 204 C854 134 1016 158 1128 92" fill="none" stroke="#73C9BD" strokeWidth="14" strokeLinecap="round" />
-            <path d="M118 562 C286 500 390 548 530 462 C660 382 734 426 870 336 C976 266 1062 286 1144 240" fill="none" stroke="#F4BE64" strokeWidth="8" strokeLinecap="round" />
+            {introLogoParticles.map((particle) => (
+              <text
+                className="sagak-intro-particle sagak-intro-equation"
+                dominantBaseline="central"
+                fill={particle.fill}
+                fontSize={particle.fontSize}
+                key={particle.id}
+                style={{
+                  '--particle-delay': `${particle.delay}ms`,
+                  '--scatter-x': `${particle.scatterX}px`,
+                  '--scatter-y': `${particle.scatterY}px`
+                }}
+                textAnchor="middle"
+                x={particle.x}
+                y={particle.y}
+              >
+                {particle.label}
+              </text>
+            ))}
+            <path
+              className="sagak-intro-trace"
+              d="M468 466 C514 446 558 488 608 466 C652 446 684 478 726 462 C736 458 744 460 752 464"
+              fill="none"
+              id="sagak-intro-write-path"
+              pathLength="1"
+              stroke="#6EA6E8"
+              strokeDasharray="1"
+              strokeDashoffset="1"
+              strokeLinecap="butt"
+              strokeWidth="8"
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                begin={`${INTRO_WRITE_START_SECONDS}s`}
+                calcMode="linear"
+                dur={`${INTRO_WRITE_DURATION_SECONDS}s`}
+                fill="freeze"
+                from="1"
+                to="0"
+              />
+            </path>
+            <g className="sagak-intro-solid-pencil">
+              <g>
+                <polygon fill="#F3D4A0" points="236,-259 270,-225 254,-210 220,-244" />
+                <polygon fill="#73C9BD" points="220,-244 254,-210 67,-29 33,-63" />
+                <polygon fill="rgba(255,255,255,0.2)" points="232,-232 243,-221 56,-40 45,-51" />
+                <polygon fill="#FFF1D9" points="33,-63 67,-29 0,0" />
+                <polygon fill="#173B63" points="0,0 17,-18 25,-9" />
+                <animateTransform
+                  attributeName="transform"
+                  begin={`${INTRO_WRITE_START_SECONDS}s`}
+                  calcMode="spline"
+                  dur={`${INTRO_WRITE_DURATION_SECONDS}s`}
+                  fill="freeze"
+                  keySplines=".37 0 .63 1;.37 0 .63 1;.37 0 .63 1;.37 0 .63 1;.37 0 .63 1"
+                  keyTimes="0;0.18;0.38;0.58;0.78;1"
+                  type="rotate"
+                  values="0 0 0;-2.4 0 0;2 0 0;-1.8 0 0;1.4 0 0;0 0 0"
+                />
+              </g>
+              <animateMotion
+                begin={`${INTRO_WRITE_START_SECONDS}s`}
+                calcMode="linear"
+                dur={`${INTRO_WRITE_DURATION_SECONDS}s`}
+                fill="freeze"
+                keyPoints="0;1"
+                keyTimes="0;1"
+              >
+                <mpath href="#sagak-intro-write-path" />
+              </animateMotion>
+            </g>
           </svg>
         )}
-        <View style={[styles.introToolCard, styles.introToolNote]} className="sagak-intro-tool">
-          <View style={styles.introToolLineLong} />
-          <View style={styles.introToolLineShort} />
-          <View style={[styles.introToolLineShort, styles.introToolLineMuted]} />
-        </View>
-        <View style={[styles.introToolCard, styles.introToolCheck]} className="sagak-intro-tool">
-          {[0, 1, 2].map((item) => (
-            <View key={item} style={styles.introToolCheckRow}>
-              <View style={[styles.introToolCheckBox, item < 2 && styles.introToolCheckBoxDone]} />
-              <View style={[styles.introToolLineShort, item === 1 && styles.introToolLineMuted]} />
-            </View>
-          ))}
-        </View>
-        <View style={[styles.introToolCard, styles.introToolChat]} className="sagak-intro-tool">
-          <View style={styles.introToolChatBubble}>
-            <View style={styles.introToolLineLong} />
-            <View style={[styles.introToolLineShort, styles.introToolLineMuted]} />
-          </View>
-        </View>
-        <View style={[styles.introToolCard, styles.introToolSummary]} className="sagak-intro-tool">
-          <View style={styles.introHighlight} />
-          <View style={styles.introToolLineLong} />
-          <View style={[styles.introToolLineShort, styles.introToolLineMuted]} />
-        </View>
-        <View dataSet={{ sagakPencil: 'true' }} style={styles.introPencilMark}>
-          <View style={styles.introPencilEraser} />
-          <View style={styles.introPencilBody}>
-            <View style={styles.introPencilBodyLine} />
-          </View>
-          <View style={styles.introPencilWood} />
-          <View style={styles.introPencilLead} />
-        </View>
-      </View>
-      <View style={styles.introOverlay} className="intro-overlay" />
-      <Pressable
-        accessibilityLabel="인트로 건너뛰기"
-        accessibilityRole="button"
-        className="sagak-pencil-interactive"
-        onPress={onSkip}
-        style={(state) => [styles.introSkipButton, ...interactiveStateStyles(state)]}
-      >
-        <Text style={styles.introSkipText}>Skip Intro</Text>
-      </Pressable>
-      <View style={styles.introVideoScroll}>
-        <Text style={styles.introVideoScrollText}>Scroll ↓</Text>
       </View>
     </View>
   );
@@ -997,14 +1094,6 @@ function readBgmEnabled() {
     return globalThis.localStorage?.getItem(BGM_ENABLED_STORAGE_KEY) === 'true';
   } catch (error) {
     return false;
-  }
-}
-
-function saveBgmEnabled(enabled) {
-  try {
-    globalThis.localStorage?.setItem(BGM_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
-  } catch (error) {
-    // Local storage is optional; the BGM toggle still updates immediately.
   }
 }
 
@@ -1146,6 +1235,55 @@ function HeroSlide({ slide, t }) {
   );
 }
 
+function PencilCursorFollower() {
+  const followerRef = useRef(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !globalThis.window?.matchMedia?.('(pointer: fine)').matches) {
+      return undefined;
+    }
+
+    const follower = followerRef.current;
+    const documentRef = globalThis.document;
+    let lastX = 0;
+    let lastY = 0;
+
+    function handlePointerMove(event) {
+      const interactiveTarget = event.target?.closest?.('.sagak-pencil-interactive, .sagak-hover-zoom, .language-dropdown, button, [role="button"], [role="link"], [role="switch"], a');
+      const tilt = clamp((event.clientX - lastX) * 0.7 + (event.clientY - lastY) * 0.22, -14, 14);
+
+      lastX = event.clientX;
+      lastY = event.clientY;
+      follower.style.opacity = interactiveTarget ? '1' : '0';
+      follower.style.transform = `translate3d(${event.clientX + 8}px, ${event.clientY + 9}px, 0) rotate(${tilt - 8}deg) scale(${interactiveTarget ? 1.06 : 0.92})`;
+    }
+
+    function hideFollower() {
+      follower.style.opacity = '0';
+    }
+
+    documentRef.addEventListener('pointermove', handlePointerMove);
+    documentRef.addEventListener('pointerleave', hideFollower);
+    globalThis.window.addEventListener('blur', hideFollower);
+
+    return () => {
+      documentRef.removeEventListener('pointermove', handlePointerMove);
+      documentRef.removeEventListener('pointerleave', hideFollower);
+      globalThis.window.removeEventListener('blur', hideFollower);
+    };
+  }, []);
+
+  if (Platform.OS !== 'web') {
+    return null;
+  }
+
+  return (
+    <div aria-hidden="true" className="sagak-pencil-follower" ref={followerRef}>
+      <img alt="" src={pencilCursorImage} />
+    </div>
+  );
+}
+
 function SectionKeyword({ label, motion, style }) {
   const keywordMotion = motion || { opacity: 0, blur: 14, y: 72, scale: 0.94 };
 
@@ -1158,7 +1296,7 @@ function SectionKeyword({ label, motion, style }) {
         {
           opacity: keywordMotion.opacity,
           filter: `blur(${keywordMotion.blur}px)`,
-          transform: [{ translateY: keywordMotion.y }, { scale: keywordMotion.scale }]
+          transform: [{ translateY: keywordMotion.y - 115 }, { scale: keywordMotion.scale }]
         }
       ]}
     >
@@ -1177,7 +1315,7 @@ function ProjectGroundedCopySection({ copy }) {
       </View>
       <View style={styles.projectCardGrid}>
         {copy.cards.map((card) => (
-          <View key={card.title} style={[styles.projectCard, shadows.card]}>
+          <View className="sagak-hover-zoom sagak-project-card" key={card.title} style={[styles.projectCard, shadows.card]}>
             <View style={styles.projectCardRule} />
             <Text style={styles.projectCardTitle}>{card.title}</Text>
             <Text style={styles.projectCardDescription}>{card.description}</Text>
@@ -1221,7 +1359,7 @@ function GitHubMark() {
 export default function LandingScreen({ onNavigate }) {
   const { currentLanguage, t } = useLanguage();
   const [writtenWord, setWrittenWord] = useState('');
-  const [introPassed, setIntroPassed] = useState(false);
+  const [introPassed, setIntroPassed] = useState(() => !readIntroAutoPlayEnabled());
   const [topHeroIndex, setTopHeroIndex] = useState(0);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [bgmEnabled, setBgmEnabled] = useState(readBgmEnabled);
@@ -1238,7 +1376,7 @@ export default function LandingScreen({ onNavigate }) {
   const writingWord = t('landing.hero.writingWord', '사각사각');
   const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
   const currentHeroSlide = heroSlides[heroSlideIndex];
-  const currentSectionKeywords = sectionKeywordSets[currentLanguage] || sectionKeywordSets.ko;
+  const currentSectionKeywords = sectionVisualKeywords;
   const exampleCopy = exampleCopySets[currentLanguage] || exampleCopySets.ko;
   const projectCopy = projectCopySets[currentLanguage] || projectCopySets.ko;
 
@@ -1264,17 +1402,41 @@ export default function LandingScreen({ onNavigate }) {
     }
   }, [introPassed]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || introPassed) return undefined;
+
+    const documentRef = globalThis.document;
+    const windowRef = globalThis.window;
+    const previousBodyOverflow = documentRef?.body?.style.overflow;
+    const previousHtmlOverflow = documentRef?.documentElement?.style.overflow;
+    const scrollKeys = new Set(['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' ']);
+    const preventScroll = (event) => event.preventDefault();
+    const preventScrollKey = (event) => {
+      if (scrollKeys.has(event.key)) event.preventDefault();
+    };
+
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    windowRef?.scrollTo?.({ top: 0, left: 0, behavior: 'auto' });
+    if (documentRef?.body) documentRef.body.style.overflow = 'hidden';
+    if (documentRef?.documentElement) documentRef.documentElement.style.overflow = 'hidden';
+    windowRef?.addEventListener('wheel', preventScroll, { passive: false });
+    windowRef?.addEventListener('touchmove', preventScroll, { passive: false });
+    windowRef?.addEventListener('keydown', preventScrollKey);
+
+    return () => {
+      if (documentRef?.body) documentRef.body.style.overflow = previousBodyOverflow || '';
+      if (documentRef?.documentElement) documentRef.documentElement.style.overflow = previousHtmlOverflow || '';
+      windowRef?.removeEventListener('wheel', preventScroll);
+      windowRef?.removeEventListener('touchmove', preventScroll);
+      windowRef?.removeEventListener('keydown', preventScrollKey);
+    };
+  }, [introPassed]);
+
   const handleScroll = (e) => {
     const scrollY = e.nativeEvent.contentOffset.y || 0;
     scrollYRef.current = scrollY;
     updateSectionKeywordMotions(scrollY);
 
-    if (Platform.OS === 'web' && !introPassed) {
-      const threshold = globalThis.window.innerHeight * 0.7;
-      if (scrollY >= threshold) {
-        completeIntro();
-      }
-    }
   };
 
   const handleSectionLayout = useCallback((sectionKey, event) => {
@@ -1320,20 +1482,6 @@ export default function LandingScreen({ onNavigate }) {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') return undefined;
-
-    function handleIntroReplay() {
-      setIntroPassed(false);
-      setTopHeroIndex(0);
-      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
-      globalThis.window?.scrollTo?.({ top: 0, behavior: 'auto' });
-    }
-
-    globalThis.window?.addEventListener(INTRO_REPLAY_EVENT, handleIntroReplay);
-    return () => globalThis.window?.removeEventListener(INTRO_REPLAY_EVENT, handleIntroReplay);
-  }, []);
-
-  useEffect(() => {
     const timer = setInterval(() => {
       setHeroSlideIndex((current) => (current + 1) % heroSlides.length);
     }, 5200);
@@ -1374,19 +1522,14 @@ function moveHeroSlide(direction) {
     setHeroSlideIndex((current) => (current + direction + heroSlides.length) % heroSlides.length);
   }
 
-  function toggleBgm() {
-    const nextEnabled = !bgmEnabled;
-    setBgmEnabled(nextEnabled);
-    saveBgmEnabled(nextEnabled);
-    if (Platform.OS === 'web' && globalThis.window) {
-      globalThis.window.dispatchEvent(new CustomEvent('sagak:bgm-toggle', { detail: { enabled: nextEnabled } }));
-    }
-  }
-
   return (
-    <ScrollView
+    <>
+      <PencilCursorFollower />
+      <ScrollView
+      className="sagak-landing-scroll"
       ref={scrollRef}
       onScroll={handleScroll}
+      scrollEnabled={introPassed}
       scrollEventThrottle={16}
       dataSet={{ sagakI18nIgnore: 'true' }}
       style={styles.container}
@@ -1401,7 +1544,7 @@ function moveHeroSlide(direction) {
       `}} />
       <LandingAnimationStyles />
 
-      {!introPassed && <CinematicIntroVideo onComplete={completeIntro} onSkip={completeIntro} />}
+      {!introPassed && <CinematicIntroVideo onComplete={completeIntro} />}
 
       <TopHeroCarousel
         activeIndex={topHeroIndex}
@@ -1447,7 +1590,7 @@ function moveHeroSlide(direction) {
             </Pressable>
           </View>
         </View>
-        <View style={[styles.visualCard, shadows.card]}>
+        <View className="sagak-hover-zoom" style={[styles.visualCard, shadows.card]}>
           <View style={styles.heroCarouselTop}>
             <Image source={icon} style={styles.heroCarouselIcon} />
             <View style={styles.heroCarouselCounter}>
@@ -1497,7 +1640,7 @@ function moveHeroSlide(direction) {
           </Text>
         </View>
         <View style={styles.recordExperience}>
-          <View dataSet={{ sagakScrollSection: 'true' }} style={[styles.recordMainCard, shadows.card]}>
+          <View className="sagak-hover-zoom" dataSet={{ sagakScrollSection: 'true' }} style={[styles.recordMainCard, shadows.card]}>
             <View style={styles.recordHeaderRow}>
               <Text style={styles.recordCardTitle}>{exampleCopy.recordTitle}</Text>
               <Text style={styles.recordStreak}>{exampleCopy.recordStreak}</Text>
@@ -1510,12 +1653,12 @@ function moveHeroSlide(direction) {
             ))}
           </View>
           <View style={styles.recordSideStack}>
-            <View style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
+            <View className="sagak-hover-zoom" style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
               <Text style={styles.recordMiniLabel}>{exampleCopy.openingNotes}</Text>
               <Text style={styles.recordMiniValue}>05/28</Text>
               <Text style={styles.recordMiniText}>{exampleCopy.recordMiniText}</Text>
             </View>
-            <View style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
+            <View className="sagak-hover-zoom" style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
               <Text style={styles.recordMiniLabel}>{exampleCopy.savedQuestions}</Text>
               <Text style={styles.recordMiniValue}>{exampleCopy.savedQuestionsValue}</Text>
               <Text style={styles.recordMiniText}>{exampleCopy.savedQuestionsText}</Text>
@@ -1564,7 +1707,7 @@ function moveHeroSlide(direction) {
             <View style={styles.tagWrap}><Text style={styles.tagText}>{t('landing.story.plan.chip1', '일정')}</Text></View>
           </View>
           <View style={[styles.newVisualCol, { alignItems: 'flex-end' }]}>
-            <View style={[styles.mockCard, styles.planMock]}>
+            <View className="sagak-hover-zoom" style={[styles.mockCard, styles.planMock]}>
               <View style={styles.planHeader}>
                 <Text style={styles.planMonth}>{exampleCopy.month}</Text>
                 <View style={styles.planDday}><Text style={styles.planDdayText}>D-12</Text></View>
@@ -1600,7 +1743,7 @@ function moveHeroSlide(direction) {
             <View style={[styles.floatingBubble, { top: -20, left: -40, backgroundColor: '#FFFDF6' }]}><Text style={styles.floatingBubbleIcon}>?</Text></View>
             <View style={[styles.floatingBubble, { bottom: -20, right: -40, backgroundColor: '#FF8A65' }]}><Text style={styles.floatingBubbleIconLight}>AI</Text></View>
             
-            <View style={[styles.mockCard, styles.chatMock]}>
+            <View className="sagak-hover-zoom" style={[styles.mockCard, styles.chatMock]}>
               <View style={styles.chatUserBubble}>
                 <Text style={styles.chatUserText}>{exampleCopy.chatQuestion}</Text>
               </View>
@@ -1626,7 +1769,7 @@ function moveHeroSlide(direction) {
             <Text style={styles.newSectionDesc}>{t('landing.summary.description', '노트 필기와 문서 하이라이트로 배운 것을 온전히 내 것으로 만듭니다.')}</Text>
           </View>
           <View style={[styles.newVisualCol, { alignItems: 'flex-start' }]}>
-            <View style={[styles.mockCard, styles.noteMock]}>
+            <View className="sagak-hover-zoom" style={[styles.mockCard, styles.noteMock]}>
               <View style={styles.noteBadge}><Text style={styles.noteBadgeText}>{exampleCopy.summaryDone}</Text></View>
               <Text style={styles.noteTitle}>{exampleCopy.summarySubject}</Text>
               <View style={styles.summaryBulletList}>
@@ -1659,7 +1802,7 @@ function moveHeroSlide(direction) {
             {/* 겹쳐진 카드들 */}
             <View style={[styles.mockCard, styles.reportCardBg2]} />
             <View style={[styles.mockCard, styles.reportCardBg1]} />
-            <View style={[styles.mockCard, styles.reportCardMain]}>
+            <View className="sagak-hover-zoom" style={[styles.mockCard, styles.reportCardMain]}>
               <View style={styles.reportHeader}>
                 <Text style={styles.reportTitle}>{exampleCopy.reportTitle}</Text>
                 <Text style={styles.reportScore}>-5점</Text>
@@ -1692,21 +1835,21 @@ function moveHeroSlide(direction) {
           </View>
           <View style={[styles.newVisualCol, { flex: 1.2 }]}>
             <View style={styles.trustCardsContainer}>
-              <View style={[styles.mockCard, styles.trustCard]}>
+              <View className="sagak-hover-zoom" style={[styles.mockCard, styles.trustCard]}>
                 <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>🔗</Text></View>
                 <View style={styles.trustCardContent}>
                   <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '기존 흐름 유지')}</Text>
                   <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '로그인/회원가입/라우팅 구조를 무리 없이 이어갑니다.')}</Text>
                 </View>
               </View>
-              <View style={[styles.mockCard, styles.trustCard]}>
+              <View className="sagak-hover-zoom" style={[styles.mockCard, styles.trustCard]}>
                 <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>👁️</Text></View>
                 <View style={styles.trustCardContent}>
                   <Text style={styles.trustCardTitle}>{t('landing.trust.item2', '접근성 대응')}</Text>
                   <Text style={styles.trustCardDesc}>{t('landing.trust.description2', '모션 민감 사용자를 위한 reduced motion 설정을 지원합니다.')}</Text>
                 </View>
               </View>
-              <View style={[styles.mockCard, styles.trustCard]}>
+              <View className="sagak-hover-zoom" style={[styles.mockCard, styles.trustCard]}>
                 <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>🛡️</Text></View>
                 <View style={styles.trustCardContent}>
                   <Text style={styles.trustCardTitle}>{t('landing.trust.item3', '안정적인 확장성')}</Text>
@@ -1730,19 +1873,6 @@ function moveHeroSlide(direction) {
           <Text style={styles.finalCtaButtonText}>{t('landing.cta.primary', '무료로 시작하기')}</Text>
         </Pressable>
       </View>
-
-      {introPassed ? (
-        <Pressable
-          accessibilityLabel={bgmEnabled ? t('landing.bgm.offLabel', 'BGM 끄기') : t('landing.bgm.onLabel', 'BGM 켜기')}
-          accessibilityRole="button"
-          onPress={toggleBgm}
-          style={(state) => [styles.bgmButton, bgmEnabled && styles.bgmButtonActive, ...interactiveStateStyles(state)]}
-        >
-          <Text style={[styles.bgmButtonText, bgmEnabled && styles.bgmButtonTextActive]}>
-            ♪ BGM {bgmEnabled ? 'ON' : 'OFF'}
-          </Text>
-        </Pressable>
-      ) : null}
 
       <View dataSet={{ sagakI18nIgnore: 'true' }} style={styles.footer}>
         <View style={styles.footerInner}>
@@ -1768,7 +1898,8 @@ function moveHeroSlide(direction) {
           </Pressable>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
@@ -1865,12 +1996,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: '42%',
+    top: '50%',
     fontSize: 210,
     lineHeight: 230,
     fontWeight: '900',
-    color: 'rgba(244, 190, 100, 0.28)',
-    zIndex: 0,
+    color: 'rgba(82, 89, 98, 0.28)',
+    zIndex: 40,
     opacity: 0,
     filter: 'blur(8px)',
     pointerEvents: 'none',
@@ -1878,30 +2009,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bgRecord: {
-    top: '48%',
-    color: 'rgba(244, 190, 100, 0.24)',
+    top: '50%',
   },
   bgPlan: {
     top: '50%',
-    color: 'rgba(244, 190, 100, 0.28)',
   },
   bgQuestion: {
-    top: '45%',
-    color: 'rgba(115, 201, 189, 0.28)',
+    top: '50%',
   },
   bgSummary: {
-    top: '58%',
-    color: 'rgba(244, 190, 100, 0.30)',
+    top: '50%',
   },
   bgReport: {
     top: '50%',
-    color: 'rgba(244, 190, 100, 0.25)',
   },
   bgTrust: {
-    top: '34%',
-    color: 'rgba(115, 201, 189, 0.22)',
-    fontSize: 170,
-    lineHeight: 190,
+    top: '50%',
   },
   mockCard: {
     backgroundColor: '#FFFFFF',
@@ -2025,7 +2148,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
-    cursor: pencilCursor,
+    cursor: 'pointer',
   },
   chatBtnText: {
     color: '#FFF',
@@ -2300,213 +2423,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#071827',
     zIndex: 0,
   },
-  introToolCard: {
-    position: 'absolute',
-    minWidth: 150,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 253, 246, 0.92)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 22,
-  },
-  introToolNote: {
-    left: '11%',
-    top: '18%',
-  },
-  introToolCheck: {
-    right: '13%',
-    top: '20%',
-  },
-  introToolChat: {
-    left: '16%',
-    bottom: '20%',
-  },
-  introToolSummary: {
-    right: '16%',
-    bottom: '18%',
-  },
-  introToolTitle: {
-    color: '#0F766E',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-    marginBottom: 8,
-  },
-  introToolText: {
-    color: '#173B63',
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '800',
-  },
-  introToolLineLong: {
-    width: 126,
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: '#73C9BD',
-    marginBottom: 10,
-  },
-  introToolLineShort: {
-    width: 82,
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: '#F4BE64',
-  },
-  introToolLineMuted: {
-    width: 64,
-    backgroundColor: 'rgba(255, 241, 217, 0.86)',
-  },
-  introToolCheckRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 10,
-  },
-  introToolCheckBox: {
-    width: 16,
-    height: 16,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#73C9BD',
-    backgroundColor: 'transparent',
-  },
-  introToolCheckBoxDone: {
-    backgroundColor: '#73C9BD',
-  },
-  introToolChatBubble: {
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
-    backgroundColor: 'rgba(115, 201, 189, 0.16)',
-    padding: 14,
-  },
-  introHighlight: {
-    width: 118,
-    height: 12,
-    borderRadius: 999,
-    backgroundColor: 'rgba(244, 190, 100, 0.48)',
-    marginBottom: 8,
-  },
-  introPencilMark: {
-    position: 'absolute',
-    left: '50%',
-    top: '54%',
-    width: 300,
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  introPencilEraser: {
-    width: 32,
-    height: 44,
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
-    backgroundColor: '#F3D4A0',
-    borderWidth: 2,
-    borderColor: '#173B63',
-  },
-  introPencilBody: {
-    width: 188,
-    height: 44,
-    backgroundColor: '#73C9BD',
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: '#173B63',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  introPencilBodyLine: {
-    width: 112,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(23, 59, 99, 0.32)',
-  },
-  introPencilWood: {
-    width: 44,
-    height: 44,
-    backgroundColor: '#FFF1D9',
-    borderTopWidth: 22,
-    borderBottomWidth: 22,
-    borderRightWidth: 32,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderRightColor: '#173B63',
-  },
-  introPencilLead: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 10,
-    borderBottomWidth: 10,
-    borderLeftWidth: 20,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#0F172A',
-    marginLeft: -16,
-  },
-  introOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(7, 24, 39, 0.34)',
-    zIndex: 1,
-  },
-  introVideoContent: {
-    position: 'absolute',
-    top: '40%',
-    left: '50%',
-    transform: [{ translateX: '-50%' }, { translateY: '-50%' }],
-    zIndex: 2,
-    alignItems: 'center',
-    width: '100%',
-  },
-  introLogoIcon: {
-    width: 118,
-    height: 118,
-    borderRadius: 28,
-    marginBottom: 18,
-  },
-  introVideoBrand: {
-    color: '#FFFFFF',
-    fontSize: 64,
-    fontWeight: '900',
-    marginBottom: 10,
-    letterSpacing: 0,
-  },
-  introSkipButton: {
-    position: 'absolute',
-    right: 28,
-    bottom: 28,
-    minHeight: 40,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.26)',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 3,
-    cursor: pencilCursor,
-  },
-  introSkipText: {
-    color: 'rgba(255, 255, 255, 0.82)',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  introVideoScroll: {
-    position: 'absolute',
-    bottom: 40,
-    left: '50%',
-    transform: [{ translateX: '-50%' }],
-    zIndex: 2,
-  },
-  introVideoScrollText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
-    opacity: 0.8,
-  },
   planBgTitle: {
     position: 'absolute',
     left: '50%',
@@ -2577,7 +2493,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 999,
-    cursor: pencilCursor,
+    cursor: 'pointer',
     alignSelf: 'flex-start',
   },
   topHeroCtaText: {
@@ -2598,7 +2514,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     zIndex: 10,
-    cursor: pencilCursor,
+    cursor: 'pointer',
   },
   topHeroArrowLeft: { left: 24 },
   topHeroArrowRight: { right: 24 },
@@ -2613,7 +2529,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: 'rgba(21, 32, 43, 0.1)',
-    cursor: pencilCursor,
+    cursor: 'pointer',
   },
   topHeroDotActive: {
     width: 24,
@@ -2869,7 +2785,7 @@ const styles = StyleSheet.create({
     height: '100vh',
     paddingHorizontal: 18,
     backgroundColor: colors.blueDeep,
-    cursor: pencilCursor,
+    cursor: 'pointer',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2147483647,
@@ -3093,7 +3009,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   primaryText: {
     color: colors.surface,
@@ -3109,7 +3025,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   secondaryText: {
     color: colors.blueDeep,
@@ -3245,7 +3161,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   heroCarouselButtonText: {
     color: colors.blueDeep,
@@ -3263,7 +3179,7 @@ const styles = StyleSheet.create({
     height: 9,
     borderRadius: 5,
     backgroundColor: colors.line,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   heroCarouselDotActive: {
     width: 26,
@@ -3412,7 +3328,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 24,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   promoCtaText: {
     color: colors.surface,
@@ -3462,7 +3378,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   promoArrowLeft: {
     left: 14
@@ -3490,7 +3406,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: colors.surface,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   promoDotActive: {
     width: 28,
@@ -3682,7 +3598,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   featureLabel: {
     alignSelf: 'flex-start',
@@ -4088,39 +4004,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 28,
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   finalCtaButtonText: {
     color: colors.surface,
     fontSize: 16,
     fontWeight: '900'
-  },
-  bgmButton: {
-    position: 'fixed',
-    right: 22,
-    bottom: 22,
-    minHeight: 44,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 50,
-    cursor: pencilCursor
-  },
-  bgmButtonActive: {
-    backgroundColor: colors.mintSoft,
-    borderColor: colors.mintDeep
-  },
-  bgmButtonText: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '900'
-  },
-  bgmButtonTextActive: {
-    color: colors.mintDeep
   },
   footer: {
     width: '100%',
@@ -4167,7 +4056,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    cursor: pencilCursor
+    cursor: 'pointer'
   },
   githubTooltip: {
     position: 'absolute',

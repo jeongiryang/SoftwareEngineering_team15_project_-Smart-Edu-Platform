@@ -22,6 +22,7 @@ import { getCurrentUser } from './src/services/api';
 import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
 import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
 import { LanguageProvider, useLanguage, useWebTextLocalization } from './src/i18n';
+import { readIntroAutoPlayEnabled } from './src/constants/introPreference';
 
 const screens = {
   home: LandingScreen,
@@ -41,7 +42,6 @@ const screens = {
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const INTRO_REPLAY_EVENT = 'sagak:intro-replay';
 const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop'];
 
 const screenPaths = {
@@ -382,7 +382,7 @@ function AppChrome({
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
   const { currentLanguage, translateText } = useLanguage();
   const [readTextError, setReadTextError] = useState('');
-  const [introPassed, setIntroPassed] = useState(() => activeScreenName !== 'home');
+  const [introPassed, setIntroPassed] = useState(() => activeScreenName !== 'home' || !readIntroAutoPlayEnabled());
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
 
   useWebTextLocalization(currentLanguage, translateText);
@@ -431,26 +431,18 @@ function AppChrome({
       setIntroPassed(true);
     }
 
-    function handleIntroReplayEvent() {
-      if (activeScreenName === 'home') {
-        setIntroPassed(false);
-      }
-    }
-
     globalThis.window.addEventListener('sagak:intro-passed', handleIntroPassedEvent);
-    globalThis.window.addEventListener(INTRO_REPLAY_EVENT, handleIntroReplayEvent);
 
     return () => {
       globalThis.window.removeEventListener('sagak:intro-passed', handleIntroPassedEvent);
-      globalThis.window.removeEventListener(INTRO_REPLAY_EVENT, handleIntroReplayEvent);
     };
-  }, [activeScreenName]);
+  }, []);
 
   useEffect(() => {
     if (activeScreenName !== 'home') {
       setIntroPassed(true);
     } else {
-      setIntroPassed(false);
+      setIntroPassed(!readIntroAutoPlayEnabled());
     }
   }, [activeScreenName]);
 

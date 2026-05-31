@@ -1103,12 +1103,16 @@ export function languageBetaLabel(language) {
 
 export function translateKey(key, language, fallback = key) {
   const normalized = normalizeLanguage(language);
-  return KEY_TRANSLATIONS[normalized]?.[key] ||
-    UI_TRANSLATIONS[normalized]?.[key] ||
-    KEY_TRANSLATIONS.ko[key] ||
-    UI_TRANSLATIONS.ko[key] ||
-    fallback ||
-    key;
+  const candidates = [
+    KEY_TRANSLATIONS[normalized]?.[key],
+    UI_TRANSLATIONS[normalized]?.[key],
+    KEY_TRANSLATIONS.ko[key],
+    UI_TRANSLATIONS.ko[key],
+    fallback,
+    key
+  ];
+
+  return candidates.find((value) => value !== undefined && value !== null);
 }
 
 export function translateTextValue(value, language) {
