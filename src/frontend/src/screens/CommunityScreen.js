@@ -28,6 +28,7 @@ import {
   updateCommunityPost
 } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
+import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { PanelSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
@@ -1385,9 +1386,9 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
                 <Text style={styles.tableTitleText} numberOfLines={1}>{post.title}</Text>
                 <Text style={styles.tablePreviewText} numberOfLines={1}>{getPreview(post.content)}</Text>
               </Pressable>
-              <Text style={[styles.tableCell, styles.tableAuthorCell]} numberOfLines={1}>
-                {post.author?.name || translateText('알 수 없음')}
-              </Text>
+              <View style={[styles.tableCell, styles.tableAuthorCell]}>
+                {renderAuthorButton(post.author, true)}
+              </View>
               <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.commentCount ?? 0}</Text>
               <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.likeCount ?? 0}</Text>
               <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.viewCount ?? 0}</Text>
@@ -1458,6 +1459,33 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     );
   }
 
+  function renderAuthorButton(author, compact = false) {
+    if (!author?.id) {
+      return <Text style={styles.authorText}>{translateText('작성자')}: {translateText('알 수 없음')}</Text>;
+    }
+
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onNavigate?.('publicProfile', { params: { userId: author.id } })}
+        style={(state) => [
+          compact ? styles.authorCompactButton : styles.authorButton,
+          ...interactiveStateStyles(state)
+        ]}
+      >
+        <ProfileAvatar appearance={author} name={author.name} size={compact ? 'sm' : 'md'} />
+        <View style={styles.authorButtonCopy}>
+          <Text style={styles.authorText} numberOfLines={compact ? 1 : 2}>
+            {compact ? author.name || translateText('알 수 없음') : `${translateText('작성자')}: ${author.name || translateText('알 수 없음')}`}
+          </Text>
+          {author.titleText && !compact ? (
+            <ProfileTitleChip animated title={author.titleText} translateText={translateText} />
+          ) : null}
+        </View>
+      </Pressable>
+    );
+  }
+
   function renderPostCard(post) {
     return (
       <View key={post.id} style={[styles.card, shadows.card, selectedPost?.id === post.id && styles.cardActive]}>
@@ -1471,7 +1499,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         <Text style={styles.cardTitle}>{post.title}</Text>
         <Text style={styles.cardContent}>{getPreview(post.content)}</Text>
         <View style={styles.cardMetaRow}>
-          <Text style={styles.authorText}>작성자: {post.author?.name || '알 수 없음'}</Text>
+          {renderAuthorButton(post.author)}
           {post.isBookmarked ? <Text style={styles.savedBadge}>저장됨</Text> : null}
         </View>
         {renderEngagement(post)}
@@ -1552,7 +1580,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           </View>
         </View>
         <Text style={styles.detailTitle}>{selectedPost.title}</Text>
-        <Text style={styles.authorText}>작성자: {selectedPost.author?.name || '알 수 없음'}</Text>
+        {renderAuthorButton(selectedPost.author)}
         <View style={styles.detailBody}>
           <Text style={styles.detailContent}>{selectedPost.content}</Text>
         </View>
@@ -1716,9 +1744,10 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     return (
       <View key={comment.id} style={[styles.commentCard, isReply && styles.replyCard]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.authorText}>
-            {isReply ? '↳ ' : ''}{comment.author?.name || '알 수 없음'}
-          </Text>
+          <View style={styles.commentAuthorRow}>
+            {isReply ? <Text style={styles.replyPrefix}>↳</Text> : null}
+            {renderAuthorButton(comment.author, true)}
+          </View>
           <Text style={styles.dateText}>{formatDate(comment.createdAt, currentLanguage)}</Text>
         </View>
         {isEditing ? (
@@ -2322,12 +2351,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600'
   },
+  authorButton: {
+    alignItems: 'center',
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 8,
+    maxWidth: '100%',
+    padding: 2,
+    ...interactions.transition
+  },
+  authorCompactButton: {
+    alignItems: 'center',
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 6,
+    maxWidth: '100%',
+    paddingVertical: 2,
+    ...interactions.transition
+  },
+  authorButtonCopy: {
+    flexShrink: 1,
+    gap: 4,
+    minWidth: 0
+  },
   cardMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap'
+  },
+  commentAuthorRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    minWidth: 0
+  },
+  replyPrefix: {
+    color: colors.mintDeep,
+    fontSize: 16,
+    fontWeight: '900'
   },
   savedBadge: {
     borderRadius: 8,

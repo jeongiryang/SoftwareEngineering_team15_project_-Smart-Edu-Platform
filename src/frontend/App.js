@@ -22,6 +22,7 @@ import TaskBoardScreen from './src/screens/TaskBoardScreen';
 import PointShopScreen from './src/screens/PointShopScreen';
 import BossRaidScreen from './src/screens/BossRaidScreen';
 import CollaborativeQuestScreen from './src/screens/CollaborativeQuestScreen';
+import PublicProfileScreen from './src/screens/PublicProfileScreen';
 import MaintenanceScreen from './src/screens/MaintenanceScreen';
 import { getCurrentUser, getMessageThreads, getSystemStatus } from './src/services/api';
 import { createRealtimeClient } from './src/services/realtime';
@@ -45,12 +46,13 @@ const screens = {
   pointShop: PointShopScreen,
   bossRaid: BossRaidScreen,
   collaborativeQuest: CollaborativeQuestScreen,
+  publicProfile: PublicProfileScreen,
   accessibility: AccessibilityScreen,
   admin: AdminScreen
 };
 
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
-const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'messages', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest'];
+const authScreens = ['dashboard', 'profile', 'statistics', 'friends', 'messages', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest', 'publicProfile'];
 const restrictedAccountStatuses = ['SUSPENDED', 'DEACTIVATED'];
 
 const screenPaths = {
@@ -69,6 +71,7 @@ const screenPaths = {
   pointShop: '/shop',
   bossRaid: '/boss-raids',
   collaborativeQuest: '/collaborative-quests',
+  publicProfile: '/public-profile',
   accessibility: '/accessibility',
   admin: '/admin'
 };
@@ -106,20 +109,44 @@ function readScreenFromLocation() {
   return getScreenFromPath(globalThis.window.location.pathname) || 'home';
 }
 
-function syncBrowserPath(screen, { replace = false } = {}) {
+function buildSearchString(params, preserveSearch = false) {
+  if (preserveSearch) {
+    return globalThis.window?.location?.search || '';
+  }
+
+  if (!params) {
+    return '';
+  }
+
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.set(key, String(value));
+    }
+  });
+
+  const query = searchParams.toString();
+
+  return query ? `?${query}` : '';
+}
+
+function syncBrowserPath(screen, { replace = false, params = null, preserveSearch = false } = {}) {
   if (!canUseBrowserHistory()) {
     return;
   }
 
   const nextPath = getPathForScreen(screen);
+  const nextSearch = buildSearchString(params, preserveSearch);
   const currentPath = normalizePathname(globalThis.window.location.pathname);
+  const currentSearch = globalThis.window.location.search || '';
 
-  if (currentPath === nextPath) {
+  if (currentPath === nextPath && currentSearch === nextSearch) {
     return;
   }
 
   const method = replace ? 'replaceState' : 'pushState';
-  globalThis.window.history[method]({ screen }, '', nextPath);
+  globalThis.window.history[method]({ screen, params }, '', `${nextPath}${nextSearch}`);
 }
 
 function applyGlobalAccessibilityPreference(preference, user) {
@@ -437,7 +464,10 @@ function AppRoot() {
         const requestedScreen = readScreenFromLocation();
         const nextScreen = authScreens.includes(requestedScreen) ? requestedScreen : 'dashboard';
         setCurrentScreen(nextScreen);
-        syncBrowserPath(nextScreen, { replace: true });
+        syncBrowserPath(nextScreen, {
+          replace: true,
+          preserveSearch: nextScreen === requestedScreen
+        });
       } catch (error) {
         removeStoredToken();
       } finally {

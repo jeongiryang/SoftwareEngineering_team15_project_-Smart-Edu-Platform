@@ -51,10 +51,19 @@ function sanitizeContribution(contribution) {
   return {
     userId: contribution.userId,
     userName: contribution.user?.name,
+    appearance: sanitizeAppearance(contribution.user),
     focusMinutes: contribution.focusMinutes,
     completedTaskCount: contribution.completedTaskCount,
     totalDamage: contribution.totalDamage,
     lastContributedAt: contribution.lastContributedAt
+  };
+}
+
+function sanitizeAppearance(user) {
+  return {
+    profileImageUrl: user?.profile?.profileImageUrl || null,
+    profileBackgroundUrl: user?.profile?.profileBackgroundUrl || null,
+    titleText: user?.profile?.titleText || null
   };
 }
 
@@ -80,6 +89,7 @@ function sanitizeParty(party, currentUserId = null) {
     members: party.members.map((member) => ({
       userId: member.userId,
       name: member.user.name,
+      appearance: sanitizeAppearance(member.user),
       joinedAt: member.joinedAt
     })),
     contributions: party.contributions.map(sanitizeContribution),

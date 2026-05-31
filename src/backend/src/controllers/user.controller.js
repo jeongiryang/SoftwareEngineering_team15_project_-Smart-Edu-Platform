@@ -2,6 +2,7 @@ const {
   changeMyPassword,
   getMyActivityStats,
   getMyUser,
+  getPublicProfile,
   updateMyAccount,
   updateMyProfile,
   withdrawMyAccount
@@ -21,6 +22,12 @@ const getMyActivityController = asyncHandler(async (req, res) => {
   const activity = await getMyActivityStats(req.user.id);
 
   sendSuccess(res, 200, { activity });
+});
+
+const getPublicProfileController = asyncHandler(async (req, res) => {
+  const profile = await getPublicProfile(req.params.userId);
+
+  sendSuccess(res, 200, { profile });
 });
 
 const updateMyProfileController = asyncHandler(async (req, res) => {
@@ -68,6 +75,7 @@ const searchUsersController = asyncHandler(async (req, res) => {
 module.exports = {
   getMyActivity: getMyActivityController,
   getMe,
+  getPublicProfile: getPublicProfileController,
   searchUsers: searchUsersController,
   updateMyAccount: updateMyAccountController,
   changeMyPassword: changeMyPasswordController,

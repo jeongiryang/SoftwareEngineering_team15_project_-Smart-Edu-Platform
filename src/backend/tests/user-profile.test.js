@@ -1,6 +1,8 @@
 const mockUsers = [];
 const mockProfiles = new Map();
 const mockActivityStats = new Map();
+const mockPublicLearningStats = new Map();
+const mockShopPurchases = new Map();
 let mockNextUserId = 1;
 let mockNextProfileId = 1;
 const MOCK_CREATED_AT = new Date('2026-05-01T00:00:00.000Z');
@@ -60,6 +62,28 @@ jest.mock('../src/repositories/user.repository', () => ({
       ...user,
       profile: mockProfiles.get(user.id) || null
     };
+  }),
+  findPublicProfileById: jest.fn(async (id) => {
+    const user = mockUsers.find((item) => item.id === Number(id));
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      loginId: user.loginId,
+      name: user.name,
+      status: user.status,
+      createdAt: user.createdAt,
+      profile: mockProfiles.get(user.id) || null,
+      shopPurchases: mockShopPurchases.get(user.id) || []
+    };
+  }),
+  getPublicProfileLearningStats: jest.fn(async (id) => mockPublicLearningStats.get(Number(id)) || {
+    todayFocusMinutes: 0,
+    weeklyFocusMinutes: 0,
+    completedTaskCount: 0
   }),
   getUserActivityStats: jest.fn(async (id) => mockActivityStats.get(Number(id)) || {
     postCount: 0,
@@ -145,6 +169,8 @@ beforeEach(() => {
   mockUsers.length = 0;
   mockProfiles.clear();
   mockActivityStats.clear();
+  mockPublicLearningStats.clear();
+  mockShopPurchases.clear();
   mockNextUserId = 1;
   mockNextProfileId = 1;
   jest.clearAllMocks();
@@ -239,6 +265,116 @@ describe('GET /api/users/me/activity', () => {
     });
     expect(JSON.stringify(response.body)).not.toContain('passwordHash');
     expect(JSON.stringify(response.body)).not.toContain('token');
+  });
+});
+
+describe('GET /api/users/:userId/public-profile', () => {
+  it('rejects requests without a JWT', async () => {
+    const response = await request(app).get('/api/users/1/public-profile');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('returns safe public profile data with equipped appearance', async () => {
+    const { token } = await registerTestUser({ loginId: 'viewer-user', name: 'Viewer' });
+    const target = await registerTestUser({ loginId: 'target-user', name: 'Target Learner' });
+
+    mockProfiles.set(target.user.id, {
+      ...mockProfiles.get(target.user.id),
+      learningGoal: 'Daily study',
+      preferredSubject: 'Math',
+      profileImageUrl: '/assets/shop/avatar-sky.png',
+      profileBackgroundUrl: '/assets/shop/background-mint.png',
+      titleText: '새벽 집중러'
+    });
+    mockShopPurchases.set(target.user.id, [
+      {
+        id: 1,
+        userId: target.user.id,
+        item: {
+          id: 10,
+          code: 'PROFILE_IMAGE_SKY',
+          name: '하늘 노트',
+          type: 'PROFILE_IMAGE',
+          assetUrl: '/assets/shop/avatar-sky.png'
+        }
+      },
+      {
+        id: 2,
+        userId: target.user.id,
+        item: {
+          id: 11,
+          code: 'PROFILE_BACKGROUND_MINT',
+          name: '민트 책상',
+          type: 'PROFILE_BACKGROUND',
+          assetUrl: '/assets/shop/background-mint.png'
+        }
+      },
+      {
+        id: 3,
+        userId: target.user.id,
+        item: {
+          id: 12,
+          code: 'TITLE_EARLY_BIRD',
+          name: '새벽 집중러',
+          type: 'TITLE',
+          assetUrl: null
+        }
+      }
+    ]);
+    mockPublicLearningStats.set(target.user.id, {
+      todayFocusMinutes: 25,
+      weeklyFocusMinutes: 180,
+      completedTaskCount: 9
+    });
+
+    const response = await request(app)
+      .get(`/api/users/${target.user.id}/public-profile`)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.profile).toEqual(
+      expect.objectContaining({
+        id: target.user.id,
+        name: 'Target Learner',
+        displayLoginId: 'ta***r',
+        learningGoal: 'Daily study',
+        preferredSubject: 'Math',
+        stats: {
+          todayFocusMinutes: 25,
+          weeklyFocusMinutes: 180,
+          completedTaskCount: 9
+        }
+      })
+    );
+    expect(response.body.profile.appearance).toEqual(
+      expect.objectContaining({
+        profileImageUrl: '/assets/shop/avatar-sky.png',
+        profileBackgroundUrl: '/assets/shop/background-mint.png',
+        titleText: '새벽 집중러',
+        equippedItems: expect.objectContaining({
+          profileImage: expect.objectContaining({ code: 'PROFILE_IMAGE_SKY' }),
+          profileBackground: expect.objectContaining({ code: 'PROFILE_BACKGROUND_MINT' }),
+          title: expect.objectContaining({ code: 'TITLE_EARLY_BIRD' })
+        })
+      })
+    );
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+    expect(JSON.stringify(response.body)).not.toContain('target-user');
+    expect(JSON.stringify(response.body)).not.toContain('token');
+  });
+
+  it('does not expose inactive users through public profile', async () => {
+    const { token } = await registerTestUser({ loginId: 'viewer-user' });
+    const target = await registerTestUser({ loginId: 'inactive-user' });
+    const inactiveUser = mockUsers.find((item) => item.id === target.user.id);
+    inactiveUser.status = 'SUSPENDED';
+
+    const response = await request(app)
+      .get(`/api/users/${target.user.id}/public-profile`)
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(404);
   });
 });
 

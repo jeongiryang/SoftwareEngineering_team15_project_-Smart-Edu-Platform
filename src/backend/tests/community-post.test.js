@@ -279,10 +279,10 @@ describe('Community Post API', () => {
         title: '미적분 질문',
         content: '극한 문제 풀이가 궁금합니다.',
         commentCount: 0,
-        author: {
+        author: expect.objectContaining({
           id: user.id,
           name: user.name
-        }
+        })
       })
     );
     expectSafePostPayload(response.body);

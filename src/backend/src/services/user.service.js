@@ -1,7 +1,9 @@
 const {
   deactivateUser,
+  findPublicProfileById,
   findUserById,
   findUserWithProfileById,
+  getPublicProfileLearningStats,
   getUserActivityStats,
   updateUser,
   updateUserPassword,
@@ -9,7 +11,7 @@ const {
 } = require('../repositories/user.repository');
 const { comparePassword, hashPassword } = require('../utils/password');
 const { notFoundError, unauthorizedError, validationError } = require('../utils/errors');
-const { normalizeString, requireFields, validatePassword } = require('../utils/validators');
+const { normalizeString, parsePositiveInteger, requireFields, validatePassword } = require('../utils/validators');
 const { sanitizeUser } = require('./auth.service');
 
 const EDITABLE_PROFILE_FIELDS = ['learningGoal', 'preferredSubject', 'profileImageUrl'];
@@ -42,6 +44,74 @@ function sanitizeUserWithProfile(user) {
     ...sanitizeUser(user),
     profile: sanitizeProfile(user.profile)
   };
+}
+
+function maskLoginId(loginId = '') {
+  const value = String(loginId || '').trim();
+
+  if (!value) {
+    return '';
+  }
+
+  if (value.length <= 3) {
+    return `${value.slice(0, 1)}**`;
+  }
+
+  return `${value.slice(0, 2)}***${value.slice(-1)}`;
+}
+
+function sanitizePublicShopItem(item) {
+  if (!item) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    code: item.code,
+    name: item.name,
+    type: item.type,
+    assetUrl: item.assetUrl
+  };
+}
+
+function resolveAppliedShopValue(item) {
+  if (!item) {
+    return null;
+  }
+
+  return item.type === 'TITLE' ? item.name : item.assetUrl;
+}
+
+function buildPublicAppearance(profile, purchases = []) {
+  const appearance = {
+    profileImageUrl: profile?.profileImageUrl || null,
+    profileBackgroundUrl: profile?.profileBackgroundUrl || null,
+    titleText: profile?.titleText || null,
+    equippedItems: {
+      profileImage: null,
+      profileBackground: null,
+      title: null
+    }
+  };
+
+  purchases.forEach((purchase) => {
+    const item = purchase.item;
+    const appliedValue = resolveAppliedShopValue(item);
+
+    if (item?.type === 'PROFILE_IMAGE' && appearance.profileImageUrl && appearance.profileImageUrl === appliedValue) {
+      appearance.equippedItems.profileImage = sanitizePublicShopItem(item);
+    }
+
+    if (item?.type === 'PROFILE_BACKGROUND' && appearance.profileBackgroundUrl && appearance.profileBackgroundUrl === appliedValue) {
+      appearance.equippedItems.profileBackground = sanitizePublicShopItem(item);
+    }
+
+    if (item?.type === 'TITLE' && appearance.titleText && appearance.titleText === appliedValue) {
+      appearance.equippedItems.title = sanitizePublicShopItem(item);
+    }
+  });
+
+  return appearance;
 }
 
 function buildProfileUpdateData(payload = {}) {
@@ -174,6 +244,29 @@ async function getMyUser(userId) {
   return sanitizeUserWithProfile(user);
 }
 
+async function getPublicProfile(userId) {
+  const targetUserId = parsePositiveInteger(userId, 'userId');
+  const [user, stats] = await Promise.all([
+    findPublicProfileById(targetUserId),
+    getPublicProfileLearningStats(targetUserId)
+  ]);
+
+  if (!user || user.status !== 'ACTIVE') {
+    throw notFoundError('Public profile not found');
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    displayLoginId: maskLoginId(user.loginId),
+    createdAt: user.createdAt,
+    learningGoal: user.profile?.learningGoal || null,
+    preferredSubject: user.profile?.preferredSubject || null,
+    appearance: buildPublicAppearance(user.profile, user.shopPurchases),
+    stats
+  };
+}
+
 async function getMyActivityStats(userId) {
   const user = await findUserById(userId);
 
@@ -270,6 +363,7 @@ module.exports = {
   changeMyPassword,
   getMyActivityStats,
   getMyUser,
+  getPublicProfile,
   sanitizeProfile,
   sanitizeUserWithProfile,
   updateMyAccount,

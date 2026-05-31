@@ -4,25 +4,30 @@ const RAID_INCLUDE = {
   badge: true
 };
 
+const PARTY_USER_SELECT = {
+  id: true,
+  name: true,
+  loginId: true,
+  profile: {
+    select: {
+      profileImageUrl: true,
+      profileBackgroundUrl: true,
+      titleText: true
+    }
+  }
+};
+
 const PARTY_INCLUDE = {
   raid: {
     include: RAID_INCLUDE
   },
   owner: {
-    select: {
-      id: true,
-      name: true,
-      loginId: true
-    }
+    select: PARTY_USER_SELECT
   },
   members: {
     include: {
       user: {
-        select: {
-          id: true,
-          name: true,
-          loginId: true
-        }
+        select: PARTY_USER_SELECT
       }
     },
     orderBy: {
@@ -32,11 +37,7 @@ const PARTY_INCLUDE = {
   contributions: {
     include: {
       user: {
-        select: {
-          id: true,
-          name: true,
-          loginId: true
-        }
+        select: PARTY_USER_SELECT
       }
     },
     orderBy: {

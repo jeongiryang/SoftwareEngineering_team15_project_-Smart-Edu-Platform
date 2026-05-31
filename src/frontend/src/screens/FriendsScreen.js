@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
+import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   deleteFriend,
@@ -17,10 +18,6 @@ const EMPTY_REQUESTS = {
   received: [],
   sent: []
 };
-
-function getInitial(name = '') {
-  return name.trim().slice(0, 1) || '친';
-}
 
 function getFriendlyError(error, fallback) {
   if (error?.status === 409) {
@@ -68,14 +65,6 @@ function RelationshipBadge({ status }) {
   return (
     <View style={[styles.statusBadge, status === 'FRIENDS' && styles.statusBadgeMint]}>
       <Text style={styles.statusBadgeText}>{labels[status] || labels.NONE}</Text>
-    </View>
-  );
-}
-
-function UserAvatar({ name }) {
-  return (
-    <View style={styles.avatar}>
-      <Text style={styles.avatarText}>{getInitial(name)}</Text>
     </View>
   );
 }
@@ -284,12 +273,22 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
   function renderFriendCard(item) {
     const friend = item.user;
     const isOnline = onlineFriendIds.has(Number(friend?.id));
+    const appearance = friend?.appearance || friend || {};
 
     return (
       <View key={item.id} style={[styles.friendCard, shadows.card]}>
-        <UserAvatar name={friend?.name} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onNavigate?.('publicProfile', { params: { userId: friend?.id } })}
+          style={(state) => [styles.avatarButton, ...interactiveStateStyles(state)]}
+        >
+          <ProfileAvatar appearance={appearance} name={friend?.name} size="md" />
+        </Pressable>
         <View style={styles.friendCopy}>
           <Text style={styles.friendName}>{friend?.name || '학습 친구'}</Text>
+          {friend?.titleText ? (
+            <ProfileTitleChip animated title={friend.titleText} translateText={(value) => value} />
+          ) : null}
           <Text style={styles.friendMeta}>{friend?.preferredSubject || friend?.learningGoal || friend?.loginId || '함께 공부할 친구'}</Text>
           <View style={[styles.presenceBadge, isOnline ? styles.presenceOnline : styles.presenceOffline]}>
             <View style={[styles.presenceDot, isOnline ? styles.presenceDotOnline : styles.presenceDotOffline]} />
@@ -308,6 +307,13 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
         >
           <Text style={styles.ghostButtonText}>삭제</Text>
         </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onNavigate?.('publicProfile', { params: { userId: friend?.id } })}
+          style={(state) => [styles.secondarySmallButton, ...interactiveStateStyles(state)]}
+        >
+          <Text style={styles.secondarySmallText}>프로필</Text>
+        </Pressable>
       </View>
     );
   }
@@ -318,7 +324,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
 
     return (
       <View key={item.id} style={styles.requestCard}>
-        <UserAvatar name={requestUser?.name} />
+        <ProfileAvatar appearance={requestUser?.appearance || requestUser || {}} name={requestUser?.name} size="sm" />
         <View style={styles.friendCopy}>
           <Text style={styles.friendName}>{requestUser?.name || '학습 친구'}</Text>
           <Text style={styles.friendMeta}>{isReceived ? '친구 요청을 보냈습니다.' : '수락 대기 중입니다.'}</Text>
@@ -355,7 +361,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
 
     return (
       <View key={user.id} style={styles.searchCard}>
-        <UserAvatar name={user.name} />
+        <ProfileAvatar appearance={user.appearance || user || {}} name={user.name} size="sm" />
         <View style={styles.friendCopy}>
           <Text style={styles.friendName}>{user.name}</Text>
           <Text style={styles.friendMeta}>{user.preferredSubject || user.learningGoal || user.loginId || '학습 친구 후보'}</Text>
@@ -733,20 +739,8 @@ const styles = StyleSheet.create({
     gap: 12,
     ...interactions.transition
   },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    backgroundColor: colors.mintSoft,
-    borderWidth: 1,
-    borderColor: colors.mint,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  avatarText: {
-    color: colors.blueDeep,
-    fontSize: 18,
-    fontWeight: '900'
+  avatarButton: {
+    borderRadius: 999
   },
   friendCopy: {
     flex: 1,
@@ -838,6 +832,21 @@ const styles = StyleSheet.create({
   },
   ghostButtonText: {
     color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  secondarySmallButton: {
+    minHeight: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    ...interactions.transition
+  },
+  secondarySmallText: {
+    color: colors.mintDeep,
     fontSize: 12,
     fontWeight: '900'
   },

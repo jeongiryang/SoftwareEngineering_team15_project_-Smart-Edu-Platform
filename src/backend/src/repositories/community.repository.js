@@ -4,7 +4,14 @@ const POST_INCLUDE = {
   user: {
     select: {
       id: true,
-      name: true
+      name: true,
+      profile: {
+        select: {
+          profileImageUrl: true,
+          profileBackgroundUrl: true,
+          titleText: true
+        }
+      }
     }
   },
   _count: {
@@ -18,7 +25,14 @@ const COMMENT_INCLUDE = {
   user: {
     select: {
       id: true,
-      name: true
+      name: true,
+      profile: {
+        select: {
+          profileImageUrl: true,
+          profileBackgroundUrl: true,
+          titleText: true
+        }
+      }
     }
   },
   _count: {
