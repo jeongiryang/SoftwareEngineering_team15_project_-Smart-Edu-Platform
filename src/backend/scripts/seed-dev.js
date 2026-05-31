@@ -328,6 +328,112 @@ const DEV_SHOP_PURCHASES = [
     }
   }
 ];
+
+const DEV_AI_CHAT_ROOM_SEEDS = [
+  {
+    loginId: 'dev_user',
+    title: '발표 준비 AI 브리핑',
+    messages: [
+      {
+        question: '오늘 데모에서 설명할 핵심 기능을 3가지로 정리해줘',
+        answer: 'CI/CD 배포 흐름, WebSocket 실시간 기능, 접근성/다국어 사용자 경험을 중심으로 설명하면 좋습니다.',
+        source: 'AI_QNA',
+        isMock: true,
+        scheduledAt: { days: -1, hour: 20, minute: 10 }
+      },
+      {
+        question: '오디오 브리핑으로 읽을 수 있게 짧게 요약해줘',
+        answer: '오늘은 실시간 쪽지, 협동 학습, 관리자 운영 기능을 확인하고 마지막으로 수동 QA 기준을 점검합니다.',
+        source: 'AI_AUDIO_BRIEFING',
+        isMock: true,
+        scheduledAt: { days: -1, hour: 20, minute: 14 }
+      }
+    ]
+  },
+  {
+    loginId: 'accessibility_user',
+    title: '쉬운 설명 복습 대화',
+    messages: [
+      {
+        question: '분수 복습을 초등학생도 이해하기 쉽게 설명해줘',
+        answer: '분모는 조각의 크기이고 분자는 선택한 조각의 개수입니다. 먼저 분모를 같게 만든 뒤 분자끼리 더하면 됩니다.',
+        source: 'AI_QNA',
+        isMock: true,
+        scheduledAt: { days: -2, hour: 18, minute: 30 }
+      }
+    ]
+  },
+  {
+    loginId: 'quest_user',
+    title: '협동 퀘스트 진행 브리핑',
+    messages: [
+      {
+        question: '협동 퀘스트 진행률을 팀원에게 어떻게 안내하면 좋을까?',
+        answer: '현재 목표, 내 기여도, 남은 진행률, 보상 수령 조건을 한 화면에서 보여주면 팀원이 바로 다음 행동을 정할 수 있습니다.',
+        source: 'AI_QNA',
+        isMock: true,
+        scheduledAt: { days: 0, hour: 9, minute: 20 }
+      }
+    ]
+  }
+];
+
+const DEV_DIRECT_MESSAGE_THREAD_SEEDS = [
+  {
+    participants: ['dev_user', 'study_peer'],
+    messages: [
+      {
+        senderLoginId: 'study_peer',
+        content: '오늘 발표 전 CI/CD 흐름만 한 번 더 확인해볼게.',
+        sentAt: { days: -1, hour: 18, minute: 20 }
+      },
+      {
+        senderLoginId: 'dev_user',
+        content: '좋아. 나는 WebSocket 쪽 데모 순서를 정리할게.',
+        sentAt: { days: -1, hour: 18, minute: 24 }
+      },
+      {
+        senderLoginId: 'study_peer',
+        content: '마지막으로 seed는 수동 실행 기준이라는 점도 넣어줘.',
+        sentAt: { days: -1, hour: 18, minute: 31 }
+      }
+    ],
+    unreadForLoginIds: ['dev_user']
+  },
+  {
+    participants: ['friend_user', 'raid_user'],
+    messages: [
+      {
+        senderLoginId: 'raid_user',
+        content: '보스 레이드 진행률 실시간 반영은 확인했어.',
+        sentAt: { days: 0, hour: 10, minute: 5 }
+      },
+      {
+        senderLoginId: 'friend_user',
+        content: '좋아. 친구 목록에서 접속 상태도 같이 확인해볼게.',
+        sentAt: { days: 0, hour: 10, minute: 9 }
+      }
+    ],
+    unreadForLoginIds: []
+  },
+  {
+    participants: ['community_user', 'quest_user'],
+    messages: [
+      {
+        senderLoginId: 'community_user',
+        content: '커뮤니티 새 댓글 알림과 협동 퀘스트 알림을 같이 QA하자.',
+        sentAt: { days: 0, hour: 13, minute: 40 }
+      },
+      {
+        senderLoginId: 'quest_user',
+        content: '응. 진행률 갱신 후 새로고침 없이 반영되는지 볼게.',
+        sentAt: { days: 0, hour: 13, minute: 46 }
+      }
+    ],
+    unreadForLoginIds: ['community_user']
+  }
+];
+
 const SEED_IDS = {
   posts: {
     question: 900001,
@@ -519,6 +625,25 @@ async function resetSeedData(prisma, seedUsers) {
   const quizQuestionIds = SEED_IDS.quizQuestions;
   const friendshipIds = Object.values(SEED_IDS.friendships);
   const collaborativeQuestIds = Object.values(SEED_IDS.collaborativeQuests);
+
+  await prisma.directMessageReadState.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.directMessage.deleteMany({
+    where: {
+      senderId: { in: userIds }
+    }
+  });
+  await prisma.directMessageThread.deleteMany({
+    where: {
+      OR: [
+        { participantAId: { in: userIds } },
+        { participantBId: { in: userIds } }
+      ]
+    }
+  });
 
   await prisma.friendship.deleteMany({
     where: {
@@ -775,6 +900,16 @@ async function resetSeedData(prisma, seedUsers) {
         { id: { in: Object.values(SEED_IDS.aiQuestions) } },
         { userId: { in: userIds } }
       ]
+    }
+  });
+  await prisma.aIChatMessage.deleteMany({
+    where: {
+      userId: { in: userIds }
+    }
+  });
+  await prisma.aIChatRoom.deleteMany({
+    where: {
+      userId: { in: userIds }
     }
   });
   await prisma.studyNote.deleteMany({
@@ -2826,6 +2961,84 @@ async function seedLearningAndAi(prisma, usersByLoginId) {
   });
 }
 
+function dateFromSeedOffset(offset) {
+  return daysFromNow(offset.days, offset.hour, offset.minute);
+}
+
+function normalizeSeedParticipantPair(firstUser, secondUser) {
+  return firstUser.id < secondUser.id
+    ? { participantAId: firstUser.id, participantBId: secondUser.id }
+    : { participantAId: secondUser.id, participantBId: firstUser.id };
+}
+
+async function seedAIChatRooms(prisma, usersByLoginId) {
+  for (const roomSeed of DEV_AI_CHAT_ROOM_SEEDS) {
+    const user = usersByLoginId[roomSeed.loginId];
+
+    const room = await prisma.aIChatRoom.create({
+      data: {
+        userId: user.id,
+        title: roomSeed.title
+      }
+    });
+
+    await prisma.aIChatMessage.createMany({
+      data: roomSeed.messages.map((messageSeed) => ({
+        roomId: room.id,
+        userId: user.id,
+        question: messageSeed.question,
+        answer: messageSeed.answer,
+        isMock: messageSeed.isMock,
+        isTruncated: false,
+        source: messageSeed.source,
+        createdAt: dateFromSeedOffset(messageSeed.scheduledAt)
+      }))
+    });
+  }
+}
+
+async function seedDirectMessages(prisma, usersByLoginId) {
+  for (const threadSeed of DEV_DIRECT_MESSAGE_THREAD_SEEDS) {
+    const participants = threadSeed.participants.map((loginId) => usersByLoginId[loginId]);
+    const pair = normalizeSeedParticipantPair(participants[0], participants[1]);
+    const messageRows = threadSeed.messages.map((messageSeed) => ({
+      senderId: usersByLoginId[messageSeed.senderLoginId].id,
+      content: messageSeed.content,
+      createdAt: dateFromSeedOffset(messageSeed.sentAt)
+    }));
+    const lastMessageAt = messageRows[messageRows.length - 1].createdAt;
+    const firstMessageAt = messageRows[0].createdAt;
+    const readStates = threadSeed.participants.map((loginId) => {
+      const user = usersByLoginId[loginId];
+      const shouldRemainUnread = threadSeed.unreadForLoginIds.includes(loginId);
+      const lastOwnMessage = [...threadSeed.messages].reverse().find((messageSeed) => messageSeed.senderLoginId === loginId);
+
+      return {
+        userId: user.id,
+        lastReadAt: shouldRemainUnread
+          ? lastOwnMessage
+            ? dateFromSeedOffset(lastOwnMessage.sentAt)
+            : minutesAfter(firstMessageAt, -1)
+          : lastMessageAt
+      };
+    });
+
+    await prisma.directMessageThread.create({
+      data: {
+        ...pair,
+        lastMessageAt,
+        createdAt: firstMessageAt,
+        messages: {
+          create: messageRows
+        },
+        readStates: {
+          create: readStates
+        }
+      }
+    });
+  }
+}
+
 async function seedRewards(prisma, usersByLoginId) {
   const mainUser = usersByLoginId['dev_user'];
   const peerUser = usersByLoginId['study_peer'];
@@ -4114,11 +4327,13 @@ async function seedDevelopmentData(prisma) {
 
   await resetSeedData(prisma, users);
   await seedFriendships(prisma, usersByLoginId);
+  await seedDirectMessages(prisma, usersByLoginId);
   const tasks = await seedSchedulesAndTasks(prisma, usersByLoginId);
   await seedFocusAndStatistics(prisma, usersByLoginId, tasks);
   await seedCommunity(prisma, usersByLoginId);
   await seedChallenge(prisma, usersByLoginId);
   await seedLearningAndAi(prisma, usersByLoginId);
+  await seedAIChatRooms(prisma, usersByLoginId);
   await seedRewards(prisma, usersByLoginId);
   await seedPointShop(prisma, usersByLoginId);
   await seedBossRaids(prisma, usersByLoginId);
@@ -4154,13 +4369,17 @@ if (require.main === module) {
 }
 
 module.exports = {
+  DEV_AI_CHAT_ROOM_SEEDS,
+  DEV_DIRECT_MESSAGE_THREAD_SEEDS,
   DEV_SEED_PASSWORD,
   DEV_SHOP_ITEMS,
   DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
   looksLikeProductionUrl,
+  seedAIChatRooms,
   seedDevelopmentData,
+  seedDirectMessages,
   seedPointShop,
   seedBossRaids,
   upsertSeedUser
