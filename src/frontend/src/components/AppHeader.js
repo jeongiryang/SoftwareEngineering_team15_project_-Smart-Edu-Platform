@@ -211,28 +211,13 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
                   </View>
                 ) : null}
               </Pressable>
-              <Pressable
-                accessibilityLabel={translateText('마이페이지')}
-                accessibilityRole="button"
-                accessibilityState={{ selected: activeScreen === 'profile' }}
-                onPress={() => onNavigate('profile')}
-                style={(state) => [
-                  styles.iconButton,
-                  activeScreen === 'profile' && styles.iconButtonActive,
-                  ...interactiveStateStyles(state)
-                ]}
-                title={translateText('마이페이지')}
-              >
-                <ProfileIcon active={activeScreen === 'profile'} />
-              </Pressable>
-              <Text style={styles.userLabel}>{displayName}님</Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onLogout}
-                style={(state) => [styles.outlineButton, ...interactiveStateStyles(state)]}
-              >
-                <Text style={styles.outlineText}>로그아웃</Text>
-              </Pressable>
+              <HeaderProfileMenu
+                activeScreen={activeScreen}
+                displayName={displayName}
+                onLogout={onLogout}
+                onNavigate={onNavigate}
+                translateText={translateText}
+              />
             </>
           ) : (
             <Pressable
@@ -403,6 +388,72 @@ function HeaderSettingsMenu({
               <Text style={styles.settingsAccessibilityText}>{accessibilityLabel}</Text>
             </Pressable>
           ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function HeaderProfileMenu({ activeScreen, displayName, onLogout, onNavigate, translateText }) {
+  const [open, setOpen] = useState(false);
+  const profileLabel = translateText('마이페이지');
+  const accountLabel = translateText('계정 설정');
+  const learningFlowLabel = translateText('학습 흐름');
+  const logoutLabel = translateText('로그아웃');
+
+  function handleNavigate(screen, params = null) {
+    setOpen(false);
+    onNavigate(screen, params ? { params } : undefined);
+  }
+
+  return (
+    <View style={styles.profileMenuWrap}>
+      <Pressable
+        accessibilityLabel={`${profileLabel} ${translateText(open ? '열림' : '닫힘')}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open, selected: activeScreen === 'profile' }}
+        onPress={() => setOpen((value) => !value)}
+        style={(state) => [
+          styles.profileMenuTrigger,
+          activeScreen === 'profile' && styles.iconButtonActive,
+          ...interactiveStateStyles(state)
+        ]}
+        title={profileLabel}
+      >
+        <ProfileIcon active={activeScreen === 'profile'} />
+        <Text style={styles.profileMenuName} numberOfLines={1}>{displayName}</Text>
+        <View style={[styles.chevron, open && styles.chevronOpen]} />
+      </Pressable>
+      {open ? (
+        <View accessibilityRole="menu" style={styles.profileMenu}>
+          <View style={styles.profileMenuHeader}>
+            <Text style={styles.profileMenuEyebrow}>{profileLabel}</Text>
+            <Text style={styles.profileMenuDisplayName} numberOfLines={1}>{displayName}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="menuitem"
+            onPress={() => handleNavigate('profile')}
+            style={(state) => [styles.profileMenuItem, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.profileMenuItemText}>{learningFlowLabel}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="menuitem"
+            onPress={() => handleNavigate('profile', { section: 'account' })}
+            style={(state) => [styles.profileMenuItem, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.profileMenuItemText}>{accountLabel}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="menuitem"
+            onPress={() => {
+              setOpen(false);
+              onLogout?.();
+            }}
+            style={(state) => [styles.profileMenuLogout, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.profileMenuLogoutText}>{logoutLabel}</Text>
+          </Pressable>
         </View>
       ) : null}
     </View>
@@ -930,11 +981,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.blueSoft
   },
-  userLabel: {
-    color: colors.ink,
-    fontWeight: '700',
-    fontSize: 14
-  },
   iconButton: {
     width: 40,
     height: 40,
@@ -950,6 +996,91 @@ const styles = StyleSheet.create({
   iconButtonActive: {
     borderColor: colors.mint,
     backgroundColor: colors.mintSoft
+  },
+  profileMenuWrap: {
+    position: 'relative',
+    zIndex: 92
+  },
+  profileMenuTrigger: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 40,
+    maxWidth: 170,
+    paddingHorizontal: 10,
+    ...interactions.transition
+  },
+  profileMenuName: {
+    color: colors.ink,
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '800',
+    maxWidth: 82
+  },
+  profileMenu: {
+    position: 'absolute',
+    top: 46,
+    right: 0,
+    width: 230,
+    padding: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
+    gap: 8,
+    zIndex: 110
+  },
+  profileMenuHeader: {
+    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    gap: 3,
+    paddingBottom: 8
+  },
+  profileMenuEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  profileMenuDisplayName: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  profileMenuItem: {
+    minHeight: 38,
+    borderRadius: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    ...interactions.transition
+  },
+  profileMenuItemText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  profileMenuLogout: {
+    minHeight: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    ...interactions.transition
+  },
+  profileMenuLogoutText: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '900'
   },
   iconBadge: {
     position: 'absolute',
@@ -1037,22 +1168,6 @@ const styles = StyleSheet.create({
   primaryText: {
     color: colors.surface,
     fontSize: 14,
-    fontWeight: '700'
-  },
-  outlineButton: {
-    minHeight: 42,
-    paddingHorizontal: 14,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surfaceWarm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...interactions.transition
-  },
-  outlineText: {
-    color: colors.blueDeep,
-    fontSize: 13,
     fontWeight: '700'
   }
 });

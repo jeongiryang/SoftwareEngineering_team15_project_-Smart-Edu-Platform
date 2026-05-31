@@ -1,4 +1,4 @@
-# Smart Edu Platform API 명세서
+﻿# Smart Edu Platform API 명세서
 
 ## 목차
 
@@ -745,7 +745,66 @@ Response 예시:
 - 현재 사용자 본인(`req.user.id`) 기준으로만 집계함.
 - 응답에 `passwordHash`, token, JWT 원문을 포함하지 않음.
 
-### 6.6 친구 추가 및 친구 목록 API
+### 6.7 공개 프로필 조회
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| Method | `GET` |
+| Endpoint | `/api/users/:userId/public-profile` |
+| 인증 | 필요 |
+| 설명 | 다른 사용자의 공개 가능한 프로필, 상점 꾸미기 적용 상태, 간단한 학습 요약을 조회함 |
+
+Request Header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Response 예시:
+
+```json
+{
+  "profile": {
+    "id": 2,
+    "name": "학습 친구",
+    "displayLoginId": "st***r",
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "learningGoal": "매일 30분 복습",
+    "preferredSubject": "영어",
+    "appearance": {
+      "profileImageUrl": "/assets/shop/avatar-sky.png",
+      "profileBackgroundUrl": "/assets/shop/background-mint.png",
+      "titleText": "아침형 학습러",
+      "equippedItems": {
+        "profileImage": {
+          "id": 1,
+          "code": "PROFILE_AVATAR_SKY",
+          "name": "하늘 노트 아바타",
+          "type": "PROFILE_IMAGE",
+          "assetUrl": "/assets/shop/avatar-sky.png"
+        },
+        "profileBackground": null,
+        "title": null
+      }
+    },
+    "stats": {
+      "todayFocusMinutes": 25,
+      "weeklyFocusMinutes": 180,
+      "completedTaskCount": 9
+    }
+  }
+}
+```
+
+보안 기준:
+
+- 공개 프로필은 인증된 사용자만 조회함.
+- 비활성/제재 계정은 공개 프로필로 노출하지 않음.
+- 응답에는 원본 `loginId` 대신 표시용 `displayLoginId`만 제공함.
+- `passwordHash`, token, JWT 원문, 관리자 내부 정보는 포함하지 않음.
+
+### 6.8 친구 추가 및 친구 목록 API
 
 친구 기능은 인증된 사용자끼리 친구 요청을 보내고, 수락/거절하고, 친구 목록을 조회하는 1차 MVP 범위로 구현함. DM, 실시간 채팅, 차단, 그룹 기능은 후속 범위임.
 
@@ -759,7 +818,7 @@ Response 예시:
 - 응답에는 `passwordHash`, plain password, token/JWT 원문을 포함하지 않음.
 - 사용자 검색 결과에는 공개 식별자인 `loginId`를 포함하되 password, token/JWT, `passwordHash`는 포함하지 않음.
 
-#### 6.5.1 친구 추가 대상 검색
+#### 6.8.1 친구 추가 대상 검색
 
 | 항목 | 내용 |
 |---|---|
@@ -787,6 +846,18 @@ Response `200`:
       "status": "ACTIVE",
       "loginId": "study_peer",
       "profileImageUrl": null,
+      "profileBackgroundUrl": null,
+      "titleText": null,
+      "appearance": {
+        "profileImageUrl": null,
+        "profileBackgroundUrl": null,
+        "titleText": null,
+        "equippedItems": {
+          "profileImage": null,
+          "profileBackground": null,
+          "title": null
+        }
+      },
       "learningGoal": "매일 30분 복습",
       "preferredSubject": "영어",
       "relationshipStatus": "NONE",
@@ -813,7 +884,7 @@ Response `200`:
 | `400` | `VALIDATION_ERROR` | 검색어 누락, 2자 미만, 40자 초과 |
 | `401` | `UNAUTHORIZED` | 인증 실패 |
 
-#### 6.5.2 친구 목록 조회
+#### 6.8.2 친구 목록 조회
 
 | 항목 | 내용 |
 |---|---|
@@ -841,6 +912,18 @@ Response `200`:
         "status": "ACTIVE",
         "loginId": "study_peer",
         "profileImageUrl": null,
+        "profileBackgroundUrl": null,
+        "titleText": null,
+        "appearance": {
+          "profileImageUrl": null,
+          "profileBackgroundUrl": null,
+          "titleText": null,
+          "equippedItems": {
+            "profileImage": null,
+            "profileBackground": null,
+            "title": null
+          }
+        },
         "learningGoal": "매일 30분 복습",
         "preferredSubject": "영어"
       }
@@ -853,7 +936,7 @@ Response `200`:
 - `onlineFriendIds`는 현재 WebSocket presence registry 기준으로 온라인 상태인 친구 ID 목록임.
 - 이 값은 HTTP fallback용 snapshot이며, 이후 상태 변화는 `friends.presence.updated` WebSocket event로 반영함.
 
-#### 6.5.3 친구 요청 목록 조회
+#### 6.8.3 친구 요청 목록 조회
 
 | 항목 | 내용 |
 |---|---|
@@ -887,7 +970,7 @@ Response `200`:
 }
 ```
 
-#### 6.5.4 친구 요청 보내기
+#### 6.8.4 친구 요청 보내기
 
 | 항목 | 내용 |
 |---|---|
@@ -927,7 +1010,7 @@ Response `201`:
 | `404` | `NOT_FOUND` | 대상 사용자 없음 또는 비활성 사용자 |
 | `409` | `CONFLICT` | 이미 친구, 이미 pending 요청 존재, 반대 방향 pending 요청 존재 |
 
-#### 6.5.5 친구 요청 수락/거절
+#### 6.8.5 친구 요청 수락/거절
 
 | 항목 | 내용 |
 |---|---|
@@ -952,7 +1035,7 @@ Request Body:
 | `404` | `NOT_FOUND` | 요청 없음 |
 | `409` | `CONFLICT` | 이미 처리된 요청 |
 
-#### 6.5.6 친구 삭제
+#### 6.8.6 친구 삭제
 
 | 항목 | 내용 |
 |---|---|

@@ -3,7 +3,14 @@ const prisma = require('../utils/prisma');
 const USER_SELECT = {
   id: true,
   name: true,
-  loginId: true
+  loginId: true,
+  profile: {
+    select: {
+      profileImageUrl: true,
+      profileBackgroundUrl: true,
+      titleText: true
+    }
+  }
 };
 
 const QUEST_INCLUDE = {

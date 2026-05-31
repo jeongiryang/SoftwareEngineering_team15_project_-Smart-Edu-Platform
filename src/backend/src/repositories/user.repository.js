@@ -21,6 +21,36 @@ function findUserWithProfileById(id) {
   });
 }
 
+function findPublicProfileById(id) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      loginId: true,
+      name: true,
+      status: true,
+      createdAt: true,
+      profile: {
+        select: {
+          learningGoal: true,
+          preferredSubject: true,
+          profileImageUrl: true,
+          profileBackgroundUrl: true,
+          titleText: true
+        }
+      },
+      shopPurchases: {
+        include: {
+          item: true
+        },
+        orderBy: {
+          purchasedAt: 'desc'
+        }
+      }
+    }
+  });
+}
+
 function createUser({ loginId, name, passwordHash }) {
   return prisma.user.create({
     data: {
@@ -66,6 +96,56 @@ function deactivateUser(userId, data) {
   });
 }
 
+function getStartOfToday(referenceDate = new Date()) {
+  const start = new Date(referenceDate);
+  start.setHours(0, 0, 0, 0);
+
+  return start;
+}
+
+async function getPublicProfileLearningStats(userId) {
+  const todayStart = getStartOfToday();
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(todayStart.getDate() - 6);
+
+  const [todayFocus, weeklyFocus, completedTaskCount] = await Promise.all([
+    prisma.focusSession.aggregate({
+      where: {
+        userId,
+        startedAt: {
+          gte: todayStart
+        }
+      },
+      _sum: {
+        durationMs: true
+      }
+    }),
+    prisma.focusSession.aggregate({
+      where: {
+        userId,
+        startedAt: {
+          gte: weekStart
+        }
+      },
+      _sum: {
+        durationMs: true
+      }
+    }),
+    prisma.studyTask.count({
+      where: {
+        userId,
+        status: 'DONE'
+      }
+    })
+  ]);
+
+  return {
+    todayFocusMinutes: Math.round((todayFocus._sum.durationMs || 0) / 60000),
+    weeklyFocusMinutes: Math.round((weeklyFocus._sum.durationMs || 0) / 60000),
+    completedTaskCount
+  };
+}
+
 async function getUserActivityStats(userId) {
   const [
     postCount,
@@ -100,9 +180,11 @@ async function getUserActivityStats(userId) {
 module.exports = {
   createUser,
   deactivateUser,
+  findPublicProfileById,
   findUserByLoginId,
   findUserById,
   findUserWithProfileById,
+  getPublicProfileLearningStats,
   getUserActivityStats,
   updateUser,
   updateUserPassword,

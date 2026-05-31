@@ -1,4 +1,4 @@
-# Smart Edu Platform 테스트 보고서
+﻿# Smart Edu Platform 테스트 보고서
 
 ## 문서 정보
 
@@ -291,12 +291,12 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(28 suites / 482 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(28 suites / 485 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트. `SUSPENDED`/`DEACTIVATED` 계정 login 403 차단과 기존 token 보호 API 401 차단 검증 포함 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
 | Error Middleware focused test | `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js` | 통과 | Prisma 런타임 오류 사용자 친화적 처리 단일 테스트 기준 1 suite / 6 tests passed |
-| User profile API test | `GET /api/users/me`, `GET /api/users/me/activity`, `PATCH /api/users/me`, `PATCH /api/users/me/password`, `DELETE /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트. 계정 메타데이터, 커뮤니티 활동 통계, 계정 닉네임 수정, 현재 비밀번호 확인 후 비밀번호 변경, 회원 탈퇴 soft delete, 탈퇴 후 token/login 차단, unsupported field 차단, 민감정보 미노출 검증 포함 |
+| User profile API test | `GET /api/users/me`, `GET /api/users/me/activity`, `GET /api/users/:userId/public-profile`, `PATCH /api/users/me`, `PATCH /api/users/me/password`, `DELETE /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트. 계정 메타데이터, 공개 프로필 안전 응답, 커뮤니티 활동 통계, 계정 닉네임 수정, 현재 비밀번호 확인 후 비밀번호 변경, 회원 탈퇴 soft delete, 탈퇴 후 token/login 차단, unsupported field 차단, 민감정보 미노출 검증 포함 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
 | AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers` | 통과 | `src/backend/tests/ai.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429 검증 포함 |
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
@@ -353,8 +353,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
-| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(28 suites / 482 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 26 tests passed) 통과 |
-| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(28 suites / 482 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
+| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(28 suites / 485 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(28 suites / 485 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
 | Boss Raid API 검증 | 스터디 보스 레이드 MVP API 검증 | 통과 | `npm test`(24 suites / 435 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 8 tests passed) 통과 |
@@ -396,7 +396,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 
 Error middleware 테스트는 Prisma 런타임 오류가 사용자 응답에 raw SQL/Prisma/table/로컬 경로 정보를 노출하지 않고 사용자 친화적 500 메시지로 변환되는지 확인함. table missing에 해당하는 Prisma known request error와 initialization error를 masking하고, 기존 validation/notFound/conflict AppError 응답은 기존 status/code/details를 유지하는지 검증함.
 
-사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 계정 닉네임 수정, 현재 비밀번호 확인 후 비밀번호 변경, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 계정/프로필 필드 검증, 약한 새 비밀번호 차단, `passwordHash` 미노출을 확인함. 계정 상태 정책은 Auth API 테스트에서 `SUSPENDED`/`DEACTIVATED` 계정의 로그인 차단과 기존 token 보호 API 차단을 검증하고, 회원 탈퇴 soft delete 후 token/login 차단은 사용자/프로필 API 테스트에서 확인함. 프로필 대시보드의 계정 설정 화면 연동도 함께 반영함.
+사용자/프로필 API 테스트는 repository mock 기반으로 로그인한 사용자 정보 조회, 공개 프로필 안전 응답, 계정 닉네임 수정, 현재 비밀번호 확인 후 비밀번호 변경, 프로필 조회/수정, 미인증 접근 차단, 허용되지 않은 계정/프로필 필드 검증, 약한 새 비밀번호 차단, `passwordHash` 미노출을 확인함. 계정 상태 정책은 Auth API 테스트에서 `SUSPENDED`/`DEACTIVATED` 계정의 로그인 차단과 기존 token 보호 API 차단을 검증하고, 회원 탈퇴 soft delete 후 token/login 차단은 사용자/프로필 API 테스트에서 확인함. 프로필 대시보드의 계정 설정 화면 연동도 함께 반영함.
 
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
 

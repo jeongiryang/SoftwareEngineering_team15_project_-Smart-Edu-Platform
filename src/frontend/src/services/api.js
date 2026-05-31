@@ -169,6 +169,14 @@ export function getMyActivityStats(token) {
   });
 }
 
+export function getPublicProfile(token, userId) {
+  return request(`/users/${encodeURIComponent(userId)}/public-profile`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function searchUsers(token, keyword) {
   return request(`/users/search${buildQueryString({ keyword })}`, {
     headers: {

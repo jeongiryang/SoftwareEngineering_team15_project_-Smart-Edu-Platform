@@ -388,10 +388,10 @@ describe('Community Comment API', () => {
         postId: post.id,
         userId: user.id,
         content: 'useful explanation',
-        author: {
+        author: expect.objectContaining({
           id: user.id,
           name: user.name
-        }
+        })
       })
     );
     expect(mockBroadcastRealtimeEvent).toHaveBeenCalledWith('community.comment.created', {

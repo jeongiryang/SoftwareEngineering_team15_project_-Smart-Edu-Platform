@@ -101,7 +101,16 @@ function sanitizeUser(user) {
   return {
     id: user.id,
     name: user.name,
-    loginId: user.loginId
+    loginId: user.loginId,
+    appearance: sanitizeAppearance(user)
+  };
+}
+
+function sanitizeAppearance(user) {
+  return {
+    profileImageUrl: user?.profile?.profileImageUrl || null,
+    profileBackgroundUrl: user?.profile?.profileBackgroundUrl || null,
+    titleText: user?.profile?.titleText || null
   };
 }
 
@@ -110,6 +119,7 @@ function sanitizeParticipant(participant) {
     userId: participant.userId,
     name: participant.user?.name,
     loginId: participant.user?.loginId,
+    appearance: sanitizeAppearance(participant.user),
     contributionValue: participant.contributionValue,
     joinedAt: participant.joinedAt
   };
@@ -122,6 +132,7 @@ function sanitizeContribution(contribution) {
     userId: contribution.userId,
     name: contribution.user?.name,
     loginId: contribution.user?.loginId,
+    appearance: sanitizeAppearance(contribution.user),
     amount: contribution.amount,
     memo: contribution.memo,
     createdAt: contribution.createdAt

@@ -15,6 +15,7 @@ import {
   getCollaborativeQuests,
   joinCollaborativeQuest
 } from '../services/api';
+import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, radii, shadows } from '../styles/theme';
 
@@ -221,7 +222,7 @@ function statusLabel(status, copy) {
 }
 
 export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
-  const { currentLanguage } = useLanguage();
+  const { currentLanguage, translateText } = useLanguage();
   const locale = languageIntlLocale(currentLanguage);
   const dictionary = COPY[currentLanguage] || COPY.ko;
   const copy = (key, values = {}) => interpolate(dictionary[key] || COPY.ko[key] || key, values);
@@ -665,7 +666,13 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                   <Text style={styles.subPanelTitle}>{copy('participants')}</Text>
                   {(displayQuest.participants || []).map((participant) => (
                     <View key={`${displayQuest.id}-${participant.userId}`} style={styles.listRow}>
-                      <Text style={styles.rowName}>{participant.name || participant.loginId}</Text>
+                      <ProfileAvatar appearance={participant.appearance} name={participant.name || participant.loginId} size="sm" />
+                      <View style={styles.rowCopy}>
+                        <Text style={styles.rowName}>{participant.name || participant.loginId}</Text>
+                        {participant.appearance?.titleText ? (
+                          <ProfileTitleChip animated title={participant.appearance.titleText} translateText={translateText} />
+                        ) : null}
+                      </View>
                       <Text style={styles.rowMeta}>
                         {formatNumber(participant.contributionValue, locale)}
                       </Text>
@@ -677,12 +684,15 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                   {(displayQuest.recentContributions || []).length ? (
                     displayQuest.recentContributions.map((item) => (
                       <View key={item.id || `${item.userId}-${item.createdAt}`} style={styles.listRow}>
-                        <Text style={styles.rowName}>
-                          {copy('contributionLine', {
-                            name: item.name || item.loginId,
-                            amount: formatNumber(item.amount, locale)
-                          })}
-                        </Text>
+                        <ProfileAvatar appearance={item.appearance} name={item.name || item.loginId} size="sm" />
+                        <View style={styles.rowCopy}>
+                          <Text style={styles.rowName}>
+                            {copy('contributionLine', {
+                              name: item.name || item.loginId,
+                              amount: formatNumber(item.amount, locale)
+                            })}
+                          </Text>
+                        </View>
                         <Text style={styles.rowMeta}>{item.memo}</Text>
                       </View>
                     ))
@@ -1030,10 +1040,17 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   listRow: {
+    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: colors.line,
+    flexDirection: 'row',
     paddingTop: 8,
-    gap: 3
+    gap: 8
+  },
+  rowCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0
   },
   rowName: {
     color: colors.ink,

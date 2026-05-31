@@ -9,8 +9,18 @@ const publicUserSelect = {
   profile: {
     select: {
       profileImageUrl: true,
+      profileBackgroundUrl: true,
+      titleText: true,
       learningGoal: true,
       preferredSubject: true
+    }
+  },
+  shopPurchases: {
+    include: {
+      item: true
+    },
+    orderBy: {
+      purchasedAt: 'desc'
     }
   }
 };

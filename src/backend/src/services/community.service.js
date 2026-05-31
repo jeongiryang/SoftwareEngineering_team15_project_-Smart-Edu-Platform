@@ -138,7 +138,10 @@ function sanitizePost(post) {
     author: post.user
       ? {
           id: post.user.id,
-          name: post.user.name
+          name: post.user.name,
+          profileImageUrl: post.user.profile?.profileImageUrl || null,
+          profileBackgroundUrl: post.user.profile?.profileBackgroundUrl || null,
+          titleText: post.user.profile?.titleText || null
         }
       : null,
     commentCount: post._count?.comments ?? 0
@@ -185,7 +188,10 @@ function sanitizeComment(comment) {
     author: comment.user
       ? {
           id: comment.user.id,
-          name: comment.user.name
+          name: comment.user.name,
+          profileImageUrl: comment.user.profile?.profileImageUrl || null,
+          profileBackgroundUrl: comment.user.profile?.profileBackgroundUrl || null,
+          titleText: comment.user.profile?.titleText || null
         }
       : null,
     replyCount: comment._count?.replies ?? 0

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
+import { ProfileAvatar, ProfileBackground, ProfileTitleChip } from '../components/ProfileAppearance';
 import { PanelSkeleton } from '../components/Skeleton';
 import {
   changeCurrentUserPassword,
@@ -10,12 +11,14 @@ import {
   getFriendRequests,
   getFriends,
   getMyActivityStats,
+  getMyShop,
   getMyRewards,
   getSchedules,
   getStatisticsSummary,
   getTasks,
   updateCurrentUser
 } from '../services/api';
+import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const WITHDRAWAL_CONFIRMATION_TEXT = '탈퇴합니다';
@@ -29,6 +32,14 @@ const EMPTY_PROFILE_DATA = {
     quests: [],
     badges: [],
     recentPointTransactions: []
+  },
+  shop: {
+    profile: null,
+    equippedItems: {
+      profileImage: null,
+      profileBackground: null,
+      title: null
+    }
   },
   bookmarks: [],
   friends: [],
@@ -190,10 +201,6 @@ function getWithdrawalConfirmationFeedback(confirmationText) {
   return { tone: 'success', message: '확인 문구가 일치합니다.' };
 }
 
-function getInitial(name = '') {
-  return name.trim().slice(0, 1) || '학';
-}
-
 function sortByDate(items, field, direction = 'asc') {
   return [...items].sort((left, right) => {
     const leftTime = new Date(left?.[field] || 0).getTime();
@@ -289,6 +296,7 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
     currentPassword: '',
     confirmationText: ''
   });
+  const { translateText } = useLanguage();
 
   useEffect(() => {
     setNameForm(user?.name || '');
@@ -313,10 +321,11 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
     const weekRange = getDateRange(7);
 
     try {
-      const [scheduleResult, taskResult, rewardResult, bookmarkResult, friendsResult, requestsResult, activityResult, todayResult, weekResult] = await Promise.all([
+      const [scheduleResult, taskResult, rewardResult, shopResult, bookmarkResult, friendsResult, requestsResult, activityResult, todayResult, weekResult] = await Promise.all([
         getSchedules(token),
         getTasks(token),
         getMyRewards(token),
+        getMyShop(token),
         getCommunityBookmarks(token, { page: 1, pageSize: 3 }),
         getFriends(token),
         getFriendRequests(token),
@@ -331,6 +340,10 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
         rewards: {
           ...EMPTY_PROFILE_DATA.rewards,
           ...(rewardResult?.rewards || {})
+        },
+        shop: {
+          ...EMPTY_PROFILE_DATA.shop,
+          ...(shopResult?.shop || {})
         },
         bookmarks: Array.isArray(bookmarkResult?.bookmarks) ? bookmarkResult.bookmarks : [],
         friends: Array.isArray(friendsResult?.friends) ? friendsResult.friends : [],
@@ -501,6 +514,7 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
   }, [profileData]);
 
   const rewardPoints = profileData.rewards?.account?.pointBalance || 0;
+  const profileAppearance = profileData.shop?.profile || user?.profile || {};
   const visibleBadges = derived.badges.slice(0, 4);
   const visibleQuests = derived.activeQuests.slice(0, 3);
   const activityStats = profileData.activityStats || EMPTY_PROFILE_DATA.activityStats;
@@ -515,13 +529,12 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.hero, shadows.card]}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getInitial(userName)}</Text>
-        </View>
+      <ProfileBackground appearance={profileAppearance} style={[styles.hero, shadows.card]}>
+        <ProfileAvatar appearance={profileAppearance} name={userName} size="lg" />
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>PROFILE DASHBOARD</Text>
           <Text style={styles.title}>{userName}님의 학습 흐름</Text>
+          <ProfileTitleChip animated title={profileAppearance.titleText} translateText={translateText} />
           <Text style={styles.subtitle}>{derived.insight}</Text>
           <View style={styles.identityRow}>
             <View style={styles.identityChip}>
@@ -542,7 +555,7 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
         >
           <Text style={styles.refreshButtonText}>{refreshing ? '갱신 중' : '새로고침'}</Text>
         </Pressable>
-      </View>
+      </ProfileBackground>
 
       {loading ? (
         <View style={styles.skeletonGrid}>
@@ -988,21 +1001,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 22,
     flexWrap: 'wrap'
-  },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 28,
-    backgroundColor: colors.mintSoft,
-    borderWidth: 1,
-    borderColor: colors.mint,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  avatarText: {
-    color: colors.blueDeep,
-    fontSize: 34,
-    fontWeight: '900'
   },
   heroCopy: {
     flex: 1,

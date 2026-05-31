@@ -16,6 +16,7 @@ import {
   getMyBossRaidParties,
   joinBossRaidParty
 } from '../services/api';
+import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, radii, shadows } from '../styles/theme';
 
@@ -95,7 +96,7 @@ function SummaryCard({ label, value, description, emphasis }) {
 }
 
 export default function BossRaidScreen({ realtimeEvent, token, user }) {
-  const { currentLanguage, t } = useLanguage();
+  const { currentLanguage, t, translateText } = useLanguage();
   const locale = languageIntlLocale(currentLanguage);
   const [raids, setRaids] = useState([]);
   const [parties, setParties] = useState([]);
@@ -536,12 +537,18 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
               <Text style={styles.cardTitle}>{t('bossRaid.detail.members', '파티 멤버')}</Text>
               {selectedParty.members.map((member) => (
                 <View key={member.userId} style={styles.memberRow}>
-                  <Text style={styles.memberName}>{member.name}</Text>
-                  <Text style={styles.memberJoinedAt}>
-                    {interpolate(t('bossRaid.detail.joinedAt', '참여 {date}'), {
-                      date: formatDate(member.joinedAt, locale)
-                    })}
-                  </Text>
+                  <ProfileAvatar appearance={member.appearance} name={member.name} size="sm" />
+                  <View style={styles.memberCopy}>
+                    <Text style={styles.memberName}>{member.name}</Text>
+                    {member.appearance?.titleText ? (
+                      <ProfileTitleChip animated title={member.appearance.titleText} translateText={translateText} />
+                    ) : null}
+                    <Text style={styles.memberJoinedAt}>
+                      {interpolate(t('bossRaid.detail.joinedAt', '참여 {date}'), {
+                        date: formatDate(member.joinedAt, locale)
+                      })}
+                    </Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -550,7 +557,8 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
               <Text style={styles.cardTitle}>{t('bossRaid.detail.contribution', '기여도')}</Text>
               {selectedParty.contributions.map((contribution) => (
                 <View key={contribution.userId} style={styles.contributionRow}>
-                  <View>
+                  <ProfileAvatar appearance={contribution.appearance} name={contribution.userName} size="sm" />
+                  <View style={styles.memberCopy}>
                     <Text style={styles.memberName}>{contribution.userName}</Text>
                     <Text style={styles.contributionMeta}>
                       {interpolate(t('bossRaid.detail.contributionMeta', '집중 {minutes}분 · 완료 {tasks}개'), {
@@ -1012,9 +1020,14 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   memberRow: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 12
+  },
+  memberCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0
   },
   memberName: {
     color: colors.ink,
