@@ -137,6 +137,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
   const [focusTimerTick, setFocusTimerTick] = useState(Date.now());
   const [savingFocusSession, setSavingFocusSession] = useState(false);
   const [focusTimerMessage, setFocusTimerMessage] = useState('');
+  const [focusedTimerPart, setFocusedTimerPart] = useState(null);
 
   function refreshPendingFocusQueue() {
     setPendingFocusQueue(getPendingFocusSessionQueue());
@@ -263,7 +264,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
   }
 
   function handleTimerPartWheel(event, partKey) {
-    if (focusTimerStatus !== 'idle') {
+    if (focusTimerStatus !== 'idle' || focusedTimerPart !== partKey) {
       return;
     }
 
@@ -274,6 +275,9 @@ export default function FocusTimerScreen({ onNavigate, token }) {
     }
 
     event?.preventDefault?.();
+    event?.stopPropagation?.();
+    event?.nativeEvent?.preventDefault?.();
+    event?.nativeEvent?.stopPropagation?.();
     handleTimerPartAdjust(partKey, deltaY < 0 ? 1 : -1);
   }
 
@@ -354,9 +358,12 @@ export default function FocusTimerScreen({ onNavigate, token }) {
   const timerRemainingMs = Math.max(0, timerTargetMs - focusElapsedMs);
   const displayFocusMs = focusTimerMode === 'timer' ? timerRemainingMs : focusElapsedMs;
   const timerTargetParts = splitTimerSeconds(timerTargetSeconds);
-  const timerProgressPercent = focusTimerMode === 'timer'
-    ? Math.min(100, Math.round((focusElapsedMs / timerTargetMs) * 100))
+  const timerRemainingPercent = focusTimerMode === 'timer'
+    ? Math.max(0, Math.min(100, Math.round((timerRemainingMs / timerTargetMs) * 100)))
     : 0;
+  const focusTimerStatusLabel = translateText(
+    focusTimerStatus === 'running' ? '진행 중' : focusTimerStatus === 'paused' ? '일시정지' : '대기'
+  );
 
   useEffect(() => {
     if (
@@ -433,7 +440,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
             </Text>
           </View>
           <Text style={[styles.focusTimerStatus, focusTimerStatus === 'running' && styles.focusTimerStatusRunning]}>
-            {translateText(focusTimerStatus === 'running' ? '진행 중' : focusTimerStatus === 'paused' ? '일시정지' : '대기')}
+            {focusTimerStatusLabel}
           </Text>
         </View>
 
@@ -473,8 +480,9 @@ export default function FocusTimerScreen({ onNavigate, token }) {
               {TIMER_PARTS.map((part) => (
                 <View
                   key={part.key}
+                  onWheelCapture={(event) => handleTimerPartWheel(event, part.key)}
                   onWheel={(event) => handleTimerPartWheel(event, part.key)}
-                  style={styles.timerPartControl}
+                  style={[styles.timerPartControl, focusedTimerPart === part.key && styles.timerPartControlFocused]}
                 >
                   <Pressable
                     accessibilityLabel={formatTemplate(translateText('{label} 값 증가'), { label: translateText(part.label) })}
@@ -494,6 +502,8 @@ export default function FocusTimerScreen({ onNavigate, token }) {
                     editable={focusTimerStatus === 'idle'}
                     keyboardType="number-pad"
                     onChangeText={(value) => handleTimerPartChange(part.key, value)}
+                    onBlur={() => setFocusedTimerPart((current) => (current === part.key ? null : current))}
+                    onFocus={() => setFocusedTimerPart(part.key)}
                     onKeyDown={(event) => handleTimerPartKeyDown(event, part.key)}
                     placeholder="00"
                     placeholderTextColor={colors.muted}
@@ -529,14 +539,25 @@ export default function FocusTimerScreen({ onNavigate, token }) {
           <Text style={styles.focusClockHint}>
             {focusTimerMode === 'timer'
               ? formatTemplate(
-                translateText('목표 {target} · {percent}% 진행'),
-                { target: formatTimerTargetLabel(timerTargetSeconds), percent: timerProgressPercent }
+                translateText('목표 {target} · {percent}% 남음 · 상태 {status}'),
+                { target: formatTimerTargetLabel(timerTargetSeconds), percent: timerRemainingPercent, status: focusTimerStatusLabel }
               )
-              : translateText('종료 및 저장을 누르면 현재 시간이 집중 기록으로 저장됩니다.')}
+              : formatTemplate(
+                translateText('상태 {status} · 종료 및 저장을 누르면 현재 시간이 집중 기록으로 저장됩니다.'),
+                { status: focusTimerStatusLabel }
+              )}
           </Text>
           {focusTimerMode === 'timer' ? (
-            <View style={styles.timerProgressTrack}>
-              <View style={[styles.timerProgressBar, { width: `${timerProgressPercent}%` }]} />
+            <View
+              accessibilityLabel={formatTemplate(
+                translateText('타이머 남은 시간 {percent}%'),
+                { percent: timerRemainingPercent }
+              )}
+              accessibilityRole="progressbar"
+              accessibilityValue={{ min: 0, max: 100, now: timerRemainingPercent }}
+              style={styles.timerProgressTrack}
+            >
+              <View style={[styles.timerProgressBar, { width: `${timerRemainingPercent}%` }]} />
             </View>
           ) : null}
         </View>
@@ -803,6 +824,10 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: 'center',
     gap: 6
+  },
+  timerPartControlFocused: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.mintSoft
   },
   timerStepButton: {
     width: 38,
