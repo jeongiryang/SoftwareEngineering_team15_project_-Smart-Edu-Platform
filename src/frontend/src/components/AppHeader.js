@@ -510,6 +510,8 @@ function ThemeIcon({ mode }) {
       <View style={styles.sunCore} />
       <View style={[styles.sunRay, styles.sunRayVertical]} />
       <View style={[styles.sunRay, styles.sunRayHorizontal]} />
+      <View style={[styles.sunRay, styles.sunRayDiagonalOne]} />
+      <View style={[styles.sunRay, styles.sunRayDiagonalTwo]} />
     </View>
   );
 }
@@ -995,12 +997,13 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: colors.blueDeep
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft
   },
   sunRay: {
     position: 'absolute',
     borderRadius: 999,
-    backgroundColor: colors.blueDeep
+    backgroundColor: colors.warning
   },
   sunRayVertical: {
     width: 2,
@@ -1009,6 +1012,16 @@ const styles = StyleSheet.create({
   sunRayHorizontal: {
     width: 18,
     height: 2
+  },
+  sunRayDiagonalOne: {
+    width: 2,
+    height: 17,
+    transform: [{ rotate: '45deg' }]
+  },
+  sunRayDiagonalTwo: {
+    width: 2,
+    height: 17,
+    transform: [{ rotate: '-45deg' }]
   },
   moonIcon: {
     width: 18,
