@@ -253,14 +253,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
       id: `${realtimeEvent.type}-${comment.commentId}-${realtimeEvent.sentAt || ''}`,
       postId: comment.postId,
       scope: isCurrentPost ? 'detail' : 'list',
-      messageKey: isCurrentPost
+      message: isCurrentPost
         ? isReply
-          ? '새 대답글이 도착했습니다.'
-          : '새 댓글이 도착했습니다.'
-        : '커뮤니티에 새 댓글 활동이 있습니다.',
-      actionKey: isCurrentPost ? '댓글 새로고침' : '목록 갱신'
+          ? translateText('새 대답글이 도착했습니다.')
+          : translateText('새 댓글이 도착했습니다.')
+        : translateText('커뮤니티에 새 댓글 활동이 있습니다.'),
+      action: isCurrentPost ? translateText('댓글 새로고침') : translateText('목록 갱신')
     });
-  }, [realtimeEvent, selectedPost?.id, user?.id]);
+  }, [realtimeEvent, selectedPost?.id, translateText, user?.id]);
 
   async function loadPosts() {
     setLoading(true);
@@ -278,7 +278,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
       setPosts(result.posts || []);
       setPagination(result.pagination || { page, pageSize, total: 0, totalPages: 1 });
     } catch (error) {
-      setErrorMessage(error.message || '게시글 목록을 불러오지 못했습니다.');
+      setErrorMessage(error.message || translateText('게시글 목록을 불러오지 못했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -300,7 +300,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         result.pagination || { page: bookmarkPage, pageSize: PAGE_SIZE, total: 0, totalPages: 1 }
       );
     } catch (error) {
-      setErrorMessage(error.message || '북마크 목록을 불러오지 못했습니다.');
+      setErrorMessage(error.message || translateText('북마크 목록을 불러오지 못했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -330,7 +330,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         }
       );
     } catch (error) {
-      setErrorMessage(error.message || '게시글 상세를 불러오지 못했습니다.');
+      setErrorMessage(error.message || translateText('게시글 상세를 불러오지 못했습니다.'));
     } finally {
       setDetailLoading(false);
     }
@@ -484,7 +484,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     const content = postForm.content.trim();
 
     if (!title || !content) {
-      setErrorMessage('제목과 내용을 입력해 주세요.');
+      setErrorMessage(translateText('제목과 내용을 입력해 주세요.'));
       return;
     }
 
@@ -499,7 +499,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           content
         });
 
-        setSuccessMessage('게시글을 수정했습니다.');
+        setSuccessMessage(translateText('게시글을 수정했습니다.'));
         setPostFormMode(null);
         await loadPostDetail(result.post.id, commentPage);
       } else {
@@ -509,7 +509,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           content
         });
 
-        setSuccessMessage('게시글을 작성했습니다.');
+        setSuccessMessage(translateText('게시글을 작성했습니다.'));
         setPostFormMode(null);
         setActiveTab('posts');
         setPage(1);
@@ -517,7 +517,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         await loadPosts();
       }
     } catch (error) {
-      setErrorMessage(error.message || '게시글 저장에 실패했습니다.');
+      setErrorMessage(error.message || translateText('게시글 저장에 실패했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -538,7 +538,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
     try {
       await deleteCommunityPost(token, post.id);
-      setSuccessMessage('게시글을 삭제했습니다.');
+      setSuccessMessage(translateText('게시글을 삭제했습니다.'));
       setDeleteTarget(null);
       setSelectedPost(null);
       setPostFormMode(null);
@@ -547,7 +547,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         await loadBookmarks();
       }
     } catch (error) {
-      setErrorMessage(error.message || '게시글 삭제에 실패했습니다.');
+      setErrorMessage(error.message || translateText('게시글 삭제에 실패했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -561,7 +561,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     const content = commentContent.trim();
 
     if (!content) {
-      setErrorMessage('댓글 내용을 입력해 주세요.');
+      setErrorMessage(translateText('댓글 내용을 입력해 주세요.'));
       return;
     }
 
@@ -572,11 +572,11 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
       await createCommunityComment(token, selectedPost.id, { content });
       setCommentContent('');
       setCommentPage(1);
-      setSuccessMessage('댓글을 작성했습니다.');
+      setSuccessMessage(translateText('댓글을 작성했습니다.'));
       await loadPostDetail(selectedPost.id, 1);
       await loadPosts();
     } catch (error) {
-      setErrorMessage(error.message || '댓글 작성에 실패했습니다.');
+      setErrorMessage(error.message || translateText('댓글 작성에 실패했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -623,7 +623,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     const content = editingCommentContent.trim();
 
     if (!editingComment || !content) {
-      setErrorMessage('댓글 내용을 입력해 주세요.');
+      setErrorMessage(translateText('댓글 내용을 입력해 주세요.'));
       return;
     }
 
@@ -634,10 +634,10 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
       await updateCommunityComment(token, editingComment.id, { content });
       setEditingComment(null);
       setEditingCommentContent('');
-      setSuccessMessage('댓글을 수정했습니다.');
+      setSuccessMessage(translateText('댓글을 수정했습니다.'));
       await loadPostDetail(selectedPost.id, commentPage);
     } catch (error) {
-      setErrorMessage(error.message || '댓글 수정에 실패했습니다.');
+      setErrorMessage(error.message || translateText('댓글 수정에 실패했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -658,12 +658,12 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
     try {
       await deleteCommunityComment(token, comment.id);
-      setSuccessMessage('댓글을 삭제했습니다.');
+      setSuccessMessage(translateText('댓글을 삭제했습니다.'));
       setDeleteTarget(null);
       await loadPostDetail(selectedPost.id, commentPage);
       await loadPosts();
     } catch (error) {
-      setErrorMessage(error.message || '댓글 삭제에 실패했습니다.');
+      setErrorMessage(error.message || translateText('댓글 삭제에 실패했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -781,10 +781,10 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
       if (post.isBookmarked) {
         await deleteCommunityBookmark(token, post.id);
-        setSuccessMessage('북마크를 해제했습니다.');
+        setSuccessMessage(translateText('북마크를 해제했습니다.'));
       } else {
         await createCommunityBookmark(token, post.id);
-        setSuccessMessage('북마크에 추가했습니다.');
+        setSuccessMessage(translateText('북마크에 추가했습니다.'));
       }
 
       updatePostState(post.id, (currentPost) => ({
@@ -803,7 +803,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         await refreshVisiblePostLists();
       }
     } catch (error) {
-      setErrorMessage(error.message || '북마크 처리에 실패했습니다.');
+      setErrorMessage(error.message || translateText('북마크 처리에 실패했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -823,12 +823,12 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     const reason = reportReason.trim();
 
     if (!reportTarget || !reason) {
-      setErrorMessage('신고 사유를 입력해 주세요.');
+      setErrorMessage(translateText('신고 사유를 입력해 주세요.'));
       return;
     }
 
     if (reason.length > 500) {
-      setErrorMessage('신고 사유는 500자 이하로 입력해 주세요.');
+      setErrorMessage(translateText('신고 사유는 500자 이하로 입력해 주세요.'));
       return;
     }
 
@@ -844,13 +844,13 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
       setReportTarget(null);
       setReportReason('');
-      setSuccessMessage('신고가 접수되었습니다.');
+      setSuccessMessage(translateText('신고가 접수되었습니다.'));
     } catch (error) {
       const message = error.message || '';
       setErrorMessage(
         message.includes('409') || message.includes('이미') || message.includes('duplicate')
-          ? '이미 신고한 대상입니다. 관리자 검토를 기다려 주세요.'
-          : message || '신고 처리에 실패했습니다.'
+          ? translateText('이미 신고한 대상입니다. 관리자 검토를 기다려 주세요.')
+          : message || translateText('신고 처리에 실패했습니다.')
       );
     } finally {
       setBusy(false);
@@ -901,8 +901,8 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.title}>커뮤니티</Text>
-          <Text style={styles.subtitle}>질문, 자유 글, 학습 인증을 한곳에서 확인합니다.</Text>
+          <Text style={styles.title}>{translateText('커뮤니티')}</Text>
+          <Text style={styles.subtitle}>{translateText('질문, 자유 글, 학습 인증을 한곳에서 확인합니다.')}</Text>
         </View>
         <View style={styles.headerActions}>
           <Pressable
@@ -910,14 +910,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             onPress={() => onNavigate('dashboard')}
             style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
           >
-            <Text style={styles.secondaryButtonText}>대시보드</Text>
+            <Text style={styles.secondaryButtonText}>{translateText('대시보드')}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={openCreateForm}
             style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}
           >
-            <Text style={styles.primaryButtonText}>글쓰기</Text>
+            <Text style={styles.primaryButtonText}>{translateText('글쓰기')}</Text>
           </Pressable>
         </View>
       </View>
@@ -934,7 +934,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           ]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'posts' && styles.tabButtonTextActive]}>
-            게시글
+            {translateText('게시글')}
           </Text>
         </Pressable>
         <Pressable
@@ -948,7 +948,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           ]}
         >
           <Text style={[styles.tabButtonText, activeTab === 'bookmarks' && styles.tabButtonTextActive]}>
-            내 북마크
+            {translateText('내 북마크')}
           </Text>
         </Pressable>
       </View>
@@ -966,7 +966,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
       {realtimeNotification ? (
         <View style={styles.realtimeBox}>
           <Text style={styles.realtimeText}>
-            {translateText(realtimeNotification.messageKey)}
+            {realtimeNotification.message}
           </Text>
           <View style={styles.realtimeActions}>
             <Pressable
@@ -975,7 +975,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
               style={(state) => [styles.smallButton, ...interactiveStateStyles(state)]}
             >
               <Text style={styles.smallButtonText}>
-                {translateText(realtimeNotification.actionKey)}
+                {realtimeNotification.action}
               </Text>
             </Pressable>
             <Pressable
@@ -1023,8 +1023,10 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             renderPostDetail()
           ) : (
             <View style={styles.emptyDetail}>
-              <Text style={styles.emptyTitle}>게시글을 선택해 주세요.</Text>
-              <Text style={styles.emptyText}>목록에서 게시글을 열면 상세, 댓글, 반응, 신고 기능을 사용할 수 있습니다.</Text>
+              <Text style={styles.emptyTitle}>{translateText('게시글을 선택해 주세요.')}</Text>
+              <Text style={styles.emptyText}>
+                {translateText('목록에서 게시글을 열면 상세, 댓글, 반응, 신고 기능을 사용할 수 있습니다.')}
+              </Text>
             </View>
           )}
         </View>
@@ -1072,18 +1074,18 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
     return (
       <ConfirmModal
-        cancelLabel="취소"
+        cancelLabel={translateText('취소')}
         confirmDisabled={busy || !deleteTarget}
-        confirmLabel={isPost ? '게시글 삭제' : '댓글 삭제'}
+        confirmLabel={isPost ? translateText('게시글 삭제') : translateText('댓글 삭제')}
         description={
           isPost
-            ? '삭제한 게시글은 되돌릴 수 없습니다. 댓글과 반응도 함께 정리됩니다.'
-            : '삭제한 댓글은 되돌릴 수 없습니다.'
+            ? translateText('삭제한 게시글은 되돌릴 수 없습니다. 댓글과 반응도 함께 정리됩니다.')
+            : translateText('삭제한 댓글은 되돌릴 수 없습니다.')
         }
         destructive
         onCancel={() => setDeleteTarget(null)}
         onConfirm={submitDeleteTarget}
-        title={isPost ? '게시글을 삭제할까요?' : '댓글을 삭제할까요?'}
+        title={isPost ? translateText('게시글을 삭제할까요?') : translateText('댓글을 삭제할까요?')}
         visible={Boolean(deleteTarget)}
       >
         <Text style={styles.modalTargetText} numberOfLines={2}>
@@ -1096,26 +1098,26 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   function renderReportModal() {
     return (
       <ConfirmModal
-        cancelLabel="취소"
+        cancelLabel={translateText('취소')}
         confirmDisabled={busy || !reportReason.trim()}
-        confirmLabel="신고 접수"
-        description="관리자가 확인할 수 있도록 신고 사유를 구체적으로 적어 주세요."
+        confirmLabel={translateText('신고 접수')}
+        description={translateText('관리자가 확인할 수 있도록 신고 사유를 구체적으로 적어 주세요.')}
         destructive
         onCancel={() => {
           setReportTarget(null);
           setReportReason('');
         }}
         onConfirm={submitReport}
-        title={reportTarget?.type === 'post' ? '게시글 신고' : '댓글 신고'}
+        title={reportTarget?.type === 'post' ? translateText('게시글 신고') : translateText('댓글 신고')}
         visible={Boolean(reportTarget)}
       >
         <Text style={styles.modalTargetText} numberOfLines={2}>
-          대상: {reportTarget?.label || ''}
+          {translateText('대상:')} {reportTarget?.label || ''}
         </Text>
         <AccessibleTextInput
           multiline
           onChangeText={setReportReason}
-          placeholder="신고 사유를 입력해 주세요. 500자까지 입력할 수 있습니다."
+          placeholder={translateText('신고 사유를 입력해 주세요. 500자까지 입력할 수 있습니다.')}
           style={[styles.input, styles.reportArea]}
           textAlignVertical="top"
           value={reportReason}
@@ -1143,7 +1145,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             onPress={handleSearchSubmit}
             style={(state) => [styles.primaryButton, ...interactiveStateStyles(state)]}
           >
-            <Text style={styles.primaryButtonText}>검색</Text>
+            <Text style={styles.primaryButtonText}>{translateText('검색')}</Text>
           </Pressable>
         </View>
         {recentSearches.length > 0 ? (
@@ -1231,8 +1233,8 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             <Text style={styles.helperLabel}>{translateText('보기 방식')}</Text>
             <View style={styles.optionRowCompact}>
               {[
-                { value: 'card', label: '카드보기' },
-                { value: 'table', label: '표보기' }
+                { value: 'card', labelKey: '카드보기' },
+                { value: 'table', labelKey: '표보기' }
               ].map((item) => (
                 <Pressable
                   key={item.value}
@@ -1245,7 +1247,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
                   ]}
                 >
                   <Text style={[styles.chipText, viewMode === item.value && styles.chipTextActive]}>
-                    {translateText(item.label)}
+                    {translateText(item.labelKey)}
                   </Text>
                 </Pressable>
               ))}
@@ -1259,7 +1261,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   function renderBookmarkFilters() {
     return (
       <View style={styles.filterPanel}>
-        <Text style={styles.sectionTitle}>내가 저장한 게시글</Text>
+        <Text style={styles.sectionTitle}>{translateText('내가 저장한 게시글')}</Text>
         <View style={styles.optionRow}>
           {SORT_OPTIONS.filter((item) => ['latest', 'oldest'].includes(item.value)).map((item) => (
             <Pressable
@@ -1283,7 +1285,9 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   function renderPostForm() {
     return (
       <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>{postFormMode === 'edit' ? '게시글 수정' : '게시글 작성'}</Text>
+        <Text style={styles.sectionTitle}>
+          {postFormMode === 'edit' ? translateText('게시글 수정') : translateText('게시글 작성')}
+        </Text>
         <View style={styles.optionRow}>
           {CATEGORIES.map((item) => (
             <Pressable
@@ -1299,14 +1303,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         </View>
         <AccessibleTextInput
           onChangeText={(title) => setPostForm((current) => ({ ...current, title }))}
-          placeholder="제목"
+          placeholder={translateText('제목')}
           style={styles.input}
           value={postForm.title}
         />
         <AccessibleTextInput
           multiline
           onChangeText={(content) => setPostForm((current) => ({ ...current, content }))}
-          placeholder="내용"
+          placeholder={translateText('내용')}
           style={[styles.input, styles.textArea]}
           textAlignVertical="top"
           value={postForm.content}
@@ -1318,7 +1322,9 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             onPress={submitPostForm}
             style={({ pressed }) => [styles.primaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
           >
-            <Text style={styles.primaryButtonText}>{postFormMode === 'edit' ? '수정 저장' : '작성 완료'}</Text>
+            <Text style={styles.primaryButtonText}>
+              {postFormMode === 'edit' ? translateText('수정 저장') : translateText('작성 완료')}
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -1326,7 +1332,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             onPress={closePostForm}
             style={({ pressed }) => [styles.secondaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
           >
-            <Text style={styles.secondaryButtonText}>취소</Text>
+            <Text style={styles.secondaryButtonText}>{translateText('취소')}</Text>
           </Pressable>
         </View>
       </View>
@@ -1337,15 +1343,15 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     if (posts.length === 0) {
       return (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyIcon}>글</Text>
-          <Text style={styles.emptyTitle}>게시글이 없습니다.</Text>
-          <Text style={styles.emptyText}>검색 조건을 바꾸거나 첫 게시글을 작성해 보세요.</Text>
+          <Text style={styles.emptyIcon}>{translateText('글')}</Text>
+          <Text style={styles.emptyTitle}>{translateText('게시글이 없습니다.')}</Text>
+          <Text style={styles.emptyText}>{translateText('검색 조건을 바꾸거나 첫 게시글을 작성해 보세요.')}</Text>
           <Pressable
             accessibilityRole="button"
             onPress={openCreateForm}
             style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
           >
-            <Text style={styles.emptyActionText}>첫 글 작성하기</Text>
+            <Text style={styles.emptyActionText}>{translateText('첫 글 작성하기')}</Text>
           </Pressable>
         </View>
       );
@@ -1418,15 +1424,17 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     if (bookmarks.length === 0) {
       return (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyIcon}>저장</Text>
-          <Text style={styles.emptyTitle}>북마크한 게시글이 없습니다.</Text>
-          <Text style={styles.emptyText}>관심 있는 게시글에서 북마크를 눌러 저장할 수 있습니다.</Text>
+          <Text style={styles.emptyIcon}>{translateText('저장')}</Text>
+          <Text style={styles.emptyTitle}>{translateText('북마크한 게시글이 없습니다.')}</Text>
+          <Text style={styles.emptyText}>
+            {translateText('관심 있는 게시글에서 북마크를 눌러 저장할 수 있습니다.')}
+          </Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => switchTab('posts')}
             style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
           >
-            <Text style={styles.emptyActionText}>커뮤니티 둘러보기</Text>
+            <Text style={styles.emptyActionText}>{translateText('커뮤니티 둘러보기')}</Text>
           </Pressable>
         </View>
       );
@@ -1500,17 +1508,17 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         <Text style={styles.cardContent}>{getPreview(post.content)}</Text>
         <View style={styles.cardMetaRow}>
           {renderAuthorButton(post.author)}
-          {post.isBookmarked ? <Text style={styles.savedBadge}>저장됨</Text> : null}
+          {post.isBookmarked ? <Text style={styles.savedBadge}>{translateText('저장됨')}</Text> : null}
         </View>
         {renderEngagement(post)}
         <View style={styles.cardActions}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${post.title} 상세 보기`}
+            accessibilityLabel={`${post.title} ${translateText('상세 보기')}`}
             onPress={() => openDetail(post)}
             style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
           >
-            <Text style={styles.secondaryButtonText}>상세</Text>
+            <Text style={styles.secondaryButtonText}>{translateText('상세')}</Text>
           </Pressable>
           {renderReactionButton({
             active: post.myReaction === 'LIKE',
@@ -1528,7 +1536,9 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           })}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${post.title} 북마크 ${post.isBookmarked ? '해제' : '추가'}`}
+            accessibilityLabel={`${post.title} ${translateText('북마크')} ${
+              post.isBookmarked ? translateText('해제') : translateText('추가')
+            }`}
             disabled={busy}
             onPress={() => toggleBookmark(post)}
             style={({ pressed }) => [
@@ -1538,12 +1548,12 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             ]}
           >
             <Text style={[styles.smallButtonText, post.isBookmarked && styles.bookmarkButtonTextActive]}>
-              {post.isBookmarked ? '북마크됨' : '북마크'}
+              {post.isBookmarked ? translateText('북마크됨') : translateText('북마크')}
             </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${post.title} 링크 공유`}
+            accessibilityLabel={`${post.title} ${translateText('링크 공유')}`}
             disabled={busy}
             onPress={() => copyPostLink(post)}
             style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
@@ -1558,11 +1568,11 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   function renderEngagement(post) {
     return (
       <View style={styles.metricRow}>
-        <Text style={styles.metricText}>댓글 {post.commentCount ?? 0}</Text>
-        <Text style={styles.metricText}>좋아요 {post.likeCount ?? 0}</Text>
-        <Text style={styles.metricText}>싫어요 {post.dislikeCount ?? 0}</Text>
-        <Text style={styles.metricText}>조회수 {post.viewCount ?? 0}</Text>
-        <Text style={styles.metricText}>북마크 {post.bookmarkCount ?? 0}</Text>
+        <Text style={styles.metricText}>{translateText('댓글')} {post.commentCount ?? 0}</Text>
+        <Text style={styles.metricText}>{translateText('좋아요')} {post.likeCount ?? 0}</Text>
+        <Text style={styles.metricText}>{translateText('싫어요')} {post.dislikeCount ?? 0}</Text>
+        <Text style={styles.metricText}>{translateText('조회수')} {post.viewCount ?? 0}</Text>
+        <Text style={styles.metricText}>{translateText('북마크')} {post.bookmarkCount ?? 0}</Text>
       </View>
     );
   }
@@ -1586,7 +1596,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         </View>
         {renderEngagement(selectedPost)}
         <View style={styles.detailActionPanel}>
-          <Text style={styles.actionPanelTitle}>반응과 저장</Text>
+          <Text style={styles.actionPanelTitle}>{translateText('반응과 저장')}</Text>
           <View style={styles.cardActions}>
           {renderReactionButton({
             active: selectedPost.myReaction === 'LIKE',
@@ -1604,7 +1614,11 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           })}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={selectedPost.isBookmarked ? '게시글 북마크 해제' : '게시글 북마크 추가'}
+            accessibilityLabel={
+              selectedPost.isBookmarked
+                ? translateText('게시글 북마크 해제')
+                : translateText('게시글 북마크 추가')
+            }
             disabled={busy}
             onPress={() => toggleBookmark(selectedPost)}
             style={({ pressed }) => [
@@ -1614,20 +1628,20 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             ]}
           >
             <Text style={[styles.smallButtonText, selectedPost.isBookmarked && styles.bookmarkButtonTextActive]}>
-              {selectedPost.isBookmarked ? '북마크 해제' : '북마크'}
+              {selectedPost.isBookmarked ? translateText('북마크 해제') : translateText('북마크')}
             </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="게시글 신고"
+            accessibilityLabel={translateText('게시글 신고')}
             onPress={() => openReport('post', selectedPost)}
             style={({ pressed }) => [styles.warningButton, pressed && styles.buttonPressed]}
           >
-            <Text style={styles.warningButtonText}>게시글 신고</Text>
+            <Text style={styles.warningButtonText}>{translateText('게시글 신고')}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="게시글 링크 공유"
+            accessibilityLabel={translateText('게시글 링크 공유')}
             disabled={busy}
             onPress={() => copyPostLink(selectedPost)}
             style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
@@ -1643,14 +1657,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
               onPress={() => openEditPostForm(selectedPost)}
               style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
             >
-              <Text style={styles.secondaryButtonText}>게시글 수정</Text>
+              <Text style={styles.secondaryButtonText}>{translateText('게시글 수정')}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={() => confirmDeletePost(selectedPost)}
               style={({ pressed }) => [styles.dangerButton, pressed && styles.buttonPressed]}
             >
-              <Text style={styles.dangerButtonText}>게시글 삭제</Text>
+              <Text style={styles.dangerButtonText}>{translateText('게시글 삭제')}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -1663,12 +1677,12 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   function renderCommentSection() {
     return (
       <View style={styles.commentSection}>
-        <Text style={styles.sectionTitle}>댓글</Text>
+        <Text style={styles.sectionTitle}>{translateText('댓글')}</Text>
         <View style={styles.commentForm}>
           <AccessibleTextInput
             multiline
             onChangeText={setCommentContent}
-            placeholder="댓글을 입력해 주세요."
+            placeholder={translateText('댓글을 입력해 주세요.')}
             style={[styles.input, styles.commentInput]}
             textAlignVertical="top"
             value={commentContent}
@@ -1679,14 +1693,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             onPress={submitComment}
             style={({ pressed }) => [styles.primaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
           >
-            <Text style={styles.primaryButtonText}>댓글 작성</Text>
+            <Text style={styles.primaryButtonText}>{translateText('댓글 작성')}</Text>
           </Pressable>
         </View>
         {comments.length === 0 ? (
           <View style={styles.emptyCommentBox}>
-            <Text style={styles.emptyIcon}>댓글</Text>
-            <Text style={styles.emptyTitle}>아직 댓글이 없습니다.</Text>
-            <Text style={styles.emptyText}>궁금한 점이나 응원을 첫 댓글로 남겨 보세요.</Text>
+            <Text style={styles.emptyIcon}>{translateText('댓글')}</Text>
+            <Text style={styles.emptyTitle}>{translateText('아직 댓글이 없습니다.')}</Text>
+            <Text style={styles.emptyText}>{translateText('궁금한 점이나 응원을 첫 댓글로 남겨 보세요.')}</Text>
           </View>
         ) : (
           comments.map((comment) => renderComment(comment))
@@ -1766,14 +1780,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
                 onPress={submitCommentEdit}
                 style={({ pressed }) => [styles.primaryButton, busy && styles.disabled, pressed && styles.buttonPressed]}
               >
-                <Text style={styles.primaryButtonText}>저장</Text>
+                <Text style={styles.primaryButtonText}>{translateText('저장')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => setEditingComment(null)}
                 style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
               >
-                <Text style={styles.secondaryButtonText}>취소</Text>
+                <Text style={styles.secondaryButtonText}>{translateText('취소')}</Text>
               </Pressable>
             </View>
           </View>
@@ -1812,11 +1826,11 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             ) : null}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="댓글 신고"
+              accessibilityLabel={translateText('댓글 신고')}
               onPress={() => openReport('comment', comment)}
               style={({ pressed }) => [styles.warningButton, pressed && styles.buttonPressed]}
             >
-              <Text style={styles.warningButtonText}>댓글 신고</Text>
+              <Text style={styles.warningButtonText}>{translateText('댓글 신고')}</Text>
             </Pressable>
             {ownComment ? (
               <>
@@ -1825,14 +1839,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
                   onPress={() => startEditComment(comment)}
                   style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
                 >
-                  <Text style={styles.secondaryButtonText}>수정</Text>
+                  <Text style={styles.secondaryButtonText}>{translateText('수정')}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => confirmDeleteComment(comment)}
                   style={({ pressed }) => [styles.dangerButton, pressed && styles.buttonPressed]}
                 >
-                  <Text style={styles.dangerButtonText}>삭제</Text>
+                  <Text style={styles.dangerButtonText}>{translateText('삭제')}</Text>
                 </Pressable>
               </>
             ) : null}
@@ -1863,7 +1877,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             pressed && styles.buttonPressed
           ]}
         >
-          <Text style={styles.secondaryButtonText}>이전</Text>
+          <Text style={styles.secondaryButtonText}>{translateText('이전')}</Text>
         </Pressable>
         <Text style={styles.pageText}>
           {value} / {totalPages}
@@ -1878,7 +1892,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
             pressed && styles.buttonPressed
           ]}
         >
-          <Text style={styles.secondaryButtonText}>다음</Text>
+          <Text style={styles.secondaryButtonText}>{translateText('다음')}</Text>
         </Pressable>
       </View>
     );
