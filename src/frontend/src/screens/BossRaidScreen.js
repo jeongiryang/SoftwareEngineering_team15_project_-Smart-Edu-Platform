@@ -14,6 +14,8 @@ import {
   getBossRaidPartyDetail,
   getBossRaids,
   getMyBossRaidParties,
+  getPublicBossRaidParties,
+  joinPublicBossRaidParty,
   joinBossRaidParty
 } from '../services/api';
 import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
@@ -100,10 +102,12 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
   const locale = languageIntlLocale(currentLanguage);
   const [raids, setRaids] = useState([]);
   const [parties, setParties] = useState([]);
+  const [publicParties, setPublicParties] = useState([]);
   const [selectedRaidId, setSelectedRaidId] = useState(null);
   const [selectedPartyId, setSelectedPartyId] = useState(null);
   const [selectedParty, setSelectedParty] = useState(null);
   const [createPartyName, setCreatePartyName] = useState('');
+  const [partyVisibility, setPartyVisibility] = useState('PUBLIC');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -124,9 +128,10 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       setError('');
 
       try {
-        const [raidResponse, partyResponse] = await Promise.all([
+        const [raidResponse, partyResponse, publicPartyResponse] = await Promise.all([
           getBossRaids(token),
-          getMyBossRaidParties(token)
+          getMyBossRaidParties(token),
+          getPublicBossRaidParties(token)
         ]);
 
         if (!active) {
@@ -135,6 +140,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
 
         setRaids(raidResponse.raids || []);
         setParties(partyResponse.parties || []);
+        setPublicParties(publicPartyResponse.parties || []);
 
         setSelectedRaidId((currentRaidId) => currentRaidId || raidResponse.raids?.[0]?.id || null);
         setSelectedPartyId((currentPartyId) => currentPartyId || partyResponse.parties?.[0]?.id || null);
@@ -210,6 +216,22 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       ));
     });
 
+    setPublicParties((currentParties) => {
+      if (realtimeParty.isPublic === false || realtimeParty.status !== 'OPEN') {
+        return currentParties.filter((party) => party.id !== realtimeParty.id);
+      }
+
+      const exists = currentParties.some((party) => party.id === realtimeParty.id);
+
+      if (!exists) {
+        return [realtimeParty, ...currentParties];
+      }
+
+      return currentParties.map((party) => (
+        party.id === realtimeParty.id ? { ...party, ...realtimeParty } : party
+      ));
+    });
+
     if (selectedPartyId === realtimeParty.id) {
       setSelectedParty((currentParty) => ({ ...(currentParty || {}), ...realtimeParty }));
       setRealtimeMessage(
@@ -221,10 +243,14 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
   }, [realtimeEvent, selectedPartyId, t]);
 
   async function refreshParties(nextSelectedPartyId = selectedPartyId) {
-    const partyResponse = await getMyBossRaidParties(token);
+    const [partyResponse, publicPartyResponse] = await Promise.all([
+      getMyBossRaidParties(token),
+      getPublicBossRaidParties(token)
+    ]);
     const nextParties = partyResponse.parties || [];
 
     setParties(nextParties);
+    setPublicParties(publicPartyResponse.parties || []);
 
     if (!nextParties.length) {
       setSelectedPartyId(null);
@@ -250,6 +276,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     try {
       const response = await createBossRaidParty(token, {
         raidId: selectedRaid.id,
+        isPublic: partyVisibility === 'PUBLIC',
         name: createPartyName || interpolate(
           t('bossRaid.defaults.partyName', '{name} 파티'),
           { name: user?.name || t('bossRaid.defaults.studyName', '스터디') }
@@ -287,6 +314,27 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       await refreshParties(response.party.id);
     } catch (joinError) {
       setError(joinError.message || t('bossRaid.errors.joinParty', '파티 참가에 실패했습니다.'));
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleJoinPublicParty(partyId) {
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await joinPublicBossRaidParty(token, partyId);
+
+      setSelectedPartyId(response.party.id);
+      setMessage(interpolate(
+        t('bossRaid.messages.partyJoined', '"{name}" ?뚰떚??李멸??덉뼱??'),
+        { name: response.party.name }
+      ));
+      await refreshParties(response.party.id);
+    } catch (joinError) {
+      setError(joinError.message || t('bossRaid.errors.joinParty', '?뚰떚 李멸????ㅽ뙣?덉뒿?덈떎.'));
     } finally {
       setActionLoading(false);
     }
@@ -415,6 +463,30 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
             style={styles.input}
             value={createPartyName}
           />
+          <View style={styles.segmentedRow}>
+            {['PUBLIC', 'PRIVATE'].map((visibility) => {
+              const active = partyVisibility === visibility;
+
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  key={visibility}
+                  onPress={() => setPartyVisibility(visibility)}
+                  style={(state) => [
+                    styles.segmentedButton,
+                    active && styles.segmentedButtonActive,
+                    ...interactiveStateStyles(state)
+                  ]}
+                >
+                  <Text style={[styles.segmentedButtonText, active && styles.segmentedButtonTextActive]}>
+                    {visibility === 'PUBLIC'
+                      ? t('bossRaid.create.publicParty', '공개 모집')
+                      : t('bossRaid.create.privateParty', '초대 코드')}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
           <Pressable
             disabled={actionLoading || !selectedRaid}
             onPress={handleCreateParty}
@@ -454,6 +526,48 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t('bossRaid.sections.publicParties', '공개 모집 파티')}</Text>
+        <View style={styles.partyList}>
+          {publicParties.map((party) => {
+            const joined = party.members?.some((member) => member.userId === user?.id);
+
+            return (
+              <View key={`public-${party.id}`} style={styles.publicPartyCard}>
+                <View style={styles.publicPartyCopy}>
+                  <Text style={styles.partyChipTitle}>{party.name}</Text>
+                  <Text style={styles.partyChipMeta}>
+                    {party.raid.name} · {party.totalMembers || party.members?.length || 0}명 · 공개 모집
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={actionLoading || joined}
+                  onPress={() => handleJoinPublicParty(party.id)}
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    (actionLoading || joined) && styles.disabledButton,
+                    pressed && !actionLoading && styles.secondaryButtonPressed
+                  ]}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    {joined ? t('bossRaid.join.joinedPublic', '참여 중') : t('bossRaid.join.publicButton', '공개 파티 참여')}
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          })}
+          {!loading && publicParties.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateTitle}>{t('bossRaid.public.emptyTitle', '현재 공개 모집 파티가 없어요')}</Text>
+              <Text style={styles.emptyStateDescription}>
+                {t('bossRaid.public.emptyDescription', '새 파티를 공개 모집으로 만들거나 친구에게 초대 코드를 공유해 보세요.')}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('bossRaid.sections.myParties', '내 파티')}</Text>
         <View style={styles.partyList}>
           {parties.map((party) => {
@@ -476,7 +590,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                   {party.name}
                 </Text>
                 <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]}>
-                  {party.raid.name} · {party.joinCode}
+                  {party.raid.name} · {party.inviteMode === 'PRIVATE' ? '초대 코드' : '공개 모집'} · {party.joinCode}
                 </Text>
               </Pressable>
             );
@@ -843,6 +957,35 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15
   },
+  segmentedRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  segmentedButton: {
+    minHeight: 40,
+    flex: 1,
+    minWidth: 120,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12
+  },
+  segmentedButtonActive: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.mintSoft
+  },
+  segmentedButtonText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  segmentedButtonTextActive: {
+    color: colors.mintDeep
+  },
   primaryButton: {
     minHeight: 48,
     borderRadius: radii.control,
@@ -884,6 +1027,24 @@ const styles = StyleSheet.create({
   },
   partyList: {
     gap: 12
+  },
+  publicPartyCard: {
+    alignItems: 'center',
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  publicPartyCopy: {
+    flex: 1,
+    minWidth: 220,
+    gap: 4
   },
   partyChip: {
     borderRadius: radii.control,

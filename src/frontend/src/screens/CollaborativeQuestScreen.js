@@ -198,6 +198,47 @@ const COPY = {
   }
 };
 
+const CONTRIBUTION_PRESETS = [10, 25, 50];
+
+const UI_LABELS = {
+  ko: {
+    autoReward: '추천 보상 적용',
+    hideCompleted: '완료 숨기기',
+    showJoinedOnly: '내 참여만 보기',
+    filteredEmpty: '현재 조건에 맞는 협동 퀘스트가 없습니다.',
+    minutesPreset: '{value}분',
+    recommendedContribution: '추천 기여 {value}',
+    rewardHint: '목표 수치 기준 추천 보상: {value}P'
+  },
+  en: {
+    autoReward: 'Use suggested reward',
+    hideCompleted: 'Hide completed',
+    showJoinedOnly: 'My quests only',
+    filteredEmpty: 'No collaborative quests match the current filters.',
+    minutesPreset: '{value} min',
+    recommendedContribution: 'Suggested contribution {value}',
+    rewardHint: 'Suggested reward from goal: {value} pts'
+  },
+  ja: {
+    autoReward: 'おすすめ報酬を適用',
+    hideCompleted: '完了を隠す',
+    showJoinedOnly: '参加中のみ',
+    filteredEmpty: '条件に合う協同クエストがありません。',
+    minutesPreset: '{value}分',
+    recommendedContribution: 'おすすめ貢献 {value}',
+    rewardHint: '目標基準のおすすめ報酬: {value} pt'
+  },
+  zh: {
+    autoReward: '使用推荐奖励',
+    hideCompleted: '隐藏已完成',
+    showJoinedOnly: '仅看已参加',
+    filteredEmpty: '没有符合当前筛选的协作任务。',
+    minutesPreset: '{value}分钟',
+    recommendedContribution: '推荐贡献 {value}',
+    rewardHint: '按目标推荐奖励：{value} 点'
+  }
+};
+
 function interpolate(template, values) {
   return Object.entries(values).reduce(
     (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
@@ -207,6 +248,12 @@ function interpolate(template, values) {
 
 function formatNumber(value, locale = 'ko-KR') {
   return Intl.NumberFormat(locale).format(Number(value) || 0);
+}
+
+function getSuggestedRewardPoints(goalValue) {
+  const parsedGoal = Number(goalValue) || 0;
+
+  return Math.min(Math.max(Math.ceil(parsedGoal * 0.3), 10), 100000);
 }
 
 function statusLabel(status, copy) {
@@ -226,6 +273,10 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
   const locale = languageIntlLocale(currentLanguage);
   const dictionary = COPY[currentLanguage] || COPY.ko;
   const copy = (key, values = {}) => interpolate(dictionary[key] || COPY.ko[key] || key, values);
+  const uiText = (key, values = {}) => interpolate(
+    UI_LABELS[currentLanguage]?.[key] || UI_LABELS.ko[key] || key,
+    values
+  );
   const [quests, setQuests] = useState([]);
   const [selectedQuestId, setSelectedQuestId] = useState(null);
   const [selectedQuest, setSelectedQuest] = useState(null);
@@ -244,11 +295,28 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [realtimeMessage, setRealtimeMessage] = useState('');
+  const [hideCompleted, setHideCompleted] = useState(false);
+  const [showJoinedOnly, setShowJoinedOnly] = useState(false);
 
   const selectedSummary = useMemo(
     () => quests.find((quest) => quest.id === selectedQuestId) || quests[0] || null,
     [quests, selectedQuestId]
   );
+  const visibleQuests = useMemo(
+    () => quests.filter((quest) => {
+      if (hideCompleted && quest.status === 'COMPLETED') {
+        return false;
+      }
+
+      if (showJoinedOnly && !quest.hasJoined) {
+        return false;
+      }
+
+      return true;
+    }),
+    [hideCompleted, quests, showJoinedOnly]
+  );
+  const suggestedRewardPoints = getSuggestedRewardPoints(form.goalValue);
 
   async function loadQuests(preferredQuestId = selectedQuestId) {
     setLoading(true);
@@ -356,11 +424,12 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
     setMessage('');
 
     try {
+      const rewardPoints = form.rewardPoints === '' ? undefined : Number(form.rewardPoints);
       const response = await createCollaborativeQuest(token, {
         title: form.title,
         description: form.description,
         goalValue: Number(form.goalValue),
-        rewardPoints: Number(form.rewardPoints)
+        ...(rewardPoints === undefined ? {} : { rewardPoints })
       });
       const quest = response.quest;
       setQuests((currentQuests) => [quest, ...currentQuests.filter((item) => item.id !== quest.id)]);
@@ -501,6 +570,21 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                 onChangeText={(value) => setForm((current) => ({ ...current, rewardPoints: value }))}
                 value={form.rewardPoints}
               />
+              <View style={styles.inlineHintRow}>
+                <Text style={styles.muted}>
+                  {uiText('rewardHint', { value: formatNumber(suggestedRewardPoints, locale) })}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setForm((current) => ({
+                    ...current,
+                    rewardPoints: String(suggestedRewardPoints)
+                  }))}
+                  style={(state) => [styles.inlineButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.inlineButtonText}>{uiText('autoReward')}</Text>
+                </Pressable>
+              </View>
             </View>
             <Pressable
               accessibilityRole="button"
@@ -520,8 +604,39 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
             <Text style={styles.panelTitle}>{copy('listTitle')}</Text>
             {loading ? <Text style={styles.muted}>{copy('loading')}</Text> : null}
             {!loading && quests.length === 0 ? <Text style={styles.muted}>{copy('empty')}</Text> : null}
+            <View style={styles.filterRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setHideCompleted((current) => !current)}
+                style={(state) => [
+                  styles.filterChip,
+                  hideCompleted && styles.filterChipActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text style={[styles.filterChipText, hideCompleted && styles.filterChipTextActive]}>
+                  {uiText('hideCompleted')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setShowJoinedOnly((current) => !current)}
+                style={(state) => [
+                  styles.filterChip,
+                  showJoinedOnly && styles.filterChipActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text style={[styles.filterChipText, showJoinedOnly && styles.filterChipTextActive]}>
+                  {uiText('showJoinedOnly')}
+                </Text>
+              </Pressable>
+            </View>
+            {!loading && quests.length > 0 && visibleQuests.length === 0 ? (
+              <Text style={styles.muted}>{uiText('filteredEmpty')}</Text>
+            ) : null}
             <View style={styles.questList}>
-              {quests.map((quest) => {
+              {visibleQuests.map((quest) => {
                 const active = quest.id === selectedQuestId;
                 const rate = Math.round(Number(quest.progressPercent || 0));
 
@@ -603,6 +718,29 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
               <View style={styles.actionPanel}>
                 {displayQuest.canContribute ? (
                   <>
+                    <View style={styles.presetRow}>
+                      <Text style={styles.muted}>
+                        {uiText('recommendedContribution', {
+                          value: formatNumber(displayQuest.recommendedContributionAmount || 10, locale)
+                        })}
+                      </Text>
+                      {CONTRIBUTION_PRESETS.map((preset) => (
+                        <Pressable
+                          accessibilityRole="button"
+                          key={preset}
+                          onPress={() => setContribution((current) => ({
+                            ...current,
+                            amount: String(preset),
+                            memo: uiText('minutesPreset', { value: preset })
+                          }))}
+                          style={(state) => [styles.filterChip, ...interactiveStateStyles(state)]}
+                        >
+                          <Text style={styles.filterChipText}>
+                            {uiText('minutesPreset', { value: preset })}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
                     <LabeledInput
                       keyboardType="numeric"
                       label={copy('amountLabel')}
@@ -835,6 +973,13 @@ const styles = StyleSheet.create({
   formGrid: {
     gap: 12
   },
+  inlineHintRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'space-between'
+  },
   inputGroup: {
     gap: 6
   },
@@ -924,6 +1069,39 @@ const styles = StyleSheet.create({
   },
   questList: {
     gap: 12
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center'
+  },
+  filterChip: {
+    minHeight: 34,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 11
+  },
+  filterChipActive: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.mintSoft
+  },
+  filterChipText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  filterChipTextActive: {
+    color: colors.mintDeep
   },
   questCard: {
     borderRadius: radii.card,

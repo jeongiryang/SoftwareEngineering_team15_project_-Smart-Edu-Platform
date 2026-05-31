@@ -232,6 +232,8 @@ describe('Collaborative Quest API', () => {
         title: 'Morning focus relay',
         progressPercent: 40,
         participantCount: 1,
+        recommendedContributionAmount: 10,
+        recommendedRewardPoints: 30,
         hasJoined: true
       })
     );
@@ -271,6 +273,28 @@ describe('Collaborative Quest API', () => {
           completed: false
         })
       }
+    );
+  });
+
+  it('auto-calculates collaborative quest reward points when omitted', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/collaborative-quests')
+      .set(createAuthHeader(token))
+      .send({
+        title: 'Auto reward relay',
+        description: 'Use the suggested reward policy.',
+        goalValue: 80
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.quest).toEqual(
+      expect.objectContaining({
+        title: 'Auto reward relay',
+        goalValue: 80,
+        rewardPoints: 24
+      })
     );
   });
 

@@ -3988,7 +3988,7 @@ Request Body:
 핵심 규칙:
 
 - 파티 단위로 진행
-- 참여 코드로 원하는 사람끼리 합류 가능
+- 공개 모집 파티는 목록에서 바로 참여 가능하고, 비공개 파티는 참여 코드로 원하는 사람끼리 합류 가능
 - 데미지 계산:
   - `1 집중분 = 1 데미지`
   - `완료 태스크 1개 = 15 데미지`
@@ -4016,11 +4016,27 @@ Request Body:
 ```json
 {
   "raidId": 1,
-  "name": "아침 집중팟"
+  "name": "아침 집중팟",
+  "isPublic": true
 }
 ```
 
-#### 9.9.3 참여 코드로 파티 참가
+`isPublic`은 기본값이 `true`임. `false`로 생성하면 공개 모집 목록에 표시하지 않고 참여 코드로만 합류함.
+
+#### 9.9.3 공개 모집 파티 조회 / 참여
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids/parties/public` | 공개 모집 중인 보스 레이드 파티 목록 조회 |
+| `POST` | `/api/boss-raids/parties/:partyId/join` | 공개 모집 파티에 참여 코드 없이 합류 |
+
+Query:
+
+- `raidId`: 선택한 보스 기준으로 공개 모집 파티를 좁혀 조회할 때 사용함.
+
+응답 파티에는 `isPublic`, `inviteMode`, `totalMembers`, `members`, `contributions`가 포함됨. 공개 참여 API는 비공개 파티에 대해 `404`를 반환해 초대 전용 파티를 노출하지 않음.
+
+#### 9.9.4 참여 코드로 파티 참가
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -4034,14 +4050,14 @@ Request Body:
 }
 ```
 
-#### 9.9.4 내 파티 목록 / 파티 상세 조회
+#### 9.9.5 내 파티 목록 / 파티 상세 조회
 
 | Method | Endpoint | 설명 |
 |---|---|---|
 | `GET` | `/api/boss-raids/parties/me` | 내가 참여 중인 보스 레이드 파티 목록 조회 |
 | `GET` | `/api/boss-raids/parties/:partyId` | 파티 상세, 멤버, 기여도, 남은 HP, 클리어 여부 조회 |
 
-#### 9.9.5 보스 레이드 보상 수령
+#### 9.9.6 보스 레이드 보상 수령
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -4077,6 +4093,7 @@ Response 주요 필드:
 - `goalValue`, `currentValue`, `progressRate`, `progressPercent`
 - `status`: `ACTIVE`, `COMPLETED`, `EXPIRED`
 - `rewardPoints`
+- `recommendedRewardPoints`, `recommendedContributionAmount`
 - `participantCount`, `participants`
 - `hasJoined`, `hasClaimed`, `canJoin`, `canContribute`, `canClaim`
 
@@ -4104,6 +4121,8 @@ Request Body:
 }
 ```
 
+`rewardPoints`를 생략하거나 빈 값으로 보내면 서버가 `goalValue` 기준으로 추천 보상을 자동 계산함. 현재 MVP 정책은 `goalValue * 0.3`을 올림 처리하되 최소 10P, 최대 100000P로 제한함.
+
 #### 9.10.4 협동 퀘스트 참여
 
 | Method | Endpoint | 설명 |
@@ -4128,6 +4147,8 @@ Request Body:
 ```
 
 기여도 추가 성공 시 현재 진행률을 갱신한다. `currentValue >= goalValue`가 되면 상태를 `COMPLETED`로 전환하고 `completedAt`을 기록한다.
+
+프론트엔드 MVP는 10/25/50분 프리셋을 제공해 시간 기반 순차 기여 흐름을 빠르게 입력할 수 있게 한다. API는 여전히 `amount` 숫자를 기준으로 처리하며, 참여자가 아닌 사용자의 기여는 차단함.
 
 #### 9.10.6 협동 퀘스트 보상 수령
 
@@ -4175,7 +4196,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 28 suites / 486 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 28 suites / 491 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |

@@ -39,6 +39,7 @@ function mockBuildParty(overrides = {}) {
     ownerId: 1,
     name: '아침 집중팟',
     joinCode: 'ABC123',
+    isPublic: true,
     status: 'OPEN',
     totalDamage: 140,
     remainingHp: 160,
@@ -185,12 +186,13 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
       badge: mockBossBadge
     }
   })),
-  createBossRaidParty: jest.fn(async ({ raidId, ownerId, name, joinCode }) =>
+  createBossRaidParty: jest.fn(async ({ raidId, ownerId, name, joinCode, isPublic = true }) =>
     mockBuildParty({
       raidId,
       ownerId,
       name,
-      joinCode
+      joinCode,
+      isPublic
     })
   ),
   findActiveBossRaids: jest.fn(async () => [mockBuildRaid()]),
@@ -203,6 +205,7 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
   findBossRaidPartyByJoinCode: jest.fn(async (joinCode) =>
     joinCode === 'ABC123' ? mockBuildParty() : null
   ),
+  findPublicBossRaidParties: jest.fn(async () => [mockBuildParty()]),
   findBossRaidRewardClaim: jest.fn(async () => null),
   findUserBossRaidParties: jest.fn(async () => [mockBuildParty()]),
   findUserBossRaidPartyForRaid: jest.fn(async () => null),
@@ -256,6 +259,7 @@ describe('Boss Raid API', () => {
   it.each([
     { method: 'get', path: '/api/boss-raids' },
     { method: 'get', path: '/api/boss-raids/parties/me' },
+    { method: 'get', path: '/api/boss-raids/parties/public' },
     { method: 'post', path: '/api/boss-raids/parties' }
   ])('rejects unauthenticated $method $path requests', async ({ method, path }) => {
     const response = await request(app)[method](path).send({});
@@ -297,6 +301,7 @@ describe('Boss Raid API', () => {
       })
     );
     expect(response.body.party.joinCode).toHaveLength(6);
+    expect(response.body.party.isPublic).toBe(true);
     expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
       expect.arrayContaining([1, 2]),
       'bossRaid.progress.updated',
@@ -311,6 +316,24 @@ describe('Boss Raid API', () => {
           completed: false
         })
       }
+    );
+  });
+
+  it('lists public boss raid parties without joining by invite code', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/boss-raids/parties/public')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.parties).toHaveLength(1);
+    expect(response.body.parties[0]).toEqual(
+      expect.objectContaining({
+        id: 10,
+        isPublic: true,
+        inviteMode: 'PUBLIC'
+      })
     );
   });
 
@@ -337,6 +360,44 @@ describe('Boss Raid API', () => {
         })
       })
     );
+  });
+
+  it('joins a public boss raid party by party id', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/boss-raids/parties/10/join')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.party.id).toBe(10);
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([1, 2]),
+      'bossRaid.progress.updated',
+      expect.objectContaining({
+        party: expect.objectContaining({
+          id: 10,
+          participantCount: 2
+        })
+      })
+    );
+  });
+
+  it('does not expose private boss raid parties through public join', async () => {
+    bossRaidRepository.findBossRaidPartyById.mockResolvedValueOnce(
+      mockBuildParty({
+        isPublic: false
+      })
+    );
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/boss-raids/parties/10/join')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(404);
   });
 
   it('returns a joined party detail with contribution data', async () => {
