@@ -22,6 +22,10 @@ import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const WITHDRAWAL_CONFIRMATION_TEXT = '탈퇴합니다';
+const PROFILE_TAB_KEYS = {
+  learning: 'learning',
+  account: 'account'
+};
 
 const EMPTY_PROFILE_DATA = {
   schedules: [],
@@ -75,6 +79,10 @@ function formatMinutes(value) {
   }
 
   return `${hours}시간 ${rest}분`;
+}
+
+function normalizeProfileTab(value) {
+  return value === PROFILE_TAB_KEYS.account ? PROFILE_TAB_KEYS.account : PROFILE_TAB_KEYS.learning;
 }
 
 function toDateKey(date) {
@@ -272,7 +280,7 @@ function SectionCard({ children, headerAction, subtitle, title }) {
   );
 }
 
-export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, onUserUpdate, token, user }) {
+export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, onUserUpdate, routeParams = {}, token, user }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -297,6 +305,12 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
     confirmationText: ''
   });
   const { translateText } = useLanguage();
+  const requestedProfileTab = normalizeProfileTab(routeParams.tab || routeParams.section);
+  const [activeProfileTab, setActiveProfileTab] = useState(requestedProfileTab);
+
+  useEffect(() => {
+    setActiveProfileTab(requestedProfileTab);
+  }, [requestedProfileTab]);
 
   useEffect(() => {
     setNameForm(user?.name || '');
@@ -526,6 +540,31 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
     { key: 'dislikes', label: '내가 누른 싫어요', value: activityStats.dislikeCount },
     { key: 'bookmarks', label: '북마크', value: activityStats.bookmarkCount }
   ];
+  const profileTabs = [
+    {
+      key: PROFILE_TAB_KEYS.learning,
+      label: translateText('학습 흐름'),
+      description: translateText('일정, 태스크, 보상, 활동 흐름을 확인합니다.')
+    },
+    {
+      key: PROFILE_TAB_KEYS.account,
+      label: translateText('계정 설정'),
+      description: translateText('닉네임, 비밀번호, 회원 탈퇴를 관리합니다.')
+    }
+  ];
+  const activeTabDescription = profileTabs.find((item) => item.key === activeProfileTab)?.description;
+  const heroTitle = activeProfileTab === PROFILE_TAB_KEYS.account
+    ? `${userName}님의 ${translateText('계정 설정')}`
+    : `${userName}님의 ${translateText('학습 흐름')}`;
+  const heroSubtitle = activeProfileTab === PROFILE_TAB_KEYS.account
+    ? translateText('계정 정보와 보안 설정을 필요한 항목만 열어서 관리합니다.')
+    : derived.insight;
+
+  function handleProfileTabChange(nextTab) {
+    const normalizedTab = normalizeProfileTab(nextTab);
+    setActiveProfileTab(normalizedTab);
+    onNavigate?.('profile', { replace: true, params: { tab: normalizedTab } });
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -533,9 +572,9 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
         <ProfileAvatar appearance={profileAppearance} name={userName} size="lg" />
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>PROFILE DASHBOARD</Text>
-          <Text style={styles.title}>{userName}님의 학습 흐름</Text>
+          <Text style={styles.title}>{heroTitle}</Text>
           <ProfileTitleChip animated title={profileAppearance.titleText} translateText={translateText} />
-          <Text style={styles.subtitle}>{derived.insight}</Text>
+          <Text style={styles.subtitle}>{heroSubtitle}</Text>
           <View style={styles.identityRow}>
             <View style={styles.identityChip}>
               <Text style={styles.identityChipText}>{isAdmin ? 'ADMIN' : 'LEARNER'}</Text>
@@ -557,6 +596,35 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
         </Pressable>
       </ProfileBackground>
 
+      <View style={[styles.profileTabCard, shadows.card]}>
+        <View style={styles.profileTabRow}>
+          {profileTabs.map((item) => {
+            const active = activeProfileTab === item.key;
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                key={item.key}
+                onPress={() => handleProfileTabChange(item.key)}
+                style={(state) => [
+                  styles.profileTabButton,
+                  active && styles.profileTabButtonActive,
+                  ...interactiveStateStyles(state)
+                ]}
+              >
+                <Text style={[styles.profileTabButtonText, active && styles.profileTabButtonTextActive]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {activeTabDescription ? (
+          <Text style={styles.profileTabDescription}>{activeTabDescription}</Text>
+        ) : null}
+      </View>
+
       {loading ? (
         <View style={styles.skeletonGrid}>
           <PanelSkeleton rows={4} />
@@ -575,30 +643,32 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
             </View>
           ) : null}
 
-          <View style={styles.accountMetaGrid}>
-            <View style={styles.accountMetaCard}>
-              <Text style={styles.accountMetaLabel}>가입일</Text>
-              <Text style={styles.accountMetaValue}>{formatShortDate(user?.createdAt)}</Text>
-            </View>
-            <View style={styles.accountMetaCard}>
-              <Text style={styles.accountMetaLabel}>계정 상태</Text>
-              <Text style={styles.accountMetaValue}>{formatAccountStatus(user?.status)}</Text>
-            </View>
-            <View style={styles.accountMetaCard}>
-              <Text style={styles.accountMetaLabel}>로그인 아이디</Text>
-              <Text style={styles.accountMetaValue}>{formatLoginId(user?.loginId)}</Text>
-            </View>
-          </View>
+          {activeProfileTab === PROFILE_TAB_KEYS.learning ? (
+            <>
+              <View style={styles.accountMetaGrid}>
+                <View style={styles.accountMetaCard}>
+                  <Text style={styles.accountMetaLabel}>가입일</Text>
+                  <Text style={styles.accountMetaValue}>{formatShortDate(user?.createdAt)}</Text>
+                </View>
+                <View style={styles.accountMetaCard}>
+                  <Text style={styles.accountMetaLabel}>계정 상태</Text>
+                  <Text style={styles.accountMetaValue}>{formatAccountStatus(user?.status)}</Text>
+                </View>
+                <View style={styles.accountMetaCard}>
+                  <Text style={styles.accountMetaLabel}>로그인 아이디</Text>
+                  <Text style={styles.accountMetaValue}>{formatLoginId(user?.loginId)}</Text>
+                </View>
+              </View>
 
-          <View style={styles.metricGrid}>
-            <MetricCard label="오늘 집중" value={formatMinutes(profileData.todaySummary.totalMinutes)} helper={`${profileData.todaySummary.sessionCount || 0}회 기록`} tone="mint" />
-            <MetricCard label="최근 7일 집중" value={formatMinutes(profileData.weekSummary.totalMinutes)} helper={`완료율 ${profileData.weekSummary.completionRate || 0}%`} tone="blue" />
-            <MetricCard label="완료 태스크" value={`${formatNumber(derived.doneTasks.length)}개`} helper={`진행 중 ${derived.inProgressTasks.length}개`} />
-            <MetricCard label="보유 포인트" value={`${formatNumber(rewardPoints)}P`} helper={`배지 ${derived.badges.length}개`} tone="mint" />
-            <MetricCard label="학습 친구" value={`${formatNumber(profileData.friends.length)}명`} helper={`받은 요청 ${profileData.friendRequests.received.length}건`} tone="blue" />
-          </View>
+              <View style={styles.metricGrid}>
+                <MetricCard label="오늘 집중" value={formatMinutes(profileData.todaySummary.totalMinutes)} helper={`${profileData.todaySummary.sessionCount || 0}회 기록`} tone="mint" />
+                <MetricCard label="최근 7일 집중" value={formatMinutes(profileData.weekSummary.totalMinutes)} helper={`완료율 ${profileData.weekSummary.completionRate || 0}%`} tone="blue" />
+                <MetricCard label="완료 태스크" value={`${formatNumber(derived.doneTasks.length)}개`} helper={`진행 중 ${derived.inProgressTasks.length}개`} />
+                <MetricCard label="보유 포인트" value={`${formatNumber(rewardPoints)}P`} helper={`배지 ${derived.badges.length}개`} tone="mint" />
+                <MetricCard label="학습 친구" value={`${formatNumber(profileData.friends.length)}명`} helper={`받은 요청 ${profileData.friendRequests.received.length}건`} tone="blue" />
+              </View>
 
-          <View style={styles.bentoGrid}>
+              <View style={styles.bentoGrid}>
             <SectionCard
               title="학습 요약"
               subtitle="일정과 칸반 진행 상황을 함께 봅니다."
@@ -804,8 +874,13 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
                 </Pressable>
               </View>
             </SectionCard>
+              </View>
+            </>
+          ) : null}
 
-            <SectionCard title="계정 설정" subtitle="닉네임, 비밀번호, 탈퇴 여부를 필요한 항목만 열어서 관리합니다.">
+          {activeProfileTab === PROFILE_TAB_KEYS.account ? (
+            <View style={styles.bentoGrid}>
+              <SectionCard title="계정 설정" subtitle="닉네임, 비밀번호, 탈퇴 여부를 필요한 항목만 열어서 관리합니다.">
               {accountMessage ? (
                 <View style={styles.accountSuccess}>
                   <Text style={styles.accountSuccessText}>{accountMessage}</Text>
@@ -970,12 +1045,13 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
                       ...interactiveStateStyles(state, { disabled: withdrawingAccount })
                     ]}
                   >
-                    <Text style={styles.withdrawalButtonText}>{withdrawingAccount ? '탈퇴 처리 중' : '회원 탈퇴'}</Text>
-                  </Pressable>
-                </View>
+                  <Text style={styles.withdrawalButtonText}>{withdrawingAccount ? '탈퇴 처리 중' : '회원 탈퇴'}</Text>
+                </Pressable>
+              </View>
               )}
-            </SectionCard>
-          </View>
+              </SectionCard>
+            </View>
+          ) : null}
         </>
       )}
     </ScrollView>
@@ -1022,6 +1098,47 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 15,
     lineHeight: 24
+  },
+  profileTabCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 16,
+    gap: 10
+  },
+  profileTabRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  profileTabButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  profileTabButtonActive: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft
+  },
+  profileTabButtonText: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  profileTabButtonTextActive: {
+    color: colors.blueDeep
+  },
+  profileTabDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20
   },
   identityRow: {
     flexDirection: 'row',
