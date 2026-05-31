@@ -119,6 +119,20 @@ function readScreenFromLocation() {
   return getScreenFromPath(globalThis.window.location.pathname) || 'home';
 }
 
+function readRouteParamsFromLocation() {
+  if (!canUseBrowserHistory()) {
+    return {};
+  }
+
+  const params = {};
+  const searchParams = new URLSearchParams(globalThis.window.location.search || '');
+  searchParams.forEach((value, key) => {
+    params[key] = value;
+  });
+
+  return params;
+}
+
 function buildSearchString(params, preserveSearch = false) {
   if (preserveSearch) {
     return globalThis.window?.location?.search || '';
@@ -296,6 +310,7 @@ export default function App() {
 
 function AppRoot() {
   const [currentScreen, setCurrentScreen] = useState(readScreenFromLocation);
+  const [routeParams, setRouteParams] = useState(readRouteParamsFromLocation);
   const [initializing, setInitializing] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [token, setToken] = useState(null);
@@ -319,8 +334,10 @@ function AppRoot() {
 
   const navigateTo = useCallback((screen, options = {}) => {
     const nextScreen = normalizeScreen(screen);
+    const nextParams = options.preserveSearch ? readRouteParamsFromLocation() : (options.params || {});
     setCurrentScreen(nextScreen);
-    syncBrowserPath(nextScreen, options);
+    setRouteParams(nextParams);
+    syncBrowserPath(nextScreen, { ...options, params: nextParams });
   }, []);
 
   useEffect(() => {
@@ -330,6 +347,7 @@ function AppRoot() {
 
     function handlePopState() {
       setCurrentScreen(readScreenFromLocation());
+      setRouteParams(readRouteParamsFromLocation());
     }
 
     globalThis.window.addEventListener('popstate', handlePopState);
@@ -652,6 +670,7 @@ function AppRoot() {
             onNavigate={navigateTo}
             onUserUpdate={setUser}
             realtimeEvent={latestRealtimeEvent}
+            routeParams={routeParams}
             sendRealtimeEvent={sendRealtimeEvent}
             token={token}
             user={user}

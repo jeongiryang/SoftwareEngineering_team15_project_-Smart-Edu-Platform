@@ -457,14 +457,14 @@ function HeaderProfileMenu({ activeScreen, displayName, onLogout, onNavigate, tr
           </View>
           <Pressable
             accessibilityRole="menuitem"
-            onPress={() => handleNavigate('profile')}
+            onPress={() => handleNavigate('profile', { tab: 'learning' })}
             style={(state) => [styles.profileMenuItem, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.profileMenuItemText}>{learningFlowLabel}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="menuitem"
-            onPress={() => handleNavigate('profile', { section: 'account' })}
+            onPress={() => handleNavigate('profile', { tab: 'account' })}
             style={(state) => [styles.profileMenuItem, ...interactiveStateStyles(state)]}
           >
             <Text style={styles.profileMenuItemText}>{accountLabel}</Text>
