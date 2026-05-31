@@ -3042,8 +3042,14 @@ async function seedDirectMessages(prisma, usersByLoginId) {
 async function seedRewards(prisma, usersByLoginId) {
   const mainUser = usersByLoginId['dev_user'];
   const peerUser = usersByLoginId['study_peer'];
+  const friendUser = usersByLoginId['friend_user'];
   const communityUser = usersByLoginId['community_user'];
   const rewardUser = usersByLoginId['reward_user'];
+  const raidUser = usersByLoginId['raid_user'];
+  const questUser = usersByLoginId['quest_user'];
+  const teamUser01 = usersByLoginId['team_user_01'];
+  const teamUser02 = usersByLoginId['team_user_02'];
+  const teamUser03 = usersByLoginId['team_user_03'];
   const accessUser = usersByLoginId['accessibility_user'];
   const beginnerUser = usersByLoginId['beginner_user'];
 
