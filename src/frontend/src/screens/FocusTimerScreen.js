@@ -9,7 +9,13 @@ import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const ACTIVE_FOCUS_TIMER_STORAGE_KEY = 'smartEdu.activeFocusTimer';
-const DEFAULT_TIMER_MINUTES = '25';
+const DEFAULT_TIMER_SECONDS = 25 * 60;
+const MAX_TIMER_SECONDS = 3 * 60 * 60;
+const TIMER_PARTS = [
+  { key: 'hours', label: '시', max: 3, stepSeconds: 3600 },
+  { key: 'minutes', label: '분', max: 59, stepSeconds: 60 },
+  { key: 'seconds', label: '초', max: 59, stepSeconds: 1 }
+];
 
 function readStoredFocusTimer() {
   try {
@@ -39,23 +45,72 @@ function writeStoredFocusTimer(timer) {
 }
 
 function formatClock(ms) {
-  const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+  const totalMs = Math.max(0, Math.floor(Number(ms || 0)));
+  const totalSeconds = Math.floor(totalMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+  const centiseconds = Math.floor((totalMs % 1000) / 10);
+  const baseClock = [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
 
-  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
+  return `${baseClock}.${String(centiseconds).padStart(2, '0')}`;
 }
 
-function normalizeTimerMinutes(value) {
-  const digitsOnly = String(value || '').replace(/[^\d]/g, '').slice(0, 3);
-  const minutes = Number(digitsOnly || 0);
+function clampTimerSeconds(value) {
+  const numericValue = Math.round(Number(value) || 0);
 
-  if (minutes > 180) {
-    return '180';
+  return Math.min(MAX_TIMER_SECONDS, Math.max(1, numericValue));
+}
+
+function getStoredTimerTargetSeconds(timer) {
+  const targetSeconds = Number(timer?.targetSeconds);
+
+  if (Number.isFinite(targetSeconds) && targetSeconds > 0) {
+    return clampTimerSeconds(targetSeconds);
   }
 
-  return digitsOnly;
+  const legacyMinutes = Number(timer?.targetMinutes);
+
+  if (Number.isFinite(legacyMinutes) && legacyMinutes > 0) {
+    return clampTimerSeconds(legacyMinutes * 60);
+  }
+
+  return DEFAULT_TIMER_SECONDS;
+}
+
+function splitTimerSeconds(totalSeconds) {
+  const safeSeconds = clampTimerSeconds(totalSeconds);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  return { hours, minutes, seconds };
+}
+
+function mergeTimerPart(currentSeconds, partKey, rawValue) {
+  const parts = splitTimerSeconds(currentSeconds);
+  const config = TIMER_PARTS.find((item) => item.key === partKey);
+  const digitsOnly = String(rawValue || '').replace(/[^\d]/g, '').slice(0, 2);
+  const nextValue = Math.min(config?.max || 59, Number(digitsOnly || 0));
+  const nextParts = { ...parts, [partKey]: nextValue };
+  const nextSeconds = nextParts.hours * 3600 + nextParts.minutes * 60 + nextParts.seconds;
+
+  return clampTimerSeconds(nextSeconds);
+}
+
+function adjustTimerPart(currentSeconds, partKey, direction) {
+  const config = TIMER_PARTS.find((item) => item.key === partKey);
+  const stepSeconds = config?.stepSeconds || 1;
+
+  return clampTimerSeconds(currentSeconds + (direction > 0 ? stepSeconds : -stepSeconds));
+}
+
+function formatTimerTargetLabel(totalSeconds) {
+  const parts = splitTimerSeconds(totalSeconds);
+
+  return [parts.hours, parts.minutes, parts.seconds]
+    .map((value) => String(value).padStart(2, '0'))
+    .join(':');
 }
 
 function formatTemplate(template, values) {
@@ -78,9 +133,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
   const [focusStartedAt, setFocusStartedAt] = useState(storedFocusTimer?.startedAt || null);
   const [focusLastStartedAt, setFocusLastStartedAt] = useState(Number(storedFocusTimer?.lastStartedAt || 0));
   const [focusAccumulatedMs, setFocusAccumulatedMs] = useState(Number(storedFocusTimer?.accumulatedMs || 0));
-  const [timerTargetMinutes, setTimerTargetMinutes] = useState(
-    normalizeTimerMinutes(storedFocusTimer?.targetMinutes || DEFAULT_TIMER_MINUTES)
-  );
+  const [timerTargetSeconds, setTimerTargetSeconds] = useState(getStoredTimerTargetSeconds(storedFocusTimer));
   const [focusTimerTick, setFocusTimerTick] = useState(Date.now());
   const [savingFocusSession, setSavingFocusSession] = useState(false);
   const [focusTimerMessage, setFocusTimerMessage] = useState('');
@@ -159,7 +212,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
     const startedAt = focusStartedAt || new Date(now - durationMs).toISOString();
     const endedAt = new Date(now).toISOString();
     const memo = focusTimerMode === 'timer'
-      ? `타이머 집중 기록${completedByTimer ? ' · 목표 시간 도달' : ''}`
+      ? `타이머 집중 기록${completedByTimer ? ' · 목표 시간 도달' : ''} · 목표 ${formatTimerTargetLabel(timerTargetSeconds)}`
       : '스톱워치 집중 기록';
 
     setSavingFocusSession(true);
@@ -190,6 +243,50 @@ export default function FocusTimerScreen({ onNavigate, token }) {
       setFocusTimerMessage(saveError.message || translateText('집중 기록 저장에 실패했습니다.'));
     } finally {
       setSavingFocusSession(false);
+    }
+  }
+
+  function handleTimerPartChange(partKey, value) {
+    if (focusTimerStatus !== 'idle') {
+      return;
+    }
+
+    setTimerTargetSeconds((currentSeconds) => mergeTimerPart(currentSeconds, partKey, value));
+  }
+
+  function handleTimerPartAdjust(partKey, direction) {
+    if (focusTimerStatus !== 'idle') {
+      return;
+    }
+
+    setTimerTargetSeconds((currentSeconds) => adjustTimerPart(currentSeconds, partKey, direction));
+  }
+
+  function handleTimerPartWheel(event, partKey) {
+    if (focusTimerStatus !== 'idle') {
+      return;
+    }
+
+    const deltaY = event?.deltaY ?? event?.nativeEvent?.deltaY ?? 0;
+
+    if (!deltaY) {
+      return;
+    }
+
+    event?.preventDefault?.();
+    handleTimerPartAdjust(partKey, deltaY < 0 ? 1 : -1);
+  }
+
+  function handleTimerPartKeyDown(event, partKey) {
+    if (focusTimerStatus !== 'idle') {
+      return;
+    }
+
+    const key = event?.key ?? event?.nativeEvent?.key;
+
+    if (key === 'ArrowUp' || key === 'ArrowDown') {
+      event?.preventDefault?.();
+      handleTimerPartAdjust(partKey, key === 'ArrowUp' ? 1 : -1);
     }
   }
 
@@ -237,7 +334,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
       return undefined;
     }
 
-    const timer = setInterval(() => setFocusTimerTick(Date.now()), 1000);
+    const timer = setInterval(() => setFocusTimerTick(Date.now()), 100);
     return () => clearInterval(timer);
   }, [focusTimerStatus]);
 
@@ -248,14 +345,15 @@ export default function FocusTimerScreen({ onNavigate, token }) {
       startedAt: focusStartedAt,
       lastStartedAt: focusLastStartedAt,
       accumulatedMs: focusAccumulatedMs,
-      targetMinutes: timerTargetMinutes
+      targetSeconds: timerTargetSeconds
     });
-  }, [focusAccumulatedMs, focusLastStartedAt, focusStartedAt, focusTimerMode, focusTimerStatus, timerTargetMinutes]);
+  }, [focusAccumulatedMs, focusLastStartedAt, focusStartedAt, focusTimerMode, focusTimerStatus, timerTargetSeconds]);
 
   const focusElapsedMs = getCurrentFocusElapsedMs();
-  const timerTargetMs = Math.max(1, Number(timerTargetMinutes || DEFAULT_TIMER_MINUTES)) * 60 * 1000;
+  const timerTargetMs = timerTargetSeconds * 1000;
   const timerRemainingMs = Math.max(0, timerTargetMs - focusElapsedMs);
   const displayFocusMs = focusTimerMode === 'timer' ? timerRemainingMs : focusElapsedMs;
+  const timerTargetParts = splitTimerSeconds(timerTargetSeconds);
   const timerProgressPercent = focusTimerMode === 'timer'
     ? Math.min(100, Math.round((focusElapsedMs / timerTargetMs) * 100))
     : 0;
@@ -369,19 +467,60 @@ export default function FocusTimerScreen({ onNavigate, token }) {
         </View>
 
         {focusTimerMode === 'timer' ? (
-          <View style={styles.timerInputRow}>
+          <View style={styles.timerInputPanel}>
             <Text style={styles.timerInputLabel}>{translateText('목표 시간')}</Text>
-            <TextInput
-              accessibilityLabel={translateText('타이머 목표 시간 분 단위')}
-              editable={focusTimerStatus === 'idle'}
-              keyboardType="number-pad"
-              onChangeText={(value) => setTimerTargetMinutes(normalizeTimerMinutes(value))}
-              placeholder="25"
-              placeholderTextColor={colors.muted}
-              style={styles.timerInput}
-              value={timerTargetMinutes}
-            />
-            <Text style={styles.timerInputSuffix}>{translateText('분')}</Text>
+            <View style={styles.timerPartRow}>
+              {TIMER_PARTS.map((part) => (
+                <View
+                  key={part.key}
+                  onWheel={(event) => handleTimerPartWheel(event, part.key)}
+                  style={styles.timerPartControl}
+                >
+                  <Pressable
+                    accessibilityLabel={formatTemplate(translateText('{label} 값 증가'), { label: translateText(part.label) })}
+                    accessibilityRole="button"
+                    disabled={focusTimerStatus !== 'idle'}
+                    onPress={() => handleTimerPartAdjust(part.key, 1)}
+                    style={(state) => [
+                      styles.timerStepButton,
+                      focusTimerStatus !== 'idle' && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: focusTimerStatus !== 'idle' })
+                    ]}
+                  >
+                    <Text style={styles.timerStepButtonText}>+</Text>
+                  </Pressable>
+                  <TextInput
+                    accessibilityLabel={formatTemplate(translateText('타이머 목표 시간 {label} 입력'), { label: translateText(part.label) })}
+                    editable={focusTimerStatus === 'idle'}
+                    keyboardType="number-pad"
+                    onChangeText={(value) => handleTimerPartChange(part.key, value)}
+                    onKeyDown={(event) => handleTimerPartKeyDown(event, part.key)}
+                    placeholder="00"
+                    placeholderTextColor={colors.muted}
+                    selectTextOnFocus
+                    style={styles.timerPartInput}
+                    value={String(timerTargetParts[part.key]).padStart(2, '0')}
+                  />
+                  <Pressable
+                    accessibilityLabel={formatTemplate(translateText('{label} 값 감소'), { label: translateText(part.label) })}
+                    accessibilityRole="button"
+                    disabled={focusTimerStatus !== 'idle'}
+                    onPress={() => handleTimerPartAdjust(part.key, -1)}
+                    style={(state) => [
+                      styles.timerStepButton,
+                      focusTimerStatus !== 'idle' && styles.disabledButton,
+                      ...interactiveStateStyles(state, { disabled: focusTimerStatus !== 'idle' })
+                    ]}
+                  >
+                    <Text style={styles.timerStepButtonText}>-</Text>
+                  </Pressable>
+                  <Text style={styles.timerPartLabel}>{translateText(part.label)}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.timerInputHint}>
+              {translateText('숫자를 직접 입력하거나 마우스 휠, ↑/↓ 키, +/− 버튼으로 조절할 수 있습니다.')}
+            </Text>
           </View>
         ) : null}
 
@@ -390,8 +529,8 @@ export default function FocusTimerScreen({ onNavigate, token }) {
           <Text style={styles.focusClockHint}>
             {focusTimerMode === 'timer'
               ? formatTemplate(
-                translateText('목표 {minutes}분 · {percent}% 진행'),
-                { minutes: timerTargetMinutes || DEFAULT_TIMER_MINUTES, percent: timerProgressPercent }
+                translateText('목표 {target} · {percent}% 진행'),
+                { target: formatTimerTargetLabel(timerTargetSeconds), percent: timerProgressPercent }
               )
               : translateText('종료 및 저장을 누르면 현재 시간이 집중 기록으로 저장됩니다.')}
           </Text>
@@ -406,12 +545,12 @@ export default function FocusTimerScreen({ onNavigate, token }) {
           {focusTimerStatus === 'idle' ? (
             <Pressable
               accessibilityRole="button"
-              disabled={savingFocusSession || (focusTimerMode === 'timer' && !timerTargetMinutes)}
+              disabled={savingFocusSession}
               onPress={handleStartFocusTimer}
               style={(state) => [
                 styles.focusPrimaryButton,
-                (savingFocusSession || (focusTimerMode === 'timer' && !timerTargetMinutes)) && styles.disabledButton,
-                ...interactiveStateStyles(state, { disabled: savingFocusSession || (focusTimerMode === 'timer' && !timerTargetMinutes) })
+                savingFocusSession && styles.disabledButton,
+                ...interactiveStateStyles(state, { disabled: savingFocusSession })
               ]}
             >
               <Text style={styles.focusPrimaryButtonText}>{translateText('시작')}</Text>
@@ -636,34 +775,71 @@ const styles = StyleSheet.create({
   focusModeButtonTextActive: {
     color: colors.blueDeep
   },
-  timerInputRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 10
+  timerInputPanel: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 16,
+    gap: 12
   },
   timerInputLabel: {
     color: colors.ink,
     fontSize: 14,
     fontWeight: '800'
   },
-  timerInput: {
+  timerPartRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  timerPartControl: {
     width: 86,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surfaceWarm,
+    backgroundColor: colors.surface,
+    padding: 8,
+    alignItems: 'center',
+    gap: 6
+  },
+  timerStepButton: {
+    width: 38,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  timerStepButtonText: {
+    color: colors.mintDeep,
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18
+  },
+  timerPartInput: {
+    width: '100%',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    backgroundColor: colors.blueSoft,
     color: colors.ink,
     fontSize: 18,
     fontWeight: '900',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     textAlign: 'center'
   },
-  timerInputSuffix: {
+  timerPartLabel: {
     color: colors.muted,
-    fontSize: 14,
-    fontWeight: '800'
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  timerInputHint: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
   },
   focusClockPanel: {
     borderRadius: 22,
@@ -675,7 +851,8 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontSize: 44,
     fontWeight: '900',
-    textAlign: 'center'
+    textAlign: 'center',
+    fontVariant: ['tabular-nums']
   },
   focusClockHint: {
     color: colors.blueSoft,
