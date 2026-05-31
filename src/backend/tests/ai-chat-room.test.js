@@ -67,6 +67,7 @@ jest.mock('../src/repositories/ai.repository', () => ({
       id: mockNextRoomId,
       userId,
       title: data.title || 'AI 대화',
+      isPinned: data.isPinned || false,
       createdAt,
       updatedAt: createdAt
     };
@@ -96,10 +97,17 @@ jest.mock('../src/repositories/ai.repository', () => ({
   findAIChatRoomsByUserId: jest.fn(async (userId) =>
     mockChatRooms
       .filter((room) => room.userId === Number(userId))
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .sort((a, b) => Number(b.isPinned) - Number(a.isPinned) || b.updatedAt.getTime() - a.updatedAt.getTime())
       .map(mockBuildRoom)
   ),
-  findStudyNoteByIdAndUserId: jest.fn()
+  findStudyNoteByIdAndUserId: jest.fn(),
+  updateAIChatRoom: jest.fn(async (roomId, data) => {
+    const room = mockChatRooms.find((item) => item.id === Number(roomId));
+    Object.assign(room, data, {
+      updatedAt: new Date(`2026-05-31T13:${String(roomId).padStart(2, '0')}:00Z`)
+    });
+    return mockBuildRoom(room);
+  })
 }));
 
 jest.mock('../src/repositories/schedule.repository', () => ({
@@ -143,6 +151,7 @@ describe('AI chat room API', () => {
     { method: 'get', path: '/api/ai/chat-rooms' },
     { method: 'post', path: '/api/ai/chat-rooms' },
     { method: 'post', path: '/api/ai/chat-rooms/1/messages' },
+    { method: 'patch', path: '/api/ai/chat-rooms/1' },
     { method: 'delete', path: '/api/ai/chat-rooms/1' }
   ])('rejects unauthenticated $method $path requests', async ({ method, path }) => {
     const response = await request(app)[method](path).send({});
@@ -163,6 +172,7 @@ describe('AI chat room API', () => {
       expect.objectContaining({
         id: 1,
         title: '시험 대비 질문',
+        isPinned: false,
         messages: []
       })
     );
@@ -206,6 +216,70 @@ describe('AI chat room API', () => {
     expect(response.body.chatRoom.messages).toHaveLength(1);
   });
 
+  it('updates owned room title and pinned state', async () => {
+    const { token } = await registerTestUser();
+    const firstRoom = await request(app)
+      .post('/api/ai/chat-rooms')
+      .set(createAuthHeader(token))
+      .send({ title: '첫 번째 대화' });
+    await request(app)
+      .post('/api/ai/chat-rooms')
+      .set(createAuthHeader(token))
+      .send({ title: '두 번째 대화' });
+
+    const updateResponse = await request(app)
+      .patch(`/api/ai/chat-rooms/${firstRoom.body.chatRoom.id}`)
+      .set(createAuthHeader(token))
+      .send({ title: '고정한 시험 대비방', isPinned: true });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.chatRoom).toEqual(
+      expect.objectContaining({
+        id: 1,
+        title: '고정한 시험 대비방',
+        isPinned: true
+      })
+    );
+    expect(aiRepository.updateAIChatRoom).toHaveBeenCalledWith(1, {
+      title: '고정한 시험 대비방',
+      isPinned: true
+    });
+
+    const listResponse = await request(app)
+      .get('/api/ai/chat-rooms')
+      .set(createAuthHeader(token));
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.chatRooms[0]).toEqual(
+      expect.objectContaining({
+        id: 1,
+        isPinned: true
+      })
+    );
+  });
+
+  it('validates chat room update payloads', async () => {
+    const { token } = await registerTestUser();
+    const roomResponse = await request(app)
+      .post('/api/ai/chat-rooms')
+      .set(createAuthHeader(token))
+      .send({});
+
+    const blankTitleResponse = await request(app)
+      .patch(`/api/ai/chat-rooms/${roomResponse.body.chatRoom.id}`)
+      .set(createAuthHeader(token))
+      .send({ title: '   ' });
+
+    expect(blankTitleResponse.status).toBe(400);
+
+    const invalidPinResponse = await request(app)
+      .patch(`/api/ai/chat-rooms/${roomResponse.body.chatRoom.id}`)
+      .set(createAuthHeader(token))
+      .send({ isPinned: 'yes' });
+
+    expect(invalidPinResponse.status).toBe(400);
+  });
+
   it('blocks access to another user AI chat room', async () => {
     const owner = await registerTestUser({ loginId: 'ai-owner' });
     const other = await registerTestUser({ loginId: 'ai-other' });
@@ -223,6 +297,13 @@ describe('AI chat room API', () => {
       });
 
     expect(messageResponse.status).toBe(404);
+
+    const updateResponse = await request(app)
+      .patch(`/api/ai/chat-rooms/${roomResponse.body.chatRoom.id}`)
+      .set(createAuthHeader(other.token))
+      .send({ title: '권한 없는 변경', isPinned: true });
+
+    expect(updateResponse.status).toBe(404);
 
     const deleteResponse = await request(app)
       .delete(`/api/ai/chat-rooms/${roomResponse.body.chatRoom.id}`)

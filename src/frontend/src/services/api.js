@@ -775,6 +775,16 @@ export function createAIChatMessage(token, roomId, payload) {
   });
 }
 
+export function updateAIChatRoom(token, roomId, payload) {
+  return request(`/ai/chat-rooms/${roomId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
 export function deleteAIChatRoom(token, roomId) {
   return request(`/ai/chat-rooms/${roomId}`, {
     method: 'DELETE',

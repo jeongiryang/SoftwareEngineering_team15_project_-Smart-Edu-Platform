@@ -6,7 +6,8 @@ const {
   generateAIRecommendation,
   listAIChatRooms,
   summarizeText,
-  analyzeWrongAnswer
+  analyzeWrongAnswer,
+  updateUserAIChatRoom
 } = require('../services/ai.service');
 const { sendCreated, sendSuccess } = require('../utils/apiResponse');
 const { asyncHandler } = require('../utils/asyncHandler');
@@ -46,6 +47,11 @@ const createChatMessageController = asyncHandler(async (req, res) => {
   sendCreated(res, result);
 });
 
+const updateChatRoomController = asyncHandler(async (req, res) => {
+  const chatRoom = await updateUserAIChatRoom(req.user.id, req.params.roomId, req.body || {});
+  sendSuccess(res, 200, { chatRoom });
+});
+
 const deleteChatRoomController = asyncHandler(async (req, res) => {
   const result = await deleteUserAIChatRoom(req.user.id, req.params.roomId);
   sendSuccess(res, 200, result);
@@ -59,5 +65,6 @@ module.exports = {
   getRecommendation: getRecommendationController,
   listChatRooms: listChatRoomsController,
   summarize: summarizeController,
-  analyzeWrongAnswer: analyzeWrongAnswerController
+  analyzeWrongAnswer: analyzeWrongAnswerController,
+  updateChatRoom: updateChatRoomController
 };

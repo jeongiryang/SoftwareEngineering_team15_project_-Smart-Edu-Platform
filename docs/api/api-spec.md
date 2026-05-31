@@ -2069,6 +2069,7 @@ Response 예시:
 | 인증 | 필요 |
 | 사용 모델 | `AIChatRoom`, `AIChatMessage` |
 | 설명 | AI 학습 화면의 대화방과 질문/답변 메시지를 사용자별 DB 데이터로 저장하고 삭제함 |
+| 최신 UX | 대화방 이름 변경, 상단 핀 고정, 삭제, 최근 메시지 조회를 지원함 |
 
 보안/권한:
 
@@ -2093,6 +2094,7 @@ Response 예시:
     {
       "id": 1,
       "title": "운영체제 교착상태를 설명해 줘",
+      "isPinned": true,
       "createdAt": "2026-05-31T12:00:00.000Z",
       "updatedAt": "2026-05-31T12:01:00.000Z",
       "messages": [
@@ -2133,12 +2135,41 @@ Response 예시:
   "chatRoom": {
     "id": 1,
     "title": "AI 대화",
+    "isPinned": false,
     "messages": []
   }
 }
 ```
 
-#### 9.2.5.3 AI 대화방 메시지 저장
+#### 9.2.5.3 AI 대화방 이름/핀 상태 수정
+
+| 항목 | 내용 |
+|---|---|
+| Method | `PATCH` |
+| Endpoint | `/api/ai/chat-rooms/{roomId}` |
+| 설명 | 현재 사용자 소유 AI 대화방의 제목과 상단 고정 상태를 수정함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 아니오 | 대화방 제목. 전달 시 공백만 입력할 수 없으며 최대 60자 |
+| `isPinned` | boolean | 아니오 | `true`이면 대화방 목록 상단에 고정 |
+
+Response 예시:
+
+```json
+{
+  "chatRoom": {
+    "id": 1,
+    "title": "운영체제 시험 대비",
+    "isPinned": true,
+    "messages": []
+  }
+}
+```
+
+#### 9.2.5.4 AI 대화방 메시지 저장
 
 | 항목 | 내용 |
 |---|---|
@@ -2174,12 +2205,13 @@ Response 예시:
   "chatRoom": {
     "id": 1,
     "title": "운영체제 교착상태를 설명...",
+    "isPinned": false,
     "messages": []
   }
 }
 ```
 
-#### 9.2.5.4 AI 대화방 삭제
+#### 9.2.5.5 AI 대화방 삭제
 
 | 항목 | 내용 |
 |---|---|
