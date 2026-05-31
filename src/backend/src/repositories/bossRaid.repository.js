@@ -46,6 +46,18 @@ const PARTY_INCLUDE = {
   }
 };
 
+const INVITE_INCLUDE = {
+  party: {
+    include: PARTY_INCLUDE
+  },
+  inviter: {
+    select: PARTY_USER_SELECT
+  },
+  invitee: {
+    select: PARTY_USER_SELECT
+  }
+};
+
 function findActiveBossRaids() {
   return prisma.bossRaid.findMany({
     where: {
@@ -143,6 +155,64 @@ function findPublicBossRaidParties(raidId = null) {
   });
 }
 
+function findBossRaidInviteById(inviteId) {
+  return prisma.bossRaidInvite.findUnique({
+    where: {
+      id: inviteId
+    },
+    include: INVITE_INCLUDE
+  });
+}
+
+function findBossRaidInviteForPartyAndUser(partyId, inviteeId) {
+  return prisma.bossRaidInvite.findUnique({
+    where: {
+      partyId_inviteeId: {
+        partyId,
+        inviteeId
+      }
+    },
+    include: INVITE_INCLUDE
+  });
+}
+
+function findBossRaidInvitesForParty(partyId) {
+  return prisma.bossRaidInvite.findMany({
+    where: {
+      partyId
+    },
+    include: INVITE_INCLUDE,
+    orderBy: [
+      { createdAt: 'desc' },
+      { id: 'desc' }
+    ]
+  });
+}
+
+function findBossRaidInvitesForUser(userId) {
+  return prisma.bossRaidInvite.findMany({
+    where: {
+      inviteeId: userId,
+      status: 'PENDING',
+      party: {
+        status: 'OPEN',
+        raid: {
+          isActive: true,
+          OR: [
+            { endsAt: null },
+            { endsAt: { gte: new Date() } }
+          ]
+        }
+      }
+    },
+    include: INVITE_INCLUDE,
+    orderBy: [
+      { createdAt: 'desc' },
+      { id: 'desc' }
+    ]
+  });
+}
+
 function findBossRaidRewardClaim(raidId, userId) {
   return prisma.bossRaidRewardClaim.findUnique({
     where: {
@@ -151,6 +221,28 @@ function findBossRaidRewardClaim(raidId, userId) {
         userId
       }
     }
+  });
+}
+
+function upsertBossRaidInvite({ partyId, inviterId, inviteeId }) {
+  return prisma.bossRaidInvite.upsert({
+    where: {
+      partyId_inviteeId: {
+        partyId,
+        inviteeId
+      }
+    },
+    update: {
+      inviterId,
+      status: 'PENDING',
+      respondedAt: null
+    },
+    create: {
+      partyId,
+      inviterId,
+      inviteeId
+    },
+    include: INVITE_INCLUDE
   });
 }
 
@@ -177,6 +269,39 @@ function createBossRaidParty({ raidId, ownerId, name, joinCode, isPublic = true 
   });
 }
 
+function acceptBossRaidInvite({ inviteId, partyId, userId }) {
+  return prisma.$transaction(async (tx) => {
+    await tx.bossRaidInvite.update({
+      where: {
+        id: inviteId
+      },
+      data: {
+        status: 'ACCEPTED',
+        respondedAt: new Date()
+      }
+    });
+
+    return tx.bossRaidParty.update({
+      where: {
+        id: partyId
+      },
+      data: {
+        members: {
+          create: {
+            userId
+          }
+        },
+        contributions: {
+          create: {
+            userId
+          }
+        }
+      },
+      include: PARTY_INCLUDE
+    });
+  });
+}
+
 function addBossRaidPartyMember(partyId, userId) {
   return prisma.bossRaidParty.update({
     where: {
@@ -195,6 +320,19 @@ function addBossRaidPartyMember(partyId, userId) {
       }
     },
     include: PARTY_INCLUDE
+  });
+}
+
+function updateBossRaidInviteStatus(inviteId, status) {
+  return prisma.bossRaidInvite.update({
+    where: {
+      id: inviteId
+    },
+    data: {
+      status,
+      respondedAt: new Date()
+    },
+    include: INVITE_INCLUDE
   });
 }
 
@@ -362,11 +500,16 @@ async function claimBossRaidReward({ userId, party, contribution, baseRewardPoin
 }
 
 module.exports = {
+  acceptBossRaidInvite,
   addBossRaidPartyMember,
   claimBossRaidReward,
   createBossRaidParty,
   findActiveBossRaids,
   findBossRaidById,
+  findBossRaidInviteById,
+  findBossRaidInviteForPartyAndUser,
+  findBossRaidInvitesForParty,
+  findBossRaidInvitesForUser,
   findBossRaidPartyById,
   findBossRaidPartyByJoinCode,
   findBossRaidRewardClaim,
@@ -375,5 +518,7 @@ module.exports = {
   findUserBossRaidPartyForRaid,
   getBossRaidMemberMetrics,
   replaceBossRaidContributions,
+  updateBossRaidInviteStatus,
+  upsertBossRaidInvite,
   updateBossRaidPartyProgress
 };

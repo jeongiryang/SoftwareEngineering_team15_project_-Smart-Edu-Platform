@@ -120,6 +120,13 @@ enum BossRaidPartyStatus {
   CLOSED
 }
 
+enum BossRaidInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
 enum CollaborativeQuestStatus {
   ACTIVE
   COMPLETED
@@ -173,6 +180,8 @@ model User {
   bossRaidPartyMembers    BossRaidPartyMember[]
   bossRaidContributions   BossRaidContribution[]
   bossRaidRewardClaims    BossRaidRewardClaim[]
+  sentBossRaidInvites     BossRaidInvite[]            @relation("BossRaidInviteInviter")
+  receivedBossRaidInvites BossRaidInvite[]            @relation("BossRaidInviteInvitee")
   createdCollaborativeQuests CollaborativeQuest[]      @relation("CollaborativeQuestCreator")
   collaborativeQuestParticipants CollaborativeQuestParticipant[]
   collaborativeQuestContributions CollaborativeQuestContribution[]
@@ -796,6 +805,7 @@ model BossRaidParty {
   members          BossRaidPartyMember[]
   contributions    BossRaidContribution[]
   rewardClaims     BossRaidRewardClaim[]
+  invites          BossRaidInvite[]
 
   @@index([raidId])
   @@index([ownerId])
@@ -851,6 +861,26 @@ model BossRaidRewardClaim {
   @@index([partyId])
   @@index([userId])
   @@map("boss_raid_reward_claims")
+}
+
+model BossRaidInvite {
+  id          Int                  @id @default(autoincrement())
+  partyId     Int                  @map("party_id")
+  inviterId   Int                  @map("inviter_id")
+  inviteeId   Int                  @map("invitee_id")
+  status      BossRaidInviteStatus @default(PENDING)
+  respondedAt DateTime?            @map("responded_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  party       BossRaidParty        @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  inviter     User                 @relation("BossRaidInviteInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee     User                 @relation("BossRaidInviteInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([partyId, inviteeId])
+  @@index([inviteeId, status])
+  @@index([inviterId, status])
+  @@index([partyId, status])
+  @@map("boss_raid_invites")
 }
 
 model CollaborativeQuest {

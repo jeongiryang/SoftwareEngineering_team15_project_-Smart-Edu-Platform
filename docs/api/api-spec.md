@@ -4157,6 +4157,7 @@ Request Body:
 ```
 
 `isPublic`은 기본값이 `true`임. `false`로 생성하면 공개 모집 목록에 표시하지 않고 참여 코드로만 합류함.
+비공개 파티는 참여 코드로 직접 입장하거나 파티장이 명시적으로 보낸 초대를 수락해 입장할 수 있음.
 
 #### 9.9.3 공개 모집 파티 조회 / 참여
 
@@ -4192,7 +4193,35 @@ Request Body:
 | `GET` | `/api/boss-raids/parties/me` | 내가 참여 중인 보스 레이드 파티 목록 조회 |
 | `GET` | `/api/boss-raids/parties/:partyId` | 파티 상세, 멤버, 기여도, 남은 HP, 클리어 여부 조회 |
 
-#### 9.9.6 보스 레이드 보상 수령
+#### 9.9.6 보스 레이드 초대 조회 / 생성 / 응답
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `GET` | `/api/boss-raids/invites/me` | 현재 사용자에게 온 pending 보스 레이드 초대 목록 조회 |
+| `GET` | `/api/boss-raids/parties/:partyId/invites` | 파티장이 해당 파티의 초대 목록 조회 |
+| `POST` | `/api/boss-raids/parties/:partyId/invites` | 파티장이 loginId 기준으로 사용자 초대 생성 |
+| `POST` | `/api/boss-raids/invites/:inviteId/accept` | 초대받은 사용자가 초대 수락 후 파티 참여 |
+| `POST` | `/api/boss-raids/invites/:inviteId/decline` | 초대받은 사용자가 초대 거절 |
+| `POST` | `/api/boss-raids/invites/:inviteId/cancel` | 파티장이 pending 초대 취소 |
+
+초대 생성 Request Body:
+
+```json
+{
+  "loginId": "friend_user"
+}
+```
+
+초대 정책:
+
+- 초대 생성, 파티별 초대 목록 조회, 초대 취소는 파티장만 가능함.
+- 초대 수락/거절은 초대받은 사용자만 가능함.
+- 이미 해당 보스 레이드의 다른 파티에 참여한 사용자는 초대 수락 또는 새 초대 대상이 될 수 없음.
+- pending 초대가 이미 있는 사용자를 다시 초대하면 `409`로 차단함.
+- 공개 파티는 기존 공개 참여 흐름을 유지하고, 비공개 파티는 초대 수락 또는 참여 코드 입력을 통해 참여함.
+- 초대 수락으로 파티원이 추가되면 기존 보스 레이드 진행률 WebSocket event 흐름을 재사용함.
+
+#### 9.9.7 보스 레이드 보상 수령
 
 | Method | Endpoint | 설명 |
 |---|---|---|
@@ -4377,7 +4406,7 @@ Request Body:
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 관리자 커뮤니티 신고 처리 API 단일 테스트 | 1 suite / 29 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js` | 관리자 보상 배지/퀘스트 CRUD API 단일 테스트 | 1 suite / 12 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 친구 추가 및 친구 목록 API 단일 테스트 | 1 suite / 20 tests passed |
-| `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 스터디 보스 레이드 API 단일 테스트 | 1 suite / 8 tests passed |
+| `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 스터디 보스 레이드 API 단일 테스트 | 1 suite / 23 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js` | 협동 퀘스트 API 단일 테스트 | 1 suite / 21 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 서비스 점검 모드 및 관리자 공지 API 단일 테스트 | 1 suite / 10 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/realtime-websocket.test.js` | WebSocket frame/helper 단일 테스트 | 1 suite / 3 tests passed |

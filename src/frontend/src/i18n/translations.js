@@ -1302,7 +1302,21 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.claimButton': '보상 받기',
     'bossRaid.reward.lockedButton': '처치 후 수령 가능',
     'bossRaid.realtime.progressUpdated': '파티 진행률이 실시간으로 갱신되었습니다.',
-    'bossRaid.realtime.completed': '보스 레이드가 실시간으로 처치 완료 처리되었습니다.'
+    'bossRaid.realtime.completed': '보스 레이드가 실시간으로 처치 완료 처리되었습니다.',
+    'bossRaid.errors.invite': '보스 레이드 초대 처리에 실패했습니다.',
+    'bossRaid.sections.invites': '받은 보스 레이드 초대',
+    'bossRaid.invites.sent': '{loginId}님에게 보스 레이드 초대를 보냈습니다.',
+    'bossRaid.invites.accepted': '"{name}" 파티 초대를 수락했습니다.',
+    'bossRaid.invites.declined': '보스 레이드 초대를 거절했습니다.',
+    'bossRaid.invites.cancelled': '보스 레이드 초대를 취소했습니다.',
+    'bossRaid.invites.accept': '수락',
+    'bossRaid.invites.decline': '거절',
+    'bossRaid.invites.cancel': '초대 취소',
+    'bossRaid.invites.send': '초대 보내기',
+    'bossRaid.invites.manageTitle': '파티 초대 관리',
+    'bossRaid.invites.manageDescription': '비공개 파티는 초대받은 사용자나 참여 코드를 가진 사용자만 참가할 수 있습니다.',
+    'bossRaid.invites.loginIdPlaceholder': '초대할 loginId',
+    'bossRaid.invites.emptySent': '아직 보낸 초대가 없습니다.'
   },
   en: {
     'landing.hero.pill': 'Personalized learning management platform',
@@ -1411,7 +1425,21 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.claimButton': 'Claim reward',
     'bossRaid.reward.lockedButton': 'Available after clear',
     'bossRaid.realtime.progressUpdated': 'Party progress was updated in real time.',
-    'bossRaid.realtime.completed': 'The boss raid was cleared in real time.'
+    'bossRaid.realtime.completed': 'The boss raid was cleared in real time.',
+    'bossRaid.errors.invite': 'Could not process the boss raid invite.',
+    'bossRaid.sections.invites': 'Boss raid invites',
+    'bossRaid.invites.sent': 'Sent a boss raid invite to {loginId}.',
+    'bossRaid.invites.accepted': 'Accepted the invite to "{name}".',
+    'bossRaid.invites.declined': 'Declined the boss raid invite.',
+    'bossRaid.invites.cancelled': 'Cancelled the boss raid invite.',
+    'bossRaid.invites.accept': 'Accept',
+    'bossRaid.invites.decline': 'Decline',
+    'bossRaid.invites.cancel': 'Cancel invite',
+    'bossRaid.invites.send': 'Send invite',
+    'bossRaid.invites.manageTitle': 'Party invite management',
+    'bossRaid.invites.manageDescription': 'Private parties can be joined only by invited users or users with the join code.',
+    'bossRaid.invites.loginIdPlaceholder': 'Invitee loginId',
+    'bossRaid.invites.emptySent': 'No invites sent yet.'
   },
   ja: {
     'landing.hero.pill': 'パーソナライズ学習管理プラットフォーム',
@@ -1520,7 +1548,21 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.claimButton': '報酬を受け取る',
     'bossRaid.reward.lockedButton': '討伐後に受け取り可能',
     'bossRaid.realtime.progressUpdated': 'パーティの進行状況がリアルタイムで更新されました。',
-    'bossRaid.realtime.completed': 'ボスレイドがリアルタイムで討伐完了になりました。'
+    'bossRaid.realtime.completed': 'ボスレイドがリアルタイムで討伐完了になりました。',
+    'bossRaid.errors.invite': 'ボスレイド招待を処理できませんでした。',
+    'bossRaid.sections.invites': '受信したボスレイド招待',
+    'bossRaid.invites.sent': '{loginId}さんにボスレイド招待を送りました。',
+    'bossRaid.invites.accepted': '「{name}」パーティーへの招待を承認しました。',
+    'bossRaid.invites.declined': 'ボスレイド招待を辞退しました。',
+    'bossRaid.invites.cancelled': 'ボスレイド招待を取り消しました。',
+    'bossRaid.invites.accept': '承認',
+    'bossRaid.invites.decline': '辞退',
+    'bossRaid.invites.cancel': '招待取消',
+    'bossRaid.invites.send': '招待送信',
+    'bossRaid.invites.manageTitle': 'パーティー招待管理',
+    'bossRaid.invites.manageDescription': '非公開パーティーは、招待されたユーザーまたは参加コードを持つユーザーだけが参加できます。',
+    'bossRaid.invites.loginIdPlaceholder': '招待するloginId',
+    'bossRaid.invites.emptySent': '送信済みの招待はまだありません。'
   },
   zh: {
     'landing.hero.pill': '个性化学习管理平台',
@@ -1629,7 +1671,21 @@ const KEY_TRANSLATIONS = {
     'bossRaid.reward.claimButton': '领取奖励',
     'bossRaid.reward.lockedButton': '击败后可领取',
     'bossRaid.realtime.progressUpdated': '队伍进度已实时更新。',
-    'bossRaid.realtime.completed': 'Boss Raid 已实时标记为击败完成。'
+    'bossRaid.realtime.completed': 'Boss Raid 已实时标记为击败完成。',
+    'bossRaid.errors.invite': '无法处理 Boss Raid 邀请。',
+    'bossRaid.sections.invites': '收到的 Boss Raid 邀请',
+    'bossRaid.invites.sent': '已向 {loginId} 发送 Boss Raid 邀请。',
+    'bossRaid.invites.accepted': '已接受“{name}”队伍邀请。',
+    'bossRaid.invites.declined': '已拒绝 Boss Raid 邀请。',
+    'bossRaid.invites.cancelled': '已取消 Boss Raid 邀请。',
+    'bossRaid.invites.accept': '接受',
+    'bossRaid.invites.decline': '拒绝',
+    'bossRaid.invites.cancel': '取消邀请',
+    'bossRaid.invites.send': '发送邀请',
+    'bossRaid.invites.manageTitle': '队伍邀请管理',
+    'bossRaid.invites.manageDescription': '非公开队伍只有受邀用户或持有参与代码的用户可以加入。',
+    'bossRaid.invites.loginIdPlaceholder': '要邀请的 loginId',
+    'bossRaid.invites.emptySent': '还没有发送邀请。'
   }
 };
 

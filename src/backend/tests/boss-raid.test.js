@@ -101,6 +101,31 @@ function mockBuildParty(overrides = {}) {
   };
 }
 
+function mockBuildInvite(overrides = {}) {
+  return {
+    id: 20,
+    partyId: 10,
+    inviterId: 1,
+    inviteeId: 2,
+    status: 'PENDING',
+    createdAt: new Date('2026-05-29T00:45:00Z'),
+    updatedAt: new Date('2026-05-29T00:45:00Z'),
+    respondedAt: null,
+    party: mockBuildParty({ isPublic: false }),
+    inviter: {
+      id: 1,
+      name: 'Test User',
+      loginId: 'test_user'
+    },
+    invitee: {
+      id: 2,
+      name: 'Invitee User',
+      loginId: 'invitee_user'
+    },
+    ...overrides
+  };
+}
+
 jest.mock('../src/repositories/user.repository', () => ({
   createUser: jest.fn(async ({ loginId, name, passwordHash }) => {
     const user = {
@@ -122,6 +147,39 @@ jest.mock('../src/repositories/user.repository', () => ({
 }));
 
 jest.mock('../src/repositories/bossRaid.repository', () => ({
+  acceptBossRaidInvite: jest.fn(async ({ partyId, userId }) =>
+    mockBuildParty({
+      id: partyId,
+      isPublic: false,
+      members: [
+        ...mockBuildParty().members,
+        {
+          userId,
+          joinedAt: new Date('2026-05-29T00:50:00Z'),
+          user: {
+            id: userId,
+            name: 'Invitee User',
+            loginId: 'invitee_user'
+          }
+        }
+      ],
+      contributions: [
+        ...mockBuildParty().contributions,
+        {
+          userId,
+          focusMinutes: 0,
+          completedTaskCount: 0,
+          totalDamage: 0,
+          lastContributedAt: new Date('2026-05-29T00:50:00Z'),
+          user: {
+            id: userId,
+            name: 'Invitee User',
+            loginId: 'invitee_user'
+          }
+        }
+      ]
+    })
+  ),
   addBossRaidPartyMember: jest.fn(async (partyId, userId) =>
     mockBuildParty({
       id: partyId,
@@ -205,6 +263,12 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
   findBossRaidPartyByJoinCode: jest.fn(async (joinCode) =>
     joinCode === 'ABC123' ? mockBuildParty() : null
   ),
+  findBossRaidInviteById: jest.fn(async (inviteId) =>
+    Number(inviteId) === 20 ? mockBuildInvite() : null
+  ),
+  findBossRaidInviteForPartyAndUser: jest.fn(async () => null),
+  findBossRaidInvitesForParty: jest.fn(async () => [mockBuildInvite()]),
+  findBossRaidInvitesForUser: jest.fn(async () => [mockBuildInvite()]),
   findPublicBossRaidParties: jest.fn(async () => [mockBuildParty()]),
   findBossRaidRewardClaim: jest.fn(async () => null),
   findUserBossRaidParties: jest.fn(async () => [mockBuildParty()]),
@@ -214,6 +278,20 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
     completedTaskCount: 1
   })),
   replaceBossRaidContributions: jest.fn(async (partyId) => mockBuildParty({ id: partyId })),
+  updateBossRaidInviteStatus: jest.fn(async (inviteId, status) =>
+    mockBuildInvite({
+      id: inviteId,
+      status,
+      respondedAt: new Date('2026-05-29T00:55:00Z')
+    })
+  ),
+  upsertBossRaidInvite: jest.fn(async ({ partyId, inviterId, inviteeId }) =>
+    mockBuildInvite({
+      partyId,
+      inviterId,
+      inviteeId
+    })
+  ),
   updateBossRaidPartyProgress: jest.fn(async (partyId, data) =>
     mockBuildParty({
       id: partyId,
@@ -258,9 +336,14 @@ beforeEach(() => {
 describe('Boss Raid API', () => {
   it.each([
     { method: 'get', path: '/api/boss-raids' },
+    { method: 'get', path: '/api/boss-raids/invites/me' },
     { method: 'get', path: '/api/boss-raids/parties/me' },
     { method: 'get', path: '/api/boss-raids/parties/public' },
-    { method: 'post', path: '/api/boss-raids/parties' }
+    { method: 'post', path: '/api/boss-raids/parties' },
+    { method: 'post', path: '/api/boss-raids/parties/10/invites' },
+    { method: 'post', path: '/api/boss-raids/invites/20/accept' },
+    { method: 'post', path: '/api/boss-raids/invites/20/decline' },
+    { method: 'post', path: '/api/boss-raids/invites/20/cancel' }
   ])('rejects unauthenticated $method $path requests', async ({ method, path }) => {
     const response = await request(app)[method](path).send({});
 
@@ -398,6 +481,143 @@ describe('Boss Raid API', () => {
       .send({});
 
     expect(response.status).toBe(404);
+  });
+
+  it('lists pending boss raid invites for the current user', async () => {
+    await registerTestUser();
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/boss-raids/invites/me')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.invites).toHaveLength(1);
+    expect(response.body.invites[0]).toEqual(
+      expect.objectContaining({
+        id: 20,
+        status: 'PENDING',
+        invitee: expect.objectContaining({
+          loginId: 'invitee_user'
+        }),
+        party: expect.objectContaining({
+          id: 10,
+          inviteMode: 'PRIVATE'
+        })
+      })
+    );
+  });
+
+  it('lets a party owner send a boss raid invite by loginId', async () => {
+    const { token } = await registerTestUser({ loginId: 'test_user' });
+    const invitee = await registerTestUser({ loginId: 'invitee_user' });
+    bossRaidRepository.findBossRaidPartyById.mockResolvedValueOnce(
+      mockBuildParty({
+        isPublic: false,
+        members: [mockBuildParty().members[0]],
+        contributions: [mockBuildParty().contributions[0]]
+      })
+    );
+
+    const response = await request(app)
+      .post('/api/boss-raids/parties/10/invites')
+      .set(createAuthHeader(token))
+      .send({
+        loginId: invitee.payload.loginId
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.invite).toEqual(
+      expect.objectContaining({
+        partyId: 10,
+        status: 'PENDING',
+        invitee: expect.objectContaining({
+          id: invitee.user.id
+        })
+      })
+    );
+    expect(bossRaidRepository.upsertBossRaidInvite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        partyId: 10,
+        inviterId: 1,
+        inviteeId: invitee.user.id
+      })
+    );
+  });
+
+  it('prevents non-owners from managing boss raid invites', async () => {
+    await registerTestUser();
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .post('/api/boss-raids/parties/10/invites')
+      .set(createAuthHeader(token))
+      .send({
+        loginId: 'test_user'
+      });
+
+    expect(response.status).toBe(409);
+  });
+
+  it('accepts a pending boss raid invite and joins the private party', async () => {
+    await registerTestUser();
+    const { token } = await registerTestUser({ loginId: 'invitee_user' });
+
+    const response = await request(app)
+      .post('/api/boss-raids/invites/20/accept')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.party).toEqual(
+      expect.objectContaining({
+        id: 10
+      })
+    );
+    expect(bossRaidRepository.acceptBossRaidInvite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inviteId: 20,
+        partyId: 10,
+        userId: 2
+      })
+    );
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([1, 2]),
+      'bossRaid.progress.updated',
+      expect.objectContaining({
+        party: expect.objectContaining({
+          id: 10,
+          participantCount: expect.any(Number)
+        })
+      })
+    );
+  });
+
+  it('declines a pending boss raid invite', async () => {
+    await registerTestUser();
+    const { token } = await registerTestUser({ loginId: 'invitee_user' });
+
+    const response = await request(app)
+      .post('/api/boss-raids/invites/20/decline')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.invite.status).toBe('DECLINED');
+    expect(bossRaidRepository.updateBossRaidInviteStatus).toHaveBeenCalledWith(20, 'DECLINED');
+  });
+
+  it('cancels a pending boss raid invite by the party owner', async () => {
+    const { token } = await registerTestUser({ loginId: 'test_user' });
+
+    const response = await request(app)
+      .post('/api/boss-raids/invites/20/cancel')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.invite.status).toBe('CANCELLED');
+    expect(bossRaidRepository.updateBossRaidInviteStatus).toHaveBeenCalledWith(20, 'CANCELLED');
   });
 
   it('returns a joined party detail with contribution data', async () => {
