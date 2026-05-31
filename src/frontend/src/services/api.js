@@ -677,6 +677,43 @@ export function askAIQuestion(token, { question, noteId, allowTruncate }) {
   });
 }
 
+export function getAIChatRooms(token) {
+  return request('/ai/chat-rooms', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export function createAIChatRoom(token, payload = {}) {
+  return request('/ai/chat-rooms', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createAIChatMessage(token, roomId, payload) {
+  return request(`/ai/chat-rooms/${roomId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteAIChatRoom(token, roomId) {
+  return request(`/ai/chat-rooms/${roomId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function getAIRecommendation(token) {
   return request('/ai/recommendations', {
     method: 'POST',

@@ -27,6 +27,86 @@ function createWrongAnswerNote(userId, data) {
   });
 }
 
+function findAIChatRoomsByUserId(userId) {
+  return prisma.aIChatRoom.findMany({
+    where: { userId },
+    include: {
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 8
+  });
+}
+
+function findAIChatRoomByIdAndUserId(roomId, userId) {
+  return prisma.aIChatRoom.findFirst({
+    where: {
+      id: roomId,
+      userId
+    },
+    include: {
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }
+    }
+  });
+}
+
+function createAIChatRoom(userId, data = {}) {
+  return prisma.aIChatRoom.create({
+    data: {
+      userId,
+      ...data
+    },
+    include: {
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }
+    }
+  });
+}
+
+function createAIChatMessage(userId, roomId, data) {
+  const { roomTitle, ...messageData } = data;
+
+  return prisma.$transaction(async (tx) => {
+    const message = await tx.aIChatMessage.create({
+      data: {
+        userId,
+        roomId,
+        ...messageData
+      }
+    });
+
+    const room = await tx.aIChatRoom.update({
+      where: { id: roomId },
+      data: {
+        title: data.roomTitle,
+        updatedAt: new Date()
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 20
+        }
+      }
+    });
+
+    return { message, room };
+  });
+}
+
+function deleteAIChatRoom(roomId) {
+  return prisma.aIChatRoom.delete({
+    where: { id: roomId }
+  });
+}
+
 function findAIQuestionsByUserId(userId) {
   return prisma.aIQuestion.findMany({
     where: { userId },
@@ -62,9 +142,14 @@ function findStudyNoteByIdAndUserId(noteId, userId) {
 }
 
 module.exports = {
+  createAIChatMessage,
+  createAIChatRoom,
   createAIQuestion,
   createAIRecommendation,
   createWrongAnswerNote,
+  deleteAIChatRoom,
+  findAIChatRoomByIdAndUserId,
+  findAIChatRoomsByUserId,
   findAIQuestionsByUserId,
   findAIRecommendationsByUserId,
   findStudyNoteByIdAndUserId,

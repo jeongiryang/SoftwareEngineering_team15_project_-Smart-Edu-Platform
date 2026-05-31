@@ -1,7 +1,12 @@
 const {
+  createAIChatMessage,
+  createAIChatRoom,
   createAIQuestion,
   createAIRecommendation,
   createWrongAnswerNote,
+  deleteAIChatRoom,
+  findAIChatRoomByIdAndUserId,
+  findAIChatRoomsByUserId,
   findStudyNoteByIdAndUserId
 } = require('../repositories/ai.repository');
 const { findSchedulesByUserId } = require('../repositories/schedule.repository');
@@ -15,6 +20,9 @@ const RATE_LIMIT_MAX_REQUESTS = 5;
 const MAX_QUESTION_LENGTH = 1000;
 const MAX_WRONG_ANSWER_LENGTH = 1000;
 const MAX_SUMMARY_LENGTH = 3000;
+const MAX_CHAT_TITLE_LENGTH = 60;
+const MAX_CHAT_ANSWER_LENGTH = 4000;
+const AI_CHAT_MESSAGE_SOURCES = new Set(['AI_QNA', 'MOCK_QNA', 'IMAGE_INSIGHT']);
 
 const rateLimitMap = new Map();
 
@@ -215,6 +223,118 @@ function assertObjectPayload(payload) {
   }
 }
 
+function createRoomTitle(question) {
+  const cleanQuestion = String(question || '').replace(/\s+/g, ' ').trim();
+
+  if (!cleanQuestion) {
+    return 'AI 대화';
+  }
+
+  return cleanQuestion.length > 22 ? `${cleanQuestion.slice(0, 22)}...` : cleanQuestion;
+}
+
+function sanitizeAIChatMessage(message) {
+  return {
+    id: message.id,
+    roomId: message.roomId,
+    question: message.question,
+    answer: message.answer,
+    isMock: message.isMock,
+    isTruncated: message.isTruncated,
+    source: message.source,
+    createdAt: message.createdAt
+  };
+}
+
+function sanitizeAIChatRoom(room) {
+  return {
+    id: room.id,
+    title: room.title || 'AI 대화',
+    createdAt: room.createdAt,
+    updatedAt: room.updatedAt,
+    messages: (room.messages || []).map(sanitizeAIChatMessage)
+  };
+}
+
+function normalizeOptionalTitle(payload = {}) {
+  const title = normalizeString(payload.title);
+
+  if (!title) {
+    return undefined;
+  }
+
+  if (title.length > MAX_CHAT_TITLE_LENGTH) {
+    throw buildLengthError('title', title.length, MAX_CHAT_TITLE_LENGTH);
+  }
+
+  return title;
+}
+
+async function listAIChatRooms(userId) {
+  const rooms = await findAIChatRoomsByUserId(userId);
+  return rooms.map(sanitizeAIChatRoom);
+}
+
+async function createUserAIChatRoom(userId, payload = {}) {
+  assertObjectPayload(payload);
+
+  const title = normalizeOptionalTitle(payload);
+  const room = await createAIChatRoom(userId, title ? { title } : {});
+
+  return sanitizeAIChatRoom(room);
+}
+
+async function assertOwnedAIChatRoom(userId, rawRoomId) {
+  const roomId = parsePositiveInteger(rawRoomId, 'roomId');
+  const room = await findAIChatRoomByIdAndUserId(roomId, userId);
+
+  if (!room) {
+    throw notFoundError('AI chat room not found');
+  }
+
+  return room;
+}
+
+function buildAIChatMessageData(room, payload = {}) {
+  assertObjectPayload(payload);
+
+  const questionText = normalizeLimitedText(payload, 'question', MAX_QUESTION_LENGTH);
+  const answerText = normalizeLimitedText(payload, 'answer', MAX_CHAT_ANSWER_LENGTH);
+  const rawSource = normalizeString(payload.source) || (payload.isMock ? 'MOCK_QNA' : 'AI_QNA');
+  const source = AI_CHAT_MESSAGE_SOURCES.has(rawSource) ? rawSource : 'AI_QNA';
+  const shouldRetitleRoom = !room.messages || room.messages.length === 0 || room.title === 'AI 대화';
+
+  return {
+    question: questionText.value,
+    answer: answerText.value,
+    isMock: payload.isMock === true,
+    isTruncated: payload.isTruncated === true || questionText.isTruncated || answerText.isTruncated,
+    source,
+    roomTitle: shouldRetitleRoom ? createRoomTitle(questionText.value) : undefined
+  };
+}
+
+async function addAIChatRoomMessage(userId, rawRoomId, payload = {}) {
+  const room = await assertOwnedAIChatRoom(userId, rawRoomId);
+  const data = buildAIChatMessageData(room, payload);
+  const result = await createAIChatMessage(userId, room.id, data);
+
+  return {
+    message: sanitizeAIChatMessage(result.message),
+    chatRoom: sanitizeAIChatRoom(result.room)
+  };
+}
+
+async function deleteUserAIChatRoom(userId, rawRoomId) {
+  const room = await assertOwnedAIChatRoom(userId, rawRoomId);
+  await deleteAIChatRoom(room.id);
+
+  return {
+    id: room.id,
+    deleted: true
+  };
+}
+
 async function askAIQuestion(userId, payload) {
   assertObjectPayload(payload);
 
@@ -375,5 +495,9 @@ module.exports = {
   summarizeText,
   analyzeWrongAnswer,
   checkRateLimit,
+  createUserAIChatRoom,
+  addAIChatRoomMessage,
+  deleteUserAIChatRoom,
+  listAIChatRooms,
   rateLimitMap
 };

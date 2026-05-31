@@ -1874,7 +1874,7 @@ Response (200 OK) 예시:
 - `AI_API_KEY`가 없거나 provider 호출이 실패해도 서버가 중단되지 않고 fallback 응답을 반환함.
 - 자동 테스트는 mock/fallback 중심으로 수행하며 실제 외부 AI API를 호출하지 않음.
 - rate limit은 MVP용 in-memory 방식이며, production 수준 분산 rate limit은 후속 개선 범위임.
-- AI MVP API는 기존 Prisma schema 기준으로 동작하며 schema/migration 변경 없음.
+- AI 질문/추천/요약/오답 분석 API는 기존 Prisma schema 기준으로 동작하며, AI 대화방 저장은 `AIChatRoom`, `AIChatMessage` 모델을 사용함.
 - `noteId`를 받는 API는 현재 로그인 사용자 소유 학습 노트만 허용함.
 - invalid `noteId`는 `400 VALIDATION_ERROR`, 존재하지 않거나 다른 사용자 소유 `noteId`는 `404 NOT_FOUND`로 처리함.
 - 기본 provider prompt와 fallback 문구는 한국어 응답을 우선하도록 정리함.
@@ -2061,13 +2061,148 @@ Response 예시:
 }
 ```
 
-### 9.2.5 AI API 주요 에러
+### 9.2.5 AI 대화방 저장 API
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 인증 | 필요 |
+| 사용 모델 | `AIChatRoom`, `AIChatMessage` |
+| 설명 | AI 학습 화면의 대화방과 질문/답변 메시지를 사용자별 DB 데이터로 저장하고 삭제함 |
+
+보안/권한:
+
+- 모든 API는 Bearer token 기준 현재 사용자만 접근 가능함.
+- `roomId`는 서버에서 현재 사용자 소유 여부를 확인하며, 다른 사용자의 대화방은 `404 NOT_FOUND`로 처리함.
+- 응답에는 `passwordHash`, token, provider key, DB URL 등 민감정보를 포함하지 않음.
+- 프론트는 더 이상 AI 대화방 내용을 브라우저 localStorage에 영구 저장하지 않고 백엔드 API를 사용함.
+
+#### 9.2.5.1 AI 대화방 목록 조회
+
+| 항목 | 내용 |
+|---|---|
+| Method | `GET` |
+| Endpoint | `/api/ai/chat-rooms` |
+| 설명 | 현재 사용자의 AI 대화방 목록과 최근 메시지를 반환함 |
+
+Response 예시:
+
+```json
+{
+  "chatRooms": [
+    {
+      "id": 1,
+      "title": "운영체제 교착상태를 설명해 줘",
+      "createdAt": "2026-05-31T12:00:00.000Z",
+      "updatedAt": "2026-05-31T12:01:00.000Z",
+      "messages": [
+        {
+          "id": 1,
+          "roomId": 1,
+          "question": "운영체제 교착상태를 설명해 줘",
+          "answer": "교착상태는 여러 프로세스가 서로 자원을 기다리며 멈춘 상태입니다.",
+          "isMock": false,
+          "isTruncated": false,
+          "source": "AI_QNA",
+          "createdAt": "2026-05-31T12:01:00.000Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### 9.2.5.2 AI 대화방 생성
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Endpoint | `/api/ai/chat-rooms` |
+| 설명 | 새 AI 대화방을 생성함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | string | 아니오 | 대화방 제목. 미입력 시 기본 제목 사용 |
+
+Response 예시:
+
+```json
+{
+  "chatRoom": {
+    "id": 1,
+    "title": "AI 대화",
+    "messages": []
+  }
+}
+```
+
+#### 9.2.5.3 AI 대화방 메시지 저장
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Endpoint | `/api/ai/chat-rooms/{roomId}/messages` |
+| 설명 | 선택한 대화방에 질문/답변 메시지를 저장함. 실제 AI 호출은 기존 `/api/ai/questions`에서 처리하고, 이 API는 화면 대화 기록 저장을 담당함 |
+
+Request Body:
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `question` | string | 예 | 질문 내용. 최대 1,000자 |
+| `answer` | string | 예 | 답변 내용. 최대 4,000자 |
+| `isMock` | boolean | 아니오 | Mock/demo 응답 여부 |
+| `isTruncated` | boolean | 아니오 | 입력 또는 응답이 잘렸는지 여부 |
+| `source` | string | 아니오 | `AI_QNA`, `MOCK_QNA`, `IMAGE_INSIGHT` 중 하나 |
+| `allowTruncate` | boolean | 아니오 | `true`이면 길이 초과 시 저장 가능한 범위로 자름 |
+
+Response 예시:
+
+```json
+{
+  "message": {
+    "id": 1,
+    "roomId": 1,
+    "question": "운영체제 교착상태를 설명해 줘",
+    "answer": "교착상태는 여러 프로세스가 서로 자원을 기다리며 멈춘 상태입니다.",
+    "isMock": false,
+    "isTruncated": false,
+    "source": "AI_QNA",
+    "createdAt": "2026-05-31T12:01:00.000Z"
+  },
+  "chatRoom": {
+    "id": 1,
+    "title": "운영체제 교착상태를 설명...",
+    "messages": []
+  }
+}
+```
+
+#### 9.2.5.4 AI 대화방 삭제
+
+| 항목 | 내용 |
+|---|---|
+| Method | `DELETE` |
+| Endpoint | `/api/ai/chat-rooms/{roomId}` |
+| 설명 | 현재 사용자 소유 AI 대화방과 하위 메시지를 삭제함 |
+
+Response 예시:
+
+```json
+{
+  "id": 1,
+  "deleted": true
+}
+```
+
+### 9.2.6 AI API 주요 에러
 
 | Status | Code | 발생 조건 |
 |---|---|---|
 | `400` | `VALIDATION_ERROR` | 필수 값 누락, 글자 수 초과, 잘못된 데이터 구조 |
 | `401` | `UNAUTHORIZED` | 인증 실패 및 토큰 유효하지 않음 |
-| `404` | `NOT_FOUND` | `noteId`가 존재하지 않거나 현재 사용자 소유 학습 노트가 아님 |
+| `404` | `NOT_FOUND` | `noteId` 또는 AI 대화방이 존재하지 않거나 현재 사용자 소유가 아님 |
 | `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
 
 ### 9.3 집중 시간/통계 API
@@ -4196,7 +4331,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 28 suites / 491 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, AI Chat Room, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 29 suites / 499 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
