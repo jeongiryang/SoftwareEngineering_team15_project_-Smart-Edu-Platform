@@ -1366,57 +1366,68 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
   function renderPostTable() {
     return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tableScroller}>
-        <View style={styles.boardTable}>
-          <View style={[styles.tableRow, styles.tableHeaderRow]}>
-            <Text style={[styles.tableCell, styles.tableCategoryCell]}>{translateText('분류')}</Text>
-            <Text style={[styles.tableCell, styles.tableTitleCell]}>{translateText('제목')}</Text>
-            <Text style={[styles.tableCell, styles.tableAuthorCell]}>{translateText('작성자')}</Text>
-            <Text style={[styles.tableCell, styles.tableMetricCell]}>{translateText('댓글')}</Text>
-            <Text style={[styles.tableCell, styles.tableMetricCell]}>{translateText('좋아요')}</Text>
-            <Text style={[styles.tableCell, styles.tableMetricCell]}>{translateText('조회수')}</Text>
-            <Text style={[styles.tableCell, styles.tableDateCell]}>{translateText('등록일')}</Text>
-            <Text style={[styles.tableCell, styles.tableDateCell]}>{translateText('수정일')}</Text>
-            <Text style={[styles.tableCell, styles.tableActionCell]}>{translateText('관리')}</Text>
-          </View>
-          {posts.map((post) => (
-            <View key={post.id} style={styles.tableRow}>
-              <Text style={[styles.tableCell, styles.tableCategoryCell]}>
-                {getCategoryLabel(post.category, translateText)}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => openDetail(post)}
-                style={(state) => [styles.tableTitleButton, ...interactiveStateStyles(state)]}
-              >
-                <Text style={styles.tableTitleText} numberOfLines={1}>{post.title}</Text>
-                <Text style={styles.tablePreviewText} numberOfLines={1}>{getPreview(post.content)}</Text>
-              </Pressable>
-              <View style={[styles.tableCell, styles.tableAuthorCell]}>
-                {renderAuthorButton(post.author, true)}
-              </View>
-              <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.commentCount ?? 0}</Text>
-              <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.likeCount ?? 0}</Text>
-              <Text style={[styles.tableCell, styles.tableMetricCell]}>{post.viewCount ?? 0}</Text>
-              <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>
-                {formatDate(post.createdAt, currentLanguage)}
-              </Text>
-              <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>
-                {formatDate(post.updatedAt, currentLanguage)}
-              </Text>
-              <View style={[styles.tableCell, styles.tableActionCell]}>
+      <View style={styles.tableSection}>
+        <Text style={styles.tableScrollHint}>
+          {translateText('표가 화면보다 넓으면 좌우로 스크롤해 전체 컬럼을 확인할 수 있습니다.')}
+        </Text>
+        <ScrollView
+          contentContainerStyle={styles.tableScrollerContent}
+          horizontal
+          keyboardShouldPersistTaps="handled"
+          showsHorizontalScrollIndicator
+          style={styles.tableScroller}
+        >
+          <View style={styles.boardTable}>
+            <View style={[styles.tableRow, styles.tableHeaderRow]}>
+              <Text style={[styles.tableCell, styles.tableCategoryCell]} numberOfLines={1}>{translateText('분류')}</Text>
+              <Text style={[styles.tableCell, styles.tableTitleCell]} numberOfLines={1}>{translateText('제목')}</Text>
+              <Text style={[styles.tableCell, styles.tableAuthorCell]} numberOfLines={1}>{translateText('작성자')}</Text>
+              <Text style={[styles.tableCell, styles.tableMetricCell]} numberOfLines={1}>{translateText('댓글')}</Text>
+              <Text style={[styles.tableCell, styles.tableMetricCell]} numberOfLines={1}>{translateText('좋아요')}</Text>
+              <Text style={[styles.tableCell, styles.tableMetricCell]} numberOfLines={1}>{translateText('조회수')}</Text>
+              <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>{translateText('등록일')}</Text>
+              <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>{translateText('수정일')}</Text>
+              <Text style={[styles.tableCell, styles.tableActionCell]} numberOfLines={1}>{translateText('관리')}</Text>
+            </View>
+            {posts.map((post) => (
+              <View key={post.id} style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.tableCategoryCell]} numberOfLines={1}>
+                  {getCategoryLabel(post.category, translateText)}
+                </Text>
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => copyPostLink(post)}
-                  style={(state) => [styles.tableActionButton, ...interactiveStateStyles(state)]}
+                  onPress={() => openDetail(post)}
+                  style={(state) => [styles.tableTitleButton, ...interactiveStateStyles(state)]}
                 >
-                  <Text style={styles.tableActionText}>{translateText('공유')}</Text>
+                  <Text style={styles.tableTitleText} numberOfLines={1}>{post.title}</Text>
+                  <Text style={styles.tablePreviewText} numberOfLines={1}>{getPreview(post.content)}</Text>
                 </Pressable>
+                <View style={[styles.tableCell, styles.tableAuthorCell]}>
+                  {renderAuthorButton(post.author, true)}
+                </View>
+                <Text style={[styles.tableCell, styles.tableMetricCell]} numberOfLines={1}>{post.commentCount ?? 0}</Text>
+                <Text style={[styles.tableCell, styles.tableMetricCell]} numberOfLines={1}>{post.likeCount ?? 0}</Text>
+                <Text style={[styles.tableCell, styles.tableMetricCell]} numberOfLines={1}>{post.viewCount ?? 0}</Text>
+                <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>
+                  {formatDate(post.createdAt, currentLanguage)}
+                </Text>
+                <Text style={[styles.tableCell, styles.tableDateCell]} numberOfLines={1}>
+                  {formatDate(post.updatedAt, currentLanguage)}
+                </Text>
+                <View style={[styles.tableCell, styles.tableActionCell]}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => copyPostLink(post)}
+                    style={(state) => [styles.tableActionButton, ...interactiveStateStyles(state)]}
+                  >
+                    <Text style={styles.tableActionText} numberOfLines={1}>{translateText('공유')}</Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -2255,11 +2266,25 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 11
   },
+  tableSection: {
+    gap: 8
+  },
+  tableScrollHint: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18
+  },
   tableScroller: {
-    width: '100%'
+    width: '100%',
+    borderRadius: 14
+  },
+  tableScrollerContent: {
+    minWidth: 1260,
+    paddingBottom: 6
   },
   boardTable: {
-    minWidth: 980,
+    minWidth: 1260,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
@@ -2287,27 +2312,27 @@ const styles = StyleSheet.create({
     borderRightColor: colors.line
   },
   tableCategoryCell: {
-    width: 92
-  },
-  tableTitleCell: {
-    width: 240
-  },
-  tableAuthorCell: {
     width: 110
   },
+  tableTitleCell: {
+    width: 330
+  },
+  tableAuthorCell: {
+    width: 170
+  },
   tableMetricCell: {
-    width: 70,
+    width: 76,
     textAlign: 'center'
   },
   tableDateCell: {
-    width: 150
+    width: 160
   },
   tableActionCell: {
-    width: 90,
+    width: 100,
     alignItems: 'center'
   },
   tableTitleButton: {
-    width: 240,
+    width: 330,
     justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 9,

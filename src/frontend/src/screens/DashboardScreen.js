@@ -42,7 +42,7 @@ const DASHBOARD_COPY = {
     rewardEmpty: '아직 보상 기록이 많지 않습니다. 오늘의 일정과 태스크를 먼저 채워 보상 흐름을 시작해 보세요.',
     motivationAvailable: '수령 가능한 보상이 {count}개 있어요. 먼저 보상을 받고 오늘 흐름을 가볍게 이어가 보세요.',
     motivationEmpty: '아직 오늘의 기록이 비어 있어요. 25분 집중 1회나 작은 태스크 하나부터 시작해도 충분합니다.',
-    motivationCompleted: '완료한 태스크가 {count}개 쌓였어요. 다음 태스크는 더 작게 쪼개서 이어가 보세요.',
+    motivationCompleted: '끝낸 태스크가 {count}개 쌓였어요. 다음 태스크는 더 작게 쪼개서 이어가 보세요.',
     motivationProgress: '진행 중인 퀘스트가 {count}개 있어요. 일정과 칸반을 하나씩 채우면 진행률이 올라갑니다.',
     motivationDefault: '오늘은 작은 기록을 남기기 좋은 날이에요. 부담 없이 한 가지 학습 행동만 고르면 됩니다.',
     claimBadge: '{points}포인트와 "{badgeName}" 배지를 받았습니다.',
@@ -68,7 +68,7 @@ const DASHBOARD_COPY = {
     rewardEmpty: 'There are not many reward records yet. Start by filling today’s schedule and tasks.',
     motivationAvailable: '{count} reward(s) are ready. Claim them first and continue today’s flow lightly.',
     motivationEmpty: 'Today’s record is still empty. One 25-minute focus or one small task is enough to start.',
-    motivationCompleted: '{count} completed task(s) have stacked up. Break the next task into a smaller step.',
+    motivationCompleted: '{count} finished task(s) have stacked up. Break the next task into a smaller step.',
     motivationProgress: '{count} quest(s) are in progress. Add schedules and board tasks one by one to raise progress.',
     motivationDefault: 'Today is a good day to leave a small record. Choose one study action without pressure.',
     claimBadge: 'Received {points} points and the "{badgeName}" badge.',
@@ -94,7 +94,7 @@ const DASHBOARD_COPY = {
     rewardEmpty: '報酬記録はまだ多くありません。今日の予定とタスクから報酬の流れを始めましょう。',
     motivationAvailable: '受け取れる報酬が{count}件あります。まず報酬を受け取り、今日の流れを軽く続けましょう。',
     motivationEmpty: '今日はまだ記録が空です。25分集中1回や小さなタスク1つからで十分です。',
-    motivationCompleted: '完了したタスクが{count}件あります。次のタスクはさらに小さく分けて続けましょう。',
+    motivationCompleted: '終えたタスクが{count}件あります。次のタスクはさらに小さく分けて続けましょう。',
     motivationProgress: '進行中のクエストが{count}件あります。予定とカンバンを一つずつ埋めると進捗が上がります。',
     motivationDefault: '今日は小さな記録を残すのに良い日です。負担なく一つの学習行動を選びましょう。',
     claimBadge: '{points}ポイントと「{badgeName}」バッジを受け取りました。',
@@ -120,7 +120,7 @@ const DASHBOARD_COPY = {
     rewardEmpty: '奖励记录还不多。先填写今天的日程和任务，开始奖励流程。',
     motivationAvailable: '有 {count} 个奖励可领取。先领取奖励，再轻松延续今天的学习流程。',
     motivationEmpty: '今天的记录还为空。从一次 25 分钟专注或一个小任务开始就足够了。',
-    motivationCompleted: '已完成 {count} 个任务。下一个任务可以拆得更小再继续。',
+    motivationCompleted: '已结束 {count} 个任务。下一个任务可以拆得更小再继续。',
     motivationProgress: '有 {count} 个任务正在进行。逐步填写日程和看板，进度会提高。',
     motivationDefault: '今天适合留下一个小记录。轻松选择一个学习行动即可。',
     claimBadge: '获得 {points} 积分和“{badgeName}”徽章。',
@@ -1108,7 +1108,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                 </View>
 
                 <View style={styles.metricCard}>
-                  <Text style={styles.metricLabel}>{translateText('완료한 태스크')}</Text>
+                  <Text style={styles.metricLabel}>{translateText('끝낸 태스크')}</Text>
                   <Text style={styles.metricValue}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(rewardData.metrics?.completedTaskCount, currentLanguage) })}</Text>
                 </View>
 
