@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { findAcceptedFriendshipsForUser } = require('../repositories/friend.repository');
 const { findUserById } = require('../repositories/user.repository');
+const { getDirectMessageTypingRecipients } = require('../services/message.service');
 const { verifyToken } = require('../utils/jwt');
 
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -314,6 +315,29 @@ async function authenticatePresenceSocket(socket, token) {
   }
 }
 
+async function handleDirectMessageTyping(socket, payload = {}) {
+  const socketUser = socketUsers.get(socket);
+
+  if (!socketUser) {
+    sendJson(socket, normalizeEvent('directMessage.typing.auth_failed', { reason: 'unauthenticated' }));
+    return;
+  }
+
+  try {
+    const result = await getDirectMessageTypingRecipients(socketUser.id, payload.threadId);
+    const isTyping = Boolean(payload.isTyping);
+
+    broadcastRealtimeEventToUsers(result.participantIds, 'directMessage.typing', {
+      threadId: result.threadId,
+      userId: result.senderId,
+      isTyping,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    sendJson(socket, normalizeEvent('directMessage.typing.denied', { reason: 'not_allowed' }));
+  }
+}
+
 async function handleClientMessage(socket, rawMessage) {
   let message;
 
@@ -338,6 +362,11 @@ async function handleClientMessage(socket, rawMessage) {
     if (socketUser) {
       await sendPresenceSnapshot(socket, socketUser.id);
     }
+    return;
+  }
+
+  if (message.type === 'directMessage.typing') {
+    await handleDirectMessageTyping(socket, message.payload);
   }
 }
 

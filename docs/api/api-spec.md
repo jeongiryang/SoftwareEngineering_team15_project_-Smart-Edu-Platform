@@ -208,6 +208,7 @@ Response 예시:
 | `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
 | `directMessage.created` | `{ "thread": { "id": 1, "friend": { "id": 2, "name": "학습 친구", "loginId": "study_peer" }, "unreadCount": 1 }, "message": { "id": 10, "threadId": 1, "senderId": 2, "content": "오늘 복습할까요?", "createdAt": "..." } }` | 친구 간 쪽지 작성 성공 후 thread 참여자에게만 전달 |
 | `directMessage.read` | `{ "threadId": 1, "userId": 1, "lastReadAt": "...", "thread": { ... } }` | 사용자가 쪽지 thread를 읽음 처리했을 때 thread 참여자에게만 전달 |
+| `directMessage.typing` | `{ "threadId": 1, "userId": 2, "isTyping": true, "updatedAt": "..." }` | 인증된 WebSocket 사용자가 참여 중인 쪽지 thread에서 작성 중 상태를 보낼 때 thread 참여자에게만 전달 |
 | `account.status.updated` | `{ "status": "SUSPENDED", "reason": "ADMIN_STATUS_CHANGE", "changedAt": "...", "message": "Account status changed to SUSPENDED" }` | 회원 탈퇴 또는 관리자 계정 상태 변경 성공 후 해당 사용자 연결에 전달. 프론트엔드는 `SUSPENDED`/`DEACTIVATED` 수신 시 중앙 제한 화면으로 전환하고, `ACTIVE` 수신 시 제한 화면을 해제함 |
 | `bossRaid.progress.updated` | `{ "party": { "id": 10, "raid": { "id": 1, ... }, "totalDamage": 140, "remainingHp": 160, "progressRate": 0.46, "participantCount": 2, "completed": false } }` | 보스 레이드 파티 생성/참가/상세 갱신 후 진행률이 변경될 수 있을 때 파티 멤버에게만 전달 |
 | `bossRaid.completed` | `{ "party": { "id": 10, "status": "CLEARED", "completed": true, ... } }` | 보스 레이드가 처치 완료 상태로 계산되거나 보상 수령 흐름에서 완료 상태가 확인될 때 파티 멤버에게만 전달 |
@@ -221,7 +222,7 @@ WebSocket URL 기준:
 
 정책:
 
-- WebSocket은 서버 broadcast 수신을 기본으로 사용하고, 친구 접속 상태는 `presence.authenticate`/`presence.refresh` 메시지만 제한적으로 처리함.
+- WebSocket은 서버 broadcast 수신을 기본으로 사용하고, 클라이언트 발행 메시지는 `presence.authenticate`/`presence.refresh`와 `directMessage.typing`만 제한적으로 처리함.
 - 클라이언트가 임의 관리자 이벤트를 보낼 수 없도록 관리자 공지나 점검 상태 변경 메시지는 클라이언트 입력으로 처리하지 않음.
 - WebSocket 연결 실패 시 기존 `GET /api/system/status` 기반 HTTP fallback을 유지함.
 - 친구 접속 상태는 친구 관계가 있는 사용자에게만 표시하며, 정확한 위치나 상세 활동 내역은 전달하지 않음.
@@ -4174,7 +4175,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 28 suites / 481 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 28 suites / 486 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |

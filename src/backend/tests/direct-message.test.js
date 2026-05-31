@@ -155,6 +155,7 @@ const request = require('supertest');
 const app = require('../src/app');
 const friendRepository = require('../src/repositories/friend.repository');
 const messageRepository = require('../src/repositories/message.repository');
+const messageService = require('../src/services/message.service');
 const { createAuthHeader, createUserPayload } = require('./helpers/auth.helper');
 
 async function registerTestUser(overrides = {}) {
@@ -315,6 +316,17 @@ describe('Direct Message API', () => {
         userId: 1
       })
     );
+  });
+
+  it('returns direct message typing recipients only for valid thread participants', async () => {
+    const result = await messageService.getDirectMessageTypingRecipients(1, 1);
+
+    expect(result).toEqual({
+      threadId: 1,
+      senderId: 1,
+      participantIds: [1, 2]
+    });
+    expect(friendRepository.findAcceptedFriendshipBetween).toHaveBeenCalledWith(1, 2);
   });
 
   it('rejects empty direct message content', async () => {
