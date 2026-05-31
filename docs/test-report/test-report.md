@@ -291,7 +291,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(28 suites / 481 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(28 suites / 482 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트. `SUSPENDED`/`DEACTIVATED` 계정 login 403 차단과 기존 token 보호 API 401 차단 검증 포함 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
@@ -322,7 +322,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | System Maintenance focused test | `npm --prefix src/backend test -- --runTestsByPath tests/system-maintenance.test.js` | 통과 | 서비스 점검 모드 및 관리자 공지 API 단일 테스트 기준 1 suite / 10 tests passed |
 | Realtime WebSocket helper test | `npm --prefix src/backend test -- --runTestsByPath tests/realtime-websocket.test.js` | 통과 | WebSocket accept key, server text frame encoding, masked client text frame decoding 기준 1 suite / 3 tests passed |
 | Accessibility API test | `GET/PUT /api/accessibility/preferences`, `POST /api/accessibility/tts`, `POST /api/accessibility/stt`, `GET/POST /api/accessibility/review-reminders` | 통과 | `src/backend/tests/accessibility.test.js`의 repository mock 기반 API 테스트. 미인증 401, 접근성 기본 설정 조회, 설정 저장, textScale validation, TTS voiceType validation, STT transcript 저장, 복습 알림 생성/목록 조회 검증 포함 |
-| Accessibility focused test | `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 통과 | 음성/접근성 API 단일 테스트 기준 1 suite / 10 tests passed |
+| Accessibility focused test | `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js` | 통과 | 음성/접근성 API 단일 테스트 기준 1 suite / 11 tests passed |
 | Friend API test | `GET /api/users/search`, `GET /api/friends`, `GET/POST/PATCH /api/friends/requests`, `DELETE /api/friends/:friendId` | 통과 | `src/backend/tests/friend.test.js`의 repository mock 기반 API 테스트. 미인증 401, 사용자 검색 자기 자신 제외, 친구 요청 생성/중복 차단, 반대 방향 pending 안내, 수락/거절 권한, 재처리 409, 친구 목록/삭제, `onlineFriendIds` fallback snapshot, 민감정보 미노출 검증 포함 |
 | Friend focused test | `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js` | 통과 | 친구 추가 및 친구 목록 API 단일 테스트 기준 1 suite / 20 tests passed |
 | Community Post API test | `GET/POST/PATCH/DELETE /api/community/posts` | 통과 | `src/backend/tests/community-post.test.js`의 repository mock 기반 API 테스트와 `deletePost` transaction 안전성 테스트. 미인증 401, pagination/category/search/sort validation, 작성자 검색, 좋아요/조회수/댓글순 정렬, 상세 조회 viewCount 증가, 반응/북마크 count/status 응답, invalid postId 400, 존재하지 않는 게시글 404, 타인 게시글 수정/삭제 차단, 민감정보 미노출 검증 포함 |
@@ -353,8 +353,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
-| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(28 suites / 481 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 26 tests passed) 통과 |
-| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(21 suites / 382 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 10 tests passed) 통과 |
+| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(28 suites / 482 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 26 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(28 suites / 482 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
 | Boss Raid API 검증 | 스터디 보스 레이드 MVP API 검증 | 통과 | `npm test`(24 suites / 435 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 8 tests passed) 통과 |

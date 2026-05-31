@@ -48,11 +48,11 @@ function normalizeTextScale(value) {
 
   const parsedValue = Number(value);
 
-  if (!Number.isFinite(parsedValue) || parsedValue < 1 || parsedValue > 1.6) {
-    throw validationError('textScale must be between 1 and 1.6', {
+  if (!Number.isFinite(parsedValue) || parsedValue < 1 || parsedValue > 2) {
+    throw validationError('textScale must be between 1 and 2', {
       field: 'textScale',
       min: 1,
-      max: 1.6
+      max: 2
     });
   }
 

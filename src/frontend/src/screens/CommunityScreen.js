@@ -183,6 +183,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   const [editingComment, setEditingComment] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState('');
   const [postFormMode, setPostFormMode] = useState(null);
+  const [sharedPostOpened, setSharedPostOpened] = useState(false);
   const [postForm, setPostForm] = useState({
     category: 'QUESTION',
     title: '',
@@ -206,6 +207,25 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
     loadBookmarks();
   }, [activeTab, page, bookmarkPage, pageSize, category, sort, bookmarkSort, search]);
+
+  useEffect(() => {
+    if (sharedPostOpened || !token || typeof window === 'undefined') {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search || '');
+    const sharedPostId = params.get('postId');
+    const requestedScreen = params.get('screen');
+
+    if (!sharedPostId || (requestedScreen && requestedScreen !== 'community')) {
+      return;
+    }
+
+    setSharedPostOpened(true);
+    setActiveTab('posts');
+    setCommentPage(1);
+    loadPostDetail(sharedPostId, 1);
+  }, [sharedPostOpened, token]);
 
   useEffect(() => {
     if (
@@ -313,6 +333,64 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     } finally {
       setDetailLoading(false);
     }
+  }
+
+  function updatePostState(postId, updater) {
+    const normalizedPostId = Number(postId);
+    const updatePost = (post) => {
+      if (Number(post?.id) !== normalizedPostId) {
+        return post;
+      }
+
+      return updater(post);
+    };
+
+    setPosts((currentPosts) => currentPosts.map(updatePost));
+    setBookmarks((currentBookmarks) =>
+      currentBookmarks.map((bookmark) => ({
+        ...bookmark,
+        post: updatePost(bookmark.post)
+      }))
+    );
+    setSelectedPost((currentPost) => updatePost(currentPost));
+  }
+
+  function getReactionAdjustedPost(post, nextReaction) {
+    const currentReaction = post.myReaction;
+    let likeDelta = 0;
+    let dislikeDelta = 0;
+
+    if (currentReaction === 'LIKE') {
+      likeDelta -= 1;
+    }
+
+    if (currentReaction === 'DISLIKE') {
+      dislikeDelta -= 1;
+    }
+
+    if (nextReaction === 'LIKE') {
+      likeDelta += 1;
+    }
+
+    if (nextReaction === 'DISLIKE') {
+      dislikeDelta += 1;
+    }
+
+    return {
+      ...post,
+      myReaction: nextReaction,
+      likeCount: Math.max(0, (post.likeCount || 0) + likeDelta),
+      dislikeCount: Math.max(0, (post.dislikeCount || 0) + dislikeDelta)
+    };
+  }
+
+  async function refreshVisiblePostLists() {
+    if (activeTab === 'bookmarks') {
+      await loadBookmarks();
+      return;
+    }
+
+    await loadPosts();
   }
 
   function resetMessages() {
@@ -603,23 +681,13 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     await deleteComment(deleteTarget);
   }
 
-  async function refreshAfterPostAction(postId) {
-    if (selectedPost?.id === postId) {
-      await loadPostDetail(postId, commentPage);
-    }
-
-    if (activeTab === 'bookmarks') {
-      await loadBookmarks();
-    } else {
-      await loadPosts();
-    }
-  }
-
   async function toggleReaction(post, type) {
     setBusy(true);
     resetMessages();
 
     try {
+      const nextReaction = post.myReaction === type ? null : type;
+
       if (post.myReaction === type) {
         await deleteCommunityReaction(token, post.id);
         setSuccessMessage(translateText('반응을 취소했습니다.'));
@@ -630,7 +698,8 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         );
       }
 
-      await refreshAfterPostAction(post.id);
+      updatePostState(post.id, (currentPost) => getReactionAdjustedPost(currentPost, nextReaction));
+      await refreshVisiblePostLists();
     } catch (error) {
       setErrorMessage(error.message || translateText('반응 처리에 실패했습니다.'));
     } finally {
@@ -672,8 +741,8 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
 
     const link =
       typeof window !== 'undefined' && window.location
-        ? `${window.location.origin}${window.location.pathname}?screen=community&postId=${post.id}`
-        : `community/post/${post.id}`;
+        ? `${window.location.origin}/community?screen=community&postId=${post.id}`
+        : `community?screen=community&postId=${post.id}`;
 
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -707,6 +776,8 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     resetMessages();
 
     try {
+      const nextBookmarked = !post.isBookmarked;
+
       if (post.isBookmarked) {
         await deleteCommunityBookmark(token, post.id);
         setSuccessMessage('북마크를 해제했습니다.');
@@ -715,7 +786,21 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         setSuccessMessage('북마크에 추가했습니다.');
       }
 
-      await refreshAfterPostAction(post.id);
+      updatePostState(post.id, (currentPost) => ({
+        ...currentPost,
+        isBookmarked: nextBookmarked,
+        bookmarkCount: Math.max(0, (currentPost.bookmarkCount || 0) + (nextBookmarked ? 1 : -1))
+      }));
+
+      if (activeTab === 'bookmarks' && !nextBookmarked) {
+        setBookmarks((currentBookmarks) =>
+          currentBookmarks.filter((bookmark) => Number(bookmark.post?.id) !== Number(post.id))
+        );
+        setSelectedPost((currentPost) => (Number(currentPost?.id) === Number(post.id) ? null : currentPost));
+        await loadBookmarks();
+      } else {
+        await refreshVisiblePostLists();
+      }
     } catch (error) {
       setErrorMessage(error.message || '북마크 처리에 실패했습니다.');
     } finally {

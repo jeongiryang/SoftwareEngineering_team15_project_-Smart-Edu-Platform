@@ -28,6 +28,15 @@ const defaultPreference = {
   reviewReminderEnabled: false,
   reminderTime: ''
 };
+const TEXT_SCALE_OPTIONS = [1, 1.2, 1.4, 1.6, 1.8, 2];
+const KID_TEXT_SCALE_LABELS = {
+  1: '보통',
+  1.2: '조금 크게',
+  1.4: '많이 크게',
+  1.6: '아주 크게',
+  1.8: '더 크게',
+  2: '가장 크게'
+};
 const DRAFT_STORAGE_KEY = 'smartEduAccessibilityDraft';
 const voiceGuideSteps = [
   {
@@ -496,7 +505,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
               text={isKidMode ? kidTexts.speechSupportText : speechSupportText}
             />
             <View style={styles.scaleRow}>
-              {[1, 1.2, 1.4, 1.6].map((scale) => (
+              {TEXT_SCALE_OPTIONS.map((scale) => (
                 <Pressable
                   key={scale}
                   onPress={() => {
@@ -509,10 +518,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                   ]}
                 >
                   <Text style={[styles.scaleButtonText, preference.textScale === scale && styles.activeButtonText]}>
-                    {isKidMode
-                      ? (scale === 1 ? '보통' : scale === 1.2 ? '조금 크게' : scale === 1.4 ? '많이 크게' : '아주 크게')
-                      : `${scale.toFixed(1)}x`
-                    }
+                    {isKidMode ? KID_TEXT_SCALE_LABELS[scale] : `${scale.toFixed(1)}x`}
                   </Text>
                 </Pressable>
               ))}
