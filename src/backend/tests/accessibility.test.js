@@ -155,13 +155,25 @@ describe('Accessibility API integration tests', () => {
       });
     });
 
-    it('validates textScale range', async () => {
+    it('accepts textScale up to 2.0', async () => {
       const { token } = await registerTestUser();
 
       const response = await request(app)
         .put('/api/accessibility/preferences')
         .set(createAuthHeader(token))
         .send({ textScale: 2 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.preference).toMatchObject({ textScale: 2 });
+    });
+
+    it('validates textScale range', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .put('/api/accessibility/preferences')
+        .set(createAuthHeader(token))
+        .send({ textScale: 2.1 });
 
       expect(response.status).toBe(400);
       expect(response.body.code).toBe('VALIDATION_ERROR');

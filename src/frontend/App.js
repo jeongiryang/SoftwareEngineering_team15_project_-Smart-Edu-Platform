@@ -133,7 +133,7 @@ function applyGlobalAccessibilityPreference(preference, user) {
     documentRef.getElementById('root') ||
     documentRef.getElementById('main') ||
     documentRef.body?.firstElementChild;
-  const textScale = user ? Math.min(Math.max(Number(preference.textScale) || 1, 1), 1.6) : 1;
+  const textScale = user ? Math.min(Math.max(Number(preference.textScale) || 1, 1), 2) : 1;
   const elementaryMode = Boolean(user && preference.elementaryFriendlyUi);
 
   if (root?.style) {

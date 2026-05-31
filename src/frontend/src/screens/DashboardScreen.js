@@ -472,6 +472,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const [showAllBadges, setShowAllBadges] = useState(false);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [showClaimedQuests, setShowClaimedQuests] = useState(false);
+  const [showAllActiveQuests, setShowAllActiveQuests] = useState(false);
   const [failedBadgeIcons, setFailedBadgeIcons] = useState({});
   const [rewardLoading, setRewardLoading] = useState(true);
   const [rewardRefreshing, setRewardRefreshing] = useState(false);
@@ -507,6 +508,10 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   const activeQuests = useMemo(
     () => featuredQuests.filter((quest) => quest.status !== 'CLAIMED'),
     [featuredQuests]
+  );
+  const visibleActiveQuests = useMemo(
+    () => (showAllActiveQuests ? activeQuests : activeQuests.slice(0, 3)),
+    [activeQuests, showAllActiveQuests]
   );
   const claimedQuests = useMemo(
     () => featuredQuests.filter((quest) => quest.status === 'CLAIMED'),
@@ -709,6 +714,17 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
       globalThis.localStorage?.setItem(QUICK_QUIZ_DISMISS_KEY, getTodayKey());
     } catch (error) {
       // Disabled storage should not block the non-forced quiz flow.
+    }
+  }
+
+  function showQuickQuizAgain() {
+    setSelectedQuizOption(null);
+    setIsQuickQuizHiddenToday(false);
+
+    try {
+      globalThis.localStorage?.removeItem(QUICK_QUIZ_DISMISS_KEY);
+    } catch (error) {
+      // Disabled storage should not block restoring the optional quiz card.
     }
   }
 
@@ -928,6 +944,13 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               <View style={styles.quizHiddenBox}>
                 <Text style={styles.emptyTitle}>오늘의 1초 퀴즈를 숨겼어요.</Text>
                 <Text style={styles.emptyText}>강제 퀴즈가 아니라 원할 때만 확인하는 빠른 복습 카드입니다.</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={showQuickQuizAgain}
+                  style={(state) => [styles.skipQuizButton, styles.quizRestoreButton, ...interactiveStateStyles(state)]}
+                >
+                  <Text style={styles.skipQuizText}>오늘 다시 보기</Text>
+                </Pressable>
               </View>
             ) : (
               <>
@@ -1060,7 +1083,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       </Pressable>
                     </View>
                   ) : (
-                    activeQuests.map((quest) => (
+                    <>
+                      {visibleActiveQuests.map((quest) => (
                       <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
                         <View style={styles.questHeader}>
                           <View style={styles.questCopy}>
@@ -1113,7 +1137,21 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                           )}
                         </View>
                       </View>
-                    ))
+                      ))}
+                      {activeQuests.length > 3 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setShowAllActiveQuests((current) => !current)}
+                          style={(state) => [styles.moreButton, ...interactiveStateStyles(state)]}
+                        >
+                          <Text style={styles.moreButtonText}>
+                            {showAllActiveQuests
+                              ? '진행 중 퀘스트 숨기기'
+                              : `진행 중 퀘스트 더보기 (${activeQuests.length - 3}개 더)`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
                   )}
 
                   {claimedQuests.length ? (
@@ -1223,13 +1261,6 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <View style={styles.emptyCard}>
                       <Text style={styles.emptyTitle}>아직 획득한 배지가 없습니다.</Text>
                       <Text style={styles.emptyText}>퀘스트를 달성하고 보상을 수령하면 배지가 여기에 표시됩니다.</Text>
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => onNavigate('taskBoard')}
-                        style={(state) => [styles.emptyActionButton, ...interactiveStateStyles(state)]}
-                      >
-                        <Text style={styles.emptyActionText}>태스크 완료하러 가기</Text>
-                      </Pressable>
                     </View>
                   )}
 
@@ -1257,7 +1288,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllTransactions
-                              ? '포인트 내역 접기'
+                              ? '포인트 내역 숨기기'
                               : `포인트 내역 더보기 (${rewardData.recentPointTransactions.length - 5}건 더)`}
                           </Text>
                         </Pressable>
@@ -1680,6 +1711,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 16,
     gap: 6
+  },
+  quizRestoreButton: {
+    alignSelf: 'flex-start',
+    marginTop: 4
   },
   planningPanel: {
     borderRadius: 24,

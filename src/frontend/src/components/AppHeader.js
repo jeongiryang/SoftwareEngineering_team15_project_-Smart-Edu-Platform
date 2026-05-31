@@ -143,6 +143,7 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
+          onMouseDown={(event) => event?.preventDefault?.()}
           onPress={() => onNavigate(authenticated ? 'dashboard' : 'home')}
           style={(state) => [styles.brand, state.hovered && styles.brandHover, ...interactiveStateStyles(state)]}
         >

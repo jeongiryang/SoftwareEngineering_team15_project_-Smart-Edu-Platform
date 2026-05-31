@@ -792,7 +792,7 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
               </View>
             </SectionCard>
 
-            <SectionCard title="계정 설정" subtitle="필요한 항목만 열어서 관리합니다. 닉네임과 비밀번호 변경은 본인 계정 기준으로 처리됩니다.">
+            <SectionCard title="계정 설정" subtitle="닉네임, 비밀번호, 탈퇴 여부를 필요한 항목만 열어서 관리합니다.">
               {accountMessage ? (
                 <View style={styles.accountSuccess}>
                   <Text style={styles.accountSuccessText}>{accountMessage}</Text>
@@ -850,7 +850,7 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
               {accountSection === 'nickname' ? (
                 <View style={styles.accountPanel}>
                   <Text style={styles.formLabel}>닉네임</Text>
-                  <Text style={styles.formHelper}>커뮤니티와 프로필에 표시되는 닉네임입니다. 실제 중복 확인은 저장 시 서버 응답 기준으로 처리합니다.</Text>
+                  <Text style={styles.formHelper}>커뮤니티와 프로필에 표시되는 이름입니다. 저장할 때 사용할 수 있는 닉네임인지 확인합니다.</Text>
                   <View style={styles.inlineForm}>
                     <AccessibleTextInput
                       containerStyle={styles.inlineTextInputContainer}
@@ -878,7 +878,7 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
               ) : accountSection === 'password' ? (
                 <View style={styles.accountPanel}>
                   <Text style={styles.formLabel}>비밀번호 변경</Text>
-                  <Text style={styles.formHelper}>현재 비밀번호 확인 후 새 비밀번호를 저장합니다. 비밀번호 원문이나 hash는 화면에 표시하지 않습니다.</Text>
+                  <Text style={styles.formHelper}>현재 비밀번호로 본인 확인을 한 뒤 새 비밀번호를 저장합니다. 비밀번호는 화면에 표시하지 않습니다.</Text>
                   <AccessibleTextInput
                     onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
                     placeholder="현재 비밀번호"
