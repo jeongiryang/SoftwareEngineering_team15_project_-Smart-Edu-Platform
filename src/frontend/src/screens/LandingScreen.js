@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import WritingEraseText from '../components/WritingEraseText';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
@@ -78,7 +79,6 @@ function GitHubMark() {
 
 export default function LandingScreen({ onNavigate }) {
   const { t } = useLanguage();
-  const [writtenWord, setWrittenWord] = useState('');
   const [githubTooltipState, setGithubTooltipState] = useState({
     focused: false,
     hovered: false
@@ -86,33 +86,6 @@ export default function LandingScreen({ onNavigate }) {
   const showGithubTooltip = githubTooltipState.focused || githubTooltipState.hovered;
   const writingWord = t('landing.hero.writingWord', '사각사각');
   const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
-
-  useEffect(() => {
-    const timers = [];
-
-    function schedule(callback, delay) {
-      const timer = setTimeout(callback, delay);
-      timers.push(timer);
-    }
-
-    function runCycle() {
-      setWrittenWord('');
-
-      Array.from(writingWord).forEach((_, index) => {
-        schedule(() => {
-          setWrittenWord(writingWord.slice(0, index + 1));
-        }, 170 * (index + 1));
-      });
-
-      schedule(runCycle, 4000);
-    }
-
-    runCycle();
-
-    return () => {
-      timers.forEach(clearTimeout);
-    };
-  }, [writingWord]);
 
   return (
     <ScrollView dataSet={{ sagakI18nIgnore: 'true' }} style={styles.container} contentContainerStyle={styles.content}>
@@ -123,12 +96,17 @@ export default function LandingScreen({ onNavigate }) {
           </View>
           <Text accessibilityLabel={t('landing.hero.fullLabel', '공부의 흔적을 사각사각 쌓아가세요')} style={styles.title}>
             {t('landing.hero.prefix', '공부의 흔적을')}{'\n'}
-            <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.writingWord}>
-              {writtenWord || ' '}
-            </Text>
-            <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.cursor}>
-              {writtenWord.length < writingWord.length ? '|' : ''}
-            </Text>
+            <WritingEraseText
+              accessibilityElementsHidden
+              cursorStyle={styles.writingCursor}
+              eraseInterval={58}
+              holdMs={1300}
+              importantForAccessibility="no"
+              pauseMs={500}
+              style={styles.writingWord}
+              text={writingWord}
+              writeInterval={150}
+            />
             {heroSuffix ? ` ${heroSuffix}` : ''}
           </Text>
           <Text style={styles.description}>
@@ -293,7 +271,7 @@ const styles = StyleSheet.create({
   writingWord: {
     color: colors.mintDeep
   },
-  cursor: {
+  writingCursor: {
     color: colors.creamStrong,
     fontWeight: '700'
   },
