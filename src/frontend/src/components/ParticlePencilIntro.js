@@ -36,35 +36,25 @@ const PARTICLE_TOKENS = [
   '+'
 ];
 
-const HANDWRITING_STROKES = [
-  { d: 'M45 72 C70 58 96 58 122 70', length: 88 },
-  { d: 'M75 49 C73 72 73 92 76 115', length: 74 },
-  { d: 'M47 124 C79 109 114 111 139 130', length: 105 },
-  { d: 'M158 55 C188 49 218 50 246 57', length: 92 },
-  { d: 'M163 92 C194 85 224 87 251 96', length: 92 },
-  { d: 'M205 45 C204 77 205 111 211 142', length: 108 },
-  { d: 'M284 72 C308 58 337 59 365 70', length: 88 },
-  { d: 'M316 50 C313 75 314 96 319 118', length: 76 },
-  { d: 'M286 127 C319 109 354 111 381 132', length: 112 },
-  { d: 'M401 56 C431 49 461 50 489 57', length: 92 },
-  { d: 'M405 93 C436 85 467 87 494 96', length: 92 },
-  { d: 'M447 45 C446 78 447 113 454 144', length: 112 }
-];
-
 const WRITING_POINTS = [
-  { x: 45, y: 72 },
-  { x: 122, y: 70 },
-  { x: 76, y: 115 },
-  { x: 139, y: 130 },
-  { x: 246, y: 57 },
-  { x: 251, y: 96 },
-  { x: 211, y: 142 },
-  { x: 365, y: 70 },
-  { x: 319, y: 118 },
-  { x: 381, y: 132 },
-  { x: 489, y: 57 },
-  { x: 494, y: 96 },
-  { x: 454, y: 144 }
+  { x: 98, y: 72 },
+  { x: 150, y: 58 },
+  { x: 196, y: 74 },
+  { x: 156, y: 120 },
+  { x: 226, y: 132 },
+  { x: 254, y: 62 },
+  { x: 330, y: 62 },
+  { x: 306, y: 108 },
+  { x: 348, y: 142 },
+  { x: 392, y: 72 },
+  { x: 446, y: 58 },
+  { x: 492, y: 74 },
+  { x: 452, y: 120 },
+  { x: 522, y: 132 },
+  { x: 552, y: 62 },
+  { x: 622, y: 62 },
+  { x: 604, y: 112 },
+  { x: 642, y: 142 }
 ];
 
 function clamp(value, min = 0, max = 1) {
@@ -158,7 +148,7 @@ function getWritingPoint(progress) {
   };
 }
 
-function PencilShape() {
+function NativePencilShape() {
   return (
     <View style={styles.pencil}>
       <View style={styles.pencilEraser}>
@@ -174,8 +164,36 @@ function PencilShape() {
   );
 }
 
+function WebPencil({ style }) {
+  if (Platform.OS !== 'web') {
+    return null;
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      style={style}
+      viewBox="0 0 660 118"
+    >
+      <ellipse cx="308" cy="92" fill="rgba(0,0,0,0.24)" rx="260" ry="18" />
+      <rect fill="#F2CDA5" height="66" rx="24" stroke="#D6E7FF" strokeWidth="6" width="88" x="24" y="20" />
+      <rect fill="rgba(23, 59, 99, 0.24)" height="20" width="88" x="24" y="43" />
+      <rect fill="#73C9BD" height="66" stroke="#D6E7FF" strokeWidth="6" width="420" x="108" y="20" />
+      <rect fill="rgba(255,255,255,0.32)" height="12" width="420" x="108" y="33" />
+      <rect fill="rgba(23,59,99,0.22)" height="13" width="420" x="108" y="62" />
+      <rect fill="#FFF1D9" height="66" stroke="#D6E7FF" strokeWidth="6" width="54" x="528" y="20" />
+      <path d="M582 20 L650 53 L582 86 Z" fill="#F8F2E7" stroke="#D6E7FF" strokeLinejoin="round" strokeWidth="6" />
+      <path d="M632 44 L660 53 L632 62 Z" fill="#183246" />
+    </svg>
+  );
+}
+
 function HandwrittenWord({ progress }) {
   const normalized = clamp(progress / 100);
+  const fillWidth = 640 * normalized;
+  const dashLength = 1600;
+  const dashOffset = dashLength * (1 - normalized);
 
   if (Platform.OS !== 'web') {
     return (
@@ -191,7 +209,7 @@ function HandwrittenWord({ progress }) {
       focusable="false"
       preserveAspectRatio="xMidYMid meet"
       style={styles.handwritingSvg}
-      viewBox="0 0 540 190"
+      viewBox="0 0 700 200"
     >
       <defs>
         <filter id="sagak-handwriting-glow" x="-10%" y="-10%" width="120%" height="130%">
@@ -206,36 +224,56 @@ function HandwrittenWord({ progress }) {
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <clipPath id="sagak-handwriting-fill">
+          <rect height="150" width={fillWidth} x="30" y="28" />
+        </clipPath>
       </defs>
-      <path
-        d="M36 156 C140 172 334 170 500 154"
+      <text
+        fill="rgba(255, 241, 217, 0.08)"
+        fontFamily="'Nanum Pen Script', 'Segoe Print', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif"
+        fontSize="96"
+        fontWeight="900"
+        letterSpacing="3"
+        textAnchor="middle"
+        x="350"
+        y="126"
+      >
+        사각사각
+      </text>
+      <text
         fill="none"
-        opacity="0.16"
-        stroke="#73C9BD"
+        filter="url(#sagak-handwriting-glow)"
+        fontFamily="'Nanum Pen Script', 'Segoe Print', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif"
+        fontSize="96"
+        fontWeight="900"
+        letterSpacing="3"
+        stroke="#FFF1D9"
+        strokeDasharray={dashLength}
+        strokeDashoffset={dashOffset}
         strokeLinecap="round"
-        strokeWidth="8"
-      />
-      {HANDWRITING_STROKES.map((stroke, index) => {
-        const start = index / HANDWRITING_STROKES.length;
-        const end = (index + 1) / HANDWRITING_STROKES.length;
-        const strokeProgress = clamp((normalized - start) / Math.max(end - start, 0.001));
-
-        return (
-          <path
-            d={stroke.d}
-            fill="none"
-            filter="url(#sagak-handwriting-glow)"
-            key={stroke.d}
-            opacity={strokeProgress > 0 ? 1 : 0.18}
-            stroke={strokeProgress > 0 ? '#FFF1D9' : 'rgba(255, 241, 217, 0.18)'}
-            strokeDasharray={stroke.length}
-            strokeDashoffset={stroke.length * (1 - strokeProgress)}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="15"
-          />
-        );
-      })}
+        strokeLinejoin="round"
+        strokeWidth="3.5"
+        textAnchor="middle"
+        x="350"
+        y="126"
+      >
+        사각사각
+      </text>
+      <text
+        clipPath="url(#sagak-handwriting-fill)"
+        fill="#FFF1D9"
+        filter="url(#sagak-handwriting-glow)"
+        fontFamily="'Nanum Pen Script', 'Segoe Print', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif"
+        fontSize="96"
+        fontWeight="900"
+        letterSpacing="3"
+        opacity="0.92"
+        textAnchor="middle"
+        x="350"
+        y="126"
+      >
+        사각사각
+      </text>
     </svg>
   );
 }
@@ -346,10 +384,10 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     [stage]
   );
 
-  const writingPencilStyle = isWriting
+  const nativeWritingPencilStyle = isWriting
     ? {
-        left: `${8 + (writingPoint.x / 540) * 82}%`,
-        top: `${29 + (writingPoint.y / 190) * 34}%`,
+        left: `${9 + (writingPoint.x / 700) * 82}%`,
+        top: `${30 + (writingPoint.y / 200) * 34}%`,
         opacity: 1,
         transform: [
           { translateX: -265 },
@@ -359,6 +397,21 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         ]
       }
     : undefined;
+  const webPencilStyle = isWriting
+    ? {
+        ...styles.webPencil,
+        left: `${9 + (writingPoint.x / 700) * 82}%`,
+        top: `${31 + (writingPoint.y / 200) * 34}%`,
+        opacity: 1,
+        transform: 'translate(-96%, -50%) rotate(-34deg) scale(0.78)'
+      }
+    : {
+        ...styles.webPencil,
+        left: '50%',
+        top: '46%',
+        opacity: isPencilVisible ? 1 : 0,
+        transform: `translate(-50%, -50%) rotate(-34deg) scale(${stage === 'pencil' ? 0.96 : 0.74})`
+      };
 
   if (!visible) {
     return null;
@@ -384,20 +437,24 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         ))}
       </View>
 
-      <View
-        pointerEvents="none"
-        style={[
-          styles.pencilStage,
-          isPencilVisible && styles.pencilStageVisible,
-          stage === 'pencil' && styles.pencilStageFormed,
-          isWriting && styles.pencilStageWriting,
-          writingPencilStyle,
-          reducedMotion && styles.reducedPencilStage
-        ]}
-      >
-        <View style={styles.pencilShadow} />
-        <PencilShape />
-      </View>
+      {Platform.OS === 'web' ? (
+        <WebPencil style={webPencilStyle} />
+      ) : (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.pencilStage,
+            isPencilVisible && styles.pencilStageVisible,
+            stage === 'pencil' && styles.pencilStageFormed,
+            isWriting && styles.pencilStageWriting,
+            nativeWritingPencilStyle,
+            reducedMotion && styles.reducedPencilStage
+          ]}
+        >
+          <View style={styles.pencilShadow} />
+          <NativePencilShape />
+        </View>
+      )}
 
       <View pointerEvents="none" style={[styles.wordStage, isWriting && styles.wordStageVisible]}>
         <Text style={styles.wordGhost}>사각사각</Text>
@@ -540,6 +597,19 @@ const styles = StyleSheet.create({
     top: '46%',
     opacity: 1,
     transform: [{ translateX: -265 }, { translateY: -92 }, { rotate: '-58deg' }, { scale: 0.72 }]
+  },
+  webPencil: {
+    position: 'absolute',
+    width: '56vw',
+    maxWidth: 620,
+    minWidth: 360,
+    height: 'auto',
+    zIndex: 8,
+    pointerEvents: 'none',
+    transitionDuration: '680ms',
+    transitionProperty: 'left, top, opacity, transform',
+    transitionTimingFunction: 'cubic-bezier(0.18, 0.82, 0.25, 1)',
+    transformOrigin: '96% 50%'
   },
   pencilShadow: {
     position: 'absolute',

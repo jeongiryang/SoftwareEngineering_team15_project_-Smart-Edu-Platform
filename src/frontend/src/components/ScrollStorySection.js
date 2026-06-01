@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
-const STORY_VIEWPORT_HEIGHT = 760;
-const STORY_SCROLL_SPAN = 520;
+const VIEWPORT_HEIGHT = 760;
 
-const storySlides = [
+const serviceScenes = [
   {
     id: 'learn',
     keyword: 'LEARN',
@@ -16,24 +15,9 @@ const storySlides = [
     metricKey: 'landing.showcase.learn.metric',
     mood: 'mint',
     cards: [
-      {
-        labelKey: 'landing.feature.ai.label',
-        titleKey: 'landing.feature.ai.title',
-        descriptionKey: 'landing.feature.ai.description',
-        preview: 'chat'
-      },
-      {
-        labelKey: 'landing.feature.focus.label',
-        titleKey: 'landing.feature.focus.title',
-        descriptionKey: 'landing.feature.focus.description',
-        preview: 'timer'
-      },
-      {
-        labelKey: 'landing.carousel.ask.secondary',
-        titleKey: 'landing.carousel.ask.item3',
-        descriptionKey: 'landing.carousel.ask.description',
-        preview: 'quiz'
-      }
+      ['landing.feature.ai.label', 'landing.feature.ai.title', 'landing.feature.ai.description', 'chat'],
+      ['landing.feature.focus.label', 'landing.feature.focus.title', 'landing.feature.focus.description', 'timer'],
+      ['landing.carousel.ask.secondary', 'landing.carousel.ask.item3', 'landing.carousel.ask.description', 'quiz']
     ]
   },
   {
@@ -45,24 +29,9 @@ const storySlides = [
     metricKey: 'landing.showcase.organize.metric',
     mood: 'cream',
     cards: [
-      {
-        labelKey: 'landing.feature.plan.label',
-        titleKey: 'landing.feature.plan.title',
-        descriptionKey: 'landing.feature.plan.description',
-        preview: 'kanban'
-      },
-      {
-        labelKey: 'landing.carousel.start.primary',
-        titleKey: 'landing.carousel.start.item1',
-        descriptionKey: 'landing.carousel.start.description',
-        preview: 'dashboard'
-      },
-      {
-        labelKey: 'landing.carousel.focus.secondary',
-        titleKey: 'landing.showcase.record.title',
-        descriptionKey: 'landing.showcase.record.description',
-        preview: 'stats'
-      }
+      ['landing.feature.plan.label', 'landing.feature.plan.title', 'landing.feature.plan.description', 'kanban'],
+      ['landing.carousel.start.primary', 'landing.carousel.start.item1', 'landing.carousel.start.description', 'dashboard'],
+      ['landing.carousel.focus.secondary', 'landing.showcase.record.title', 'landing.showcase.record.description', 'stats']
     ]
   },
   {
@@ -74,24 +43,9 @@ const storySlides = [
     metricKey: 'landing.showcase.connect.metric',
     mood: 'blue',
     cards: [
-      {
-        labelKey: 'landing.feature.community.label',
-        titleKey: 'landing.feature.community.title',
-        descriptionKey: 'landing.feature.community.description',
-        preview: 'post'
-      },
-      {
-        labelKey: 'landing.feature.social.label',
-        titleKey: 'landing.feature.social.title',
-        descriptionKey: 'landing.feature.social.description',
-        preview: 'presence'
-      },
-      {
-        labelKey: 'landing.carousel.together.primary',
-        titleKey: 'landing.carousel.together.item2',
-        descriptionKey: 'landing.carousel.together.description',
-        preview: 'message'
-      }
+      ['landing.feature.community.label', 'landing.feature.community.title', 'landing.feature.community.description', 'post'],
+      ['landing.feature.social.label', 'landing.feature.social.title', 'landing.feature.social.description', 'presence'],
+      ['landing.carousel.together.primary', 'landing.carousel.together.item2', 'landing.carousel.together.description', 'message']
     ]
   },
   {
@@ -103,53 +57,23 @@ const storySlides = [
     metricKey: 'landing.showcase.challenge.metric',
     mood: 'mint',
     cards: [
-      {
-        labelKey: 'landing.feature.raid.label',
-        titleKey: 'landing.feature.raid.title',
-        descriptionKey: 'landing.feature.raid.description',
-        preview: 'raid'
-      },
-      {
-        labelKey: 'landing.feature.coop.label',
-        titleKey: 'landing.feature.coop.title',
-        descriptionKey: 'landing.feature.coop.description',
-        preview: 'coop'
-      },
-      {
-        labelKey: 'landing.feature.reward.label',
-        titleKey: 'landing.feature.reward.title',
-        descriptionKey: 'landing.feature.reward.description',
-        preview: 'reward'
-      }
+      ['landing.feature.raid.label', 'landing.feature.raid.title', 'landing.feature.raid.description', 'raid'],
+      ['landing.feature.coop.label', 'landing.feature.coop.title', 'landing.feature.coop.description', 'coop'],
+      ['landing.feature.reward.label', 'landing.feature.reward.title', 'landing.feature.reward.description', 'reward']
     ]
   },
   {
-    id: 'operate',
+    id: 'care',
     keyword: 'CARE',
-    eyebrowKey: 'landing.showcase.operate.eyebrow',
-    titleKey: 'landing.showcase.operate.title',
-    descriptionKey: 'landing.showcase.operate.description',
-    metricKey: 'landing.showcase.operate.metric',
+    eyebrowKey: 'landing.showcase.access.eyebrow',
+    titleKey: 'landing.showcase.access.title',
+    descriptionKey: 'landing.showcase.access.description',
+    metricKey: 'landing.showcase.access.metric',
     mood: 'cream',
     cards: [
-      {
-        labelKey: 'landing.feature.accessibility.label',
-        titleKey: 'landing.feature.accessibility.title',
-        descriptionKey: 'landing.feature.accessibility.description',
-        preview: 'accessibility'
-      },
-      {
-        labelKey: 'landing.feature.admin.label',
-        titleKey: 'landing.feature.admin.title',
-        descriptionKey: 'landing.feature.admin.description',
-        preview: 'admin'
-      },
-      {
-        labelKey: 'landing.showcase.reward.eyebrow',
-        titleKey: 'landing.showcase.reward.title',
-        descriptionKey: 'landing.showcase.reward.description',
-        preview: 'profile'
-      }
+      ['landing.feature.accessibility.label', 'landing.feature.accessibility.title', 'landing.feature.accessibility.description', 'accessibility'],
+      ['landing.showcase.reward.eyebrow', 'landing.showcase.reward.title', 'landing.showcase.reward.description', 'profile'],
+      ['landing.feature.reward.label', 'landing.feature.reward.title', 'landing.feature.reward.description', 'reward']
     ]
   }
 ];
@@ -158,31 +82,37 @@ function clamp(value, min = 0, max = 1) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getStoryProgress(scrollY, layout, storyHeight) {
-  if (!layout.height) {
-    return 0;
+function smoothStep(value) {
+  const p = clamp(value);
+  return p * p * (3 - 2 * p);
+}
+
+function calculateMotion(scrollY, layout) {
+  if (!layout?.height) {
+    return { focus: 0, enter: 0, distance: 0 };
   }
 
-  const startY = Math.max(layout.y - 72, 0);
-  const scrollableDistance = Math.max(storyHeight - STORY_VIEWPORT_HEIGHT, 1);
-  return clamp((scrollY - startY) / scrollableDistance);
+  const viewportCenter = scrollY + VIEWPORT_HEIGHT / 2;
+  const sectionCenter = layout.y + layout.height / 2;
+  const distance = sectionCenter - viewportCenter;
+  const focusRange = Math.max(layout.height * 0.72, VIEWPORT_HEIGHT * 0.62);
+  const focus = smoothStep(1 - Math.abs(distance) / focusRange);
+  const enter = smoothStep((scrollY + VIEWPORT_HEIGHT * 0.72 - layout.y) / Math.max(layout.height * 0.72, 1));
+
+  return {
+    focus,
+    enter,
+    distance: clamp(distance / focusRange, -1, 1)
+  };
 }
 
-function getSceneState(index, sceneFloat) {
-  const distance = index - sceneFloat;
-  const focus = clamp(1 - Math.abs(distance), 0, 1);
-  const direction = distance >= 0 ? 1 : -1;
-
-  return { distance, focus, direction };
-}
-
-function MiniPreview({ type, focus }) {
-  const fill = `${Math.round(34 + focus * 58)}%`;
+function MiniPreview({ type, progress }) {
+  const fill = `${Math.round(36 + progress * 55)}%`;
 
   if (type === 'timer') {
     return (
       <View style={styles.timerPreview}>
-        <View style={[styles.timerRing, { transform: [{ rotate: `${-28 + focus * 58}deg` }] }]}>
+        <View style={[styles.timerRing, { transform: [{ rotate: `${-22 + progress * 56}deg` }] }]}>
           <View style={styles.timerCenter} />
         </View>
         <View style={styles.previewStack}>
@@ -193,7 +123,7 @@ function MiniPreview({ type, focus }) {
     );
   }
 
-  if (type === 'kanban' || type === 'dashboard') {
+  if (['kanban', 'dashboard'].includes(type)) {
     return (
       <View style={styles.kanbanPreview}>
         {[0, 1, 2].map((column) => (
@@ -207,7 +137,7 @@ function MiniPreview({ type, focus }) {
     );
   }
 
-  if (type === 'presence' || type === 'message' || type === 'post') {
+  if (['presence', 'message', 'post'].includes(type)) {
     return (
       <View style={styles.presencePreview}>
         {[0, 1, 2].map((item) => (
@@ -224,7 +154,7 @@ function MiniPreview({ type, focus }) {
     );
   }
 
-  if (type === 'raid' || type === 'coop' || type === 'reward' || type === 'stats') {
+  if (['raid', 'coop', 'reward', 'stats', 'profile'].includes(type)) {
     return (
       <View style={styles.progressPreview}>
         <View style={styles.progressTop}>
@@ -251,63 +181,173 @@ function MiniPreview({ type, focus }) {
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: fill }]} />
       </View>
-      <View style={styles.previewChipRow}>
-        <View style={styles.previewChip} />
-        <View style={styles.previewChipAlt} />
+    </View>
+  );
+}
+
+function ServiceCard({ card, index, motion, t }) {
+  const [labelKey, titleKey, descriptionKey, preview] = card;
+  const side = index % 2 === 0 ? -1 : 1;
+  const stagger = clamp(motion.enter * 1.18 - index * 0.1);
+
+  return (
+    <View
+      style={[
+        styles.serviceCard,
+        shadows.card,
+        index === 1 && styles.serviceCardMint,
+        index === 2 && styles.serviceCardCream,
+        {
+          opacity: 0.28 + stagger * 0.72,
+          transform: [
+            { translateX: side * (1 - stagger) * 124 },
+            { translateY: (1 - stagger) * 34 + (index === 1 ? -14 : index === 2 ? 14 : 0) },
+            { scale: 0.9 + stagger * 0.1 },
+            { rotate: `${side * (1 - stagger) * 4}deg` }
+          ]
+        }
+      ]}
+    >
+      <Text style={styles.cardLabel}>{t(labelKey)}</Text>
+      <Text numberOfLines={2} style={styles.cardTitle}>{t(titleKey)}</Text>
+      <MiniPreview progress={Math.max(stagger, motion.focus)} type={preview} />
+      <Text numberOfLines={3} style={styles.cardDescription}>{t(descriptionKey)}</Text>
+    </View>
+  );
+}
+
+function HeroBanner({ activeScene, activeIndex, onMove, onSelect, t }) {
+  return (
+    <View
+      style={[
+        styles.banner,
+        activeScene.mood === 'blue' && styles.bannerBlue,
+        activeScene.mood === 'cream' && styles.bannerCream
+      ]}
+    >
+      <Pressable
+        accessibilityLabel={t('landing.carousel.prev', '이전 소개 카드')}
+        accessibilityRole="button"
+        onPress={() => onMove(-1)}
+        style={(state) => [styles.bannerArrow, styles.bannerArrowLeft, ...interactiveStateStyles(state)]}
+      >
+        <Text style={styles.bannerArrowText}>{'<'}</Text>
+      </Pressable>
+      <Pressable
+        accessibilityLabel={t('landing.carousel.next', '다음 소개 카드')}
+        accessibilityRole="button"
+        onPress={() => onMove(1)}
+        style={(state) => [styles.bannerArrow, styles.bannerArrowRight, ...interactiveStateStyles(state)]}
+      >
+        <Text style={styles.bannerArrowText}>{'>'}</Text>
+      </Pressable>
+      <View style={styles.bannerCopy}>
+        <Text style={styles.bannerLabel}>{t(activeScene.eyebrowKey)}</Text>
+        <Text style={styles.bannerTitle}>{t(activeScene.titleKey)}</Text>
+        <Text style={styles.bannerDescription}>{t(activeScene.descriptionKey)}</Text>
+        <View style={styles.bannerMetric}>
+          <View style={styles.bannerMetricDot} />
+          <Text style={styles.bannerMetricText}>{t(activeScene.metricKey)}</Text>
+        </View>
+        <View style={styles.bannerDots}>
+          {serviceScenes.map((scene, index) => (
+            <Pressable
+              accessibilityLabel={t('landing.carousel.dotLabel', '소개 카드 선택')}
+              accessibilityRole="button"
+              key={scene.id}
+              onPress={() => onSelect(index)}
+              style={[styles.bannerDot, index === activeIndex && styles.bannerDotActive]}
+            />
+          ))}
+        </View>
+      </View>
+      <View style={styles.bannerVisual}>
+        <View style={styles.visualBubbleLarge} />
+        <View style={styles.visualBubbleSmall} />
+        <View style={styles.visualPaper}>
+          <View style={styles.visualHeader}>
+            <View style={styles.visualIcon} />
+            <View style={styles.visualTitleLines}>
+              <View style={styles.visualLineStrong} />
+              <View style={styles.visualLineShort} />
+            </View>
+          </View>
+          <MiniPreview progress={0.86} type={activeScene.cards[0][3]} />
+        </View>
       </View>
     </View>
   );
 }
 
-function StoryCard({ card, index, focus, t }) {
-  const side = index % 2 === 0 ? -1 : 1;
-  const cardFocus = clamp(focus * 1.08 - index * 0.04);
-  const depthOffset = index === 1 ? -18 : index === 2 ? 16 : 0;
+function ServiceScene({ scene, index, layout, onLayout, scrollY, t }) {
+  const motion = calculateMotion(scrollY, layout);
 
   return (
     <View
+      onLayout={(event) => onLayout(scene.id, event.nativeEvent?.layout)}
       style={[
-        styles.storyCard,
-        shadows.card,
-        index === 1 && styles.storyCardMint,
-        index === 2 && styles.storyCardCream,
-        {
-          opacity: 0.34 + cardFocus * 0.66,
-          transform: [
-            { translateX: side * (1 - cardFocus) * (index === 1 ? 34 : 74) },
-            { translateY: (1 - cardFocus) * 42 + depthOffset },
-            { scale: 0.9 + cardFocus * 0.1 },
-            { rotate: `${side * (1 - cardFocus) * 4}deg` }
-          ]
-        }
+        styles.scene,
+        index % 2 === 1 && styles.sceneAlt
       ]}
     >
-      <Text style={styles.storyCardLabel}>{t(card.labelKey)}</Text>
-      <Text numberOfLines={2} style={styles.storyCardTitle}>{t(card.titleKey)}</Text>
-      <MiniPreview focus={cardFocus} type={card.preview} />
-      <Text numberOfLines={3} style={styles.storyCardDescription}>{t(card.descriptionKey)}</Text>
+      <Text
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        pointerEvents="none"
+        style={[
+          styles.backgroundWord,
+          {
+            opacity: 0.06 + motion.focus * 0.26,
+            transform: [
+              { translateY: motion.distance * 74 },
+              { translateX: motion.distance * -26 },
+              { scale: 0.96 + motion.focus * 0.18 }
+            ]
+          }
+        ]}
+      >
+        {scene.keyword}
+      </Text>
+      <View style={styles.sceneInner}>
+        <View style={styles.sceneCopy}>
+          <Text style={styles.sceneEyebrow}>{t(scene.eyebrowKey)}</Text>
+          <Text style={styles.sceneTitle}>{t(scene.titleKey)}</Text>
+          <Text style={styles.sceneDescription}>{t(scene.descriptionKey)}</Text>
+          <View style={styles.sceneMetric}>
+            <View style={styles.sceneMetricDot} />
+            <Text style={styles.sceneMetricText}>{t(scene.metricKey)}</Text>
+          </View>
+        </View>
+        <View style={styles.cardGrid}>
+          {scene.cards.map((card, cardIndex) => (
+            <ServiceCard card={card} index={cardIndex} key={`${scene.id}-${card[1]}`} motion={motion} t={t} />
+          ))}
+        </View>
+      </View>
     </View>
   );
 }
 
 export default function ScrollStorySection({ scrollY }) {
   const { t } = useLanguage();
-  const [layout, setLayout] = useState({ y: 0, height: STORY_VIEWPORT_HEIGHT });
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const storyHeight = useMemo(() => STORY_VIEWPORT_HEIGHT + STORY_SCROLL_SPAN * (storySlides.length - 1), []);
-  const progress = getStoryProgress(scrollY, layout, storyHeight);
-  const sceneFloat = progress * (storySlides.length - 1);
-  const scrollIndex = Math.min(storySlides.length - 1, Math.max(0, Math.round(sceneFloat)));
-  const activeScene = storySlides[selectedIndex];
-  const activeState = getSceneState(selectedIndex, sceneFloat);
-  const progressPercent = `${Math.max(8, Math.round(progress * 100))}%`;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [storyY, setStoryY] = useState(0);
+  const [sceneLayouts, setSceneLayouts] = useState({});
+  const activeScene = serviceScenes[activeIndex];
 
-  useEffect(() => {
-    setSelectedIndex(scrollIndex);
-  }, [scrollIndex]);
+  const handleSceneLayout = (id, layout) => {
+    if (!layout) {
+      return;
+    }
+
+    setSceneLayouts((current) => ({
+      ...current,
+      [id]: layout
+    }));
+  };
 
   const moveSlide = (direction) => {
-    setSelectedIndex((current) => (current + direction + storySlides.length) % storySlides.length);
+    setActiveIndex((current) => (current + direction + serviceScenes.length) % serviceScenes.length);
   };
 
   return (
@@ -315,115 +355,38 @@ export default function ScrollStorySection({ scrollY }) {
       onLayout={(event) => {
         const nextLayout = event.nativeEvent?.layout;
         if (nextLayout) {
-          setLayout({ y: nextLayout.y || 0, height: nextLayout.height || storyHeight });
+          setStoryY(nextLayout.y || 0);
         }
       }}
-      style={[styles.story, { minHeight: storyHeight }]}
+      style={styles.story}
     >
-      <View style={styles.storySticky}>
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.backgroundLayer}>
-          {storySlides.map((scene, index) => {
-            const { distance, focus } = getSceneState(index, sceneFloat);
-
-            return (
-              <Text
-                key={scene.id}
-                style={[
-                  styles.backgroundWord,
-                  {
-                    opacity: 0.06 + focus * 0.24,
-                    transform: [
-                      { translateX: distance * -30 },
-                      { translateY: distance * 82 },
-                      { scale: 1.02 + focus * 0.18 }
-                    ]
-                  }
-                ]}
-              >
-                {scene.keyword}
-              </Text>
-            );
-          })}
-        </View>
-
-        <View style={styles.heading}>
-          <Text style={styles.sectionEyebrow}>{t('landing.showcase.eyebrow', 'SCROLL STORY')}</Text>
-          <Text style={styles.sectionTitle}>{t('landing.showcase.title', '스크롤로 만나는 실제 기능 흐름')}</Text>
-          <Text style={styles.sectionDescription}>
-            {t('landing.showcase.description', '소개페이지에서 현재 구현된 핵심 기능을 순서대로 확인할 수 있습니다.')}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.banner,
-            activeScene.mood === 'blue' && styles.bannerBlue,
-            activeScene.mood === 'cream' && styles.bannerCream
-          ]}
-        >
-          <Pressable
-            accessibilityLabel={t('landing.carousel.prev', '이전 소개 카드')}
-            accessibilityRole="button"
-            onPress={() => moveSlide(-1)}
-            style={(state) => [styles.bannerArrow, styles.bannerArrowLeft, ...interactiveStateStyles(state)]}
-          >
-            <Text style={styles.bannerArrowText}>{'<'}</Text>
-          </Pressable>
-          <Pressable
-            accessibilityLabel={t('landing.carousel.next', '다음 소개 카드')}
-            accessibilityRole="button"
-            onPress={() => moveSlide(1)}
-            style={(state) => [styles.bannerArrow, styles.bannerArrowRight, ...interactiveStateStyles(state)]}
-          >
-            <Text style={styles.bannerArrowText}>{'>'}</Text>
-          </Pressable>
-
-          <View style={styles.bannerCopy}>
-            <Text style={styles.bannerLabel}>{t(activeScene.eyebrowKey)}</Text>
-            <Text style={styles.bannerTitle}>{t(activeScene.titleKey)}</Text>
-            <Text style={styles.bannerDescription}>{t(activeScene.descriptionKey)}</Text>
-            <View style={styles.bannerMetric}>
-              <View style={styles.bannerMetricDot} />
-              <Text style={styles.bannerMetricText}>{t(activeScene.metricKey)}</Text>
-            </View>
-            <View style={styles.bannerProgressTrack}>
-              <View style={[styles.bannerProgressFill, { width: progressPercent }]} />
-            </View>
-            <View style={styles.bannerDots}>
-              {storySlides.map((scene, index) => (
-                <Pressable
-                  accessibilityLabel={t('landing.carousel.dotLabel', '소개 카드 선택')}
-                  accessibilityRole="button"
-                  key={scene.id}
-                  onPress={() => setSelectedIndex(index)}
-                  style={[styles.bannerDot, index === selectedIndex && styles.bannerDotActive]}
-                />
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.bannerVisual}>
-            <View style={styles.visualPaper}>
-              <View style={styles.visualHeader}>
-                <View style={styles.visualIcon} />
-                <View style={styles.visualTitleLines}>
-                  <View style={styles.visualLineStrong} />
-                  <View style={styles.visualLineShort} />
-                </View>
-              </View>
-              <MiniPreview focus={Math.max(activeState.focus, 0.5)} type={activeScene.cards[0].preview} />
-            </View>
-            <View style={styles.visualBubbleLarge} />
-            <View style={styles.visualBubbleSmall} />
-          </View>
-        </View>
-
-        <View style={styles.cardGrid}>
-          {activeScene.cards.map((card, index) => (
-            <StoryCard card={card} focus={activeState.focus} index={index} key={`${activeScene.id}-${card.titleKey}`} t={t} />
-          ))}
-        </View>
+      <View style={styles.heading}>
+        <Text style={styles.sectionEyebrow}>{t('landing.showcase.eyebrow', 'SCROLL STORY')}</Text>
+        <Text style={styles.sectionTitle}>{t('landing.showcase.title', '스크롤로 만나는 실제 기능 흐름')}</Text>
+        <Text style={styles.sectionDescription}>
+          {t('landing.showcase.description', '소개페이지에서 현재 구현된 핵심 기능을 순서대로 확인할 수 있습니다.')}
+        </Text>
       </View>
+
+      <HeroBanner
+        activeIndex={activeIndex}
+        activeScene={activeScene}
+        onMove={moveSlide}
+        onSelect={setActiveIndex}
+        t={t}
+      />
+
+      {serviceScenes.map((scene, index) => (
+        <ServiceScene
+          index={index}
+          key={scene.id}
+          layout={sceneLayouts[scene.id] ? { ...sceneLayouts[scene.id], y: storyY + sceneLayouts[scene.id].y } : undefined}
+          onLayout={handleSceneLayout}
+          scene={scene}
+          scrollY={scrollY}
+          t={t}
+        />
+      ))}
     </View>
   );
 }
@@ -432,41 +395,16 @@ const styles = StyleSheet.create({
   story: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 48,
     backgroundColor: colors.background,
-    overflow: 'hidden'
-  },
-  storySticky: {
-    width: '100%',
-    minHeight: STORY_VIEWPORT_HEIGHT,
-    position: Platform.OS === 'web' ? 'sticky' : 'relative',
-    top: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
     paddingHorizontal: 18,
-    paddingVertical: 54
-  },
-  backgroundLayer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  backgroundWord: {
-    position: 'absolute',
-    color: colors.blueDeep,
-    fontSize: 156,
-    lineHeight: 176,
-    fontWeight: '900',
-    letterSpacing: 0
+    paddingTop: 24,
+    paddingBottom: 28
   },
   heading: {
     width: '100%',
     maxWidth: 1180,
-    marginBottom: 22,
+    marginBottom: 24,
     zIndex: 2
   },
   sectionEyebrow: {
@@ -506,7 +444,8 @@ const styles = StyleSheet.create({
     gap: 26,
     overflow: 'hidden',
     position: 'relative',
-    zIndex: 2
+    zIndex: 2,
+    marginBottom: 48
   },
   bannerBlue: {
     backgroundColor: colors.blueSoft
@@ -556,19 +495,6 @@ const styles = StyleSheet.create({
     color: colors.blueDeep,
     fontSize: 14,
     fontWeight: '900'
-  },
-  bannerProgressTrack: {
-    width: '100%',
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-    marginTop: 22
-  },
-  bannerProgressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: colors.mint
   },
   bannerDots: {
     flexDirection: 'row',
@@ -682,40 +608,125 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     fontWeight: '900'
   },
-  cardGrid: {
+  scene: {
     width: '100%',
     maxWidth: 1180,
+    minHeight: 650,
+    borderRadius: 34,
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+    paddingVertical: 70,
+    marginBottom: 26,
+    backgroundColor: colors.surfaceWarm
+  },
+  sceneAlt: {
+    backgroundColor: colors.background
+  },
+  backgroundWord: {
+    position: 'absolute',
+    left: -16,
+    right: -16,
+    top: 58,
+    color: colors.blueDeep,
+    fontSize: 156,
+    lineHeight: 176,
+    fontWeight: '900',
+    letterSpacing: 0,
+    textAlign: 'center',
+    zIndex: 0
+  },
+  sceneInner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 26,
+    paddingHorizontal: 28,
+    zIndex: 2
+  },
+  sceneCopy: {
+    flex: 0.9,
+    minWidth: 270,
+    maxWidth: 390,
+    backgroundColor: 'rgba(255, 253, 246, 0.78)',
+    borderRadius: 24,
+    padding: 22
+  },
+  sceneEyebrow: {
+    alignSelf: 'flex-start',
+    color: colors.mintDeep,
+    backgroundColor: colors.mintSoft,
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 16
+  },
+  sceneTitle: {
+    color: colors.ink,
+    fontSize: 31,
+    lineHeight: 40,
+    fontWeight: '900',
+    letterSpacing: 0
+  },
+  sceneDescription: {
+    color: colors.muted,
+    fontSize: 15,
+    lineHeight: 26,
+    marginTop: 14
+  },
+  sceneMetric: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 20
+  },
+  sceneMetricDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: colors.mint
+  },
+  sceneMetricText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  cardGrid: {
+    flex: 1.2,
+    minWidth: 300,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
-    justifyContent: 'center',
-    marginTop: 18,
-    zIndex: 2
+    justifyContent: 'center'
   },
-  storyCard: {
+  serviceCard: {
     flexGrow: 1,
-    flexBasis: 265,
-    minWidth: 240,
-    maxWidth: 370,
-    minHeight: 250,
-    borderRadius: 26,
+    flexBasis: 218,
+    minWidth: 210,
+    maxWidth: 300,
+    minHeight: 242,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
-    padding: 22,
-    gap: 14,
+    padding: 20,
+    gap: 13,
     justifyContent: 'space-between',
     transitionDuration: '180ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
-  storyCardMint: {
+  serviceCardMint: {
     backgroundColor: colors.mintSoft
   },
-  storyCardCream: {
+  serviceCardCream: {
     backgroundColor: colors.cream
   },
-  storyCardLabel: {
+  cardLabel: {
     alignSelf: 'flex-start',
     color: colors.mintDeep,
     backgroundColor: colors.surface,
@@ -726,14 +737,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900'
   },
-  storyCardTitle: {
+  cardTitle: {
     color: colors.ink,
-    fontSize: 19,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 25,
     fontWeight: '900',
     letterSpacing: 0
   },
-  storyCardDescription: {
+  cardDescription: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 20,
@@ -766,22 +777,6 @@ const styles = StyleSheet.create({
     height: 9,
     borderRadius: 999,
     backgroundColor: colors.mintSoft
-  },
-  previewChipRow: {
-    flexDirection: 'row',
-    gap: 8
-  },
-  previewChip: {
-    width: 76,
-    height: 24,
-    borderRadius: 999,
-    backgroundColor: colors.mintSoft
-  },
-  previewChipAlt: {
-    width: 102,
-    height: 24,
-    borderRadius: 999,
-    backgroundColor: colors.blueSoft
   },
   timerPreview: {
     flexDirection: 'row',
