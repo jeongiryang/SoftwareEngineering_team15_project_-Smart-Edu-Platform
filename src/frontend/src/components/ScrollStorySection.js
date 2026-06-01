@@ -1,79 +1,166 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
+const icon = require('../assets/sagaksagak-app-icon.png');
+
 const VIEWPORT_HEIGHT = 760;
 
-const serviceScenes = [
+const promoSlides = [
   {
     id: 'learn',
-    keyword: 'LEARN',
-    eyebrowKey: 'landing.showcase.learn.eyebrow',
+    labelKey: 'landing.showcase.learn.eyebrow',
     titleKey: 'landing.showcase.learn.title',
     descriptionKey: 'landing.showcase.learn.description',
     metricKey: 'landing.showcase.learn.metric',
     mood: 'mint',
-    cards: [
-      ['landing.feature.ai.label', 'landing.feature.ai.title', 'landing.feature.ai.description', 'chat'],
-      ['landing.feature.focus.label', 'landing.feature.focus.title', 'landing.feature.focus.description', 'timer'],
-      ['landing.carousel.ask.secondary', 'landing.carousel.ask.item3', 'landing.carousel.ask.description', 'quiz']
-    ]
+    preview: 'ai'
   },
   {
     id: 'organize',
-    keyword: 'PLAN',
-    eyebrowKey: 'landing.showcase.organize.eyebrow',
+    labelKey: 'landing.showcase.organize.eyebrow',
     titleKey: 'landing.showcase.organize.title',
     descriptionKey: 'landing.showcase.organize.description',
     metricKey: 'landing.showcase.organize.metric',
     mood: 'cream',
-    cards: [
-      ['landing.feature.plan.label', 'landing.feature.plan.title', 'landing.feature.plan.description', 'kanban'],
-      ['landing.carousel.start.primary', 'landing.carousel.start.item1', 'landing.carousel.start.description', 'dashboard'],
-      ['landing.carousel.focus.secondary', 'landing.showcase.record.title', 'landing.showcase.record.description', 'stats']
-    ]
+    preview: 'plan'
   },
   {
     id: 'connect',
-    keyword: 'LINK',
-    eyebrowKey: 'landing.showcase.connect.eyebrow',
+    labelKey: 'landing.showcase.connect.eyebrow',
     titleKey: 'landing.showcase.connect.title',
     descriptionKey: 'landing.showcase.connect.description',
     metricKey: 'landing.showcase.connect.metric',
     mood: 'blue',
-    cards: [
-      ['landing.feature.community.label', 'landing.feature.community.title', 'landing.feature.community.description', 'post'],
-      ['landing.feature.social.label', 'landing.feature.social.title', 'landing.feature.social.description', 'presence'],
-      ['landing.carousel.together.primary', 'landing.carousel.together.item2', 'landing.carousel.together.description', 'message']
-    ]
+    preview: 'social'
   },
   {
     id: 'challenge',
-    keyword: 'QUEST',
-    eyebrowKey: 'landing.showcase.challenge.eyebrow',
+    labelKey: 'landing.showcase.challenge.eyebrow',
     titleKey: 'landing.showcase.challenge.title',
     descriptionKey: 'landing.showcase.challenge.description',
     metricKey: 'landing.showcase.challenge.metric',
     mood: 'mint',
+    preview: 'quest'
+  }
+];
+
+const availableFeatureKeys = [
+  {
+    labelKey: 'landing.feature.ai.label',
+    titleKey: 'landing.feature.ai.title',
+    descriptionKey: 'landing.feature.ai.description',
+    preview: 'ai'
+  },
+  {
+    labelKey: 'landing.feature.plan.label',
+    titleKey: 'landing.feature.plan.title',
+    descriptionKey: 'landing.feature.plan.description',
+    preview: 'plan'
+  },
+  {
+    labelKey: 'landing.feature.focus.label',
+    titleKey: 'landing.feature.focus.title',
+    descriptionKey: 'landing.feature.focus.description',
+    preview: 'focus'
+  },
+  {
+    labelKey: 'landing.feature.community.label',
+    titleKey: 'landing.feature.community.title',
+    descriptionKey: 'landing.feature.community.description',
+    preview: 'community'
+  },
+  {
+    labelKey: 'landing.feature.social.label',
+    titleKey: 'landing.feature.social.title',
+    descriptionKey: 'landing.feature.social.description',
+    preview: 'social'
+  },
+  {
+    labelKey: 'landing.feature.reward.label',
+    titleKey: 'landing.feature.reward.title',
+    descriptionKey: 'landing.feature.reward.description',
+    preview: 'reward'
+  },
+  {
+    labelKey: 'landing.feature.coop.label',
+    titleKey: 'landing.feature.coop.title',
+    descriptionKey: 'landing.feature.coop.description',
+    preview: 'quest'
+  },
+  {
+    labelKey: 'landing.feature.accessibility.label',
+    titleKey: 'landing.feature.accessibility.title',
+    descriptionKey: 'landing.feature.accessibility.description',
+    preview: 'access'
+  }
+];
+
+const storySections = [
+  {
+    id: 'record',
+    keywordKey: 'landing.showcase.record.keyword',
+    eyebrowKey: 'landing.showcase.record.eyebrow',
+    titleKey: 'landing.showcase.record.title',
+    descriptionKey: 'landing.showcase.record.description',
+    metricKey: 'landing.showcase.record.metric',
+    accent: 'mint',
+    align: 'right',
     cards: [
-      ['landing.feature.raid.label', 'landing.feature.raid.title', 'landing.feature.raid.description', 'raid'],
-      ['landing.feature.coop.label', 'landing.feature.coop.title', 'landing.feature.coop.description', 'coop'],
-      ['landing.feature.reward.label', 'landing.feature.reward.title', 'landing.feature.reward.description', 'reward']
+      availableFeatureKeys[1],
+      availableFeatureKeys[2],
+      availableFeatureKeys[6]
     ]
   },
   {
-    id: 'care',
-    keyword: 'CARE',
-    eyebrowKey: 'landing.showcase.access.eyebrow',
-    titleKey: 'landing.showcase.access.title',
-    descriptionKey: 'landing.showcase.access.description',
-    metricKey: 'landing.showcase.access.metric',
-    mood: 'cream',
+    id: 'ask',
+    keywordKey: 'landing.showcase.ask.keyword',
+    eyebrowKey: 'landing.showcase.ask.eyebrow',
+    titleKey: 'landing.showcase.ask.title',
+    descriptionKey: 'landing.showcase.ask.description',
+    metricKey: 'landing.showcase.ask.metric',
+    accent: 'blue',
+    align: 'left',
     cards: [
-      ['landing.feature.accessibility.label', 'landing.feature.accessibility.title', 'landing.feature.accessibility.description', 'accessibility'],
-      ['landing.showcase.reward.eyebrow', 'landing.showcase.reward.title', 'landing.showcase.reward.description', 'profile'],
-      ['landing.feature.reward.label', 'landing.feature.reward.title', 'landing.feature.reward.description', 'reward']
+      availableFeatureKeys[0],
+      availableFeatureKeys[2],
+      availableFeatureKeys[3]
+    ]
+  },
+  {
+    id: 'social',
+    keywordKey: 'landing.showcase.social.keyword',
+    eyebrowKey: 'landing.showcase.social.eyebrow',
+    titleKey: 'landing.showcase.social.title',
+    descriptionKey: 'landing.showcase.social.description',
+    metricKey: 'landing.showcase.social.metric',
+    accent: 'cream',
+    align: 'right',
+    cards: [
+      availableFeatureKeys[4],
+      availableFeatureKeys[3],
+      availableFeatureKeys[5]
+    ]
+  },
+  {
+    id: 'quest',
+    keywordKey: 'landing.showcase.challenge.keyword',
+    eyebrowKey: 'landing.showcase.challenge.eyebrow',
+    titleKey: 'landing.showcase.challenge.title',
+    descriptionKey: 'landing.showcase.challenge.description',
+    metricKey: 'landing.showcase.challenge.metric',
+    accent: 'mint',
+    align: 'left',
+    cards: [
+      availableFeatureKeys[6],
+      {
+        labelKey: 'landing.feature.raid.label',
+        titleKey: 'landing.feature.raid.title',
+        descriptionKey: 'landing.feature.raid.description',
+        preview: 'raid'
+      },
+      availableFeatureKeys[7]
     ]
   }
 ];
@@ -87,33 +174,54 @@ function smoothStep(value) {
   return p * p * (3 - 2 * p);
 }
 
-function calculateMotion(scrollY, layout) {
+function getMotion(scrollY = 0, layout) {
   if (!layout?.height) {
-    return { focus: 0, enter: 0, distance: 0 };
+    return { enter: 0, focus: 0, distance: 0 };
   }
 
-  const viewportCenter = scrollY + VIEWPORT_HEIGHT / 2;
+  const enter = smoothStep((scrollY + VIEWPORT_HEIGHT * 0.78 - layout.y) / Math.max(layout.height * 0.72, 1));
   const sectionCenter = layout.y + layout.height / 2;
-  const distance = sectionCenter - viewportCenter;
-  const focusRange = Math.max(layout.height * 0.72, VIEWPORT_HEIGHT * 0.62);
-  const focus = smoothStep(1 - Math.abs(distance) / focusRange);
-  const enter = smoothStep((scrollY + VIEWPORT_HEIGHT * 0.72 - layout.y) / Math.max(layout.height * 0.72, 1));
+  const viewportCenter = scrollY + VIEWPORT_HEIGHT / 2;
+  const focusRange = Math.max(layout.height * 0.7, VIEWPORT_HEIGHT * 0.68);
+  const distance = clamp((sectionCenter - viewportCenter) / focusRange, -1, 1);
+  const focus = smoothStep(1 - Math.abs(distance));
+
+  return { enter, focus, distance };
+}
+
+function getSlideMotion(motion, index, side) {
+  const progress = smoothStep(motion.enter * 1.18 - index * 0.08);
 
   return {
-    focus,
-    enter,
-    distance: clamp(distance / focusRange, -1, 1)
+    opacity: 0.34 + progress * 0.66,
+    transform: [
+      { translateX: side * (1 - progress) * 126 },
+      { translateY: (1 - progress) * 22 },
+      { scale: 0.94 + progress * 0.06 }
+    ]
   };
 }
 
-function MiniPreview({ type, progress }) {
-  const fill = `${Math.round(36 + progress * 55)}%`;
-
-  if (type === 'timer') {
+function PreviewLines({ variant = 'default', progress = 1 }) {
+  if (variant === 'plan') {
     return (
-      <View style={styles.timerPreview}>
-        <View style={[styles.timerRing, { transform: [{ rotate: `${-22 + progress * 56}deg` }] }]}>
-          <View style={styles.timerCenter} />
+      <View style={styles.planPreview}>
+        {[0, 1, 2].map((column) => (
+          <View key={column} style={styles.planColumn}>
+            <View style={styles.planColumnHeader} />
+            <View style={[styles.planCardLine, column === 1 && styles.planCardLineActive]} />
+            <View style={styles.planCardShort} />
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  if (variant === 'focus') {
+    return (
+      <View style={styles.focusPreview}>
+        <View style={[styles.focusRing, { transform: [{ rotate: `${-20 + progress * 60}deg` }] }]}>
+          <View style={styles.focusRingInner} />
         </View>
         <View style={styles.previewStack}>
           <View style={styles.previewLineStrong} />
@@ -123,27 +231,13 @@ function MiniPreview({ type, progress }) {
     );
   }
 
-  if (['kanban', 'dashboard'].includes(type)) {
+  if (['community', 'social'].includes(variant)) {
     return (
-      <View style={styles.kanbanPreview}>
-        {[0, 1, 2].map((column) => (
-          <View key={column} style={styles.kanbanColumn}>
-            <View style={styles.kanbanHeader} />
-            <View style={[styles.kanbanItem, column === 1 && styles.kanbanItemActive]} />
-            <View style={styles.kanbanItemSmall} />
-          </View>
-        ))}
-      </View>
-    );
-  }
-
-  if (['presence', 'message', 'post'].includes(type)) {
-    return (
-      <View style={styles.presencePreview}>
+      <View style={styles.socialPreview}>
         {[0, 1, 2].map((item) => (
-          <View key={item} style={styles.presenceRow}>
-            <View style={[styles.avatar, item === 0 && styles.avatarActive]} />
-            <View style={styles.presenceCopy}>
+          <View key={item} style={styles.socialRow}>
+            <View style={[styles.socialAvatar, item === 0 && styles.socialAvatarActive]} />
+            <View style={styles.previewStack}>
               <View style={styles.previewLineStrong} />
               <View style={styles.previewLineShort} />
             </View>
@@ -154,19 +248,34 @@ function MiniPreview({ type, progress }) {
     );
   }
 
-  if (['raid', 'coop', 'reward', 'stats', 'profile'].includes(type)) {
+  if (['quest', 'raid', 'reward'].includes(variant)) {
+    const fill = `${Math.round(42 + progress * 46)}%`;
+
     return (
       <View style={styles.progressPreview}>
-        <View style={styles.progressTop}>
+        <View style={styles.progressTopRow}>
           <View style={styles.previewPill} />
           <View style={styles.previewPillAlt} />
         </View>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: fill }]} />
         </View>
-        <View style={styles.progressBars}>
-          <View style={[styles.smallBar, { width: '68%' }]} />
-          <View style={[styles.smallBar, styles.smallBarAlt, { width: '46%' }]} />
+        <View style={styles.progressMiniLines}>
+          <View style={[styles.progressMiniLine, { width: '66%' }]} />
+          <View style={[styles.progressMiniLine, styles.progressMiniLineAlt, { width: '48%' }]} />
+        </View>
+      </View>
+    );
+  }
+
+  if (variant === 'access') {
+    return (
+      <View style={styles.accessPreview}>
+        <View style={styles.accessScaleLarge} />
+        <View style={styles.accessScaleMedium} />
+        <View style={styles.accessSwitchRow}>
+          <View style={styles.accessSwitchActive} />
+          <View style={styles.accessSwitch} />
         </View>
       </View>
     );
@@ -175,152 +284,214 @@ function MiniPreview({ type, progress }) {
   return (
     <View style={styles.defaultPreview}>
       <View style={styles.previewTop}>
-        <View style={styles.previewDot} />
-        <View style={styles.previewLineStrong} />
+        <View style={styles.previewIconDot} />
+        <View style={styles.previewStack}>
+          <View style={styles.previewLineStrong} />
+          <View style={styles.previewLineShort} />
+        </View>
       </View>
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: fill }]} />
+        <View style={[styles.progressFill, { width: `${Math.round(48 + progress * 38)}%` }]} />
       </View>
     </View>
   );
 }
 
-function ServiceCard({ card, index, motion, t }) {
-  const [labelKey, titleKey, descriptionKey, preview] = card;
-  const side = index % 2 === 0 ? -1 : 1;
-  const stagger = clamp(motion.enter * 1.18 - index * 0.1);
+function PromoCarousel({ activeIndex, onMove, onSelect, t }) {
+  const slide = promoSlides[activeIndex];
 
   return (
     <View
       style={[
-        styles.serviceCard,
-        shadows.card,
-        index === 1 && styles.serviceCardMint,
-        index === 2 && styles.serviceCardCream,
-        {
-          opacity: 0.28 + stagger * 0.72,
-          transform: [
-            { translateX: side * (1 - stagger) * 124 },
-            { translateY: (1 - stagger) * 34 + (index === 1 ? -14 : index === 2 ? 14 : 0) },
-            { scale: 0.9 + stagger * 0.1 },
-            { rotate: `${side * (1 - stagger) * 4}deg` }
-          ]
-        }
-      ]}
-    >
-      <Text style={styles.cardLabel}>{t(labelKey)}</Text>
-      <Text numberOfLines={2} style={styles.cardTitle}>{t(titleKey)}</Text>
-      <MiniPreview progress={Math.max(stagger, motion.focus)} type={preview} />
-      <Text numberOfLines={3} style={styles.cardDescription}>{t(descriptionKey)}</Text>
-    </View>
-  );
-}
-
-function HeroBanner({ activeScene, activeIndex, onMove, onSelect, t }) {
-  return (
-    <View
-      style={[
-        styles.banner,
-        activeScene.mood === 'blue' && styles.bannerBlue,
-        activeScene.mood === 'cream' && styles.bannerCream
+        styles.promo,
+        slide.mood === 'blue' && styles.promoBlue,
+        slide.mood === 'cream' && styles.promoCream
       ]}
     >
       <Pressable
-        accessibilityLabel={t('landing.carousel.prev', '이전 소개 카드')}
+        accessibilityLabel={t('landing.carousel.prev')}
         accessibilityRole="button"
         onPress={() => onMove(-1)}
-        style={(state) => [styles.bannerArrow, styles.bannerArrowLeft, ...interactiveStateStyles(state)]}
+        style={(state) => [styles.promoArrow, styles.promoArrowLeft, ...interactiveStateStyles(state)]}
       >
-        <Text style={styles.bannerArrowText}>{'<'}</Text>
+        <Text style={styles.promoArrowText}>{'<'}</Text>
       </Pressable>
-      <Pressable
-        accessibilityLabel={t('landing.carousel.next', '다음 소개 카드')}
-        accessibilityRole="button"
-        onPress={() => onMove(1)}
-        style={(state) => [styles.bannerArrow, styles.bannerArrowRight, ...interactiveStateStyles(state)]}
-      >
-        <Text style={styles.bannerArrowText}>{'>'}</Text>
-      </Pressable>
-      <View style={styles.bannerCopy}>
-        <Text style={styles.bannerLabel}>{t(activeScene.eyebrowKey)}</Text>
-        <Text style={styles.bannerTitle}>{t(activeScene.titleKey)}</Text>
-        <Text style={styles.bannerDescription}>{t(activeScene.descriptionKey)}</Text>
-        <View style={styles.bannerMetric}>
-          <View style={styles.bannerMetricDot} />
-          <Text style={styles.bannerMetricText}>{t(activeScene.metricKey)}</Text>
-        </View>
-        <View style={styles.bannerDots}>
-          {serviceScenes.map((scene, index) => (
-            <Pressable
-              accessibilityLabel={t('landing.carousel.dotLabel', '소개 카드 선택')}
-              accessibilityRole="button"
-              key={scene.id}
-              onPress={() => onSelect(index)}
-              style={[styles.bannerDot, index === activeIndex && styles.bannerDotActive]}
-            />
-          ))}
+
+      <View style={styles.promoCopy}>
+        <Text style={styles.promoLabel}>{t(slide.labelKey)}</Text>
+        <Text style={styles.promoTitle}>{t(slide.titleKey)}</Text>
+        <Text style={styles.promoDescription}>{t(slide.descriptionKey)}</Text>
+        <View style={styles.promoCta}>
+          <View style={styles.promoCtaDot} />
+          <Text style={styles.promoCtaText}>{t(slide.metricKey)}</Text>
         </View>
       </View>
-      <View style={styles.bannerVisual}>
-        <View style={styles.visualBubbleLarge} />
-        <View style={styles.visualBubbleSmall} />
-        <View style={styles.visualPaper}>
-          <View style={styles.visualHeader}>
-            <View style={styles.visualIcon} />
-            <View style={styles.visualTitleLines}>
-              <View style={styles.visualLineStrong} />
-              <View style={styles.visualLineShort} />
-            </View>
-          </View>
-          <MiniPreview progress={0.86} type={activeScene.cards[0][3]} />
+
+      <View style={styles.promoVisual}>
+        <View style={styles.promoBubbleLarge} />
+        <View style={styles.promoBubbleSmall} />
+        <Image source={icon} style={styles.promoIcon} />
+        <View style={[styles.promoMockCard, shadows.card]}>
+          <Text style={styles.promoMockLabel}>{t(slide.labelKey)}</Text>
+          <PreviewLines progress={0.88} variant={slide.preview} />
         </View>
+      </View>
+
+      <Pressable
+        accessibilityLabel={t('landing.carousel.next')}
+        accessibilityRole="button"
+        onPress={() => onMove(1)}
+        style={(state) => [styles.promoArrow, styles.promoArrowRight, ...interactiveStateStyles(state)]}
+      >
+        <Text style={styles.promoArrowText}>{'>'}</Text>
+      </Pressable>
+
+      <View style={styles.promoDots}>
+        {promoSlides.map((item, index) => (
+          <Pressable
+            accessibilityLabel={t('landing.carousel.dotLabel')}
+            accessibilityRole="button"
+            key={item.id}
+            onPress={() => onSelect(index)}
+            style={[styles.promoDot, index === activeIndex && styles.promoDotActive]}
+          />
+        ))}
       </View>
     </View>
   );
 }
 
-function ServiceScene({ scene, index, layout, onLayout, scrollY, t }) {
-  const motion = calculateMotion(scrollY, layout);
+function FeatureCard({ feature, index, motion, t }) {
+  const side = index % 2 === 0 ? -1 : 1;
+  const animatedStyle = getSlideMotion(motion, index % 4, side);
+  const progress = smoothStep(motion.enter * 1.15 - index * 0.04);
+
+  return (
+    <Pressable
+      accessibilityLabel={`${t(feature.labelKey)}: ${t(feature.titleKey)}`}
+      accessibilityRole="text"
+      style={(state) => [
+        styles.featureCard,
+        shadows.card,
+        index % 3 === 1 && styles.featureCardMint,
+        index % 3 === 2 && styles.featureCardCream,
+        animatedStyle,
+        ...interactiveStateStyles(state, { kind: 'card' })
+      ]}
+    >
+      <Text style={styles.featureLabel}>{t(feature.labelKey)}</Text>
+      <Text numberOfLines={2} style={styles.featureTitle}>{t(feature.titleKey)}</Text>
+      <Text numberOfLines={3} style={styles.featureDescription}>{t(feature.descriptionKey)}</Text>
+      <PreviewLines progress={Math.max(progress, motion.focus)} variant={feature.preview} />
+    </Pressable>
+  );
+}
+
+function FeatureGridSection({ layout, onLayout, scrollY, storyY, t }) {
+  const absoluteLayout = layout ? { ...layout, y: storyY + layout.y } : undefined;
+  const motion = getMotion(scrollY, absoluteLayout);
 
   return (
     <View
-      onLayout={(event) => onLayout(scene.id, event.nativeEvent?.layout)}
-      style={[
-        styles.scene,
-        index % 2 === 1 && styles.sceneAlt
-      ]}
+      onLayout={(event) => onLayout('features', event.nativeEvent?.layout)}
+      style={styles.featureSection}
     >
       <Text
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         pointerEvents="none"
         style={[
-          styles.backgroundWord,
+          styles.sectionBackgroundWord,
           {
-            opacity: 0.06 + motion.focus * 0.26,
+            opacity: 0.04 + motion.focus * 0.22,
+            transform: [{ translateY: motion.distance * 42 }]
+          }
+        ]}
+      >
+        SERVICE
+      </Text>
+      <View style={styles.sectionHeading}>
+        <Text style={styles.sectionEyebrow}>{t('landing.section.available.eyebrow')}</Text>
+        <Text style={styles.sectionTitle}>{t('landing.section.available.title')}</Text>
+        <Text style={styles.sectionDescription}>{t('landing.section.available.description')}</Text>
+      </View>
+      <View style={styles.featureGrid}>
+        {availableFeatureKeys.map((feature, index) => (
+          <FeatureCard feature={feature} index={index} key={feature.titleKey} motion={motion} t={t} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function StoryPreviewCard({ feature, index, motion, t }) {
+  const side = index % 2 === 0 ? 1 : -1;
+  const animatedStyle = getSlideMotion(motion, index, side);
+
+  return (
+    <View
+      style={[
+        styles.storyPreviewCard,
+        index === 1 && styles.storyPreviewCardMint,
+        index === 2 && styles.storyPreviewCardCream,
+        shadows.card,
+        animatedStyle
+      ]}
+    >
+      <Text style={styles.storyPreviewLabel}>{t(feature.labelKey)}</Text>
+      <Text numberOfLines={2} style={styles.storyPreviewTitle}>{t(feature.titleKey)}</Text>
+      <PreviewLines progress={Math.max(motion.enter, motion.focus)} variant={feature.preview} />
+    </View>
+  );
+}
+
+function StorySection({ layout, onLayout, scene, scrollY, storyY, t }) {
+  const absoluteLayout = layout ? { ...layout, y: storyY + layout.y } : undefined;
+  const motion = getMotion(scrollY, absoluteLayout);
+  const reverse = scene.align === 'left';
+
+  return (
+    <View
+      onLayout={(event) => onLayout(scene.id, event.nativeEvent?.layout)}
+      style={styles.storySection}
+    >
+      <Text
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        pointerEvents="none"
+        style={[
+          styles.storyKeyword,
+          {
+            opacity: 0.05 + motion.focus * 0.24,
             transform: [
-              { translateY: motion.distance * 74 },
-              { translateX: motion.distance * -26 },
-              { scale: 0.96 + motion.focus * 0.18 }
+              { translateY: motion.distance * 60 },
+              { scale: 0.96 + motion.focus * 0.08 }
             ]
           }
         ]}
       >
-        {scene.keyword}
+        {t(scene.keywordKey)}
       </Text>
-      <View style={styles.sceneInner}>
-        <View style={styles.sceneCopy}>
-          <Text style={styles.sceneEyebrow}>{t(scene.eyebrowKey)}</Text>
-          <Text style={styles.sceneTitle}>{t(scene.titleKey)}</Text>
-          <Text style={styles.sceneDescription}>{t(scene.descriptionKey)}</Text>
-          <View style={styles.sceneMetric}>
-            <View style={styles.sceneMetricDot} />
-            <Text style={styles.sceneMetricText}>{t(scene.metricKey)}</Text>
+
+      <View style={[styles.storyContent, reverse && styles.storyContentReverse]}>
+        <View style={styles.storyCopy}>
+          <Text style={styles.storyEyebrow}>{t(scene.eyebrowKey)}</Text>
+          <Text style={styles.storyTitle}>{t(scene.titleKey)}</Text>
+          <Text style={styles.storyDescription}>{t(scene.descriptionKey)}</Text>
+          <View
+            style={[
+              styles.storyChip,
+              scene.accent === 'blue' && styles.storyChipBlue,
+              scene.accent === 'cream' && styles.storyChipCream
+            ]}
+          >
+            <Text style={styles.storyChipText}>{t(scene.metricKey)}</Text>
           </View>
         </View>
-        <View style={styles.cardGrid}>
-          {scene.cards.map((card, cardIndex) => (
-            <ServiceCard card={card} index={cardIndex} key={`${scene.id}-${card[1]}`} motion={motion} t={t} />
+
+        <View style={[styles.storyCards, reverse && styles.storyCardsReverse]}>
+          {scene.cards.map((feature, index) => (
+            <StoryPreviewCard feature={feature} index={index} key={`${scene.id}-${feature.titleKey}`} motion={motion} t={t} />
           ))}
         </View>
       </View>
@@ -328,65 +499,66 @@ function ServiceScene({ scene, index, layout, onLayout, scrollY, t }) {
   );
 }
 
-export default function ScrollStorySection({ scrollY }) {
+export default function ScrollStorySection({ scrollY = 0 }) {
   const { t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const [storyY, setStoryY] = useState(0);
-  const [sceneLayouts, setSceneLayouts] = useState({});
-  const activeScene = serviceScenes[activeIndex];
+  const [sectionLayouts, setSectionLayouts] = useState({});
 
-  const handleSceneLayout = (id, layout) => {
+  const moveSlide = (direction) => {
+    setActiveIndex((current) => (current + direction + promoSlides.length) % promoSlides.length);
+  };
+
+  const handleLayout = (id, layout) => {
     if (!layout) {
       return;
     }
 
-    setSceneLayouts((current) => ({
+    setSectionLayouts((current) => ({
       ...current,
       [id]: layout
     }));
   };
 
-  const moveSlide = (direction) => {
-    setActiveIndex((current) => (current + direction + serviceScenes.length) % serviceScenes.length);
-  };
-
   return (
     <View
       onLayout={(event) => {
-        const nextLayout = event.nativeEvent?.layout;
-        if (nextLayout) {
-          setStoryY(nextLayout.y || 0);
+        const layout = event.nativeEvent?.layout;
+        if (layout) {
+          setStoryY(layout.y || 0);
         }
       }}
       style={styles.story}
     >
       <View style={styles.heading}>
-        <Text style={styles.sectionEyebrow}>{t('landing.showcase.eyebrow', 'SCROLL STORY')}</Text>
-        <Text style={styles.sectionTitle}>{t('landing.showcase.title', '스크롤로 만나는 실제 기능 흐름')}</Text>
-        <Text style={styles.sectionDescription}>
-          {t('landing.showcase.description', '소개페이지에서 현재 구현된 핵심 기능을 순서대로 확인할 수 있습니다.')}
-        </Text>
+        <Text style={styles.sectionEyebrow}>{t('landing.showcase.eyebrow')}</Text>
+        <Text style={styles.sectionTitle}>{t('landing.showcase.title')}</Text>
+        <Text style={styles.sectionDescription}>{t('landing.showcase.description')}</Text>
       </View>
 
-      <HeroBanner
-        activeIndex={activeIndex}
-        activeScene={activeScene}
-        onMove={moveSlide}
-        onSelect={setActiveIndex}
+      <PromoCarousel activeIndex={activeIndex} onMove={moveSlide} onSelect={setActiveIndex} t={t} />
+
+      <FeatureGridSection
+        layout={sectionLayouts.features}
+        onLayout={handleLayout}
+        scrollY={scrollY}
+        storyY={storyY}
         t={t}
       />
 
-      {serviceScenes.map((scene, index) => (
-        <ServiceScene
-          index={index}
-          key={scene.id}
-          layout={sceneLayouts[scene.id] ? { ...sceneLayouts[scene.id], y: storyY + sceneLayouts[scene.id].y } : undefined}
-          onLayout={handleSceneLayout}
-          scene={scene}
-          scrollY={scrollY}
-          t={t}
-        />
-      ))}
+      <View style={styles.storyList}>
+        {storySections.map((scene) => (
+          <StorySection
+            key={scene.id}
+            layout={sectionLayouts[scene.id]}
+            onLayout={handleLayout}
+            scene={scene}
+            scrollY={scrollY}
+            storyY={storyY}
+            t={t}
+          />
+        ))}
+      </View>
     </View>
   );
 }
@@ -404,191 +576,165 @@ const styles = StyleSheet.create({
   heading: {
     width: '100%',
     maxWidth: 1180,
-    marginBottom: 24,
-    zIndex: 2
+    marginBottom: 26
+  },
+  sectionHeading: {
+    width: '100%',
+    maxWidth: 1180,
+    paddingHorizontal: 18,
+    marginBottom: 28,
+    zIndex: 4
   },
   sectionEyebrow: {
     color: colors.mintDeep,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 1.3,
-    marginBottom: 10
+    marginBottom: 12
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 34,
-    lineHeight: 43,
-    fontWeight: '900',
+    fontWeight: '800',
+    fontSize: 30,
+    lineHeight: 38,
     letterSpacing: 0
   },
   sectionDescription: {
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 25,
+    fontSize: 14,
+    lineHeight: 23,
     marginTop: 10,
-    maxWidth: 620
+    maxWidth: 640
   },
-  banner: {
+  promo: {
     width: '100%',
     maxWidth: 1180,
-    minHeight: 360,
-    borderRadius: 34,
+    minHeight: 390,
+    borderRadius: 32,
     backgroundColor: colors.mintSoft,
     borderWidth: 1,
     borderColor: colors.line,
+    marginBottom: 64,
     padding: 34,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 26,
-    overflow: 'hidden',
     position: 'relative',
-    zIndex: 2,
-    marginBottom: 48
+    overflow: 'hidden'
   },
-  bannerBlue: {
+  promoBlue: {
     backgroundColor: colors.blueSoft
   },
-  bannerCream: {
+  promoCream: {
     backgroundColor: colors.cream
   },
-  bannerCopy: {
+  promoCopy: {
     flex: 1,
-    minWidth: 265,
+    minWidth: 260,
     maxWidth: 560,
-    zIndex: 3
+    zIndex: 2
   },
-  bannerLabel: {
+  promoLabel: {
     color: colors.mintDeep,
     fontSize: 13,
     fontWeight: '900',
-    letterSpacing: 1.2,
     marginBottom: 14
   },
-  bannerTitle: {
+  promoTitle: {
     color: colors.ink,
-    fontSize: 38,
-    lineHeight: 48,
+    fontSize: 40,
+    lineHeight: 50,
     fontWeight: '900',
     letterSpacing: 0
   },
-  bannerDescription: {
+  promoDescription: {
     color: colors.muted,
     fontSize: 16,
     lineHeight: 27,
-    marginTop: 14
+    marginTop: 14,
+    maxWidth: 560
   },
-  bannerMetric: {
+  promoCta: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 20
+    gap: 9,
+    marginTop: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    backgroundColor: colors.blueDeep
   },
-  bannerMetricDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
+  promoCtaDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
     backgroundColor: colors.mint
   },
-  bannerMetricText: {
-    color: colors.blueDeep,
+  promoCtaText: {
+    color: colors.surface,
     fontSize: 14,
     fontWeight: '900'
   },
-  bannerDots: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 18
-  },
-  bannerDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line
-  },
-  bannerDotActive: {
-    width: 30,
-    backgroundColor: colors.mint,
-    borderColor: colors.mint
-  },
-  bannerVisual: {
+  promoVisual: {
     flex: 1,
     minWidth: 260,
     minHeight: 275,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    zIndex: 2
+    zIndex: 1
   },
-  visualPaper: {
-    width: '86%',
-    maxWidth: 350,
-    minHeight: 250,
-    borderRadius: 28,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 22,
-    gap: 20,
-    justifyContent: 'space-between',
-    zIndex: 3,
-    transform: [{ rotate: '-3deg' }]
-  },
-  visualHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14
-  },
-  visualIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 17,
-    backgroundColor: colors.mintSoft,
-    borderWidth: 11,
-    borderColor: colors.mint
-  },
-  visualTitleLines: {
-    flex: 1,
-    gap: 8
-  },
-  visualLineStrong: {
-    height: 13,
-    borderRadius: 999,
-    backgroundColor: colors.blueSoft
-  },
-  visualLineShort: {
-    width: '62%',
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: colors.mintSoft
-  },
-  visualBubbleLarge: {
+  promoBubbleLarge: {
     position: 'absolute',
     width: 230,
     height: 230,
     borderRadius: 115,
     backgroundColor: colors.surface,
-    opacity: 0.54
+    opacity: 0.56
   },
-  visualBubbleSmall: {
+  promoBubbleSmall: {
     position: 'absolute',
-    right: 22,
-    bottom: 22,
+    right: 28,
+    bottom: 18,
     width: 92,
     height: 92,
     borderRadius: 46,
     backgroundColor: colors.creamStrong,
-    opacity: 0.62
+    opacity: 0.66
   },
-  bannerArrow: {
+  promoIcon: {
+    width: 106,
+    height: 106,
+    borderRadius: 30,
+    zIndex: 3,
+    transform: [{ rotate: '-8deg' }]
+  },
+  promoMockCard: {
+    position: 'absolute',
+    right: 14,
+    bottom: 20,
+    width: 228,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 18,
+    gap: 14,
+    zIndex: 4
+  },
+  promoMockLabel: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  promoArrow: {
     position: 'absolute',
     top: '48%',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
@@ -596,137 +742,237 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 8
   },
-  bannerArrowLeft: {
+  promoArrowLeft: {
     left: 16
   },
-  bannerArrowRight: {
+  promoArrowRight: {
     right: 16
   },
-  bannerArrowText: {
+  promoArrowText: {
     color: colors.blueDeep,
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 23,
+    lineHeight: 27,
     fontWeight: '900'
   },
-  scene: {
+  promoDots: {
+    position: 'absolute',
+    bottom: 22,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    zIndex: 6
+  },
+  promoDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  promoDotActive: {
+    width: 30,
+    backgroundColor: colors.mint,
+    borderColor: colors.mint
+  },
+  featureSection: {
     width: '100%',
     maxWidth: 1180,
-    minHeight: 650,
-    borderRadius: 34,
+    minHeight: 620,
     justifyContent: 'center',
+    alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
-    paddingVertical: 70,
-    marginBottom: 26,
-    backgroundColor: colors.surfaceWarm
+    marginBottom: 28
   },
-  sceneAlt: {
-    backgroundColor: colors.background
-  },
-  backgroundWord: {
+  sectionBackgroundWord: {
     position: 'absolute',
-    left: -16,
-    right: -16,
-    top: 58,
+    left: -12,
+    right: -12,
+    top: 86,
     color: colors.blueDeep,
     fontSize: 156,
     lineHeight: 176,
     fontWeight: '900',
-    letterSpacing: 0,
     textAlign: 'center',
+    letterSpacing: 0,
     zIndex: 0
   },
-  sceneInner: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 26,
-    paddingHorizontal: 28,
-    zIndex: 2
-  },
-  sceneCopy: {
-    flex: 0.9,
-    minWidth: 270,
-    maxWidth: 390,
-    backgroundColor: 'rgba(255, 253, 246, 0.78)',
-    borderRadius: 24,
-    padding: 22
-  },
-  sceneEyebrow: {
-    alignSelf: 'flex-start',
-    color: colors.mintDeep,
-    backgroundColor: colors.mintSoft,
-    borderRadius: 999,
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    fontSize: 12,
-    fontWeight: '900',
-    marginBottom: 16
-  },
-  sceneTitle: {
-    color: colors.ink,
-    fontSize: 31,
-    lineHeight: 40,
-    fontWeight: '900',
-    letterSpacing: 0
-  },
-  sceneDescription: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 26,
-    marginTop: 14
-  },
-  sceneMetric: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 20
-  },
-  sceneMetricDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: colors.mint
-  },
-  sceneMetricText: {
-    color: colors.blueDeep,
-    fontSize: 13,
-    fontWeight: '900'
-  },
-  cardGrid: {
-    flex: 1.2,
-    minWidth: 300,
+  featureGrid: {
+    width: '100%',
+    maxWidth: 1180,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
-    justifyContent: 'center'
+    marginBottom: 64,
+    zIndex: 3
   },
-  serviceCard: {
-    flexGrow: 1,
-    flexBasis: 218,
-    minWidth: 210,
-    maxWidth: 300,
-    minHeight: 242,
-    borderRadius: 24,
+  featureCard: {
+    flex: 1,
+    minWidth: 230,
+    minHeight: 216,
+    padding: 24,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
-    padding: 20,
-    gap: 13,
     justifyContent: 'space-between',
-    transitionDuration: '180ms',
-    transitionProperty: 'opacity, transform',
-    transitionTimingFunction: 'ease-out'
+    gap: 14
   },
-  serviceCardMint: {
+  featureCardMint: {
     backgroundColor: colors.mintSoft
   },
-  serviceCardCream: {
+  featureCardCream: {
     backgroundColor: colors.cream
   },
-  cardLabel: {
+  featureLabel: {
+    alignSelf: 'flex-start',
+    color: colors.blue,
+    backgroundColor: colors.blueSoft,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 2
+  },
+  featureTitle: {
+    color: colors.ink,
+    fontWeight: '800',
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: 2,
+    letterSpacing: 0
+  },
+  featureDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22
+  },
+  storyList: {
+    width: '100%',
+    alignItems: 'center'
+  },
+  storySection: {
+    width: '100%',
+    maxWidth: 1180,
+    minHeight: 720,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+  storyKeyword: {
+    position: 'absolute',
+    left: -12,
+    right: -12,
+    top: 96,
+    color: colors.blueDeep,
+    fontSize: 158,
+    lineHeight: 174,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: 0,
+    zIndex: 0
+  },
+  storyContent: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 40,
+    zIndex: 3
+  },
+  storyContentReverse: {
+    flexDirection: 'row-reverse'
+  },
+  storyCopy: {
+    flex: 1,
+    minWidth: 270,
+    maxWidth: 500,
+    backgroundColor: 'rgba(255, 253, 246, 0.82)',
+    borderRadius: 28,
+    paddingVertical: 24,
+    paddingHorizontal: 8,
+    zIndex: 5
+  },
+  storyEyebrow: {
+    alignSelf: 'flex-start',
+    color: colors.mintDeep,
+    backgroundColor: colors.mintSoft,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 20
+  },
+  storyTitle: {
+    color: colors.ink,
+    fontSize: 42,
+    lineHeight: 56,
+    fontWeight: '900',
+    letterSpacing: 0
+  },
+  storyDescription: {
+    color: colors.muted,
+    fontSize: 18,
+    lineHeight: 28,
+    marginTop: 20,
+    marginBottom: 26
+  },
+  storyChip: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    paddingHorizontal: 16,
+    paddingVertical: 9
+  },
+  storyChipBlue: {
+    backgroundColor: colors.blueSoft
+  },
+  storyChipCream: {
+    backgroundColor: colors.cream
+  },
+  storyChipText: {
+    color: colors.blueDeep,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  storyCards: {
+    flex: 1,
+    minWidth: 300,
+    alignItems: 'flex-end',
+    gap: 16
+  },
+  storyCardsReverse: {
+    alignItems: 'flex-start'
+  },
+  storyPreviewCard: {
+    width: '100%',
+    maxWidth: 400,
+    minHeight: 176,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 24,
+    gap: 14,
+    justifyContent: 'space-between'
+  },
+  storyPreviewCardMint: {
+    backgroundColor: colors.mintSoft
+  },
+  storyPreviewCardCream: {
+    backgroundColor: colors.cream
+  },
+  storyPreviewLabel: {
     alignSelf: 'flex-start',
     color: colors.mintDeep,
     backgroundColor: colors.surface,
@@ -737,18 +983,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900'
   },
-  cardTitle: {
+  storyPreviewTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 25,
+    fontSize: 20,
+    lineHeight: 27,
     fontWeight: '900',
     letterSpacing: 0
-  },
-  cardDescription: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '700'
   },
   defaultPreview: {
     gap: 12
@@ -758,7 +998,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10
   },
-  previewDot: {
+  previewIconDot: {
     width: 34,
     height: 34,
     borderRadius: 13,
@@ -766,93 +1006,89 @@ const styles = StyleSheet.create({
     borderWidth: 8,
     borderColor: colors.mint
   },
-  previewLineStrong: {
+  previewStack: {
     flex: 1,
-    height: 13,
+    gap: 8
+  },
+  previewLineStrong: {
+    width: '100%',
+    height: 12,
     borderRadius: 999,
     backgroundColor: colors.blueSoft
   },
   previewLineShort: {
-    width: '58%',
+    width: '62%',
     height: 9,
     borderRadius: 999,
     backgroundColor: colors.mintSoft
   },
-  timerPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14
-  },
-  timerRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 10,
-    borderColor: colors.mint,
-    borderRightColor: colors.blueSoft,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  timerCenter: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.surface
-  },
-  previewStack: {
-    flex: 1,
-    gap: 10
-  },
-  kanbanPreview: {
+  planPreview: {
     flexDirection: 'row',
     gap: 7
   },
-  kanbanColumn: {
+  planColumn: {
     flex: 1,
-    minHeight: 88,
+    minHeight: 82,
     borderRadius: 14,
     padding: 7,
     gap: 7,
     backgroundColor: colors.blueSoft
   },
-  kanbanHeader: {
+  planColumnHeader: {
     height: 9,
     borderRadius: 999,
     backgroundColor: colors.blue
   },
-  kanbanItem: {
+  planCardLine: {
     height: 22,
     borderRadius: 10,
     backgroundColor: colors.surface
   },
-  kanbanItemActive: {
+  planCardLineActive: {
     backgroundColor: colors.mintSoft
   },
-  kanbanItemSmall: {
+  planCardShort: {
     height: 16,
     borderRadius: 8,
     backgroundColor: colors.surface
   },
-  presencePreview: {
+  focusPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14
+  },
+  focusRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 9,
+    borderColor: colors.mint,
+    borderRightColor: colors.blueSoft,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  focusRingInner: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.surface
+  },
+  socialPreview: {
     gap: 8
   },
-  presenceRow: {
+  socialRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9
   },
-  avatar: {
+  socialAvatar: {
     width: 30,
     height: 30,
     borderRadius: 15,
     backgroundColor: colors.blueSoft
   },
-  avatarActive: {
+  socialAvatarActive: {
     backgroundColor: colors.mint
-  },
-  presenceCopy: {
-    flex: 1,
-    gap: 6
   },
   onlineDot: {
     width: 10,
@@ -869,7 +1105,7 @@ const styles = StyleSheet.create({
   progressPreview: {
     gap: 12
   },
-  progressTop: {
+  progressTopRow: {
     flexDirection: 'row',
     gap: 8
   },
@@ -897,15 +1133,46 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.mint
   },
-  progressBars: {
+  progressMiniLines: {
     gap: 7
   },
-  smallBar: {
+  progressMiniLine: {
     height: 9,
     borderRadius: 999,
     backgroundColor: colors.blueSoft
   },
-  smallBarAlt: {
+  progressMiniLineAlt: {
     backgroundColor: colors.mintSoft
+  },
+  accessPreview: {
+    gap: 10
+  },
+  accessScaleLarge: {
+    width: '100%',
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft
+  },
+  accessScaleMedium: {
+    width: '68%',
+    height: 13,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft
+  },
+  accessSwitchRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  accessSwitchActive: {
+    width: 42,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: colors.mint
+  },
+  accessSwitch: {
+    width: 42,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: colors.cream
   }
 });
