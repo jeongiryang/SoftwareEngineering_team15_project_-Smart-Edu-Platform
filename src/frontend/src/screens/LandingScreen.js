@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import ParticlePencilIntro from '../components/ParticlePencilIntro';
 import WritingEraseText from '../components/WritingEraseText';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
@@ -7,6 +8,7 @@ import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 const icon = require('../assets/sagaksagak-app-icon.png');
 const GITHUB_REPOSITORY_URL = 'https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform';
 const GITHUB_ICON_COLOR = '#24292f';
+const INTRO_SESSION_KEY = 'sagaksagakLandingIntroSeenV281';
 const githubSvgStyle = {
   display: 'block',
   flexShrink: 0
@@ -57,35 +59,53 @@ const availableFeatureKeys = [
     labelKey: 'landing.feature.accessibility.label',
     titleKey: 'landing.feature.accessibility.title',
     descriptionKey: 'landing.feature.accessibility.description'
-  },
-  {
-    labelKey: 'landing.feature.admin.label',
-    titleKey: 'landing.feature.admin.title',
-    descriptionKey: 'landing.feature.admin.description'
   }
 ];
 
+const heroSlideKeys = ['start', 'ask', 'focus', 'together', 'challenge'];
+
 const showcaseKeys = [
   {
-    eyebrowKey: 'landing.showcase.learn.eyebrow',
-    titleKey: 'landing.showcase.learn.title',
-    descriptionKey: 'landing.showcase.learn.description',
-    keywordKey: 'landing.showcase.learn.keyword',
-    metricKey: 'landing.showcase.learn.metric'
+    eyebrowKey: 'landing.showcase.record.eyebrow',
+    titleKey: 'landing.showcase.record.title',
+    descriptionKey: 'landing.showcase.record.description',
+    keywordKey: 'landing.showcase.record.keyword',
+    metricKey: 'landing.showcase.record.metric'
   },
   {
-    eyebrowKey: 'landing.showcase.organize.eyebrow',
-    titleKey: 'landing.showcase.organize.title',
-    descriptionKey: 'landing.showcase.organize.description',
-    keywordKey: 'landing.showcase.organize.keyword',
-    metricKey: 'landing.showcase.organize.metric'
+    eyebrowKey: 'landing.showcase.plan.eyebrow',
+    titleKey: 'landing.showcase.plan.title',
+    descriptionKey: 'landing.showcase.plan.description',
+    keywordKey: 'landing.showcase.plan.keyword',
+    metricKey: 'landing.showcase.plan.metric'
   },
   {
-    eyebrowKey: 'landing.showcase.connect.eyebrow',
-    titleKey: 'landing.showcase.connect.title',
-    descriptionKey: 'landing.showcase.connect.description',
-    keywordKey: 'landing.showcase.connect.keyword',
-    metricKey: 'landing.showcase.connect.metric'
+    eyebrowKey: 'landing.showcase.ask.eyebrow',
+    titleKey: 'landing.showcase.ask.title',
+    descriptionKey: 'landing.showcase.ask.description',
+    keywordKey: 'landing.showcase.ask.keyword',
+    metricKey: 'landing.showcase.ask.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.focus.eyebrow',
+    titleKey: 'landing.showcase.focus.title',
+    descriptionKey: 'landing.showcase.focus.description',
+    keywordKey: 'landing.showcase.focus.keyword',
+    metricKey: 'landing.showcase.focus.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.community.eyebrow',
+    titleKey: 'landing.showcase.community.title',
+    descriptionKey: 'landing.showcase.community.description',
+    keywordKey: 'landing.showcase.community.keyword',
+    metricKey: 'landing.showcase.community.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.social.eyebrow',
+    titleKey: 'landing.showcase.social.title',
+    descriptionKey: 'landing.showcase.social.description',
+    keywordKey: 'landing.showcase.social.keyword',
+    metricKey: 'landing.showcase.social.metric'
   },
   {
     eyebrowKey: 'landing.showcase.challenge.eyebrow',
@@ -95,11 +115,18 @@ const showcaseKeys = [
     metricKey: 'landing.showcase.challenge.metric'
   },
   {
-    eyebrowKey: 'landing.showcase.operate.eyebrow',
-    titleKey: 'landing.showcase.operate.title',
-    descriptionKey: 'landing.showcase.operate.description',
-    keywordKey: 'landing.showcase.operate.keyword',
-    metricKey: 'landing.showcase.operate.metric'
+    eyebrowKey: 'landing.showcase.reward.eyebrow',
+    titleKey: 'landing.showcase.reward.title',
+    descriptionKey: 'landing.showcase.reward.description',
+    keywordKey: 'landing.showcase.reward.keyword',
+    metricKey: 'landing.showcase.reward.metric'
+  },
+  {
+    eyebrowKey: 'landing.showcase.access.eyebrow',
+    titleKey: 'landing.showcase.access.title',
+    descriptionKey: 'landing.showcase.access.description',
+    keywordKey: 'landing.showcase.access.keyword',
+    metricKey: 'landing.showcase.access.metric'
   }
 ];
 
@@ -118,6 +145,46 @@ function openGitHubRepository() {
   }
 
   Linking.openURL(GITHUB_REPOSITORY_URL);
+}
+
+function getBrowserSessionStorage() {
+  const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+
+  try {
+    return Platform.OS === 'web' ? browserWindow?.sessionStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+function shouldShowIntro() {
+  const storage = getBrowserSessionStorage();
+
+  if (!storage) {
+    return true;
+  }
+
+  try {
+    return storage.getItem(INTRO_SESSION_KEY) !== 'done';
+  } catch {
+    return true;
+  }
+}
+
+function markIntroSeen() {
+  const storage = getBrowserSessionStorage();
+
+  if (storage) {
+    try {
+      storage.setItem(INTRO_SESSION_KEY, 'done');
+    } catch {
+      // Session storage can be unavailable in restricted browser modes.
+    }
+  }
+}
+
+function clamp(value, min = 0, max = 1) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function GitHubMark() {
@@ -153,6 +220,8 @@ function GitHubMark() {
 export default function LandingScreen({ onNavigate }) {
   const { t } = useLanguage();
   const [scrollY, setScrollY] = useState(0);
+  const [showIntro, setShowIntro] = useState(shouldShowIntro);
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [githubTooltipState, setGithubTooltipState] = useState({
     focused: false,
     hovered: false
@@ -161,20 +230,44 @@ export default function LandingScreen({ onNavigate }) {
   const writingWord = t('landing.hero.writingWord', '사각사각');
   const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
   const introProgress = Math.min(scrollY / 360, 1);
-  const activeShowcaseIndex = Math.max(0, Math.min(showcaseKeys.length - 1, Math.floor((scrollY - 430) / 260)));
+  const heroSlideKey = heroSlideKeys[heroSlideIndex];
 
   const handleLandingScroll = (event) => {
     setScrollY(event.nativeEvent?.contentOffset?.y || 0);
   };
 
+  const handleIntroDone = useCallback(() => {
+    markIntroSeen();
+    setShowIntro(false);
+  }, []);
+
+  const handleIntroReplay = useCallback(() => {
+    setShowIntro(true);
+  }, []);
+
+  const moveHeroSlide = (direction) => {
+    setHeroSlideIndex((current) => (current + direction + heroSlideKeys.length) % heroSlideKeys.length);
+  };
+
+  const selectHeroSlide = (index) => {
+    setHeroSlideIndex(index);
+  };
+
+  const getShowcaseProgress = (index) => {
+    const start = 520 + index * 280;
+    return clamp((scrollY - start) / 340);
+  };
+
   return (
-    <ScrollView
-      dataSet={{ sagakI18nIgnore: 'true' }}
-      onScroll={handleLandingScroll}
-      scrollEventThrottle={80}
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
+    <>
+      <ParticlePencilIntro visible={showIntro} onDone={handleIntroDone} />
+      <ScrollView
+        dataSet={{ sagakI18nIgnore: 'true' }}
+        onScroll={handleLandingScroll}
+        scrollEventThrottle={80}
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
       <View
         style={[
           styles.hero,
@@ -188,6 +281,13 @@ export default function LandingScreen({ onNavigate }) {
           <View style={styles.pill}>
             <Text style={styles.pillText}>{t('landing.hero.pill', '개인화 학습 관리 플랫폼')}</Text>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={handleIntroReplay}
+            style={(state) => [styles.replayIntroButton, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.replayIntroText}>{t('landing.intro.replay', '인트로 다시 보기')}</Text>
+          </Pressable>
           <Text accessibilityLabel={t('landing.hero.fullLabel', '공부의 흔적을 사각사각 쌓아가세요')} style={styles.title}>
             {t('landing.hero.prefix', '공부의 흔적을')}{'\n'}
             <WritingEraseText
@@ -227,18 +327,55 @@ export default function LandingScreen({ onNavigate }) {
           </View>
         </View>
         <View style={[styles.visualCard, shadows.card]}>
-          <View style={styles.introOrbit}>
-            <Text style={styles.introOrbitText}>AI</Text>
-            <Text style={styles.introOrbitText}>LIVE</Text>
-            <Text style={styles.introOrbitText}>QUEST</Text>
-          </View>
-          <Image source={icon} style={styles.heroIcon} />
-          <View style={styles.miniPanel}>
-            <View style={styles.dot} />
-            <View>
-              <Text style={styles.miniTitle}>{t('landing.mini.title', '오늘의 학습 지원')}</Text>
-              <Text style={styles.miniDescription}>{t('landing.mini.description', '계획과 복습을 한 번에 이어가세요')}</Text>
+          <View style={styles.carouselTopRow}>
+            <Image source={icon} style={styles.carouselIcon} />
+            <View style={styles.carouselCounter}>
+              <Text style={styles.carouselCounterText}>{heroSlideIndex + 1}/{heroSlideKeys.length}</Text>
             </View>
+          </View>
+          <Text style={styles.carouselEyebrow}>{t(`landing.carousel.${heroSlideKey}.eyebrow`)}</Text>
+          <Text style={styles.carouselTitle}>{t(`landing.carousel.${heroSlideKey}.title`)}</Text>
+          <Text style={styles.carouselDescription}>{t(`landing.carousel.${heroSlideKey}.description`)}</Text>
+          <View style={styles.carouselList}>
+            {[1, 2, 3].map((itemIndex) => (
+              <View key={`${heroSlideKey}-${itemIndex}`} style={styles.carouselListItem}>
+                <View style={styles.carouselListDot} />
+                <Text style={styles.carouselListText}>{t(`landing.carousel.${heroSlideKey}.item${itemIndex}`)}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.carouselBadges}>
+            <Text style={styles.carouselBadge}>{t(`landing.carousel.${heroSlideKey}.primary`)}</Text>
+            <Text style={[styles.carouselBadge, styles.carouselBadgeAlt]}>{t(`landing.carousel.${heroSlideKey}.secondary`)}</Text>
+          </View>
+          <View style={styles.carouselControls}>
+            <Pressable
+              accessibilityLabel={t('landing.carousel.prev', '이전 소개 카드')}
+              accessibilityRole="button"
+              onPress={() => moveHeroSlide(-1)}
+              style={(state) => [styles.carouselControlButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.carouselControlText}>‹</Text>
+            </Pressable>
+            <View style={styles.carouselDots}>
+              {heroSlideKeys.map((slideKey, index) => (
+                <Pressable
+                  accessibilityLabel={t('landing.carousel.dotLabel', '소개 카드 선택')}
+                  accessibilityRole="button"
+                  key={slideKey}
+                  onPress={() => selectHeroSlide(index)}
+                  style={[styles.carouselDot, index === heroSlideIndex && styles.carouselDotActive]}
+                />
+              ))}
+            </View>
+            <Pressable
+              accessibilityLabel={t('landing.carousel.next', '다음 소개 카드')}
+              accessibilityRole="button"
+              onPress={() => moveHeroSlide(1)}
+              style={(state) => [styles.carouselControlButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.carouselControlText}>›</Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -279,7 +416,26 @@ export default function LandingScreen({ onNavigate }) {
           </Text>
         </View>
         {showcaseKeys.map((item, index) => {
-          const isActive = index === activeShowcaseIndex;
+          const progress = getShowcaseProgress(index);
+          const side = index % 2 === 0 ? -1 : 1;
+          const rowMotionStyle = {
+            opacity: 0.38 + progress * 0.62,
+            transform: [
+              { translateX: side * (1 - progress) * 64 },
+              { translateY: (1 - progress) * 18 },
+              { scale: 0.96 + progress * 0.04 }
+            ]
+          };
+          const keywordMotionStyle = {
+            opacity: 0.18 + progress * 0.58,
+            transform: [{ translateY: (1 - progress) * -16 }, { scale: 0.92 + progress * 0.16 }]
+          };
+          const copyMotionStyle = {
+            transform: [{ translateX: side * (1 - progress) * 22 }]
+          };
+          const mockupMotionStyle = {
+            transform: [{ translateX: side * -1 * (1 - progress) * 28 }, { rotate: `${side * (1 - progress) * 1.4}deg` }]
+          };
 
           return (
             <View
@@ -287,22 +443,22 @@ export default function LandingScreen({ onNavigate }) {
               style={[
                 styles.showcaseRow,
                 index % 2 === 1 && styles.showcaseRowReverse,
-                isActive ? styles.showcaseRowActive : styles.showcaseRowRest
+                rowMotionStyle
               ]}
             >
               <Text
                 accessibilityElementsHidden
                 importantForAccessibility="no"
-                style={[styles.showcaseKeyword, isActive && styles.showcaseKeywordActive]}
+                style={[styles.showcaseKeyword, keywordMotionStyle]}
               >
                 {t(item.keywordKey)}
               </Text>
-              <View style={styles.showcaseCopy}>
+              <View style={[styles.showcaseCopy, copyMotionStyle]}>
                 <Text style={styles.showcaseEyebrow}>{t(item.eyebrowKey)}</Text>
                 <Text style={styles.showcaseTitle}>{t(item.titleKey)}</Text>
                 <Text style={styles.showcaseDescription}>{t(item.descriptionKey)}</Text>
               </View>
-              <View style={[styles.showcaseMockup, shadows.card]}>
+              <View style={[styles.showcaseMockup, shadows.card, mockupMotionStyle]}>
                 <View style={styles.mockupTopRow}>
                   <View style={styles.mockupDot} />
                   <View style={styles.mockupLineStrong} />
@@ -368,7 +524,8 @@ export default function LandingScreen({ onNavigate }) {
           </Pressable>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
@@ -410,6 +567,22 @@ const styles = StyleSheet.create({
     color: colors.mintDeep,
     fontWeight: '700',
     fontSize: 13
+  },
+  replayIntroButton: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginBottom: 18
+  },
+  replayIntroText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
   },
   title: {
     color: colors.ink,
@@ -474,65 +647,136 @@ const styles = StyleSheet.create({
     minHeight: 390,
     backgroundColor: colors.cream,
     borderRadius: 38,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24
-  },
-  introOrbit: {
-    position: 'absolute',
-    top: 18,
-    left: 18,
-    right: 18,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 8
+    alignItems: 'stretch',
+    padding: 24,
+    gap: 16
   },
-  introOrbitText: {
-    color: colors.blue,
-    backgroundColor: colors.surfaceWarm,
-    borderWidth: 1,
-    borderColor: colors.line,
+  carouselTopRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  carouselIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: colors.surface
+  },
+  carouselCounter: {
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    fontSize: 11,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  carouselCounterText: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  carouselEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.2
+  },
+  carouselTitle: {
+    color: colors.ink,
+    fontSize: 25,
+    lineHeight: 33,
     fontWeight: '900',
     letterSpacing: 0
   },
-  heroIcon: {
-    height: 238,
-    width: '70%',
-    maxWidth: 238,
-    borderRadius: 61
-  },
-  miniPanel: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 17,
-    marginTop: 20,
-    flexDirection: 'row',
-    gap: 13,
-    alignItems: 'center'
-  },
-  dot: {
-    height: 42,
-    width: 42,
-    borderRadius: 14,
-    backgroundColor: colors.mintSoft,
-    borderWidth: 10,
-    borderColor: colors.mint
-  },
-  miniTitle: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700'
-  },
-  miniDescription: {
+  carouselDescription: {
     color: colors.muted,
-    fontSize: 12,
-    marginTop: 4
+    fontSize: 14,
+    lineHeight: 23
+  },
+  carouselList: {
+    gap: 9
+  },
+  carouselListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9
+  },
+  carouselListDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.mint
+  },
+  carouselListText: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19
+  },
+  carouselBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  carouselBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  carouselBadgeAlt: {
+    backgroundColor: colors.blueSoft,
+    color: colors.blueDeep
+  },
+  carouselControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  carouselControlButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  carouselControlText: {
+    color: colors.blueDeep,
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 26
+  },
+  carouselDots: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 7
+  },
+  carouselDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  carouselDotActive: {
+    width: 28,
+    backgroundColor: colors.mint,
+    borderColor: colors.mint
   },
   sectionHeading: {
     width: '100%',
