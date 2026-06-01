@@ -606,8 +606,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
     overflow: 'hidden',
-    paddingHorizontal: 18,
-    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingTop: 28,
     paddingBottom: 28
   },
   heading: {
@@ -618,23 +618,29 @@ const styles = StyleSheet.create({
   sectionHeading: {
     width: '100%',
     maxWidth: 1180,
-    paddingHorizontal: 18,
-    marginBottom: 28,
+    paddingHorizontal: 20,
+    marginBottom: 32,
     zIndex: 5
   },
   sectionEyebrow: {
-    color: colors.mintDeep,
+    color: '#0F766E',
     fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.3,
-    marginBottom: 12
+    fontWeight: '900',
+    letterSpacing: 1.4,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    includeFontPadding: false
   },
   sectionTitle: {
     color: colors.ink,
-    fontWeight: '800',
-    fontSize: 30,
-    lineHeight: 38,
-    letterSpacing: 0
+    fontWeight: '900',
+    fontSize: 32,
+    lineHeight: 41,
+    letterSpacing: 0,
+    maxWidth: 760,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal',
+    includeFontPadding: false
   },
   sectionDescription: {
     color: colors.muted,
@@ -650,15 +656,20 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     backgroundColor: colors.mintSoft,
     borderWidth: 1,
-    borderColor: colors.line,
-    marginBottom: 64,
-    padding: 34,
+    borderColor: 'rgba(23, 59, 99, 0.1)',
+    marginBottom: 72,
+    padding: 40,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 30,
     position: 'relative',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    shadowColor: '#173B63',
+    shadowOpacity: 0.1,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 16 }
   },
   promoBlue: {
     backgroundColor: colors.blueSoft
@@ -670,7 +681,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 260,
     maxWidth: 560,
-    zIndex: 2
+    zIndex: 2,
+    paddingLeft: 32,
+    paddingRight: 16
   },
   promoLabel: {
     color: colors.mintDeep,
@@ -681,9 +694,13 @@ const styles = StyleSheet.create({
   promoTitle: {
     color: colors.ink,
     fontSize: 40,
-    lineHeight: 50,
+    lineHeight: 52,
     fontWeight: '900',
-    letterSpacing: 0
+    letterSpacing: 0,
+    maxWidth: 580,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal',
+    includeFontPadding: false
   },
   promoDescription: {
     color: colors.muted,
@@ -740,22 +757,27 @@ const styles = StyleSheet.create({
   },
   promoArrow: {
     position: 'absolute',
-    top: '48%',
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    top: '50%',
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: 'rgba(23, 59, 99, 0.14)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 5
+    zIndex: 5,
+    shadowColor: '#173B63',
+    shadowOpacity: 0.13,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    transform: [{ translateY: -23 }]
   },
   promoArrowLeft: {
-    left: 14
+    left: 18
   },
   promoArrowRight: {
-    right: 14
+    right: 18
   },
   promoArrowText: {
     color: colors.blueDeep,
@@ -776,11 +798,14 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.surface
+    backgroundColor: 'rgba(23, 59, 99, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)'
   },
   promoDotActive: {
-    width: 28,
-    backgroundColor: colors.mintDeep
+    width: 30,
+    backgroundColor: colors.mintDeep,
+    borderColor: colors.mintDeep
   },
   revealSection: {
     width: '100%',
@@ -801,10 +826,10 @@ const styles = StyleSheet.create({
   recordMainCard: {
     flex: 1.25,
     minWidth: 290,
-    borderRadius: 24,
+    borderRadius: 26,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: 'rgba(23, 59, 99, 0.1)',
     padding: 26
   },
   recordHeaderRow: {
@@ -817,7 +842,9 @@ const styles = StyleSheet.create({
   recordCardTitle: {
     color: colors.ink,
     fontSize: 22,
-    fontWeight: '900'
+    fontWeight: '900',
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   recordStreak: {
     color: '#FFFFFF',
@@ -859,10 +886,14 @@ const styles = StyleSheet.create({
     gap: 14
   },
   recordMiniCard: {
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: colors.line
+    borderColor: 'rgba(23, 59, 99, 0.1)',
+    shadowColor: '#173B63',
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 }
   },
   recordMiniCardMint: {
     backgroundColor: '#E8FAF6'
@@ -900,12 +931,16 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1180,
     paddingVertical: 94,
-    paddingHorizontal: 18,
+    paddingHorizontal: 24,
     borderRadius: 32,
     backgroundColor: '#FFFDF6',
     borderWidth: 1,
-    borderColor: colors.line,
-    marginBottom: 64
+    borderColor: 'rgba(23, 59, 99, 0.1)',
+    marginBottom: 64,
+    shadowColor: '#173B63',
+    shadowOpacity: 0.07,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 }
   },
   projectHeading: {
     maxWidth: 720,
@@ -919,10 +954,10 @@ const styles = StyleSheet.create({
   projectCard: {
     flex: 1,
     minWidth: 240,
-    borderRadius: 22,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: 'rgba(23, 59, 99, 0.1)',
     padding: 24
   },
   projectCardRule: {
@@ -937,7 +972,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 25,
     fontWeight: '900',
-    marginBottom: 10
+    marginBottom: 10,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   projectCardDescription: {
     color: colors.muted,
@@ -957,33 +994,36 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     flex: 1,
-    minWidth: 230,
+    minWidth: 248,
     minHeight: 182,
     padding: 25,
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: 'rgba(23, 59, 99, 0.1)',
     backgroundColor: colors.surface
   },
   featureLabel: {
     alignSelf: 'flex-start',
-    color: colors.blue,
-    backgroundColor: colors.blueSoft,
+    color: '#173B63',
+    backgroundColor: '#E8FAF6',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 12,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '900',
     marginBottom: 18,
+    letterSpacing: 0.3,
     overflow: 'hidden'
   },
   featureTitle: {
     color: colors.ink,
-    fontWeight: '700',
+    fontWeight: '900',
     fontSize: 18,
     lineHeight: 25,
     marginBottom: 10,
-    letterSpacing: 0
+    letterSpacing: 0,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   featureDescription: {
     color: colors.muted,
@@ -993,7 +1033,8 @@ const styles = StyleSheet.create({
   newSection: {
     width: '100%',
     maxWidth: 1180,
-    paddingVertical: 140,
+    paddingVertical: 132,
+    paddingHorizontal: 20,
     position: 'relative',
     overflow: 'hidden'
   },
@@ -1002,7 +1043,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    gap: 40,
+    flexWrap: 'wrap',
+    gap: 48,
     zIndex: 5
   },
   newSectionInnerReverse: {
@@ -1014,7 +1056,8 @@ const styles = StyleSheet.create({
   },
   newTextCol: {
     flex: 1,
-    maxWidth: 500,
+    minWidth: 300,
+    maxWidth: 520,
     zIndex: 10
   },
   newTextColCenter: {
@@ -1024,6 +1067,7 @@ const styles = StyleSheet.create({
   },
   newVisualCol: {
     flex: 1,
+    minWidth: 300,
     zIndex: 10,
     position: 'relative'
   },
@@ -1032,15 +1076,20 @@ const styles = StyleSheet.create({
     maxWidth: 600
   },
   textCenter: {
-    textAlign: 'center'
+    textAlign: 'center',
+    maxWidth: 760
   },
   newSectionTitle: {
-    fontSize: 42,
+    fontSize: 40,
     fontWeight: '900',
     color: '#15202B',
-    lineHeight: 56,
+    lineHeight: 52,
     marginBottom: 20,
-    letterSpacing: 0
+    letterSpacing: 0,
+    maxWidth: 560,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal',
+    includeFontPadding: false
   },
   newSectionDesc: {
     fontSize: 18,
@@ -1053,29 +1102,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    alignSelf: 'flex-start'
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 198, 184, 0.18)'
   },
   tagText: {
     color: '#0F766E',
-    fontWeight: '700',
-    fontSize: 14
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 0.2
   },
   bgTitleText: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: '50%',
-    fontSize: 210,
-    lineHeight: 230,
+    top: '46%',
+    fontSize: 198,
+    lineHeight: 220,
     fontWeight: '900',
-    color: 'rgba(82, 89, 98, 0.28)',
-    zIndex: 1,
+    color: 'rgba(23, 59, 99, 0.08)',
+    zIndex: 0,
     pointerEvents: 'none',
     textAlign: 'center',
-    letterSpacing: 0
+    letterSpacing: 0,
+    includeFontPadding: false
   },
   bgRecord: {
-    top: '50%'
+    top: '46%'
   },
   bgAvailable: {
     top: 110
@@ -1109,14 +1162,14 @@ const styles = StyleSheet.create({
   },
   mockCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 32,
-    shadowColor: '#0F1B2D',
-    shadowOpacity: 0.1,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 16 },
+    shadowColor: '#173B63',
+    shadowOpacity: 0.14,
+    shadowRadius: 34,
+    shadowOffset: { width: 0, height: 18 },
     borderWidth: 1,
-    borderColor: 'rgba(21, 32, 43, 0.04)'
+    borderColor: 'rgba(23, 59, 99, 0.08)'
   },
   planMock: {
     width: '100%',
@@ -1131,7 +1184,9 @@ const styles = StyleSheet.create({
   planMonth: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#15202B'
+    color: '#15202B',
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   planDday: {
     backgroundColor: '#FF8A65',
@@ -1356,7 +1411,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '800',
-    color: '#15202B'
+    color: '#15202B',
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   reportScore: {
     fontSize: 20,
@@ -1517,7 +1574,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 23,
     fontWeight: '900',
-    marginBottom: 4
+    marginBottom: 4,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   trustCardDesc: {
     color: colors.muted,
@@ -1571,7 +1630,11 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     paddingHorizontal: 28,
     alignItems: 'center',
-    marginTop: 24
+    marginTop: 24,
+    shadowColor: '#173B63',
+    shadowOpacity: 0.18,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 16 }
   },
   finalCtaTitle: {
     color: '#FFFFFF',
@@ -1579,7 +1642,10 @@ const styles = StyleSheet.create({
     lineHeight: 44,
     fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: 0
+    letterSpacing: 0,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal',
+    includeFontPadding: false
   },
   finalCtaDescription: {
     color: '#D7E7F4',
