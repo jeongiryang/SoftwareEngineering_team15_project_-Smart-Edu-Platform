@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import ParticlePencilIntro from '../components/ParticlePencilIntro';
+import ScrollStorySection from '../components/ScrollStorySection';
 import WritingEraseText from '../components/WritingEraseText';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
@@ -14,121 +15,7 @@ const githubSvgStyle = {
   flexShrink: 0
 };
 
-const availableFeatureKeys = [
-  {
-    labelKey: 'landing.feature.ai.label',
-    titleKey: 'landing.feature.ai.title',
-    descriptionKey: 'landing.feature.ai.description'
-  },
-  {
-    labelKey: 'landing.feature.plan.label',
-    titleKey: 'landing.feature.plan.title',
-    descriptionKey: 'landing.feature.plan.description'
-  },
-  {
-    labelKey: 'landing.feature.community.label',
-    titleKey: 'landing.feature.community.title',
-    descriptionKey: 'landing.feature.community.description'
-  },
-  {
-    labelKey: 'landing.feature.focus.label',
-    titleKey: 'landing.feature.focus.title',
-    descriptionKey: 'landing.feature.focus.description'
-  },
-  {
-    labelKey: 'landing.feature.social.label',
-    titleKey: 'landing.feature.social.title',
-    descriptionKey: 'landing.feature.social.description'
-  },
-  {
-    labelKey: 'landing.feature.reward.label',
-    titleKey: 'landing.feature.reward.title',
-    descriptionKey: 'landing.feature.reward.description'
-  },
-  {
-    labelKey: 'landing.feature.raid.label',
-    titleKey: 'landing.feature.raid.title',
-    descriptionKey: 'landing.feature.raid.description'
-  },
-  {
-    labelKey: 'landing.feature.coop.label',
-    titleKey: 'landing.feature.coop.title',
-    descriptionKey: 'landing.feature.coop.description'
-  },
-  {
-    labelKey: 'landing.feature.accessibility.label',
-    titleKey: 'landing.feature.accessibility.title',
-    descriptionKey: 'landing.feature.accessibility.description'
-  }
-];
-
 const heroSlideKeys = ['start', 'ask', 'focus', 'together', 'challenge'];
-
-const showcaseKeys = [
-  {
-    eyebrowKey: 'landing.showcase.record.eyebrow',
-    titleKey: 'landing.showcase.record.title',
-    descriptionKey: 'landing.showcase.record.description',
-    keywordKey: 'landing.showcase.record.keyword',
-    metricKey: 'landing.showcase.record.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.plan.eyebrow',
-    titleKey: 'landing.showcase.plan.title',
-    descriptionKey: 'landing.showcase.plan.description',
-    keywordKey: 'landing.showcase.plan.keyword',
-    metricKey: 'landing.showcase.plan.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.ask.eyebrow',
-    titleKey: 'landing.showcase.ask.title',
-    descriptionKey: 'landing.showcase.ask.description',
-    keywordKey: 'landing.showcase.ask.keyword',
-    metricKey: 'landing.showcase.ask.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.focus.eyebrow',
-    titleKey: 'landing.showcase.focus.title',
-    descriptionKey: 'landing.showcase.focus.description',
-    keywordKey: 'landing.showcase.focus.keyword',
-    metricKey: 'landing.showcase.focus.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.community.eyebrow',
-    titleKey: 'landing.showcase.community.title',
-    descriptionKey: 'landing.showcase.community.description',
-    keywordKey: 'landing.showcase.community.keyword',
-    metricKey: 'landing.showcase.community.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.social.eyebrow',
-    titleKey: 'landing.showcase.social.title',
-    descriptionKey: 'landing.showcase.social.description',
-    keywordKey: 'landing.showcase.social.keyword',
-    metricKey: 'landing.showcase.social.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.challenge.eyebrow',
-    titleKey: 'landing.showcase.challenge.title',
-    descriptionKey: 'landing.showcase.challenge.description',
-    keywordKey: 'landing.showcase.challenge.keyword',
-    metricKey: 'landing.showcase.challenge.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.reward.eyebrow',
-    titleKey: 'landing.showcase.reward.title',
-    descriptionKey: 'landing.showcase.reward.description',
-    keywordKey: 'landing.showcase.reward.keyword',
-    metricKey: 'landing.showcase.reward.metric'
-  },
-  {
-    eyebrowKey: 'landing.showcase.access.eyebrow',
-    titleKey: 'landing.showcase.access.title',
-    descriptionKey: 'landing.showcase.access.description',
-    keywordKey: 'landing.showcase.access.keyword',
-    metricKey: 'landing.showcase.access.metric'
-  }
-];
 
 const flowStepKeys = [
   'landing.flow.step1',
@@ -181,10 +68,6 @@ function markIntroSeen() {
       // Session storage can be unavailable in restricted browser modes.
     }
   }
-}
-
-function clamp(value, min = 0, max = 1) {
-  return Math.max(min, Math.min(max, value));
 }
 
 function GitHubMark() {
@@ -251,11 +134,6 @@ export default function LandingScreen({ onNavigate }) {
 
   const selectHeroSlide = (index) => {
     setHeroSlideIndex(index);
-  };
-
-  const getShowcaseProgress = (index) => {
-    const start = 520 + index * 280;
-    return clamp((scrollY - start) / 340);
   };
 
   return (
@@ -380,102 +258,7 @@ export default function LandingScreen({ onNavigate }) {
         </View>
       </View>
 
-      <View style={styles.sectionHeading}>
-        <Text style={styles.sectionEyebrow}>AVAILABLE NOW</Text>
-        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '지금 연결된 학습 도구')}</Text>
-        <Text style={styles.sectionDescription}>
-          {t('landing.section.available.description', '현재 구현된 API와 연결된 기능만 안내합니다.')}
-        </Text>
-      </View>
-      <View style={styles.featureGrid}>
-        {availableFeatureKeys.map((feature) => {
-          const featureLabel = t(feature.labelKey);
-          const featureTitle = t(feature.titleKey);
-          const featureDescription = t(feature.descriptionKey);
-
-          return (
-            <Pressable
-              accessibilityLabel={`${featureLabel}: ${featureTitle}`}
-              key={feature.titleKey}
-              style={(state) => [styles.featureCard, shadows.card, ...interactiveStateStyles(state, { kind: 'card' })]}
-            >
-              <Text style={styles.featureLabel}>{featureLabel}</Text>
-              <Text style={styles.featureTitle}>{featureTitle}</Text>
-              <Text style={styles.featureDescription}>{featureDescription}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={styles.showcase}>
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionEyebrow}>SCROLL TOUR</Text>
-          <Text style={styles.sectionTitle}>{t('landing.showcase.title', '스크롤로 만나는 실제 기능 흐름')}</Text>
-          <Text style={styles.sectionDescription}>
-            {t('landing.showcase.description', 'PR #264의 방향을 최신 기능 구성에 맞춰 정리한 소개 섹션입니다.')}
-          </Text>
-        </View>
-        {showcaseKeys.map((item, index) => {
-          const progress = getShowcaseProgress(index);
-          const side = index % 2 === 0 ? -1 : 1;
-          const rowMotionStyle = {
-            opacity: 0.38 + progress * 0.62,
-            transform: [
-              { translateX: side * (1 - progress) * 64 },
-              { translateY: (1 - progress) * 18 },
-              { scale: 0.96 + progress * 0.04 }
-            ]
-          };
-          const keywordMotionStyle = {
-            opacity: 0.18 + progress * 0.58,
-            transform: [{ translateY: (1 - progress) * -16 }, { scale: 0.92 + progress * 0.16 }]
-          };
-          const copyMotionStyle = {
-            transform: [{ translateX: side * (1 - progress) * 22 }]
-          };
-          const mockupMotionStyle = {
-            transform: [{ translateX: side * -1 * (1 - progress) * 28 }, { rotate: `${side * (1 - progress) * 1.4}deg` }]
-          };
-
-          return (
-            <View
-              key={item.titleKey}
-              style={[
-                styles.showcaseRow,
-                index % 2 === 1 && styles.showcaseRowReverse,
-                rowMotionStyle
-              ]}
-            >
-              <Text
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-                style={[styles.showcaseKeyword, keywordMotionStyle]}
-              >
-                {t(item.keywordKey)}
-              </Text>
-              <View style={[styles.showcaseCopy, copyMotionStyle]}>
-                <Text style={styles.showcaseEyebrow}>{t(item.eyebrowKey)}</Text>
-                <Text style={styles.showcaseTitle}>{t(item.titleKey)}</Text>
-                <Text style={styles.showcaseDescription}>{t(item.descriptionKey)}</Text>
-              </View>
-              <View style={[styles.showcaseMockup, shadows.card, mockupMotionStyle]}>
-                <View style={styles.mockupTopRow}>
-                  <View style={styles.mockupDot} />
-                  <View style={styles.mockupLineStrong} />
-                </View>
-                <Text style={styles.mockupMetric}>{t(item.metricKey)}</Text>
-                <View style={styles.mockupProgressTrack}>
-                  <View style={[styles.mockupProgressFill, { width: `${58 + index * 8}%` }]} />
-                </View>
-                <View style={styles.mockupChipRow}>
-                  <View style={styles.mockupChip} />
-                  <View style={[styles.mockupChip, styles.mockupChipAlt]} />
-                </View>
-              </View>
-            </View>
-          );
-        })}
-      </View>
+      <ScrollStorySection scrollY={scrollY} />
 
       <View style={styles.flow}>
         <View style={styles.flowCopy}>
@@ -778,205 +561,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mint,
     borderColor: colors.mint
   },
-  sectionHeading: {
-    width: '100%',
-    maxWidth: 1180,
-    paddingHorizontal: 18,
-    marginBottom: 28
-  },
   sectionEyebrow: {
     color: colors.mintDeep,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.3,
     marginBottom: 12
-  },
-  sectionTitle: {
-    color: colors.ink,
-    fontWeight: '800',
-    fontSize: 30,
-    letterSpacing: 0
-  },
-  sectionDescription: {
-    color: colors.muted,
-    fontSize: 14,
-    marginTop: 10
-  },
-  featureGrid: {
-    width: '100%',
-    maxWidth: 1180,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 64
-  },
-  featureCard: {
-    flex: 1,
-    minWidth: 230,
-    minHeight: 182,
-    padding: 25,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface
-  },
-  featureLabel: {
-    alignSelf: 'flex-start',
-    color: colors.blue,
-    backgroundColor: colors.blueSoft,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 18
-  },
-  featureTitle: {
-    color: colors.ink,
-    fontWeight: '700',
-    fontSize: 18,
-    marginBottom: 10
-  },
-  featureDescription: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 22
-  },
-  showcase: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 64
-  },
-  showcaseRow: {
-    width: '100%',
-    maxWidth: 1180,
-    minHeight: 260,
-    paddingHorizontal: 18,
-    paddingVertical: 24,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 22,
-    position: 'relative',
-    transitionDuration: '220ms',
-    transitionProperty: 'opacity, transform',
-    transitionTimingFunction: 'ease-out'
-  },
-  showcaseRowReverse: {
-    flexDirection: 'row-reverse'
-  },
-  showcaseRowActive: {
-    opacity: 1,
-    transform: [{ translateY: 0 }]
-  },
-  showcaseRowRest: {
-    opacity: 0.72,
-    transform: [{ translateY: 14 }]
-  },
-  showcaseKeyword: {
-    position: 'absolute',
-    right: 20,
-    top: 8,
-    color: colors.blueSoft,
-    fontSize: 56,
-    fontWeight: '900',
-    letterSpacing: 0,
-    opacity: 0.42
-  },
-  showcaseKeywordActive: {
-    color: colors.mintSoft,
-    opacity: 0.9
-  },
-  showcaseCopy: {
-    flex: 1,
-    minWidth: 260,
-    maxWidth: 520,
-    zIndex: 1
-  },
-  showcaseEyebrow: {
-    color: colors.mintDeep,
-    fontSize: 12,
-    fontWeight: '900',
-    marginBottom: 10
-  },
-  showcaseTitle: {
-    color: colors.ink,
-    fontSize: 26,
-    lineHeight: 36,
-    fontWeight: '900',
-    letterSpacing: 0
-  },
-  showcaseDescription: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 25,
-    marginTop: 12
-  },
-  showcaseMockup: {
-    width: '100%',
-    maxWidth: 390,
-    minWidth: 260,
-    minHeight: 210,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
-    padding: 22,
-    justifyContent: 'center',
-    gap: 18,
-    zIndex: 1
-  },
-  mockupTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
-  },
-  mockupDot: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    backgroundColor: colors.mintSoft,
-    borderWidth: 9,
-    borderColor: colors.mint
-  },
-  mockupLineStrong: {
-    flex: 1,
-    height: 16,
-    borderRadius: 999,
-    backgroundColor: colors.blueSoft
-  },
-  mockupMetric: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: '900'
-  },
-  mockupProgressTrack: {
-    height: 14,
-    borderRadius: 999,
-    backgroundColor: colors.cream,
-    overflow: 'hidden'
-  },
-  mockupProgressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: colors.mint
-  },
-  mockupChipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10
-  },
-  mockupChip: {
-    width: 96,
-    height: 30,
-    borderRadius: 999,
-    backgroundColor: colors.mintSoft
-  },
-  mockupChipAlt: {
-    width: 132,
-    backgroundColor: colors.blueSoft
   },
   flow: {
     width: '100%',
