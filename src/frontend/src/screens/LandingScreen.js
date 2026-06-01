@@ -17,12 +17,6 @@ const githubSvgStyle = {
 
 const heroSlideKeys = ['start', 'ask', 'focus', 'together', 'challenge'];
 
-const flowStepKeys = [
-  'landing.flow.step1',
-  'landing.flow.step2',
-  'landing.flow.step3'
-];
-
 function openGitHubRepository() {
   const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
 
@@ -259,29 +253,6 @@ export default function LandingScreen({ onNavigate }) {
       </View>
 
       <ScrollStorySection scrollY={scrollY} />
-
-      <View style={styles.flow}>
-        <View style={styles.flowCopy}>
-          <Text style={styles.sectionEyebrow}>LEARNING FLOW</Text>
-          <Text style={styles.flowTitle}>{t('landing.flow.title', '계획에서 복습까지,\n가볍게 시작하는 학습')}</Text>
-          <Text style={styles.flowDescription}>
-            {t(
-              'landing.flow.description',
-              '사각사각은 다양한 학습자의 기록과 반복 학습을 돕는 서비스로 설계되었습니다. 이번 화면에서는 현재 연결된 학습 도구와 시작 흐름을 함께 제공합니다.'
-            )}
-          </Text>
-        </View>
-        <View style={styles.steps}>
-          {flowStepKeys.map((stepKey, index) => (
-            <View key={stepKey} style={styles.step}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{index + 1}</Text>
-              </View>
-              <Text style={styles.stepText}>{t(stepKey)}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
 
       <View dataSet={{ sagakI18nIgnore: 'true' }} style={styles.footer}>
         <View style={styles.footerInner}>

@@ -1,177 +1,154 @@
-import { useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLanguage } from '../i18n';
-import { colors, shadows } from '../styles/theme';
+import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
-const STORY_VIEWPORT_HEIGHT = 720;
-const STORY_SCROLL_SPAN = 430;
+const STORY_VIEWPORT_HEIGHT = 760;
+const STORY_SCROLL_SPAN = 520;
 
-const storyScenes = [
+const storySlides = [
   {
-    id: 'ask',
-    keyword: 'ASK',
-    eyebrowKey: 'landing.showcase.ask.eyebrow',
-    titleKey: 'landing.showcase.ask.title',
-    descriptionKey: 'landing.showcase.ask.description',
-    metricKey: 'landing.showcase.ask.metric',
+    id: 'learn',
+    keyword: 'LEARN',
+    eyebrowKey: 'landing.showcase.learn.eyebrow',
+    titleKey: 'landing.showcase.learn.title',
+    descriptionKey: 'landing.showcase.learn.description',
+    metricKey: 'landing.showcase.learn.metric',
+    mood: 'mint',
     cards: [
-      {
-        labelKey: 'landing.carousel.ask.primary',
-        titleKey: 'landing.feature.ai.title',
-        lines: ['landing.carousel.ask.item1', 'landing.carousel.ask.item2'],
-        variant: 'chat'
-      },
-      {
-        labelKey: 'landing.carousel.ask.secondary',
-        titleKey: 'landing.feature.ai.description',
-        lines: ['landing.carousel.ask.item3'],
-        variant: 'analysis'
-      },
       {
         labelKey: 'landing.feature.ai.label',
-        titleKey: 'landing.showcase.ask.metric',
-        lines: ['landing.showcase.ask.description'],
-        variant: 'summary'
-      }
-    ]
-  },
-  {
-    id: 'plan',
-    keyword: 'PLAN',
-    eyebrowKey: 'landing.showcase.plan.eyebrow',
-    titleKey: 'landing.showcase.plan.title',
-    descriptionKey: 'landing.showcase.plan.description',
-    metricKey: 'landing.showcase.plan.metric',
-    cards: [
-      {
-        labelKey: 'landing.feature.plan.label',
-        titleKey: 'landing.carousel.start.item1',
-        lines: ['landing.carousel.start.item2', 'landing.carousel.start.item3'],
-        variant: 'checklist'
-      },
-      {
-        labelKey: 'landing.carousel.start.secondary',
-        titleKey: 'landing.feature.plan.title',
-        lines: ['landing.feature.plan.description'],
-        variant: 'kanban'
-      },
-      {
-        labelKey: 'landing.showcase.plan.eyebrow',
-        titleKey: 'landing.showcase.plan.metric',
-        lines: ['landing.showcase.plan.description'],
-        variant: 'timeline'
-      }
-    ]
-  },
-  {
-    id: 'focus',
-    keyword: 'FOCUS',
-    eyebrowKey: 'landing.showcase.focus.eyebrow',
-    titleKey: 'landing.showcase.focus.title',
-    descriptionKey: 'landing.showcase.focus.description',
-    metricKey: 'landing.showcase.focus.metric',
-    cards: [
-      {
-        labelKey: 'landing.carousel.focus.primary',
-        titleKey: 'landing.carousel.focus.item1',
-        lines: ['landing.feature.focus.description'],
-        variant: 'timer'
-      },
-      {
-        labelKey: 'landing.carousel.focus.secondary',
-        titleKey: 'landing.carousel.focus.item2',
-        lines: ['landing.carousel.focus.item3'],
-        variant: 'heatmap'
+        titleKey: 'landing.feature.ai.title',
+        descriptionKey: 'landing.feature.ai.description',
+        preview: 'chat'
       },
       {
         labelKey: 'landing.feature.focus.label',
-        titleKey: 'landing.showcase.focus.metric',
-        lines: ['landing.showcase.focus.description'],
-        variant: 'summary'
+        titleKey: 'landing.feature.focus.title',
+        descriptionKey: 'landing.feature.focus.description',
+        preview: 'timer'
+      },
+      {
+        labelKey: 'landing.carousel.ask.secondary',
+        titleKey: 'landing.carousel.ask.item3',
+        descriptionKey: 'landing.carousel.ask.description',
+        preview: 'quiz'
       }
     ]
   },
   {
-    id: 'share',
-    keyword: 'SHARE',
-    eyebrowKey: 'landing.showcase.social.eyebrow',
-    titleKey: 'landing.showcase.social.title',
-    descriptionKey: 'landing.showcase.social.description',
-    metricKey: 'landing.showcase.social.metric',
+    id: 'organize',
+    keyword: 'PLAN',
+    eyebrowKey: 'landing.showcase.organize.eyebrow',
+    titleKey: 'landing.showcase.organize.title',
+    descriptionKey: 'landing.showcase.organize.description',
+    metricKey: 'landing.showcase.organize.metric',
+    mood: 'cream',
+    cards: [
+      {
+        labelKey: 'landing.feature.plan.label',
+        titleKey: 'landing.feature.plan.title',
+        descriptionKey: 'landing.feature.plan.description',
+        preview: 'kanban'
+      },
+      {
+        labelKey: 'landing.carousel.start.primary',
+        titleKey: 'landing.carousel.start.item1',
+        descriptionKey: 'landing.carousel.start.description',
+        preview: 'dashboard'
+      },
+      {
+        labelKey: 'landing.carousel.focus.secondary',
+        titleKey: 'landing.showcase.record.title',
+        descriptionKey: 'landing.showcase.record.description',
+        preview: 'stats'
+      }
+    ]
+  },
+  {
+    id: 'connect',
+    keyword: 'LINK',
+    eyebrowKey: 'landing.showcase.connect.eyebrow',
+    titleKey: 'landing.showcase.connect.title',
+    descriptionKey: 'landing.showcase.connect.description',
+    metricKey: 'landing.showcase.connect.metric',
+    mood: 'blue',
     cards: [
       {
         labelKey: 'landing.feature.community.label',
-        titleKey: 'landing.showcase.community.title',
-        lines: ['landing.showcase.community.description'],
-        variant: 'post'
+        titleKey: 'landing.feature.community.title',
+        descriptionKey: 'landing.feature.community.description',
+        preview: 'post'
       },
       {
         labelKey: 'landing.feature.social.label',
-        titleKey: 'landing.carousel.together.item2',
-        lines: ['landing.carousel.together.item1', 'landing.carousel.together.item3'],
-        variant: 'presence'
+        titleKey: 'landing.feature.social.title',
+        descriptionKey: 'landing.feature.social.description',
+        preview: 'presence'
       },
       {
-        labelKey: 'landing.showcase.community.eyebrow',
-        titleKey: 'landing.showcase.community.metric',
-        lines: ['landing.showcase.social.metric'],
-        variant: 'message'
+        labelKey: 'landing.carousel.together.primary',
+        titleKey: 'landing.carousel.together.item2',
+        descriptionKey: 'landing.carousel.together.description',
+        preview: 'message'
       }
     ]
   },
   {
-    id: 'quest',
+    id: 'challenge',
     keyword: 'QUEST',
     eyebrowKey: 'landing.showcase.challenge.eyebrow',
     titleKey: 'landing.showcase.challenge.title',
     descriptionKey: 'landing.showcase.challenge.description',
     metricKey: 'landing.showcase.challenge.metric',
+    mood: 'mint',
     cards: [
       {
         labelKey: 'landing.feature.raid.label',
         titleKey: 'landing.feature.raid.title',
-        lines: ['landing.carousel.challenge.item1', 'landing.carousel.challenge.item3'],
-        variant: 'raid'
+        descriptionKey: 'landing.feature.raid.description',
+        preview: 'raid'
       },
       {
         labelKey: 'landing.feature.coop.label',
         titleKey: 'landing.feature.coop.title',
-        lines: ['landing.carousel.challenge.item2', 'landing.feature.coop.description'],
-        variant: 'contribution'
+        descriptionKey: 'landing.feature.coop.description',
+        preview: 'coop'
       },
       {
-        labelKey: 'landing.carousel.challenge.secondary',
-        titleKey: 'landing.showcase.challenge.metric',
-        lines: ['landing.showcase.challenge.description'],
-        variant: 'reward'
+        labelKey: 'landing.feature.reward.label',
+        titleKey: 'landing.feature.reward.title',
+        descriptionKey: 'landing.feature.reward.description',
+        preview: 'reward'
       }
     ]
   },
   {
-    id: 'care',
+    id: 'operate',
     keyword: 'CARE',
-    eyebrowKey: 'landing.showcase.access.eyebrow',
-    titleKey: 'landing.showcase.access.title',
-    descriptionKey: 'landing.showcase.access.description',
-    metricKey: 'landing.showcase.access.metric',
+    eyebrowKey: 'landing.showcase.operate.eyebrow',
+    titleKey: 'landing.showcase.operate.title',
+    descriptionKey: 'landing.showcase.operate.description',
+    metricKey: 'landing.showcase.operate.metric',
+    mood: 'cream',
     cards: [
-      {
-        labelKey: 'landing.feature.reward.label',
-        titleKey: 'landing.showcase.reward.title',
-        lines: ['landing.showcase.reward.description'],
-        variant: 'profile'
-      },
       {
         labelKey: 'landing.feature.accessibility.label',
         titleKey: 'landing.feature.accessibility.title',
-        lines: ['landing.feature.accessibility.description'],
-        variant: 'accessibility'
+        descriptionKey: 'landing.feature.accessibility.description',
+        preview: 'accessibility'
       },
       {
-        labelKey: 'landing.showcase.access.eyebrow',
-        titleKey: 'landing.showcase.access.metric',
-        lines: ['landing.showcase.access.description'],
-        variant: 'settings'
+        labelKey: 'landing.feature.admin.label',
+        titleKey: 'landing.feature.admin.title',
+        descriptionKey: 'landing.feature.admin.description',
+        preview: 'admin'
+      },
+      {
+        labelKey: 'landing.showcase.reward.eyebrow',
+        titleKey: 'landing.showcase.reward.title',
+        descriptionKey: 'landing.showcase.reward.description',
+        preview: 'profile'
       }
     ]
   }
@@ -181,27 +158,31 @@ function clamp(value, min = 0, max = 1) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getStoryProgress(scrollY, layout) {
+function getStoryProgress(scrollY, layout, storyHeight) {
   if (!layout.height) {
     return 0;
   }
 
   const startY = Math.max(layout.y - 72, 0);
-  const scrollableDistance = Math.max(layout.height - STORY_VIEWPORT_HEIGHT, 1);
+  const scrollableDistance = Math.max(storyHeight - STORY_VIEWPORT_HEIGHT, 1);
   return clamp((scrollY - startY) / scrollableDistance);
 }
 
-function getSceneDistance(index, sceneFloat) {
-  return index - sceneFloat;
+function getSceneState(index, sceneFloat) {
+  const distance = index - sceneFloat;
+  const focus = clamp(1 - Math.abs(distance), 0, 1);
+  const direction = distance >= 0 ? 1 : -1;
+
+  return { distance, focus, direction };
 }
 
-function MiniUIPreview({ variant, progress }) {
-  const fillWidth = `${Math.round(42 + progress * 45)}%`;
+function MiniPreview({ type, focus }) {
+  const fill = `${Math.round(34 + focus * 58)}%`;
 
-  if (variant === 'timer') {
+  if (type === 'timer') {
     return (
       <View style={styles.timerPreview}>
-        <View style={[styles.timerRing, { transform: [{ rotate: `${-18 + progress * 34}deg` }] }]}>
+        <View style={[styles.timerRing, { transform: [{ rotate: `${-28 + focus * 58}deg` }] }]}>
           <View style={styles.timerCenter} />
         </View>
         <View style={styles.previewStack}>
@@ -212,13 +193,13 @@ function MiniUIPreview({ variant, progress }) {
     );
   }
 
-  if (variant === 'kanban') {
+  if (type === 'kanban' || type === 'dashboard') {
     return (
       <View style={styles.kanbanPreview}>
         {[0, 1, 2].map((column) => (
           <View key={column} style={styles.kanbanColumn}>
             <View style={styles.kanbanHeader} />
-            <View style={[styles.kanbanItem, column === 1 && styles.kanbanItemAlt]} />
+            <View style={[styles.kanbanItem, column === 1 && styles.kanbanItemActive]} />
             <View style={styles.kanbanItemSmall} />
           </View>
         ))}
@@ -226,17 +207,7 @@ function MiniUIPreview({ variant, progress }) {
     );
   }
 
-  if (variant === 'heatmap') {
-    return (
-      <View style={styles.heatmapPreview}>
-        {Array.from({ length: 18 }, (_, index) => (
-          <View key={index} style={[styles.heatmapCell, index % 4 === 0 && styles.heatmapCellActive]} />
-        ))}
-      </View>
-    );
-  }
-
-  if (variant === 'presence') {
+  if (type === 'presence' || type === 'message' || type === 'post') {
     return (
       <View style={styles.presencePreview}>
         {[0, 1, 2].map((item) => (
@@ -246,22 +217,22 @@ function MiniUIPreview({ variant, progress }) {
               <View style={styles.previewLineStrong} />
               <View style={styles.previewLineShort} />
             </View>
-            <View style={styles.onlineDot} />
+            <View style={item === 2 ? styles.messageDot : styles.onlineDot} />
           </View>
         ))}
       </View>
     );
   }
 
-  if (variant === 'raid' || variant === 'contribution' || variant === 'reward') {
+  if (type === 'raid' || type === 'coop' || type === 'reward' || type === 'stats') {
     return (
       <View style={styles.progressPreview}>
-        <View style={styles.progressHeader}>
+        <View style={styles.progressTop}>
           <View style={styles.previewPill} />
           <View style={styles.previewPillAlt} />
         </View>
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: fillWidth }]} />
+          <View style={[styles.progressFill, { width: fill }]} />
         </View>
         <View style={styles.progressBars}>
           <View style={[styles.smallBar, { width: '68%' }]} />
@@ -278,7 +249,7 @@ function MiniUIPreview({ variant, progress }) {
         <View style={styles.previewLineStrong} />
       </View>
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: fillWidth }]} />
+        <View style={[styles.progressFill, { width: fill }]} />
       </View>
       <View style={styles.previewChipRow}>
         <View style={styles.previewChip} />
@@ -288,33 +259,33 @@ function MiniUIPreview({ variant, progress }) {
   );
 }
 
-function FloatingStoryCard({ card, index, localProgress, t }) {
-  const cardProgress = clamp(localProgress * 1.45 + 0.54 - index * 0.16);
+function StoryCard({ card, index, focus, t }) {
   const side = index % 2 === 0 ? -1 : 1;
-  const depth = index === 1 ? 1 : 0;
-  const motionStyle = {
-    opacity: 0.42 + cardProgress * 0.58,
-    transform: [
-      { translateX: side * (1 - cardProgress) * (index === 2 ? 72 : 46) },
-      { translateY: (1 - cardProgress) * (index === 1 ? -34 : 38) + index * 10 },
-      { scale: 0.9 + cardProgress * 0.1 - depth * 0.02 },
-      { rotate: `${side * (1 - cardProgress) * 4 + (index - 1) * 1.2}deg` }
-    ]
-  };
+  const cardFocus = clamp(focus * 1.08 - index * 0.04);
+  const depthOffset = index === 1 ? -18 : index === 2 ? 16 : 0;
 
   return (
-    <View style={[styles.storyCard, shadows.card, index === 1 && styles.storyCardRaised, motionStyle]}>
+    <View
+      style={[
+        styles.storyCard,
+        shadows.card,
+        index === 1 && styles.storyCardMint,
+        index === 2 && styles.storyCardCream,
+        {
+          opacity: 0.34 + cardFocus * 0.66,
+          transform: [
+            { translateX: side * (1 - cardFocus) * (index === 1 ? 34 : 74) },
+            { translateY: (1 - cardFocus) * 42 + depthOffset },
+            { scale: 0.9 + cardFocus * 0.1 },
+            { rotate: `${side * (1 - cardFocus) * 4}deg` }
+          ]
+        }
+      ]}
+    >
       <Text style={styles.storyCardLabel}>{t(card.labelKey)}</Text>
       <Text numberOfLines={2} style={styles.storyCardTitle}>{t(card.titleKey)}</Text>
-      <MiniUIPreview progress={cardProgress} variant={card.variant} />
-      <View style={styles.storyCardLines}>
-        {card.lines.map((lineKey) => (
-          <View key={lineKey} style={styles.storyCardLine}>
-            <View style={styles.storyCardBullet} />
-            <Text numberOfLines={2} style={styles.storyCardLineText}>{t(lineKey)}</Text>
-          </View>
-        ))}
-      </View>
+      <MiniPreview focus={cardFocus} type={card.preview} />
+      <Text numberOfLines={3} style={styles.storyCardDescription}>{t(card.descriptionKey)}</Text>
     </View>
   );
 }
@@ -322,14 +293,22 @@ function FloatingStoryCard({ card, index, localProgress, t }) {
 export default function ScrollStorySection({ scrollY }) {
   const { t } = useLanguage();
   const [layout, setLayout] = useState({ y: 0, height: STORY_VIEWPORT_HEIGHT });
-  const progress = getStoryProgress(scrollY, layout);
-  const sceneFloat = progress * (storyScenes.length - 1);
-  const activeIndex = Math.min(storyScenes.length - 1, Math.floor(sceneFloat + 0.0001));
-  const activeScene = storyScenes[activeIndex];
-  const localProgress = clamp(sceneFloat - activeIndex);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const storyHeight = useMemo(() => STORY_VIEWPORT_HEIGHT + STORY_SCROLL_SPAN * (storySlides.length - 1), []);
+  const progress = getStoryProgress(scrollY, layout, storyHeight);
+  const sceneFloat = progress * (storySlides.length - 1);
+  const scrollIndex = Math.min(storySlides.length - 1, Math.max(0, Math.round(sceneFloat)));
+  const activeScene = storySlides[selectedIndex];
+  const activeState = getSceneState(selectedIndex, sceneFloat);
   const progressPercent = `${Math.max(8, Math.round(progress * 100))}%`;
 
-  const storyHeight = useMemo(() => STORY_VIEWPORT_HEIGHT + STORY_SCROLL_SPAN * (storyScenes.length - 1), []);
+  useEffect(() => {
+    setSelectedIndex(scrollIndex);
+  }, [scrollIndex]);
+
+  const moveSlide = (direction) => {
+    setSelectedIndex((current) => (current + direction + storySlides.length) % storySlides.length);
+  };
 
   return (
     <View
@@ -342,18 +321,9 @@ export default function ScrollStorySection({ scrollY }) {
       style={[styles.story, { minHeight: storyHeight }]}
     >
       <View style={styles.storySticky}>
-        <View style={styles.storyHeading}>
-          <Text style={styles.storyEyebrow}>{t('landing.showcase.eyebrow', 'SCROLL STORY')}</Text>
-          <Text style={styles.storyTitle}>{t('landing.showcase.title', '스크롤로 만나는 실제 기능 흐름')}</Text>
-          <Text style={styles.storyDescription}>
-            {t('landing.showcase.description', '소개페이지에서 현재 구현된 핵심 기능을 순서대로 확인할 수 있습니다.')}
-          </Text>
-        </View>
-
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.backgroundLayer}>
-          {storyScenes.map((scene, index) => {
-            const distance = getSceneDistance(index, sceneFloat);
-            const wordOpacity = clamp(0.2 - Math.abs(distance) * 0.11, 0, 0.2);
+          {storySlides.map((scene, index) => {
+            const { distance, focus } = getSceneState(index, sceneFloat);
 
             return (
               <Text
@@ -361,11 +331,11 @@ export default function ScrollStorySection({ scrollY }) {
                 style={[
                   styles.backgroundWord,
                   {
-                    opacity: wordOpacity,
+                    opacity: 0.06 + focus * 0.24,
                     transform: [
-                      { translateY: distance * 72 },
-                      { translateX: distance * -18 },
-                      { scale: 1.12 - Math.min(Math.abs(distance), 1) * 0.12 }
+                      { translateX: distance * -30 },
+                      { translateY: distance * 82 },
+                      { scale: 1.02 + focus * 0.18 }
                     ]
                   }
                 ]}
@@ -376,25 +346,82 @@ export default function ScrollStorySection({ scrollY }) {
           })}
         </View>
 
-        <View style={styles.storyContent}>
-          <View style={styles.sceneCopy}>
-            <Text style={styles.sceneEyebrow}>{t(activeScene.eyebrowKey)}</Text>
-            <Text style={styles.sceneTitle}>{t(activeScene.titleKey)}</Text>
-            <Text style={styles.sceneDescription}>{t(activeScene.descriptionKey)}</Text>
-            <View style={styles.sceneMetric}>
-              <View style={styles.sceneMetricDot} />
-              <Text style={styles.sceneMetricText}>{t(activeScene.metricKey)}</Text>
+        <View style={styles.heading}>
+          <Text style={styles.sectionEyebrow}>{t('landing.showcase.eyebrow', 'SCROLL STORY')}</Text>
+          <Text style={styles.sectionTitle}>{t('landing.showcase.title', '스크롤로 만나는 실제 기능 흐름')}</Text>
+          <Text style={styles.sectionDescription}>
+            {t('landing.showcase.description', '소개페이지에서 현재 구현된 핵심 기능을 순서대로 확인할 수 있습니다.')}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.banner,
+            activeScene.mood === 'blue' && styles.bannerBlue,
+            activeScene.mood === 'cream' && styles.bannerCream
+          ]}
+        >
+          <Pressable
+            accessibilityLabel={t('landing.carousel.prev', '이전 소개 카드')}
+            accessibilityRole="button"
+            onPress={() => moveSlide(-1)}
+            style={(state) => [styles.bannerArrow, styles.bannerArrowLeft, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.bannerArrowText}>{'<'}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel={t('landing.carousel.next', '다음 소개 카드')}
+            accessibilityRole="button"
+            onPress={() => moveSlide(1)}
+            style={(state) => [styles.bannerArrow, styles.bannerArrowRight, ...interactiveStateStyles(state)]}
+          >
+            <Text style={styles.bannerArrowText}>{'>'}</Text>
+          </Pressable>
+
+          <View style={styles.bannerCopy}>
+            <Text style={styles.bannerLabel}>{t(activeScene.eyebrowKey)}</Text>
+            <Text style={styles.bannerTitle}>{t(activeScene.titleKey)}</Text>
+            <Text style={styles.bannerDescription}>{t(activeScene.descriptionKey)}</Text>
+            <View style={styles.bannerMetric}>
+              <View style={styles.bannerMetricDot} />
+              <Text style={styles.bannerMetricText}>{t(activeScene.metricKey)}</Text>
             </View>
-            <View style={styles.sceneProgressTrack}>
-              <View style={[styles.sceneProgressFill, { width: progressPercent }]} />
+            <View style={styles.bannerProgressTrack}>
+              <View style={[styles.bannerProgressFill, { width: progressPercent }]} />
+            </View>
+            <View style={styles.bannerDots}>
+              {storySlides.map((scene, index) => (
+                <Pressable
+                  accessibilityLabel={t('landing.carousel.dotLabel', '소개 카드 선택')}
+                  accessibilityRole="button"
+                  key={scene.id}
+                  onPress={() => setSelectedIndex(index)}
+                  style={[styles.bannerDot, index === selectedIndex && styles.bannerDotActive]}
+                />
+              ))}
             </View>
           </View>
 
-          <View style={styles.cardStage}>
-            {activeScene.cards.map((card, index) => (
-              <FloatingStoryCard card={card} index={index} key={`${activeScene.id}-${card.titleKey}`} localProgress={localProgress} t={t} />
-            ))}
+          <View style={styles.bannerVisual}>
+            <View style={styles.visualPaper}>
+              <View style={styles.visualHeader}>
+                <View style={styles.visualIcon} />
+                <View style={styles.visualTitleLines}>
+                  <View style={styles.visualLineStrong} />
+                  <View style={styles.visualLineShort} />
+                </View>
+              </View>
+              <MiniPreview focus={Math.max(activeState.focus, 0.5)} type={activeScene.cards[0].preview} />
+            </View>
+            <View style={styles.visualBubbleLarge} />
+            <View style={styles.visualBubbleSmall} />
           </View>
+        </View>
+
+        <View style={styles.cardGrid}>
+          {activeScene.cards.map((card, index) => (
+            <StoryCard card={card} focus={activeState.focus} index={index} key={`${activeScene.id}-${card.titleKey}`} t={t} />
+          ))}
         </View>
       </View>
     </View>
@@ -405,8 +432,8 @@ const styles = StyleSheet.create({
   story: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 72,
-    backgroundColor: colors.surfaceWarm,
+    marginBottom: 48,
+    backgroundColor: colors.background,
     overflow: 'hidden'
   },
   storySticky: {
@@ -417,34 +444,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
-    paddingVertical: 48
-  },
-  storyHeading: {
-    width: '100%',
-    maxWidth: 1180,
-    marginBottom: 24,
-    zIndex: 2
-  },
-  storyEyebrow: {
-    color: colors.mintDeep,
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.3,
-    marginBottom: 10
-  },
-  storyTitle: {
-    color: colors.ink,
-    fontSize: 32,
-    lineHeight: 41,
-    fontWeight: '900',
-    letterSpacing: 0
-  },
-  storyDescription: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 25,
-    marginTop: 10,
-    maxWidth: 560
+    paddingVertical: 54
   },
   backgroundLayer: {
     position: 'absolute',
@@ -452,120 +452,273 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   backgroundWord: {
     position: 'absolute',
-    color: colors.blue,
-    fontSize: 154,
-    lineHeight: 170,
+    color: colors.blueDeep,
+    fontSize: 156,
+    lineHeight: 176,
     fontWeight: '900',
     letterSpacing: 0
   },
-  storyContent: {
+  heading: {
     width: '100%',
     maxWidth: 1180,
-    minHeight: 430,
+    marginBottom: 22,
+    zIndex: 2
+  },
+  sectionEyebrow: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.3,
+    marginBottom: 10
+  },
+  sectionTitle: {
+    color: colors.ink,
+    fontSize: 34,
+    lineHeight: 43,
+    fontWeight: '900',
+    letterSpacing: 0
+  },
+  sectionDescription: {
+    color: colors.muted,
+    fontSize: 15,
+    lineHeight: 25,
+    marginTop: 10,
+    maxWidth: 620
+  },
+  banner: {
+    width: '100%',
+    maxWidth: 1180,
+    minHeight: 360,
+    borderRadius: 34,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 34,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 28,
+    gap: 26,
+    overflow: 'hidden',
+    position: 'relative',
     zIndex: 2
   },
-  sceneCopy: {
+  bannerBlue: {
+    backgroundColor: colors.blueSoft
+  },
+  bannerCream: {
+    backgroundColor: colors.cream
+  },
+  bannerCopy: {
     flex: 1,
-    minWidth: 270,
-    maxWidth: 470
+    minWidth: 265,
+    maxWidth: 560,
+    zIndex: 3
   },
-  sceneEyebrow: {
-    alignSelf: 'flex-start',
-    color: colors.blue,
-    backgroundColor: colors.blueSoft,
-    borderRadius: 999,
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    fontSize: 12,
+  bannerLabel: {
+    color: colors.mintDeep,
+    fontSize: 13,
     fontWeight: '900',
-    marginBottom: 16
+    letterSpacing: 1.2,
+    marginBottom: 14
   },
-  sceneTitle: {
+  bannerTitle: {
     color: colors.ink,
-    fontSize: 36,
-    lineHeight: 46,
+    fontSize: 38,
+    lineHeight: 48,
     fontWeight: '900',
     letterSpacing: 0
   },
-  sceneDescription: {
+  bannerDescription: {
     color: colors.muted,
     fontSize: 16,
-    lineHeight: 28,
-    marginTop: 16
+    lineHeight: 27,
+    marginTop: 14
   },
-  sceneMetric: {
-    marginTop: 22,
+  bannerMetric: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10
+    gap: 10,
+    marginTop: 20
   },
-  sceneMetricDot: {
+  bannerMetricDot: {
     width: 11,
     height: 11,
     borderRadius: 6,
     backgroundColor: colors.mint
   },
-  sceneMetricText: {
+  bannerMetricText: {
     color: colors.blueDeep,
     fontSize: 14,
     fontWeight: '900'
   },
-  sceneProgressTrack: {
+  bannerProgressTrack: {
     width: '100%',
     height: 8,
     borderRadius: 999,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.surface,
     overflow: 'hidden',
     marginTop: 22
   },
-  sceneProgressFill: {
+  bannerProgressFill: {
     height: '100%',
     borderRadius: 999,
     backgroundColor: colors.mint
   },
-  cardStage: {
-    flex: 1.15,
-    minWidth: 300,
-    minHeight: 420,
+  bannerDots: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 18
+  },
+  bannerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  bannerDotActive: {
+    width: 30,
+    backgroundColor: colors.mint,
+    borderColor: colors.mint
+  },
+  bannerVisual: {
+    flex: 1,
+    minWidth: 260,
+    minHeight: 275,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16
+    position: 'relative',
+    zIndex: 2
+  },
+  visualPaper: {
+    width: '86%',
+    maxWidth: 350,
+    minHeight: 250,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 22,
+    gap: 20,
+    justifyContent: 'space-between',
+    zIndex: 3,
+    transform: [{ rotate: '-3deg' }]
+  },
+  visualHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14
+  },
+  visualIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 17,
+    backgroundColor: colors.mintSoft,
+    borderWidth: 11,
+    borderColor: colors.mint
+  },
+  visualTitleLines: {
+    flex: 1,
+    gap: 8
+  },
+  visualLineStrong: {
+    height: 13,
+    borderRadius: 999,
+    backgroundColor: colors.blueSoft
+  },
+  visualLineShort: {
+    width: '62%',
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft
+  },
+  visualBubbleLarge: {
+    position: 'absolute',
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: colors.surface,
+    opacity: 0.54
+  },
+  visualBubbleSmall: {
+    position: 'absolute',
+    right: 22,
+    bottom: 22,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: colors.creamStrong,
+    opacity: 0.62
+  },
+  bannerArrow: {
+    position: 'absolute',
+    top: '48%',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 8
+  },
+  bannerArrowLeft: {
+    left: 16
+  },
+  bannerArrowRight: {
+    right: 16
+  },
+  bannerArrowText: {
+    color: colors.blueDeep,
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '900'
+  },
+  cardGrid: {
+    width: '100%',
+    maxWidth: 1180,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'center',
+    marginTop: 18,
+    zIndex: 2
   },
   storyCard: {
-    width: 244,
-    minHeight: 244,
-    borderRadius: 28,
+    flexGrow: 1,
+    flexBasis: 265,
+    minWidth: 240,
+    maxWidth: 370,
+    minHeight: 250,
+    borderRadius: 26,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
-    padding: 18,
-    gap: 12,
+    padding: 22,
+    gap: 14,
     justifyContent: 'space-between',
     transitionDuration: '180ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
-  storyCardRaised: {
-    marginTop: -28,
+  storyCardMint: {
+    backgroundColor: colors.mintSoft
+  },
+  storyCardCream: {
     backgroundColor: colors.cream
   },
   storyCardLabel: {
     alignSelf: 'flex-start',
     color: colors.mintDeep,
-    backgroundColor: colors.mintSoft,
+    backgroundColor: colors.surface,
     borderRadius: 999,
     overflow: 'hidden',
     paddingHorizontal: 10,
@@ -575,30 +728,15 @@ const styles = StyleSheet.create({
   },
   storyCardTitle: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: '900'
+    fontSize: 19,
+    lineHeight: 26,
+    fontWeight: '900',
+    letterSpacing: 0
   },
-  storyCardLines: {
-    gap: 7
-  },
-  storyCardLine: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8
-  },
-  storyCardBullet: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.mint,
-    marginTop: 6
-  },
-  storyCardLineText: {
-    flex: 1,
+  storyCardDescription: {
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 20,
     fontWeight: '700'
   },
   defaultPreview: {
@@ -692,27 +830,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.surface
   },
-  kanbanItemAlt: {
+  kanbanItemActive: {
     backgroundColor: colors.mintSoft
   },
   kanbanItemSmall: {
     height: 16,
     borderRadius: 8,
     backgroundColor: colors.surface
-  },
-  heatmapPreview: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5
-  },
-  heatmapCell: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    backgroundColor: colors.blueSoft
-  },
-  heatmapCellActive: {
-    backgroundColor: colors.mint
   },
   presencePreview: {
     gap: 8
@@ -741,10 +865,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: colors.success
   },
+  messageDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.creamStrong
+  },
   progressPreview: {
     gap: 12
   },
-  progressHeader: {
+  progressTop: {
     flexDirection: 'row',
     gap: 8
   },

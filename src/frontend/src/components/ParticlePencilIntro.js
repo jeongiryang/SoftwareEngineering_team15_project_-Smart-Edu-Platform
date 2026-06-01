@@ -3,16 +3,22 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
-const PARTICLE_COUNT = 118;
+const PARTICLE_COUNT = 260;
+const INTRO_TIMING = {
+  orbit: 360,
+  gather: 1320,
+  pencil: 2860,
+  write: 3920,
+  exit: 8300,
+  done: 9100
+};
+
 const PARTICLE_TOKENS = [
-  '·',
-  '✦',
-  '—',
-  '/',
+  '사',
+  '각',
   'AI',
   'Q',
   'A',
-  '✓',
   'log',
   'memo',
   'plan',
@@ -23,46 +29,51 @@ const PARTICLE_TOKENS = [
   '42',
   'D-7',
   '100%',
-  '∑',
-  'fx',
   'card',
   'post',
   'raid',
-  'care'
+  'care',
+  '+'
 ];
 
-function buildParticles() {
-  return Array.from({ length: PARTICLE_COUNT }, (_, index) => {
-    const side = index % 4;
-    const band = Math.floor(index / 4);
-    const spread = (index * 37) % 100;
-    const startX = side === 0 ? -8 + (spread % 18) : side === 1 ? 90 + (spread % 18) : spread;
-    const startY = side === 2 ? -10 + (spread % 20) : side === 3 ? 88 + (spread % 18) : (band * 11 + spread) % 100;
-    const orbitAngle = (index / PARTICLE_COUNT) * Math.PI * 2.35;
-    const orbitRadius = 26 + (index % 9) * 2.2;
-    const targetColumn = index % 26;
-    const targetRow = Math.floor(index / 26);
-    const isTip = index > PARTICLE_COUNT - 18;
-    const isEraser = index < 12;
-    const pencilBaseX = 19 + targetColumn * 2.25;
-    const pencilBaseY = 42 + targetRow * 4.4 + (targetColumn % 2) * 0.65;
+const HANDWRITING_STROKES = [
+  { d: 'M45 72 C70 58 96 58 122 70', length: 88 },
+  { d: 'M75 49 C73 72 73 92 76 115', length: 74 },
+  { d: 'M47 124 C79 109 114 111 139 130', length: 105 },
+  { d: 'M158 55 C188 49 218 50 246 57', length: 92 },
+  { d: 'M163 92 C194 85 224 87 251 96', length: 92 },
+  { d: 'M205 45 C204 77 205 111 211 142', length: 108 },
+  { d: 'M284 72 C308 58 337 59 365 70', length: 88 },
+  { d: 'M316 50 C313 75 314 96 319 118', length: 76 },
+  { d: 'M286 127 C319 109 354 111 381 132', length: 112 },
+  { d: 'M401 56 C431 49 461 50 489 57', length: 92 },
+  { d: 'M405 93 C436 85 467 87 494 96', length: 92 },
+  { d: 'M447 45 C446 78 447 113 454 144', length: 112 }
+];
 
-    return {
-      token: PARTICLE_TOKENS[index % PARTICLE_TOKENS.length],
-      startX,
-      startY,
-      orbitX: 50 + Math.cos(orbitAngle) * orbitRadius,
-      orbitY: 47 + Math.sin(orbitAngle) * orbitRadius * 0.62,
-      targetX: isTip ? 78 + (index - (PARTICLE_COUNT - 18)) * 0.78 : isEraser ? 16 + (index % 6) * 2.4 : pencilBaseX,
-      targetY: isTip ? 44 + ((index - (PARTICLE_COUNT - 18)) % 6) * 1.8 : isEraser ? 43 + Math.floor(index / 6) * 5.8 : pencilBaseY,
-      rotate: -55 + ((index * 29) % 110),
-      size: 9 + (index % 7),
-      delay: (index % 16) * 24
-    };
-  });
+const WRITING_POINTS = [
+  { x: 45, y: 72 },
+  { x: 122, y: 70 },
+  { x: 76, y: 115 },
+  { x: 139, y: 130 },
+  { x: 246, y: 57 },
+  { x: 251, y: 96 },
+  { x: 211, y: 142 },
+  { x: 365, y: 70 },
+  { x: 319, y: 118 },
+  { x: 381, y: 132 },
+  { x: 489, y: 57 },
+  { x: 494, y: 96 },
+  { x: 454, y: 144 }
+];
+
+function clamp(value, min = 0, max = 1) {
+  return Math.max(min, Math.min(max, value));
 }
 
-const PARTICLES = buildParticles();
+function lerp(start, end, progress) {
+  return start + (end - start) * progress;
+}
 
 function getPrefersReducedMotion() {
   const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -74,13 +85,169 @@ function getPrefersReducedMotion() {
   return browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function buildParticles() {
+  return Array.from({ length: PARTICLE_COUNT }, (_, index) => {
+    const edge = index % 8;
+    const seed = (index * 41) % 100;
+    const ring = Math.floor(index / 8);
+    const pencilProgress = index / Math.max(PARTICLE_COUNT - 1, 1);
+    const band = (index % 15) - 7;
+    const targetX = 20 + pencilProgress * 60 + band * 0.42;
+    const targetY = 68 - pencilProgress * 37 + band * 1.04 + ((index % 5) - 2) * 0.62;
+    const orbitAngle = (index / PARTICLE_COUNT) * Math.PI * 4.8;
+    const orbitRadius = 18 + (index % 16) * 2.1;
+
+    let startX = seed;
+    let startY = (ring * 13 + seed) % 100;
+
+    if (edge === 0) {
+      startX = -14 - (seed % 14);
+      startY = seed;
+    } else if (edge === 1) {
+      startX = 104 + (seed % 17);
+      startY = seed;
+    } else if (edge === 2) {
+      startX = seed;
+      startY = -18 - (seed % 14);
+    } else if (edge === 3) {
+      startX = seed;
+      startY = 104 + (seed % 16);
+    } else if (edge === 4) {
+      startX = -10;
+      startY = -12 + seed * 0.42;
+    } else if (edge === 5) {
+      startX = 106;
+      startY = 50 + seed * 0.56;
+    } else if (edge === 6) {
+      startX = 38 + seed * 0.32;
+      startY = -14;
+    } else {
+      startX = 60 + seed * 0.32;
+      startY = 112;
+    }
+
+    return {
+      token: PARTICLE_TOKENS[index % PARTICLE_TOKENS.length],
+      startX,
+      startY,
+      orbitX: 50 + Math.cos(orbitAngle) * orbitRadius * 1.16,
+      orbitY: 51 + Math.sin(orbitAngle) * orbitRadius * 0.72,
+      targetX,
+      targetY,
+      rotate: -120 + ((index * 29) % 240),
+      size: 8 + (index % 8),
+      delay: (index % 28) * 16,
+      tint: index % 3
+    };
+  });
+}
+
+const PARTICLES = buildParticles();
+
+function getWritingPoint(progress) {
+  const boundedProgress = clamp(progress / 100);
+  const scaled = boundedProgress * (WRITING_POINTS.length - 1);
+  const index = Math.min(WRITING_POINTS.length - 2, Math.floor(scaled));
+  const localProgress = scaled - index;
+  const current = WRITING_POINTS[index];
+  const next = WRITING_POINTS[index + 1];
+
+  return {
+    x: lerp(current.x, next.x, localProgress),
+    y: lerp(current.y, next.y, localProgress)
+  };
+}
+
+function PencilShape() {
+  return (
+    <View style={styles.pencil}>
+      <View style={styles.pencilEraser}>
+        <View style={styles.pencilEraserBand} />
+      </View>
+      <View style={styles.pencilBody}>
+        <View style={styles.pencilRidge} />
+        <View style={styles.pencilStripe} />
+      </View>
+      <View style={styles.pencilWood} />
+      <View style={styles.pencilTip} />
+    </View>
+  );
+}
+
+function HandwrittenWord({ progress }) {
+  const normalized = clamp(progress / 100);
+
+  if (Platform.OS !== 'web') {
+    return (
+      <Text style={styles.fallbackWord}>
+        사각사각
+      </Text>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      preserveAspectRatio="xMidYMid meet"
+      style={styles.handwritingSvg}
+      viewBox="0 0 540 190"
+    >
+      <defs>
+        <filter id="sagak-handwriting-glow" x="-10%" y="-10%" width="120%" height="130%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feColorMatrix
+            in="blur"
+            type="matrix"
+            values="0 0 0 0 0.45 0 0 0 0 0.79 0 0 0 0 0.74 0 0 0 0.45 0"
+          />
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <path
+        d="M36 156 C140 172 334 170 500 154"
+        fill="none"
+        opacity="0.16"
+        stroke="#73C9BD"
+        strokeLinecap="round"
+        strokeWidth="8"
+      />
+      {HANDWRITING_STROKES.map((stroke, index) => {
+        const start = index / HANDWRITING_STROKES.length;
+        const end = (index + 1) / HANDWRITING_STROKES.length;
+        const strokeProgress = clamp((normalized - start) / Math.max(end - start, 0.001));
+
+        return (
+          <path
+            d={stroke.d}
+            fill="none"
+            filter="url(#sagak-handwriting-glow)"
+            key={stroke.d}
+            opacity={strokeProgress > 0 ? 1 : 0.18}
+            stroke={strokeProgress > 0 ? '#FFF1D9' : 'rgba(255, 241, 217, 0.18)'}
+            strokeDasharray={stroke.length}
+            strokeDashoffset={stroke.length * (1 - strokeProgress)}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="15"
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function ParticlePencilIntro({ visible, onDone }) {
   const { t } = useLanguage();
   const [stage, setStage] = useState('scatter');
   const [writeProgress, setWriteProgress] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
-  const isPencilVisible = stage === 'pencil' || stage === 'write' || stage === 'exit' || reducedMotion;
+  const isPencilVisible = ['pencil', 'write', 'exit'].includes(stage) || reducedMotion;
   const isWriting = stage === 'write' || stage === 'exit' || reducedMotion;
+  const writingPoint = getWritingPoint(writeProgress);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -118,17 +285,17 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     setWriteProgress(reducedMotion ? 100 : 0);
 
     if (reducedMotion) {
-      const timer = setTimeout(onDone, 1600);
+      const timer = setTimeout(onDone, 1700);
       return () => clearTimeout(timer);
     }
 
     const timers = [
-      setTimeout(() => setStage('orbit'), 360),
-      setTimeout(() => setStage('gather'), 1420),
-      setTimeout(() => setStage('pencil'), 2920),
-      setTimeout(() => setStage('write'), 3920),
-      setTimeout(() => setStage('exit'), 7600),
-      setTimeout(onDone, 8350)
+      setTimeout(() => setStage('orbit'), INTRO_TIMING.orbit),
+      setTimeout(() => setStage('gather'), INTRO_TIMING.gather),
+      setTimeout(() => setStage('pencil'), INTRO_TIMING.pencil),
+      setTimeout(() => setStage('write'), INTRO_TIMING.write),
+      setTimeout(() => setStage('exit'), INTRO_TIMING.exit),
+      setTimeout(onDone, INTRO_TIMING.done)
     ];
 
     return () => {
@@ -144,8 +311,8 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     setWriteProgress(0);
 
     const writer = setInterval(() => {
-      setWriteProgress((current) => Math.min(current + 2.9, 100));
-    }, 62);
+      setWriteProgress((current) => Math.min(current + 1.9, 100));
+    }, 66);
 
     return () => clearInterval(writer);
   }, [reducedMotion, stage, visible]);
@@ -165,19 +332,33 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         return {
           left: `${position.x}%`,
           top: `${position.y}%`,
-          opacity: formed ? 0.2 : gathering ? 0.96 : 0.78,
+          opacity: formed ? 0.18 : gathering ? 0.94 : 0.8,
           fontSize: particle.size,
           transitionDelay: `${stage === 'scatter' ? 0 : particle.delay}ms`,
           transform: [
             { translateX: -10 },
             { translateY: -10 },
-            { rotate: `${formed ? -14 : particle.rotate}deg` },
-            { scale: formed ? 0.7 : stage === 'orbit' ? 1.18 : gathering ? 1.02 : 0.86 }
+            { rotate: `${formed ? -58 + (particle.tint - 1) * 4 : particle.rotate}deg` },
+            { scale: formed ? 0.58 : stage === 'orbit' ? 1.22 : gathering ? 1.05 : 0.84 }
           ]
         };
       }),
     [stage]
   );
+
+  const writingPencilStyle = isWriting
+    ? {
+        left: `${8 + (writingPoint.x / 540) * 82}%`,
+        top: `${29 + (writingPoint.y / 190) * 34}%`,
+        opacity: 1,
+        transform: [
+          { translateX: -265 },
+          { translateY: -92 },
+          { rotate: '-58deg' },
+          { scale: 0.74 }
+        ]
+      }
+    : undefined;
 
   if (!visible) {
     return null;
@@ -192,11 +373,12 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         <View style={styles.glowMint} />
         <View style={styles.glowBlue} />
         <View style={styles.orbitRing} />
+        <View style={styles.paperGrid} />
       </View>
 
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.particleLayer}>
         {PARTICLES.map((particle, index) => (
-          <Text key={`${particle.token}-${index}`} style={[styles.particle, particleStyles[index]]}>
+          <Text key={`${particle.token}-${index}`} style={[styles.particle, particle.tint === 1 && styles.particleBlue, particle.tint === 2 && styles.particleCream, particleStyles[index]]}>
             {particle.token}
           </Text>
         ))}
@@ -207,35 +389,19 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         style={[
           styles.pencilStage,
           isPencilVisible && styles.pencilStageVisible,
-          stage === 'write' && styles.pencilStageWriting,
+          stage === 'pencil' && styles.pencilStageFormed,
+          isWriting && styles.pencilStageWriting,
+          writingPencilStyle,
           reducedMotion && styles.reducedPencilStage
         ]}
       >
         <View style={styles.pencilShadow} />
-        <View style={styles.pencil}>
-          <View style={styles.pencilEraser}>
-            <View style={styles.pencilEraserBand} />
-          </View>
-          <View style={styles.pencilBody}>
-            <View style={styles.pencilRidge} />
-            <View style={styles.pencilStripe} />
-          </View>
-          <View style={styles.pencilWood} />
-          <View style={styles.pencilTip} />
-        </View>
+        <PencilShape />
       </View>
 
       <View pointerEvents="none" style={[styles.wordStage, isWriting && styles.wordStageVisible]}>
         <Text style={styles.wordGhost}>사각사각</Text>
-        <View style={[styles.wordStroke, { width: `${Math.max(writeProgress - 8, 0)}%` }]} />
-        <View style={[styles.wordReveal, { width: `${writeProgress}%` }]}>
-          <Text style={styles.wordText}>사각사각</Text>
-        </View>
-        <View style={[styles.wordPencil, { left: `${Math.min(Math.max(writeProgress, 8), 95)}%` }]}>
-          <View style={styles.wordPencilBody} />
-          <View style={styles.wordPencilWood} />
-          <View style={styles.wordPencilTip} />
-        </View>
+        <HandwrittenWord progress={writeProgress} />
       </View>
 
       <View style={styles.caption}>
@@ -264,7 +430,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',
-    transitionDuration: '680ms',
+    transitionDuration: '720ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
@@ -281,32 +447,44 @@ const styles = StyleSheet.create({
   },
   glowMint: {
     position: 'absolute',
-    width: '64%',
-    height: '52%',
-    left: '-12%',
-    top: '8%',
+    width: '78%',
+    height: '66%',
+    left: '-18%',
+    top: '2%',
     borderRadius: 999,
-    backgroundColor: 'rgba(115, 201, 189, 0.22)'
+    backgroundColor: 'rgba(115, 201, 189, 0.23)'
   },
   glowBlue: {
     position: 'absolute',
-    width: '70%',
-    height: '58%',
-    right: '-16%',
+    width: '76%',
+    height: '64%',
+    right: '-18%',
     bottom: '-10%',
     borderRadius: 999,
-    backgroundColor: 'rgba(55, 100, 154, 0.24)'
+    backgroundColor: 'rgba(55, 100, 154, 0.25)'
   },
   orbitRing: {
     position: 'absolute',
-    width: '78%',
-    height: '62%',
+    width: '86%',
+    height: '74%',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(217, 255, 247, 0.12)',
-    left: '11%',
-    top: '18%',
-    transform: [{ rotate: '-8deg' }]
+    borderColor: 'rgba(217, 255, 247, 0.13)',
+    left: '7%',
+    top: '13%',
+    transform: [{ rotate: '-17deg' }]
+  },
+  paperGrid: {
+    position: 'absolute',
+    left: '12%',
+    right: '12%',
+    top: '28%',
+    bottom: '24%',
+    borderRadius: 42,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 241, 217, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.035)',
+    transform: [{ rotate: '-2deg' }]
   },
   particleLayer: {
     position: 'absolute',
@@ -320,63 +498,76 @@ const styles = StyleSheet.create({
     color: '#D9FFF7',
     fontWeight: '900',
     letterSpacing: 0,
-    textShadowColor: 'rgba(115, 201, 189, 0.6)',
+    textShadowColor: 'rgba(115, 201, 189, 0.62)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 12,
-    transitionDuration: '1450ms',
+    transitionDuration: '1480ms',
     transitionProperty: 'left, top, opacity, transform',
     transitionTimingFunction: 'cubic-bezier(0.16, 0.9, 0.18, 1)'
   },
+  particleBlue: {
+    color: '#D6E7FF',
+    textShadowColor: 'rgba(91, 141, 196, 0.56)'
+  },
+  particleCream: {
+    color: '#FFF1D9',
+    textShadowColor: 'rgba(255, 241, 217, 0.5)'
+  },
   pencilStage: {
-    width: '82%',
-    maxWidth: 720,
-    minHeight: 230,
+    position: 'absolute',
+    width: 640,
+    maxWidth: '78%',
+    height: 150,
     opacity: 0,
-    transform: [{ translateY: 34 }, { scale: 0.8 }, { rotate: '-2deg' }],
-    transitionDuration: '860ms',
-    transitionProperty: 'opacity, transform',
-    transitionTimingFunction: 'cubic-bezier(0.18, 0.82, 0.25, 1)',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    transform: [{ translateY: 24 }, { scale: 0.76 }, { rotate: '-58deg' }],
+    transitionDuration: '760ms',
+    transitionProperty: 'left, top, opacity, transform',
+    transitionTimingFunction: 'cubic-bezier(0.18, 0.82, 0.25, 1)'
   },
   pencilStageVisible: {
-    opacity: 1,
-    transform: [{ translateY: 0 }, { scale: 1 }, { rotate: '0deg' }]
+    opacity: 1
+  },
+  pencilStageFormed: {
+    transform: [{ translateY: -4 }, { scale: 1.02 }, { rotate: '-58deg' }]
   },
   pencilStageWriting: {
-    transform: [{ translateY: -28 }, { scale: 1.03 }, { rotate: '-4deg' }]
+    position: 'absolute'
   },
   reducedPencilStage: {
-    transform: [{ translateY: -18 }, { scale: 0.96 }, { rotate: '-3deg' }]
+    left: '58%',
+    top: '46%',
+    opacity: 1,
+    transform: [{ translateX: -265 }, { translateY: -92 }, { rotate: '-58deg' }, { scale: 0.72 }]
   },
   pencilShadow: {
     position: 'absolute',
-    bottom: 48,
-    width: '76%',
-    height: 28,
+    bottom: 26,
+    width: '72%',
+    height: 24,
     borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.26)',
-    transform: [{ rotate: '-8deg' }, { scaleX: 1.16 }]
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    transform: [{ rotate: '8deg' }, { scaleX: 1.08 }]
   },
   pencil: {
-    width: '86%',
-    minWidth: 280,
-    height: 78,
+    width: '100%',
+    minWidth: 320,
+    height: 82,
     flexDirection: 'row',
-    alignItems: 'stretch',
-    transform: [{ rotate: '-13deg' }]
+    alignItems: 'stretch'
   },
   pencilEraser: {
-    width: 78,
-    borderTopLeftRadius: 24,
-    borderBottomLeftRadius: 24,
+    width: 82,
+    borderTopLeftRadius: 26,
+    borderBottomLeftRadius: 26,
     backgroundColor: '#F2CDA5',
     borderWidth: 3,
     borderColor: '#D6E7FF',
     justifyContent: 'center'
   },
   pencilEraserBand: {
-    height: 22,
+    height: 24,
     backgroundColor: 'rgba(23, 59, 99, 0.24)'
   },
   pencilBody: {
@@ -389,15 +580,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   pencilRidge: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.28)'
+    height: 13,
+    backgroundColor: 'rgba(255, 255, 255, 0.32)'
   },
   pencilStripe: {
-    height: 13,
-    backgroundColor: 'rgba(23, 59, 99, 0.2)'
+    height: 14,
+    backgroundColor: 'rgba(23, 59, 99, 0.22)'
   },
   pencilWood: {
-    width: 48,
+    width: 52,
     backgroundColor: '#FFF1D9',
     borderTopWidth: 3,
     borderBottomWidth: 3,
@@ -406,21 +597,21 @@ const styles = StyleSheet.create({
   pencilTip: {
     width: 0,
     height: 0,
-    borderTopWidth: 39,
-    borderBottomWidth: 39,
-    borderLeftWidth: 68,
+    borderTopWidth: 41,
+    borderBottomWidth: 41,
+    borderLeftWidth: 74,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     borderLeftColor: '#F8F2E7'
   },
   wordStage: {
-    width: '86%',
-    maxWidth: 650,
-    height: 118,
-    marginTop: -18,
+    width: '88%',
+    maxWidth: 700,
+    height: 230,
     opacity: 0,
     position: 'relative',
     justifyContent: 'center',
+    alignItems: 'center',
     transitionDuration: '520ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
@@ -429,65 +620,28 @@ const styles = StyleSheet.create({
     opacity: 1
   },
   wordGhost: {
-    color: 'rgba(255, 255, 255, 0.1)',
-    fontSize: 74,
+    position: 'absolute',
+    color: 'rgba(255, 255, 255, 0.075)',
+    fontSize: 76,
     fontWeight: '900',
     letterSpacing: 0,
     textAlign: 'center'
   },
-  wordStroke: {
-    position: 'absolute',
-    left: 18,
-    bottom: 22,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 241, 217, 0.62)'
+  handwritingSvg: {
+    width: '100%',
+    maxWidth: 680,
+    height: 218,
+    display: 'block'
   },
-  wordReveal: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    overflow: 'hidden',
-    justifyContent: 'center'
-  },
-  wordText: {
-    width: 650,
+  fallbackWord: {
     color: '#FFF1D9',
-    fontSize: 74,
+    fontSize: 72,
+    lineHeight: 88,
     fontWeight: '900',
     letterSpacing: 0,
-    textAlign: 'center',
     textShadowColor: 'rgba(115, 201, 189, 0.58)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 14
-  },
-  wordPencil: {
-    position: 'absolute',
-    top: 58,
-    width: 70,
-    height: 20,
-    flexDirection: 'row',
-    transform: [{ translateX: -32 }, { rotate: '-18deg' }]
-  },
-  wordPencilBody: {
-    flex: 1,
-    borderRadius: 9,
-    backgroundColor: colors.mint
-  },
-  wordPencilWood: {
-    width: 12,
-    backgroundColor: '#FFF1D9'
-  },
-  wordPencilTip: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 10,
-    borderBottomWidth: 10,
-    borderLeftWidth: 17,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#FFF1D9'
   },
   caption: {
     position: 'absolute',
