@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
@@ -25,34 +25,46 @@ const promoSlides = [
     descriptionKey: 'landing.promo.2.description',
     ctaKey: 'landing.promo.2.cta',
     labelFallback: 'AI STUDY',
-    titleFallback: '질문을 이해하는 학습 파트너',
-    descriptionFallback: '단순 답변이 아니라 요약과 오답 점검까지 이어갑니다.',
+    titleFallback: 'AI 학습',
+    descriptionFallback: '질문, 요약, 오답 분석으로 막힌 부분을 다시 정리합니다.',
     ctaFallback: '기능 보기',
     mood: 'blue'
   },
   {
-    id: 'record',
+    id: 'focus',
     labelKey: 'landing.promo.3.label',
     titleKey: 'landing.promo.3.title',
     descriptionKey: 'landing.promo.3.description',
     ctaKey: 'landing.promo.3.cta',
-    labelFallback: 'RECORD',
-    titleFallback: '하루의 공부 기록',
-    descriptionFallback: '오늘의 일정, 질문, 복습 힌트를 나만의 기록으로 남깁니다.',
-    ctaFallback: '기록 시작하기',
+    labelFallback: 'FOCUS',
+    titleFallback: '집중 시간과 통계',
+    descriptionFallback: '타이머와 주간 기록으로 학습 리듬을 확인합니다.',
+    ctaFallback: '리듬 확인하기',
     mood: 'cream'
   },
   {
-    id: 'early',
+    id: 'community',
     labelKey: 'landing.promo.4.label',
     titleKey: 'landing.promo.4.title',
     descriptionKey: 'landing.promo.4.description',
     ctaKey: 'landing.promo.4.cta',
-    labelFallback: 'EARLY ACCESS',
-    titleFallback: '초기 사용자 학습 루틴',
-    descriptionFallback: '지금 가입하고 사각사각의 핵심 학습 흐름을 먼저 경험하세요.',
-    ctaFallback: '체험하기',
+    labelFallback: 'TOGETHER',
+    titleFallback: '커뮤니티와 친구',
+    descriptionFallback: '게시글, 댓글, 쪽지, 공개 프로필로 함께 공부합니다.',
+    ctaFallback: '함께 보기',
     mood: 'blue'
+  },
+  {
+    id: 'coop',
+    labelKey: 'landing.promo.5.label',
+    titleKey: 'landing.promo.5.title',
+    descriptionKey: 'landing.promo.5.description',
+    ctaKey: 'landing.promo.5.cta',
+    labelFallback: 'COOP REWARD',
+    titleFallback: '협동 퀘스트와 보상',
+    descriptionFallback: '레이드, 협동 퀘스트, 포인트 상점으로 목표를 이어갑니다.',
+    ctaFallback: '도전 보기',
+    mood: 'mint'
   }
 ];
 
@@ -167,11 +179,27 @@ function SectionKeyword({ label, style }) {
   );
 }
 
-function PromoCarousel({ activeIndex, onNext, onPrevious, onSelect, t }) {
+function getPrefersReducedMotion() {
+  const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+
+  if (!browserWindow?.matchMedia) {
+    return false;
+  }
+
+  return browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function PromoCarousel({ activeIndex, onNext, onPauseChange, onPrevious, onSelect, t }) {
   const slide = promoSlides[activeIndex];
+  const pauseAutoSlide = () => onPauseChange(true);
+  const resumeAutoSlide = () => onPauseChange(false);
 
   return (
-    <View
+    <Pressable
+      onBlur={resumeAutoSlide}
+      onFocus={pauseAutoSlide}
+      onHoverIn={pauseAutoSlide}
+      onHoverOut={resumeAutoSlide}
       style={[
         styles.promo,
         slide.mood === 'blue' && styles.promoBlue,
@@ -181,6 +209,10 @@ function PromoCarousel({ activeIndex, onNext, onPrevious, onSelect, t }) {
       <Pressable
         accessibilityLabel={t('landing.carousel.prev')}
         accessibilityRole="button"
+        onBlur={resumeAutoSlide}
+        onFocus={pauseAutoSlide}
+        onHoverIn={pauseAutoSlide}
+        onHoverOut={resumeAutoSlide}
         onPress={onPrevious}
         style={(state) => [styles.promoArrow, styles.promoArrowLeft, ...interactiveStateStyles(state)]}
       >
@@ -202,6 +234,10 @@ function PromoCarousel({ activeIndex, onNext, onPrevious, onSelect, t }) {
       <Pressable
         accessibilityLabel={t('landing.carousel.next')}
         accessibilityRole="button"
+        onBlur={resumeAutoSlide}
+        onFocus={pauseAutoSlide}
+        onHoverIn={pauseAutoSlide}
+        onHoverOut={resumeAutoSlide}
         onPress={onNext}
         style={(state) => [styles.promoArrow, styles.promoArrowRight, ...interactiveStateStyles(state)]}
       >
@@ -213,12 +249,16 @@ function PromoCarousel({ activeIndex, onNext, onPrevious, onSelect, t }) {
             accessibilityLabel={t('landing.carousel.dotLabel')}
             accessibilityRole="button"
             key={item.id}
+            onBlur={resumeAutoSlide}
+            onFocus={pauseAutoSlide}
+            onHoverIn={pauseAutoSlide}
+            onHoverOut={resumeAutoSlide}
             onPress={() => onSelect(index)}
             style={[styles.promoDot, index === activeIndex && styles.promoDotActive]}
           />
         ))}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -558,9 +598,61 @@ function ServiceSection({ section, t }) {
 export default function ScrollStorySection() {
   const { t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isPromoPaused, setIsPromoPaused] = useState(false);
+  const [promoTimerKey, setPromoTimerKey] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
+
+  useEffect(() => {
+    const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+    const mediaQuery = browserWindow?.matchMedia?.('(prefers-reduced-motion: reduce)');
+
+    if (!mediaQuery) {
+      return undefined;
+    }
+
+    const handleReducedMotionChange = (event) => {
+      setReducedMotion(event.matches);
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleReducedMotionChange);
+    } else {
+      mediaQuery.addListener(handleReducedMotionChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleReducedMotionChange);
+      } else {
+        mediaQuery.removeListener(handleReducedMotionChange);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isPromoPaused || reducedMotion) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setActiveIndex((current) => (current + 1) % promoSlides.length);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [isPromoPaused, promoTimerKey, reducedMotion]);
+
+  const resetPromoTimer = () => {
+    setPromoTimerKey((current) => current + 1);
+  };
 
   const moveSlide = (direction) => {
     setActiveIndex((current) => (current + direction + promoSlides.length) % promoSlides.length);
+    resetPromoTimer();
+  };
+
+  const selectSlide = (index) => {
+    setActiveIndex(index);
+    resetPromoTimer();
   };
 
   return (
@@ -568,8 +660,9 @@ export default function ScrollStorySection() {
       <PromoCarousel
         activeIndex={activeIndex}
         onNext={() => moveSlide(1)}
+        onPauseChange={setIsPromoPaused}
         onPrevious={() => moveSlide(-1)}
-        onSelect={setActiveIndex}
+        onSelect={selectSlide}
         t={t}
       />
 

@@ -15,8 +15,6 @@ const githubSvgStyle = {
   flexShrink: 0
 };
 
-const heroSlideKeys = ['start', 'ask', 'focus', 'together', 'challenge'];
-
 function openGitHubRepository() {
   const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
 
@@ -98,7 +96,6 @@ export default function LandingScreen({ onNavigate }) {
   const { t } = useLanguage();
   const [scrollY, setScrollY] = useState(0);
   const [showIntro, setShowIntro] = useState(shouldShowIntro);
-  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [githubTooltipState, setGithubTooltipState] = useState({
     focused: false,
     hovered: false
@@ -107,7 +104,6 @@ export default function LandingScreen({ onNavigate }) {
   const writingWord = t('landing.hero.writingWord', '사각사각');
   const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
   const introProgress = Math.min(scrollY / 360, 1);
-  const heroSlideKey = heroSlideKeys[heroSlideIndex];
 
   const handleLandingScroll = (event) => {
     setScrollY(event.nativeEvent?.contentOffset?.y || 0);
@@ -121,14 +117,6 @@ export default function LandingScreen({ onNavigate }) {
   const handleIntroReplay = useCallback(() => {
     setShowIntro(true);
   }, []);
-
-  const moveHeroSlide = (direction) => {
-    setHeroSlideIndex((current) => (current + direction + heroSlideKeys.length) % heroSlideKeys.length);
-  };
-
-  const selectHeroSlide = (index) => {
-    setHeroSlideIndex(index);
-  };
 
   return (
     <>
@@ -202,52 +190,23 @@ export default function LandingScreen({ onNavigate }) {
           <View style={styles.carouselTopRow}>
             <Image source={icon} style={styles.carouselIcon} />
             <View style={styles.carouselCounter}>
-              <Text style={styles.carouselCounterText}>{heroSlideIndex + 1}/{heroSlideKeys.length}</Text>
+              <Text style={styles.carouselCounterText}>{t('landing.preview.badge', 'PREVIEW')}</Text>
             </View>
           </View>
-          <Text style={styles.carouselEyebrow}>{t(`landing.carousel.${heroSlideKey}.eyebrow`)}</Text>
-          <Text style={styles.carouselTitle}>{t(`landing.carousel.${heroSlideKey}.title`)}</Text>
-          <Text style={styles.carouselDescription}>{t(`landing.carousel.${heroSlideKey}.description`)}</Text>
+          <Text style={styles.carouselEyebrow}>{t('landing.carousel.start.eyebrow')}</Text>
+          <Text style={styles.carouselTitle}>{t('landing.carousel.start.title')}</Text>
+          <Text style={styles.carouselDescription}>{t('landing.carousel.start.description')}</Text>
           <View style={styles.carouselList}>
             {[1, 2, 3].map((itemIndex) => (
-              <View key={`${heroSlideKey}-${itemIndex}`} style={styles.carouselListItem}>
+              <View key={`preview-${itemIndex}`} style={styles.carouselListItem}>
                 <View style={styles.carouselListDot} />
-                <Text style={styles.carouselListText}>{t(`landing.carousel.${heroSlideKey}.item${itemIndex}`)}</Text>
+                <Text style={styles.carouselListText}>{t(`landing.carousel.start.item${itemIndex}`)}</Text>
               </View>
             ))}
           </View>
           <View style={styles.carouselBadges}>
-            <Text style={styles.carouselBadge}>{t(`landing.carousel.${heroSlideKey}.primary`)}</Text>
-            <Text style={[styles.carouselBadge, styles.carouselBadgeAlt]}>{t(`landing.carousel.${heroSlideKey}.secondary`)}</Text>
-          </View>
-          <View style={styles.carouselControls}>
-            <Pressable
-              accessibilityLabel={t('landing.carousel.prev', '이전 소개 카드')}
-              accessibilityRole="button"
-              onPress={() => moveHeroSlide(-1)}
-              style={(state) => [styles.carouselControlButton, ...interactiveStateStyles(state)]}
-            >
-              <Text style={styles.carouselControlText}>‹</Text>
-            </Pressable>
-            <View style={styles.carouselDots}>
-              {heroSlideKeys.map((slideKey, index) => (
-                <Pressable
-                  accessibilityLabel={t('landing.carousel.dotLabel', '소개 카드 선택')}
-                  accessibilityRole="button"
-                  key={slideKey}
-                  onPress={() => selectHeroSlide(index)}
-                  style={[styles.carouselDot, index === heroSlideIndex && styles.carouselDotActive]}
-                />
-              ))}
-            </View>
-            <Pressable
-              accessibilityLabel={t('landing.carousel.next', '다음 소개 카드')}
-              accessibilityRole="button"
-              onPress={() => moveHeroSlide(1)}
-              style={(state) => [styles.carouselControlButton, ...interactiveStateStyles(state)]}
-            >
-              <Text style={styles.carouselControlText}>›</Text>
-            </Pressable>
+            <Text style={styles.carouselBadge}>{t('landing.carousel.start.primary')}</Text>
+            <Text style={[styles.carouselBadge, styles.carouselBadgeAlt]}>{t('landing.carousel.start.secondary')}</Text>
           </View>
         </View>
       </View>
@@ -490,47 +449,6 @@ const styles = StyleSheet.create({
   carouselBadgeAlt: {
     backgroundColor: colors.blueSoft,
     color: colors.blueDeep
-  },
-  carouselControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12
-  },
-  carouselControlButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  carouselControlText: {
-    color: colors.blueDeep,
-    fontSize: 24,
-    fontWeight: '900',
-    lineHeight: 26
-  },
-  carouselDots: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 7
-  },
-  carouselDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line
-  },
-  carouselDotActive: {
-    width: 28,
-    backgroundColor: colors.mint,
-    borderColor: colors.mint
   },
   sectionEyebrow: {
     color: colors.mintDeep,
