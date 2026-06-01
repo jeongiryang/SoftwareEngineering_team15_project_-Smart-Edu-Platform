@@ -69,12 +69,12 @@ const promoSlides = [
 ];
 
 const availableFeatureKeys = [
-  ['landing.feature.ai.label', 'landing.feature.ai.title', 'landing.feature.ai.description', 'AI 학습', '질문부터 오답 분석까지', '질문, 추천, 요약, 오답 분석 흐름을 한 화면에서 이어갑니다.'],
-  ['landing.feature.plan.label', 'landing.feature.plan.title', 'landing.feature.plan.description', '일정/칸반', '계획과 태스크를 함께 관리', '학습 일정과 칸반 보드로 오늘 해야 할 일을 정리합니다.'],
-  ['landing.feature.timer.label', 'landing.feature.timer.title', 'landing.feature.timer.description', '집중 타이머 & 통계', '25분 집중부터 주간 통계까지', '집중 타이머로 학습 시간을 재고, 주간 집중 통계로 나만의 학습 패턴을 파악하세요.'],
-  ['landing.feature.community.label', 'landing.feature.community.title', 'landing.feature.community.description', '커뮤니티', '게시글과 댓글로 학습 공유', '질문과 기록을 나누고 반응, 북마크, 신고 흐름을 사용할 수 있습니다.'],
-  ['landing.feature.coop.label', 'landing.feature.coop.title', 'landing.feature.coop.description', '보스 레이드 & 쿠스트', '팀원과 함께 목표를 달성', '보스 레이드에 파티를 맞쳐 참여하고, 협동 쿠스트로 함께 포인트를 받으세요.'],
-  ['landing.feature.shop.label', 'landing.feature.shop.title', 'landing.feature.shop.description', '포인트 상점', '달성한 만큼 프로필을 꽈미고', '쿠스트와 보스 레이드로 모은 포인트로 프로필 이미지, 배경, 배지를 업데이트하세요.']
+  ['landing.scope.auth.label', 'landing.scope.auth.title', 'landing.scope.auth.description', 'ACCOUNT', '사용자 등록/로그인', '개인 계정으로 학습 기록을 분리하고 로그인 상태에서 학습 흐름에 접근합니다.'],
+  ['landing.scope.schedule.label', 'landing.scope.schedule.title', 'landing.scope.schedule.description', 'SCHEDULE', '학습 일정 관리', '일정, D-Day, 칸반 태스크로 오늘 해야 할 학습 계획을 정리합니다.'],
+  ['landing.scope.noteQuiz.label', 'landing.scope.noteQuiz.title', 'landing.scope.noteQuiz.description', 'NOTE & QUIZ', '노트 및 퀴즈 생성/관리', '학습 노트와 복습 퀴즈를 생성하고 다시 볼 수 있는 기록 흐름을 제공합니다.'],
+  ['landing.scope.recommendation.label', 'landing.scope.recommendation.title', 'landing.scope.recommendation.description', 'AI GUIDE', 'AI 기반 학습 추천', '질문, 요약, 오답 분석과 추천 흐름으로 다음 학습 방향을 제안합니다.'],
+  ['landing.scope.visualization.label', 'landing.scope.visualization.title', 'landing.scope.visualization.description', 'INSIGHT', '데이터 시각화', '집중 시간, 활동 통계, 학습 진행률을 시각적으로 확인할 수 있게 합니다.'],
+  ['landing.scope.privacy.label', 'landing.scope.privacy.title', 'landing.scope.privacy.description', 'TRUST', '보안 및 프라이버시 고려', '인증, 권한, 계정 상태 정책을 통해 개인 학습 데이터를 안전하게 다룹니다.']
 ];
 
 const serviceSections = [
@@ -323,10 +323,10 @@ function FeatureGridSection({ t }) {
   return (
     <View style={styles.availableSection}>
       <View style={styles.sectionHeading}>
-        <Text style={styles.sectionEyebrow}>AVAILABLE NOW</Text>
-        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '지금 연결된 학습 도구')}</Text>
+        <Text style={styles.sectionEyebrow}>{t('landing.section.available.eyebrow', 'PROJECT SCOPE')}</Text>
+        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '과제 요구사항과 연결된 핵심 기능')}</Text>
         <Text style={styles.sectionDescription}>
-          {t('landing.section.available.description', '현재 구현된 API와 연결된 기능만 안내합니다.')}
+          {t('landing.section.available.description', '초기 주제 요구사항을 실제 구현 기능 흐름으로 연결했습니다.')}
         </Text>
       </View>
       <View style={styles.featureGrid}>
