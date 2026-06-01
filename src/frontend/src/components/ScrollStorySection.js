@@ -5,183 +5,162 @@ import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
 
-const VIEWPORT_HEIGHT = 760;
-
 const promoSlides = [
   {
-    id: 'learn',
-    labelKey: 'landing.showcase.learn.eyebrow',
-    titleKey: 'landing.showcase.learn.title',
-    descriptionKey: 'landing.showcase.learn.description',
-    ctaKey: 'landing.showcase.learn.metric',
+    id: 'open',
+    labelKey: 'landing.promo.1.label',
+    titleKey: 'landing.promo.1.title',
+    descriptionKey: 'landing.promo.1.description',
+    ctaKey: 'landing.promo.1.cta',
+    labelFallback: 'SERVICE OPEN',
+    titleFallback: '사각사각 정식 오픈',
+    descriptionFallback: '계획과 질문, 복습 기록을 한 흐름으로 이어보세요.',
+    ctaFallback: '지금 시작하기',
     mood: 'mint'
   },
   {
-    id: 'organize',
-    labelKey: 'landing.showcase.organize.eyebrow',
-    titleKey: 'landing.showcase.organize.title',
-    descriptionKey: 'landing.showcase.organize.description',
-    ctaKey: 'landing.showcase.organize.metric',
-    mood: 'cream'
-  },
-  {
-    id: 'connect',
-    labelKey: 'landing.showcase.connect.eyebrow',
-    titleKey: 'landing.showcase.connect.title',
-    descriptionKey: 'landing.showcase.connect.description',
-    ctaKey: 'landing.showcase.connect.metric',
+    id: 'ai',
+    labelKey: 'landing.promo.2.label',
+    titleKey: 'landing.promo.2.title',
+    descriptionKey: 'landing.promo.2.description',
+    ctaKey: 'landing.promo.2.cta',
+    labelFallback: 'AI STUDY',
+    titleFallback: '질문을 이해하는 학습 파트너',
+    descriptionFallback: '단순 답변이 아니라 요약과 오답 점검까지 이어갑니다.',
+    ctaFallback: '기능 보기',
     mood: 'blue'
   },
   {
-    id: 'challenge',
-    labelKey: 'landing.showcase.challenge.eyebrow',
-    titleKey: 'landing.showcase.challenge.title',
-    descriptionKey: 'landing.showcase.challenge.description',
-    ctaKey: 'landing.showcase.challenge.metric',
+    id: 'record',
+    labelKey: 'landing.promo.3.label',
+    titleKey: 'landing.promo.3.title',
+    descriptionKey: 'landing.promo.3.description',
+    ctaKey: 'landing.promo.3.cta',
+    labelFallback: 'RECORD',
+    titleFallback: '하루의 공부 기록',
+    descriptionFallback: '오늘의 일정, 질문, 복습 힌트를 나만의 기록으로 남깁니다.',
+    ctaFallback: '기록 시작하기',
+    mood: 'cream'
+  },
+  {
+    id: 'early',
+    labelKey: 'landing.promo.4.label',
+    titleKey: 'landing.promo.4.title',
+    descriptionKey: 'landing.promo.4.description',
+    ctaKey: 'landing.promo.4.cta',
+    labelFallback: 'EARLY ACCESS',
+    titleFallback: '초기 사용자 학습 루틴',
+    descriptionFallback: '지금 가입하고 사각사각의 핵심 학습 흐름을 먼저 경험하세요.',
+    ctaFallback: '체험하기',
     mood: 'blue'
   }
 ];
 
 const availableFeatureKeys = [
-  ['landing.feature.ai.label', 'landing.feature.ai.title', 'landing.feature.ai.description'],
-  ['landing.feature.plan.label', 'landing.feature.plan.title', 'landing.feature.plan.description'],
-  ['landing.feature.focus.label', 'landing.feature.focus.title', 'landing.feature.focus.description'],
-  ['landing.feature.community.label', 'landing.feature.community.title', 'landing.feature.community.description'],
-  ['landing.feature.social.label', 'landing.feature.social.title', 'landing.feature.social.description'],
-  ['landing.feature.reward.label', 'landing.feature.reward.title', 'landing.feature.reward.description'],
-  ['landing.feature.coop.label', 'landing.feature.coop.title', 'landing.feature.coop.description'],
-  ['landing.feature.accessibility.label', 'landing.feature.accessibility.title', 'landing.feature.accessibility.description']
+  ['landing.feature.ai.label', 'landing.feature.ai.title', 'landing.feature.ai.description', 'AI 학습', '질문부터 오답 분석까지', '질문, 추천, 요약, 오답 분석 흐름을 한 화면에서 이어갑니다.'],
+  ['landing.feature.plan.label', 'landing.feature.plan.title', 'landing.feature.plan.description', '일정/칸반', '계획과 태스크를 함께 관리', '학습 일정과 칸반 보드로 오늘 해야 할 일을 정리합니다.'],
+  ['landing.feature.timer.label', 'landing.feature.timer.title', 'landing.feature.timer.description', '집중 타이머 & 통계', '25분 집중부터 주간 통계까지', '집중 타이머로 학습 시간을 재고, 주간 집중 통계로 나만의 학습 패턴을 파악하세요.'],
+  ['landing.feature.community.label', 'landing.feature.community.title', 'landing.feature.community.description', '커뮤니티', '게시글과 댓글로 학습 공유', '질문과 기록을 나누고 반응, 북마크, 신고 흐름을 사용할 수 있습니다.'],
+  ['landing.feature.coop.label', 'landing.feature.coop.title', 'landing.feature.coop.description', '보스 레이드 & 쿠스트', '팀원과 함께 목표를 달성', '보스 레이드에 파티를 맞쳐 참여하고, 협동 쿠스트로 함께 포인트를 받으세요.'],
+  ['landing.feature.shop.label', 'landing.feature.shop.title', 'landing.feature.shop.description', '포인트 상점', '달성한 만큼 프로필을 꽈미고', '쿠스트와 보스 레이드로 모은 포인트로 프로필 이미지, 배경, 배지를 업데이트하세요.']
 ];
 
 const serviceSections = [
   {
     id: 'plan',
-    keywordKey: 'landing.showcase.plan.keyword',
-    titleKey: 'landing.showcase.plan.title',
-    descriptionKey: 'landing.showcase.plan.description',
-    chipKey: 'landing.feature.plan.label',
+    keyword: 'PLAN',
+    titleKey: 'landing.story.plan.title',
+    titleFallback: '하루 계획이 흩어지지 않게',
+    descriptionKey: 'landing.story.plan.description',
+    descriptionFallback: '일정과 칸반을 한 흐름으로 이어 오늘 해야 할 공부를 또렷하게 보여줍니다.',
+    chipKey: 'landing.story.plan.chip1',
+    chipFallback: '일정',
     layout: 'row',
     visual: 'plan'
   },
   {
     id: 'question',
-    keywordKey: 'landing.showcase.ask.keyword',
-    titleKey: 'landing.showcase.ask.title',
-    descriptionKey: 'landing.showcase.ask.description',
-    chipKey: 'landing.feature.ai.label',
+    keyword: 'ASK',
+    titleKey: 'landing.story.ai.title',
+    titleFallback: '질문하고, 요약하고, 다시 보기',
+    descriptionKey: 'landing.story.ai.description',
+    descriptionFallback: 'AI 학습 화면에서 질문, 요약, 오답 점검을 이어가며 막힌 부분을 빠르게 정리합니다.',
+    chipKey: 'landing.story.ai.chip1',
+    chipFallback: '질문',
     layout: 'center',
     visual: 'chat'
   },
   {
     id: 'summary',
-    keywordKey: 'landing.showcase.learn.keyword',
-    titleKey: 'landing.feature.ai.title',
-    descriptionKey: 'landing.feature.ai.description',
-    chipKey: 'landing.showcase.ask.metric',
+    keyword: 'SUMMARY',
+    titleKey: 'landing.summary.title',
+    titleFallback: '긴 내용을 핵심만 남기세요',
+    descriptionKey: 'landing.summary.description',
+    descriptionFallback: '노트 필기와 문서 하이라이트로 배운 것을 온전히 내 것으로 만듭니다.',
+    chipKey: 'landing.story.ai.chip2',
+    chipFallback: '요약',
     layout: 'reverse',
     visual: 'note'
   },
   {
     id: 'report',
-    keywordKey: 'landing.showcase.ask.keyword',
-    titleKey: 'landing.showcase.ask.title',
-    descriptionKey: 'landing.showcase.ask.description',
-    chipKey: 'landing.feature.ai.label',
+    keyword: 'REVIEW',
+    titleKey: 'landing.report.title',
+    titleFallback: '틀린 이유를 정확히 이해하세요',
+    descriptionKey: 'landing.report.description',
+    descriptionFallback: '내 답안과 정답을 비교하고 AI가 분석해주는 오답 리포트를 확인하세요.',
+    chipKey: 'landing.story.ai.chip3',
+    chipFallback: '오답 분석',
     layout: 'row',
     visual: 'report'
   },
   {
     id: 'social',
-    keywordKey: 'landing.showcase.social.keyword',
-    titleKey: 'landing.showcase.social.title',
-    descriptionKey: 'landing.showcase.social.description',
-    chipKey: 'landing.feature.social.label',
+    keyword: 'SOCIAL',
+    titleFallback: '함께 공부하는 학습 커뮤니티',
+    descriptionFallback: '혼자 하는 공부의 외로움을 넘어서, 친구들과 실시간 쪽지를 나누고 접속 상태를 확인하며 동기부여를 얻으세요.',
+    chipFallback: '커뮤니티',
     layout: 'row',
     visual: 'social'
   },
   {
     id: 'coop',
-    keywordKey: 'landing.showcase.challenge.keyword',
-    titleKey: 'landing.showcase.challenge.title',
-    descriptionKey: 'landing.showcase.challenge.description',
-    chipKey: 'landing.feature.coop.label',
+    keyword: 'COOP',
+    titleFallback: '같이 목표를 달성하는 쾌감',
+    descriptionFallback: '등록된 보스 레이드에 참여하고, 팀원과 직접 협동 퀘스트를 만들어 함께 목표를 달성하고 포인트를 받으세요.',
+    chipFallback: '협동',
     layout: 'reverse',
     visual: 'coop'
   },
   {
     id: 'reward',
-    keywordKey: 'landing.showcase.reward.keyword',
-    titleKey: 'landing.showcase.reward.title',
-    descriptionKey: 'landing.showcase.reward.description',
-    chipKey: 'landing.feature.reward.label',
+    keyword: 'REWARD',
+    titleFallback: '노력한 만큼 쌓이는 보상',
+    descriptionFallback: '퀘스트와 목표 달성으로 모은 포인트로 나만의 프로필을 꾸미고, 학습 성취감을 높여보세요.',
+    chipFallback: '포인트 상점',
     layout: 'row',
     visual: 'reward'
   },
   {
-    id: 'access',
-    keywordKey: 'landing.showcase.access.keyword',
-    titleKey: 'landing.showcase.access.title',
-    descriptionKey: 'landing.showcase.access.description',
-    chipKey: 'landing.feature.accessibility.label',
+    id: 'trust',
+    keyword: 'TRUST',
+    titleKey: 'landing.trust.title',
+    titleFallback: '차분하지만 믿을 수 있는 학습 공간',
+    descriptionKey: 'landing.trust.description',
+    descriptionFallback: '사각사각은 화려한 효과보다 실제 학습 흐름, 접근성, 기존 API 안정성을 우선합니다.',
+    chipFallback: '안정성',
     layout: 'reverse',
-    visual: 'access'
+    visual: 'trust'
   }
 ];
 
-function clamp(value, min = 0, max = 1) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function smoothStep(value) {
-  const p = clamp(value);
-  return p * p * (3 - 2 * p);
-}
-
-function getMotion(scrollY = 0, layout) {
-  if (!layout?.height) {
-    return { enter: 1, focus: 0, distance: 0 };
-  }
-
-  const enter = smoothStep((scrollY + VIEWPORT_HEIGHT * 0.82 - layout.y) / Math.max(layout.height * 0.72, 1));
-  const sectionCenter = layout.y + layout.height / 2;
-  const viewportCenter = scrollY + VIEWPORT_HEIGHT / 2;
-  const focusRange = Math.max(layout.height * 0.72, VIEWPORT_HEIGHT * 0.68);
-  const distance = clamp((sectionCenter - viewportCenter) / focusRange, -1, 1);
-  const focus = smoothStep(1 - Math.abs(distance));
-
-  return { enter, focus, distance };
-}
-
-function entranceStyle(motion, side = 1, index = 0) {
-  const progress = smoothStep(motion.enter * 1.16 - index * 0.08);
-
-  return {
-    opacity: 0.34 + progress * 0.66,
-    transform: [
-      { translateX: side * (1 - progress) * 132 },
-      { translateY: (1 - progress) * 24 },
-      { scale: 0.96 + progress * 0.04 }
-    ]
-  };
-}
-
-function SectionKeyword({ label, motion, style }) {
+function SectionKeyword({ label, style }) {
   return (
     <Text
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
-      style={[
-        styles.bgTitleText,
-        style,
-        {
-          opacity: 0.04 + motion.focus * 0.24,
-          transform: [
-            { translateY: motion.distance * 72 },
-            { scale: 0.94 + motion.focus * 0.08 }
-          ]
-        }
-      ]}
+      style={[styles.bgTitleText, style]}
     >
       {label}
     </Text>
@@ -208,11 +187,11 @@ function PromoCarousel({ activeIndex, onNext, onPrevious, onSelect, t }) {
         <Text style={styles.promoArrowText}>{'<'}</Text>
       </Pressable>
       <View style={styles.promoCopy}>
-        <Text style={styles.promoLabel}>{t(slide.labelKey)}</Text>
-        <Text style={styles.promoTitle}>{t(slide.titleKey)}</Text>
-        <Text style={styles.promoDescription}>{t(slide.descriptionKey)}</Text>
+        <Text style={styles.promoLabel}>{t(slide.labelKey, slide.labelFallback)}</Text>
+        <Text style={styles.promoTitle}>{t(slide.titleKey, slide.titleFallback)}</Text>
+        <Text style={styles.promoDescription}>{t(slide.descriptionKey, slide.descriptionFallback)}</Text>
         <View style={styles.promoCta}>
-          <Text style={styles.promoCtaText}>{t(slide.ctaKey)}</Text>
+          <Text style={styles.promoCtaText}>{t(slide.ctaKey, slide.ctaFallback)}</Text>
         </View>
       </View>
       <View style={styles.promoVisual}>
@@ -247,36 +226,34 @@ function SectionHeading({ descriptionKey, eyebrow, titleKey, t }) {
   return (
     <View style={styles.sectionHeading}>
       <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
-      <Text style={styles.sectionTitle}>{t(titleKey)}</Text>
-      <Text style={styles.sectionDescription}>{t(descriptionKey)}</Text>
+      <Text style={styles.sectionTitle}>{t(titleKey, '사각사각이 학습을 여는 방식')}</Text>
+      <Text style={styles.sectionDescription}>{t(descriptionKey, '조용한 기록, 다정한 피드백, 반복되는 복습을 한 페이지에서 이어갑니다.')}</Text>
     </View>
   );
 }
 
-function RecordSection({ layout, onLayout, scrollY, storyY, t }) {
-  const absoluteLayout = layout ? { ...layout, y: storyY + layout.y } : undefined;
-  const motion = getMotion(scrollY, absoluteLayout);
-
+function RecordSection({ t }) {
   const rows = [
-    t('landing.feature.plan.title'),
-    t('landing.feature.focus.title'),
-    t('landing.feature.coop.title')
+    '자료구조 DFS 복습 완료 · 42분',
+    '미적분 문제풀이 · 1시간 10분',
+    '영어 단어 암기 · 25분',
+    '오늘 질문 3개 / 요약 2개 저장'
   ];
 
   return (
-    <View onLayout={(event) => onLayout('record', event.nativeEvent?.layout)} style={styles.revealSection}>
-      <SectionKeyword label={t('landing.showcase.record.keyword')} motion={motion} style={styles.bgRecord} />
+    <View style={styles.revealSection}>
+      <SectionKeyword label="RECORD" style={styles.bgRecord} />
       <SectionHeading
-        descriptionKey="landing.showcase.record.description"
+        descriptionKey="landing.reveal.description"
         eyebrow="OPENING NOTES"
-        titleKey="landing.showcase.record.title"
+        titleKey="landing.reveal.title"
         t={t}
       />
       <View style={styles.recordExperience}>
-        <View style={[styles.recordMainCard, shadows.card, entranceStyle(motion, -1, 0)]}>
+        <View style={[styles.recordMainCard, shadows.card]}>
           <View style={styles.recordHeaderRow}>
-            <Text style={styles.recordCardTitle}>{t('landing.showcase.record.title')}</Text>
-            <Text style={styles.recordStreak}>{t('landing.showcase.record.metric')}</Text>
+            <Text style={styles.recordCardTitle}>오늘의 학습 기록</Text>
+            <Text style={styles.recordStreak}>연속 5일째</Text>
           </View>
           {rows.map((item, index) => (
             <View key={item} style={styles.recordLogRow}>
@@ -286,15 +263,15 @@ function RecordSection({ layout, onLayout, scrollY, storyY, t }) {
           ))}
         </View>
         <View style={styles.recordSideStack}>
-          <View style={[styles.recordMiniCard, styles.recordMiniCardMint, entranceStyle(motion, 1, 1)]}>
-            <Text style={styles.recordMiniLabel}>{t('landing.feature.focus.label')}</Text>
-            <Text style={styles.recordMiniValue}>82%</Text>
-            <Text style={styles.recordMiniText}>{t('landing.feature.focus.description')}</Text>
+          <View style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
+            <Text style={styles.recordMiniLabel}>Opening Notes</Text>
+            <Text style={styles.recordMiniValue}>05/28</Text>
+            <Text style={styles.recordMiniText}>학습 목표와 오늘의 기록을 한눈에 정리합니다.</Text>
           </View>
-          <View style={[styles.recordMiniCard, styles.recordMiniCardCream, entranceStyle(motion, 1, 2)]}>
-            <Text style={styles.recordMiniLabel}>{t('landing.feature.coop.label')}</Text>
-            <Text style={styles.recordMiniValue}>74%</Text>
-            <Text style={styles.recordMiniText}>{t('landing.feature.coop.description')}</Text>
+          <View style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
+            <Text style={styles.recordMiniLabel}>Saved Questions</Text>
+            <Text style={styles.recordMiniValue}>3</Text>
+            <Text style={styles.recordMiniText}>질문과 요약을 다시 볼 수 있게 모아둡니다.</Text>
           </View>
         </View>
       </View>
@@ -302,23 +279,20 @@ function RecordSection({ layout, onLayout, scrollY, storyY, t }) {
   );
 }
 
-function FeatureGridSection({ layout, onLayout, scrollY, storyY, t }) {
-  const absoluteLayout = layout ? { ...layout, y: storyY + layout.y } : undefined;
-  const motion = getMotion(scrollY, absoluteLayout);
-
+function FeatureGridSection({ t }) {
   return (
-    <View onLayout={(event) => onLayout('available', event.nativeEvent?.layout)} style={styles.availableSection}>
-      <SectionKeyword label="SERVICE" motion={motion} style={styles.bgAvailable} />
-      <SectionHeading
-        descriptionKey="landing.section.available.description"
-        eyebrow={t('landing.section.available.eyebrow')}
-        titleKey="landing.section.available.title"
-        t={t}
-      />
+    <View style={styles.availableSection}>
+      <View style={styles.sectionHeading}>
+        <Text style={styles.sectionEyebrow}>AVAILABLE NOW</Text>
+        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '지금 연결된 학습 도구')}</Text>
+        <Text style={styles.sectionDescription}>
+          {t('landing.section.available.description', '현재 구현된 API와 연결된 기능만 안내합니다.')}
+        </Text>
+      </View>
       <View style={styles.featureGrid}>
-        {availableFeatureKeys.map(([labelKey, titleKey, descriptionKey], index) => {
-          const label = t(labelKey);
-          const title = t(titleKey);
+        {availableFeatureKeys.map(([labelKey, titleKey, descriptionKey, labelFallback, titleFallback, descriptionFallback]) => {
+          const label = t(labelKey, labelFallback);
+          const title = t(titleKey, titleFallback);
 
           return (
             <Pressable
@@ -328,13 +302,12 @@ function FeatureGridSection({ layout, onLayout, scrollY, storyY, t }) {
               style={(state) => [
                 styles.featureCard,
                 shadows.card,
-                entranceStyle(motion, index % 2 === 0 ? -1 : 1, index % 4),
                 ...interactiveStateStyles(state, { kind: 'card' })
               ]}
             >
               <Text style={styles.featureLabel}>{label}</Text>
               <Text style={styles.featureTitle}>{title}</Text>
-              <Text style={styles.featureDescription}>{t(descriptionKey)}</Text>
+              <Text style={styles.featureDescription}>{t(descriptionKey, descriptionFallback)}</Text>
             </Pressable>
           );
         })}
@@ -344,14 +317,20 @@ function FeatureGridSection({ layout, onLayout, scrollY, storyY, t }) {
 }
 
 function PlanMock({ t }) {
+  const rows = [
+    t('landing.story.plan.previewItem1', '09:00 자료구조 복습'),
+    t('landing.story.plan.previewItem2', '14:00 알고리즘 과제'),
+    t('landing.story.plan.previewItem3', '20:00 오답 노트 정리')
+  ];
+
   return (
     <View style={[styles.mockCard, styles.planMock]}>
       <View style={styles.planHeader}>
-        <Text style={styles.planMonth}>{t('landing.feature.plan.label')}</Text>
+        <Text style={styles.planMonth}>{t('landing.story.plan.previewTitle', '오늘의 학습 일정')}</Text>
         <View style={styles.planDday}><Text style={styles.planDdayText}>D-12</Text></View>
       </View>
       <View style={styles.planTimeline}>
-        {[t('landing.feature.plan.title'), t('landing.feature.focus.title'), t('landing.feature.coop.title')].map((item, index) => (
+        {rows.map((item, index) => (
           <View key={item} style={styles.planTimeItem}>
             <View style={[styles.planTimeDot, index === 1 && styles.planTimeDotWarm, index === 2 && styles.planTimeDotBlue]} />
             <Text style={styles.planTimeText}>{item}</Text>
@@ -359,8 +338,8 @@ function PlanMock({ t }) {
         ))}
       </View>
       <View style={styles.planPriorityBox}>
-        <Text style={styles.planPriorityTitle}>{t('landing.showcase.organize.metric')}</Text>
-        <Text style={styles.planPriorityText}>{t('landing.showcase.organize.description')}</Text>
+        <Text style={styles.planPriorityTitle}>{t('landing.story.plan.previewMeta', '중간고사 D-12')}</Text>
+        <Text style={styles.planPriorityText}>오늘 할 일을 정리하고 우선순위를 확인합니다.</Text>
       </View>
     </View>
   );
@@ -370,13 +349,14 @@ function ChatMock({ t }) {
   return (
     <View style={[styles.mockCard, styles.chatMock]}>
       <View style={styles.chatUserBubble}>
-        <Text style={styles.chatUserText}>{t('landing.showcase.ask.title')}</Text>
+        <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem1', '이 개념을 한 문단으로 요약해줘')}</Text>
       </View>
       <View style={styles.chatAiBubble}>
-        <Text style={styles.chatAiText}>{t('landing.showcase.ask.description')}</Text>
+        <Text style={styles.chatAiText}>막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.</Text>
         <View style={styles.chatActions}>
-          <View style={styles.chatBtn}><Text style={styles.chatBtnText}>{t('landing.feature.ai.label')}</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnMuted]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>{t('landing.showcase.ask.metric')}</Text></View>
+          <View style={styles.chatBtn}><Text style={styles.chatBtnText}>요약하기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnMuted]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnCream]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
         </View>
       </View>
     </View>
@@ -385,15 +365,16 @@ function ChatMock({ t }) {
 
 function NoteMock({ t }) {
   const bullets = [
-    t('landing.feature.ai.description'),
-    t('landing.feature.focus.description'),
-    t('landing.feature.community.description')
+    '미분 = 순간 변화율',
+    '도함수 = 접선의 기울기',
+    '적분 = 누적량',
+    '기본정리 = 미분·적분 연결'
   ];
 
   return (
     <View style={[styles.mockCard, styles.noteMock]}>
-      <View style={styles.noteBadge}><Text style={styles.noteBadgeText}>{t('landing.feature.ai.label')}</Text></View>
-      <Text style={styles.noteTitle}>{t('landing.feature.ai.title')}</Text>
+      <View style={styles.noteBadge}><Text style={styles.noteBadgeText}>AI 요약 완료</Text></View>
+      <Text style={styles.noteTitle}>수학 미적분 핵심 개념</Text>
       <View style={styles.summaryBulletList}>
         {bullets.map((item, index) => (
           <View key={item} style={styles.summaryBulletRow}>
@@ -417,16 +398,16 @@ function ReportMock({ t }) {
           <Text style={styles.reportScore}>-5</Text>
         </View>
         <View style={styles.reportRow}>
-          <Text style={styles.reportLabel}>{t('landing.feature.ai.label')}</Text>
+          <Text style={styles.reportLabel}>내 답안</Text>
           <Text style={styles.reportWrong}>4</Text>
         </View>
         <View style={styles.reportRow}>
-          <Text style={styles.reportLabel}>{t('landing.showcase.ask.metric')}</Text>
+          <Text style={styles.reportLabel}>정답</Text>
           <Text style={styles.reportCorrect}>2</Text>
         </View>
         <View style={styles.reportReason}>
-          <Text style={styles.reportReasonTitle}>{t('landing.showcase.ask.title')}</Text>
-          <Text style={styles.reportReasonText}>{t('landing.showcase.ask.description')}</Text>
+          <Text style={styles.reportReasonTitle}>틀린 이유</Text>
+          <Text style={styles.reportReasonText}>조건식을 반대로 해석해 탐색 순서를 잘못 판단했습니다.</Text>
         </View>
       </View>
     </View>
@@ -437,11 +418,11 @@ function SocialMock({ t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.socialMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>{t('landing.feature.social.title')}</Text>
+        <Text style={styles.reportTitle}>실시간 쪽지함</Text>
         <Text style={[styles.reportScore, styles.socialScore]}>WebSocket</Text>
       </View>
-      <View style={styles.friendRow}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>{t('landing.feature.social.description')}</Text></View>
-      <View style={styles.friendRow}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>{t('landing.showcase.community.metric')}</Text></View>
+      <View style={styles.friendRow}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>친구가 오늘 목표를 시작했어요.</Text></View>
+      <View style={styles.friendRow}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>대화에서 학습 응원을 주고받습니다.</Text></View>
     </View>
   );
 }
@@ -450,13 +431,13 @@ function CoopMock({ t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.coopMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>{t('landing.feature.raid.title')}</Text>
-        <Text style={styles.reportScore}>74%</Text>
+        <Text style={styles.reportTitle}>중간고사 집중 레이드</Text>
+        <Text style={styles.reportScore}>HP 진행률</Text>
       </View>
       <View style={styles.raidProgressBar}>
-        <View style={styles.raidProgressFill} />
+        <View style={[styles.raidProgressFill, { width: '55%' }]} />
       </View>
-      <Text style={styles.raidProgressText}>{t('landing.feature.coop.description')}</Text>
+      <Text style={styles.raidProgressText}>남은 HP 45% · 팀 기여도 반영 중</Text>
     </View>
   );
 }
@@ -465,32 +446,43 @@ function RewardMock({ t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.rewardMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>{t('landing.feature.reward.title')}</Text>
+        <Text style={styles.reportTitle}>포인트 상점</Text>
         <Text style={[styles.reportScore, styles.rewardScore]}>4,200P</Text>
       </View>
       <View style={styles.rewardPreviewRow}>
         <View style={styles.rewardAvatarPreview} />
         <View style={styles.rewardCopy}>
-          <Text style={styles.reportLabel}>{t('landing.feature.reward.label')}</Text>
-          <Text style={styles.raidProgressText}>{t('landing.feature.reward.description')}</Text>
+          <Text style={styles.reportLabel}>프로필 이미지 · 배경 · 칭호</Text>
+          <Text style={styles.raidProgressText}>학습 성취를 프로필 꾸미기로 이어갑니다.</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function AccessMock({ t }) {
+function TrustMock({ t }) {
   return (
-    <View style={[styles.mockCard, styles.simpleMockCard, styles.accessMock]}>
-      <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>{t('landing.feature.accessibility.title')}</Text>
-        <Text style={[styles.reportScore, styles.accessScore]}>2.0x</Text>
+    <View style={styles.trustCardsContainer}>
+      <View style={[styles.mockCard, styles.trustCard]}>
+        <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>↔</Text></View>
+        <View style={styles.trustCardContent}>
+          <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '기존 로그인/회원가입/라우팅 흐름 유지')}</Text>
+          <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '로그인, 회원가입, 화면 이동 구조를 무리 없이 이어갑니다.')}</Text>
+        </View>
       </View>
-      <View style={styles.accessLineLarge} />
-      <View style={styles.accessLineMedium} />
-      <View style={styles.accessControlRow}>
-        <View style={styles.accessSwitchActive} />
-        <View style={styles.accessSwitch} />
+      <View style={[styles.mockCard, styles.trustCard]}>
+        <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>Aa</Text></View>
+        <View style={styles.trustCardContent}>
+          <Text style={styles.trustCardTitle}>{t('landing.trust.item2', '모션 민감 사용자를 위한 감소 설정 대응')}</Text>
+          <Text style={styles.trustCardDesc}>{t('landing.trust.description2', '글자 크기, 고대비, 읽어주기 같은 접근성 흐름을 함께 고려합니다.')}</Text>
+        </View>
+      </View>
+      <View style={[styles.mockCard, styles.trustCard]}>
+        <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>API</Text></View>
+        <View style={styles.trustCardContent}>
+          <Text style={styles.trustCardTitle}>{t('landing.trust.item3', '백엔드 API 변경 없이 현재 기능 흐름 재사용')}</Text>
+          <Text style={styles.trustCardDesc}>{t('landing.trust.description3', '현재 API 흐름을 유지하면서 소개 화면과 기능 예시를 안정적으로 확장합니다.')}</Text>
+        </View>
       </View>
     </View>
   );
@@ -504,25 +496,58 @@ function SectionVisual({ type, t }) {
   if (type === 'social') return <SocialMock t={t} />;
   if (type === 'coop') return <CoopMock t={t} />;
   if (type === 'reward') return <RewardMock t={t} />;
-  return <AccessMock t={t} />;
+  return <TrustMock t={t} />;
 }
 
-function ServiceSection({ layout, onLayout, scrollY, section, storyY, t }) {
-  const absoluteLayout = layout ? { ...layout, y: storyY + layout.y } : undefined;
-  const motion = getMotion(scrollY, absoluteLayout);
+function ProjectGroundedCopySection() {
+  const cards = [
+    ['계획은 작게, 실행은 분명하게', '캘린더와 칸반으로 오늘 할 일을 나누고, D-Day와 집중 시간으로 학습 리듬을 확인합니다.'],
+    ['AI는 답변보다 복습 흐름으로', '질문, 요약, 오답노트, 추천, 퀴즈가 다시 볼 기록으로 남아 다음 학습을 준비합니다.'],
+    ['모두가 쓰는 학습 공간', '큰 글씨, 고대비, TTS/STT, 커뮤니티와 보상 흐름까지 고려해 이어 쓸 수 있게 설계했습니다.']
+  ];
+
+  return (
+    <View style={styles.projectSection}>
+      <View style={styles.projectHeading}>
+        <Text style={styles.sectionEyebrow}>PROJECT NOTES</Text>
+        <Text style={styles.sectionTitle}>회의록과 설계 문서에서 이어진 사각사각의 방향</Text>
+        <Text style={styles.sectionDescription}>
+          요구사항과 설계 문서에는 사각사각이 전 연령층을 위한 개인화 학습 관리 앱으로, 일정·칸반·AI 학습·커뮤니티·접근성·보상을 하나의 학습 흐름으로 연결해야 한다고 정리되어 있습니다.
+        </Text>
+      </View>
+      <View style={styles.projectCardGrid}>
+        {cards.map(([title, description]) => (
+          <View key={title} style={[styles.projectCard, shadows.card]}>
+            <View style={styles.projectCardRule} />
+            <Text style={styles.projectCardTitle}>{title}</Text>
+            <Text style={styles.projectCardDescription}>{description}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function ServiceSection({ section, t }) {
   const reverse = section.layout === 'reverse';
   const center = section.layout === 'center';
 
   return (
-    <View onLayout={(event) => onLayout(section.id, event.nativeEvent?.layout)} style={styles.newSection}>
-      <SectionKeyword label={t(section.keywordKey)} motion={motion} style={styles[`bg${section.id}`]} />
+    <View style={styles.newSection}>
+      <SectionKeyword label={section.keyword} style={styles[`bg${section.id}`]} />
       <View style={[styles.newSectionInner, reverse && styles.newSectionInnerReverse, center && styles.newSectionInnerCenter]}>
         <View style={[styles.newTextCol, center && styles.newTextColCenter]}>
-          <Text style={[styles.newSectionTitle, center && styles.textCenter]}>{t(section.titleKey)}</Text>
-          <Text style={[styles.newSectionDesc, center && styles.textCenter]}>{t(section.descriptionKey)}</Text>
-          <View style={styles.tagWrap}><Text style={styles.tagText}>{t(section.chipKey)}</Text></View>
+          <Text style={[styles.newSectionTitle, center && styles.textCenter]}>
+            {section.titleKey ? t(section.titleKey, section.titleFallback) : section.titleFallback}
+          </Text>
+          <Text style={[styles.newSectionDesc, center && styles.textCenter]}>
+            {section.descriptionKey ? t(section.descriptionKey, section.descriptionFallback) : section.descriptionFallback}
+          </Text>
+          <View style={styles.tagWrap}>
+            <Text style={styles.tagText}>{section.chipKey ? t(section.chipKey, section.chipFallback) : section.chipFallback}</Text>
+          </View>
         </View>
-        <View style={[styles.newVisualCol, center && styles.newVisualColCenter, entranceStyle(motion, reverse ? -1 : 1, 0)]}>
+        <View style={[styles.newVisualCol, center && styles.newVisualColCenter]}>
           <SectionVisual t={t} type={section.visual} />
         </View>
       </View>
@@ -530,35 +555,16 @@ function ServiceSection({ layout, onLayout, scrollY, section, storyY, t }) {
   );
 }
 
-export default function ScrollStorySection({ scrollY = 0 }) {
+export default function ScrollStorySection() {
   const { t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [storyY, setStoryY] = useState(0);
-  const [sectionLayouts, setSectionLayouts] = useState({});
-
-  const handleLayout = (id, layout) => {
-    if (!layout) return;
-    setSectionLayouts((current) => ({ ...current, [id]: layout }));
-  };
 
   const moveSlide = (direction) => {
     setActiveIndex((current) => (current + direction + promoSlides.length) % promoSlides.length);
   };
 
   return (
-    <View
-      onLayout={(event) => {
-        const layout = event.nativeEvent?.layout;
-        if (layout) setStoryY(layout.y || 0);
-      }}
-      style={styles.story}
-    >
-      <View style={styles.heading}>
-        <Text style={styles.sectionEyebrow}>{t('landing.showcase.eyebrow')}</Text>
-        <Text style={styles.sectionTitle}>{t('landing.showcase.title')}</Text>
-        <Text style={styles.sectionDescription}>{t('landing.showcase.description')}</Text>
-      </View>
-
+    <View style={styles.story}>
       <PromoCarousel
         activeIndex={activeIndex}
         onNext={() => moveSlide(1)}
@@ -567,33 +573,29 @@ export default function ScrollStorySection({ scrollY = 0 }) {
         t={t}
       />
 
-      <RecordSection
-        layout={sectionLayouts.record}
-        onLayout={handleLayout}
-        scrollY={scrollY}
-        storyY={storyY}
-        t={t}
-      />
+      <RecordSection t={t} />
 
-      <FeatureGridSection
-        layout={sectionLayouts.available}
-        onLayout={handleLayout}
-        scrollY={scrollY}
-        storyY={storyY}
-        t={t}
-      />
+      <FeatureGridSection t={t} />
+
+      <ProjectGroundedCopySection />
 
       {serviceSections.map((section) => (
         <ServiceSection
           key={section.id}
-          layout={sectionLayouts[section.id]}
-          onLayout={handleLayout}
-          scrollY={scrollY}
           section={section}
-          storyY={storyY}
           t={t}
         />
       ))}
+
+      <View style={styles.finalCta}>
+        <Text style={styles.finalCtaTitle}>{t('landing.final.title', '오늘의 공부를 사각사각 시작해 보세요')}</Text>
+        <Text style={styles.finalCtaDescription}>
+          {t('landing.final.description', '계획, 질문, 기록, 복습을 한 흐름으로 연결하는 나만의 학습 공간을 만들 수 있습니다.')}
+        </Text>
+        <View style={styles.finalCtaButton}>
+          <Text style={styles.finalCtaButtonText}>지금 시작하기</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -894,6 +896,55 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden'
   },
+  projectSection: {
+    width: '100%',
+    maxWidth: 1180,
+    paddingVertical: 94,
+    paddingHorizontal: 18,
+    borderRadius: 32,
+    backgroundColor: '#FFFDF6',
+    borderWidth: 1,
+    borderColor: colors.line,
+    marginBottom: 64
+  },
+  projectHeading: {
+    maxWidth: 720,
+    marginBottom: 26
+  },
+  projectCardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16
+  },
+  projectCard: {
+    flex: 1,
+    minWidth: 240,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 24
+  },
+  projectCardRule: {
+    width: 42,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: colors.mint,
+    marginBottom: 18
+  },
+  projectCardTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    lineHeight: 25,
+    fontWeight: '900',
+    marginBottom: 10
+  },
+  projectCardDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '600'
+  },
   featureGrid: {
     width: '100%',
     maxWidth: 1180,
@@ -1050,6 +1101,9 @@ const styles = StyleSheet.create({
   bgreward: {
     top: '50%'
   },
+  bgtrust: {
+    top: '50%'
+  },
   bgaccess: {
     top: '50%'
   },
@@ -1193,6 +1247,12 @@ const styles = StyleSheet.create({
   },
   chatBtnMutedText: {
     color: '#64748B'
+  },
+  chatBtnCream: {
+    backgroundColor: '#FFF5D6'
+  },
+  chatBtnCreamText: {
+    color: '#A15C00'
   },
   noteMock: {
     width: '100%',
@@ -1427,6 +1487,44 @@ const styles = StyleSheet.create({
   rewardCopy: {
     flex: 1
   },
+  trustCardsContainer: {
+    gap: 16
+  },
+  trustCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    padding: 20
+  },
+  trustIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: '#E8FAF6',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  trustIcon: {
+    color: '#173B63',
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  trustCardContent: {
+    flex: 1
+  },
+  trustCardTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: '900',
+    marginBottom: 4
+  },
+  trustCardDesc: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600'
+  },
   accessMock: {
     borderColor: '#CDEFE9',
     borderWidth: 2,
@@ -1464,5 +1562,45 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 999,
     backgroundColor: '#FFF5D6'
+  },
+  finalCta: {
+    width: '100%',
+    maxWidth: 1180,
+    borderRadius: 32,
+    backgroundColor: '#173B63',
+    paddingVertical: 60,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    marginTop: 24
+  },
+  finalCtaTitle: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    lineHeight: 44,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: 0
+  },
+  finalCtaDescription: {
+    color: '#D7E7F4',
+    fontSize: 16,
+    lineHeight: 25,
+    maxWidth: 620,
+    textAlign: 'center',
+    marginTop: 14
+  },
+  finalCtaButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    backgroundColor: colors.mint,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24
+  },
+  finalCtaButtonText: {
+    color: '#173B63',
+    fontSize: 15,
+    fontWeight: '900'
   }
 });
