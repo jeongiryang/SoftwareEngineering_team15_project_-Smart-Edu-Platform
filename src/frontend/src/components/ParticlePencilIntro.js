@@ -1,68 +1,379 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
-const PARTICLE_COUNT = 118;
-const PARTICLE_TOKENS = [
-  '·',
-  '✦',
-  '—',
-  '/',
-  'AI',
-  'Q',
-  'A',
-  '✓',
-  'log',
-  'memo',
-  'plan',
-  'focus',
-  'quiz',
-  'note',
-  '1m',
-  '42',
-  'D-7',
-  '100%',
-  '∑',
-  'fx',
-  'card',
-  'post',
-  'raid',
-  'care'
+const INTRO_TIMELINE = {
+  drift: 320,
+  gather: 1800,
+  silhouette: 3850,
+  pencil: 4850,
+  textSilhouette: 5750,
+  text: 6900,
+  caption: 7800,
+  shine: 8550,
+  settle: 9300,
+  exit: 11350,
+  done: 11900
+};
+
+const PARTICLE_COLORS = ['#FFF6DF', '#D9FFF7', '#73C9BD', '#1F5E96', '#7BC7F6', '#F1C89A'];
+const MATH_TOKENS = ['∑', '√', 'π', 'x²', 'f(x)', '∫', 'Δ', '=', '%', '01', '10'];
+const STUDY_TOKENS = ['AI', 'QUIZ', 'PLAN', 'FOCUS', 'REVIEW', 'EXAM', 'TODO', 'D-DAY', 'CHECK', 'STUDY'];
+const KOREAN_TOKENS = ['복습', '오답', '집중', '일정'];
+const SHAPE_SEQUENCE = [
+  'mathToken',
+  'studyToken',
+  'dash',
+  'strokeShard',
+  'pencilShard',
+  'dot',
+  'mathToken',
+  'studyToken',
+  'dash',
+  'pencilShard',
+  'strokeShard',
+  'dot',
+  'studyToken',
+  'keywordToken'
 ];
+const FORMED_STAGES = new Set(['silhouette', 'pencil', 'textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
+const MASCOT_STAGES = new Set(['pencil', 'textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
+const WORD_STAGES = new Set(['textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
+const INTRO_WORD = '사각사각';
+const WORD_FONT_SIZE = 56;
+const WORD_LINE_HEIGHT = 64;
+const WORD_LETTER_SPACING = 1.8;
+const WORD_FONT_FAMILY = '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", Arial, sans-serif';
+const WORD_LOCKUP_PADDING_Y = 10;
+const WORD_TITLE_CENTER_OFFSET = WORD_LOCKUP_PADDING_Y + WORD_LINE_HEIGHT / 2;
+const WORD_LOCKUP_CENTER_X = 50;
+const WORD_LOCKUP_CENTER_Y = 66.32;
+const TEXT_TARGET_ALPHA_THRESHOLD = 24;
+const TEXT_TARGET_SAMPLE_STEP = 5;
+const PENCIL_AXIS = {
+  tip: { x: 45.4, y: 57.2 },
+  cap: { x: 56.8, y: 24.8 }
+};
+const PENCIL_DX = PENCIL_AXIS.cap.x - PENCIL_AXIS.tip.x;
+const PENCIL_DY = PENCIL_AXIS.cap.y - PENCIL_AXIS.tip.y;
+const PENCIL_LENGTH = Math.sqrt(PENCIL_DX * PENCIL_DX + PENCIL_DY * PENCIL_DY);
+const PENCIL_PERP_X = -PENCIL_DY / PENCIL_LENGTH;
+const PENCIL_PERP_Y = PENCIL_DX / PENCIL_LENGTH;
 
-function buildParticles() {
-  return Array.from({ length: PARTICLE_COUNT }, (_, index) => {
-    const side = index % 4;
-    const band = Math.floor(index / 4);
-    const spread = (index * 37) % 100;
-    const startX = side === 0 ? -8 + (spread % 18) : side === 1 ? 90 + (spread % 18) : spread;
-    const startY = side === 2 ? -10 + (spread % 20) : side === 3 ? 88 + (spread % 18) : (band * 11 + spread) % 100;
-    const orbitAngle = (index / PARTICLE_COUNT) * Math.PI * 2.35;
-    const orbitRadius = 26 + (index % 9) * 2.2;
-    const targetColumn = index % 26;
-    const targetRow = Math.floor(index / 26);
-    const isTip = index > PARTICLE_COUNT - 18;
-    const isEraser = index < 12;
-    const pencilBaseX = 19 + targetColumn * 2.25;
-    const pencilBaseY = 42 + targetRow * 4.4 + (targetColumn % 2) * 0.65;
+function seeded(index, salt) {
+  const value = Math.sin(index * 127.13 + salt * 811.7) * 10000;
+  return value - Math.floor(value);
+}
 
-    return {
-      token: PARTICLE_TOKENS[index % PARTICLE_TOKENS.length],
-      startX,
-      startY,
-      orbitX: 50 + Math.cos(orbitAngle) * orbitRadius,
-      orbitY: 47 + Math.sin(orbitAngle) * orbitRadius * 0.62,
-      targetX: isTip ? 78 + (index - (PARTICLE_COUNT - 18)) * 0.78 : isEraser ? 16 + (index % 6) * 2.4 : pencilBaseX,
-      targetY: isTip ? 44 + ((index - (PARTICLE_COUNT - 18)) % 6) * 1.8 : isEraser ? 43 + Math.floor(index / 6) * 5.8 : pencilBaseY,
-      rotate: -55 + ((index * 29) % 110),
-      size: 9 + (index % 7),
-      delay: (index % 16) * 24
-    };
+function getParticleCount(width) {
+  if (width >= 1440) {
+    return 640;
+  }
+
+  if (width >= 1180) {
+    return 560;
+  }
+
+  if (width >= 780) {
+    return 330;
+  }
+
+  return 186;
+}
+
+function getStartPosition(index) {
+  const side = index % 12;
+  const spread = seeded(index, 3);
+  const secondary = seeded(index, 7);
+
+  if (side === 0) {
+    return { x: -26 - spread * 14, y: secondary * 100 };
+  }
+
+  if (side === 1) {
+    return { x: 114 + spread * 16, y: secondary * 100 };
+  }
+
+  if (side === 2) {
+    return { x: spread * 100, y: -26 - secondary * 12 };
+  }
+
+  if (side === 3) {
+    return { x: spread * 100, y: 114 + secondary * 16 };
+  }
+
+  if (side === 4) {
+    return { x: -18 + spread * 30, y: -12 + secondary * 38 };
+  }
+
+  if (side === 5) {
+    return { x: 72 + spread * 34, y: -14 + secondary * 42 };
+  }
+
+  if (side === 6) {
+    return { x: -16 + spread * 34, y: 66 + secondary * 40 };
+  }
+
+  if (side === 7) {
+    return { x: 68 + spread * 38, y: 62 + secondary * 42 };
+  }
+
+  if (side === 8) {
+    return { x: 3 + spread * 24, y: 24 + secondary * 52 };
+  }
+
+  if (side === 9) {
+    return { x: 74 + spread * 24, y: 22 + secondary * 54 };
+  }
+
+  if (side === 10) {
+    return { x: 21 + spread * 58, y: -20 + secondary * 22 };
+  }
+
+  return { x: 22 + spread * 56, y: 92 + secondary * 24 };
+}
+
+function getPencilLinePoint(t, offset) {
+  return {
+    x: PENCIL_AXIS.tip.x + PENCIL_DX * t + PENCIL_PERP_X * offset,
+    y: PENCIL_AXIS.tip.y + PENCIL_DY * t + PENCIL_PERP_Y * offset
+  };
+}
+
+function getPencilTarget(index) {
+  const type = index % 14;
+  const t = seeded(index, 11);
+  const u = seeded(index, 13);
+  const bodyT = (index % 160) / 159;
+  const offset = (u - 0.5) * 3.6;
+
+  if (type <= 7) {
+    const point = getPencilLinePoint(0.27 + bodyT * 0.68, offset);
+    return { kind: 'body', x: point.x, y: point.y };
+  }
+
+  if (type === 8) {
+    const point = getPencilLinePoint(0.9 + t * 0.09, (u - 0.5) * 3.2);
+    return { kind: 'cap', x: point.x, y: point.y };
+  }
+
+  if (type === 9) {
+    const point = getPencilLinePoint(0.34 + t * 0.5, -1.05 + (u - 0.5) * 0.6);
+    return { kind: 'highlight', x: point.x, y: point.y };
+  }
+
+  if (type <= 11) {
+    const point = getPencilLinePoint(0.11 + t * 0.19, (u - 0.5) * 3.9);
+    return { kind: 'wood', x: point.x, y: point.y };
+  }
+
+  const point = getPencilLinePoint(t * 0.1, (u - 0.5) * 2.4);
+  return { kind: 'tip', x: point.x, y: point.y };
+}
+
+function getWordTitleBox(screenWidth, screenHeight, wordWidth) {
+  const safeWidth = screenWidth || 1024;
+  const safeHeight = screenHeight || 720;
+
+  return {
+    height: WORD_LINE_HEIGHT,
+    left: safeWidth * (WORD_LOCKUP_CENTER_X / 100) - wordWidth / 2,
+    top: safeHeight * (WORD_LOCKUP_CENTER_Y / 100) - WORD_LINE_HEIGHT / 2,
+    width: wordWidth
+  };
+}
+
+function toPercentTarget(box, x, y, screenWidth, screenHeight) {
+  return {
+    x: ((box.left + x) / screenWidth) * 100,
+    y: ((box.top + y) / screenHeight) * 100
+  };
+}
+
+function measureSpacedText(ctx, text) {
+  return Array.from(text).reduce((total, char, index, chars) => {
+    const spacing = index < chars.length - 1 ? WORD_LETTER_SPACING : 0;
+
+    return total + ctx.measureText(char).width + spacing;
+  }, 0);
+}
+
+function drawSpacedText(ctx, text, x, y) {
+  Array.from(text).forEach((char, index) => {
+    ctx.fillText(char, x, y);
+    x += ctx.measureText(char).width + (index < Array.from(text).length - 1 ? WORD_LETTER_SPACING : 0);
   });
 }
 
-const PARTICLES = buildParticles();
+function createFallbackTextTargets(screenWidth, screenHeight, wordWidth) {
+  const box = getWordTitleBox(screenWidth, screenHeight, wordWidth);
+  const chars = Array.from(INTRO_WORD);
+  const charWidth = box.width / chars.length;
+  const points = [];
+
+  chars.forEach((_, charIndex) => {
+    const charLeft = charIndex * charWidth;
+
+    for (let y = 10; y <= box.height - 10; y += 5.5) {
+      for (let x = 7; x <= charWidth - 7; x += 5.5) {
+        const localX = x / charWidth;
+        const localY = y / box.height;
+        const strokeLikeBand =
+          localY > 0.24 && localY < 0.78 && (localX < 0.22 || localX > 0.76 || Math.abs(localY - 0.5) < 0.1 || Math.abs(localX - localY) < 0.16);
+
+        if (strokeLikeBand) {
+          points.push(toPercentTarget(box, charLeft + x, y, screenWidth, screenHeight));
+        }
+      }
+    }
+  });
+
+  return points;
+}
+
+function createTextShapeTargets(screenWidth, screenHeight, wordWidth) {
+  const browserDocument = typeof globalThis !== 'undefined' ? globalThis.document : null;
+  const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+  const fallbackTargets = createFallbackTextTargets(screenWidth, screenHeight, wordWidth);
+
+  if (Platform.OS !== 'web' || !browserDocument?.createElement) {
+    return fallbackTargets;
+  }
+
+  const box = getWordTitleBox(screenWidth, screenHeight, wordWidth);
+  const ratio = Math.min(browserWindow?.devicePixelRatio || 1, 2);
+  const canvas = browserDocument.createElement('canvas');
+  const canvasWidth = Math.max(1, Math.ceil(box.width * ratio));
+  const canvasHeight = Math.max(1, Math.ceil(box.height * ratio));
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+
+  const ctx = canvas.getContext?.('2d');
+
+  if (!ctx) {
+    return fallbackTargets;
+  }
+
+  ctx.scale(ratio, ratio);
+  ctx.clearRect(0, 0, box.width, box.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${WORD_FONT_SIZE}px ${WORD_FONT_FAMILY}`;
+  ctx.textBaseline = 'middle';
+  const textWidth = measureSpacedText(ctx, INTRO_WORD);
+  const startX = (box.width - textWidth) / 2;
+  drawSpacedText(ctx, INTRO_WORD, startX, WORD_LINE_HEIGHT / 2);
+
+  const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data;
+  const step = Math.max(2, Math.round(TEXT_TARGET_SAMPLE_STEP * ratio));
+  const targets = [];
+
+  for (let y = 0; y < canvasHeight; y += step) {
+    for (let x = 0; x < canvasWidth; x += step) {
+      const alpha = imageData[(y * canvasWidth + x) * 4 + 3];
+
+      if (alpha >= TEXT_TARGET_ALPHA_THRESHOLD) {
+        targets.push(toPercentTarget(box, x / ratio, y / ratio, screenWidth, screenHeight));
+      }
+    }
+  }
+
+  return targets.length > 0 ? targets : fallbackTargets;
+}
+
+function getTextTarget(index, textTargets) {
+  if (!textTargets.length) {
+    return { kind: 'text', x: WORD_LOCKUP_CENTER_X, y: WORD_LOCKUP_CENTER_Y };
+  }
+
+  const textIndex = Math.floor(index / 3);
+  const target = textTargets[(textIndex * 37 + index * 17) % textTargets.length];
+  const jitterX = (seeded(index, 17) - 0.5) * 0.035;
+  const jitterY = (seeded(index, 19) - 0.5) * 0.035;
+
+  return {
+    kind: 'text',
+    x: target.x + jitterX,
+    y: target.y + jitterY
+  };
+}
+
+function getParticleTarget(index, textTargets) {
+  if (index % 10 >= 6) {
+    return getTextTarget(index, textTargets);
+  }
+
+  return getPencilTarget(index);
+}
+
+function getToken(shape, index) {
+  if (shape === 'mathToken') {
+    return MATH_TOKENS[index % MATH_TOKENS.length];
+  }
+
+  if (shape === 'keywordToken') {
+    return KOREAN_TOKENS[index % KOREAN_TOKENS.length];
+  }
+
+  return STUDY_TOKENS[index % STUDY_TOKENS.length];
+}
+
+function getFragmentDimensions(shape, index) {
+  if (shape === 'studyToken') {
+    return { width: 34 + Math.round(seeded(index, 31) * 34), height: 20 };
+  }
+
+  if (shape === 'mathToken' || shape === 'keywordToken') {
+    return { width: 22 + Math.round(seeded(index, 37) * 28), height: 22 };
+  }
+
+  if (shape === 'pencilShard') {
+    return { width: 24 + Math.round(seeded(index, 43) * 24), height: 7 + Math.round(seeded(index, 47) * 5) };
+  }
+
+  if (shape === 'strokeShard') {
+    return { width: 24 + Math.round(seeded(index, 53) * 25), height: 5 + Math.round(seeded(index, 59) * 5) };
+  }
+
+  if (shape === 'dash') {
+    return { width: 12 + Math.round(seeded(index, 61) * 23), height: 5 + Math.round(seeded(index, 67) * 9) };
+  }
+
+  return { width: 5 + Math.round(seeded(index, 71) * 8), height: 5 + Math.round(seeded(index, 73) * 8) };
+}
+
+function buildParticles(count, textTargets) {
+  return Array.from({ length: count }, (_, index) => {
+    const shape = SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length];
+    const start = getStartPosition(index);
+    const target = getParticleTarget(index, textTargets);
+    const angle = seeded(index, 101) * Math.PI * 2;
+    const dimensions = getFragmentDimensions(shape, index);
+    const surgeSpread = 12 + seeded(index, 103) * 18;
+    const sourceX = start.x < 0 ? -1 : start.x > 100 ? 1 : start.x < 50 ? -0.55 : 0.55;
+    const sourceY = start.y < 0 ? -1 : start.y > 100 ? 1 : start.y < 50 ? -0.45 : 0.45;
+
+    return {
+      id: `intro-fragment-${index}`,
+      color: target.kind === 'text' ? PARTICLE_COLORS[(index + 2) % PARTICLE_COLORS.length] : PARTICLE_COLORS[index % PARTICLE_COLORS.length],
+      driftX: start.x + Math.cos(angle) * (7 + seeded(index, 107) * 9) + (seeded(index, 109) - 0.5) * 12,
+      driftY: start.y + Math.sin(angle) * (6 + seeded(index, 113) * 9) + (seeded(index, 127) - 0.5) * 12,
+      height: dimensions.height,
+      index,
+      rotate: -115 + seeded(index, 131) * 230,
+      shape,
+      startX: start.x,
+      startY: start.y,
+      surgeX: target.x + sourceX * (4 + seeded(index, 137) * 8) + (seeded(index, 139) - 0.5) * surgeSpread,
+      surgeY: target.y + sourceY * (4 + seeded(index, 149) * 7) + (seeded(index, 151) - 0.5) * surgeSpread * 0.78,
+      targetKind: target.kind,
+      targetX: target.x,
+      targetY: target.y,
+      token: getToken(shape, index),
+      width: dimensions.width
+    };
+  });
+}
 
 function getPrefersReducedMotion() {
   const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -74,13 +385,320 @@ function getPrefersReducedMotion() {
   return browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function lockIntroChrome() {
+  const browserDocument = typeof globalThis !== 'undefined' ? globalThis.document : null;
+
+  if (Platform.OS !== 'web' || !browserDocument?.body) {
+    return undefined;
+  }
+
+  const styleId = 'sagak-intro-chrome-lock';
+  let styleNode = browserDocument.getElementById(styleId);
+
+  if (!styleNode) {
+    styleNode = browserDocument.createElement('style');
+    styleNode.id = styleId;
+    styleNode.textContent = `
+      body.sagak-intro-active {
+        overflow: hidden !important;
+      }
+      body.sagak-intro-active header,
+      body.sagak-intro-active nav,
+      body.sagak-intro-active [role="banner"],
+      body.sagak-intro-active [data-sagak-intro-hide="true"] {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      body.sagak-intro-active [data-sagak-intro-root="true"] {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+      }
+    `;
+    browserDocument.head?.appendChild(styleNode);
+  }
+
+  browserDocument.body.classList.add('sagak-intro-active');
+
+  const hiddenNodes = [];
+  const candidates = Array.from(browserDocument.querySelectorAll('header, nav, [role="banner"], div'));
+
+  candidates.forEach((node) => {
+    if (node.closest?.('[data-sagak-intro-root="true"]')) {
+      return;
+    }
+
+    const rect = node.getBoundingClientRect?.();
+    const text = node.textContent || '';
+    const looksLikeHeader = /사각사각|Smart Edu Platform|서비스 소개|로그인/.test(text);
+    const isTopChrome = rect && rect.top <= 120 && rect.height > 20 && rect.height <= 160 && rect.width >= 260;
+
+    if (looksLikeHeader && isTopChrome) {
+      hiddenNodes.push({
+        node,
+        opacity: node.style.opacity,
+        pointerEvents: node.style.pointerEvents,
+        visibility: node.style.visibility
+      });
+      node.dataset.sagakIntroHide = 'true';
+      node.style.opacity = '0';
+      node.style.visibility = 'hidden';
+      node.style.pointerEvents = 'none';
+    }
+  });
+
+  return () => {
+    hiddenNodes.forEach(({ node, opacity, pointerEvents, visibility }) => {
+      node.style.opacity = opacity;
+      node.style.pointerEvents = pointerEvents;
+      node.style.visibility = visibility;
+      delete node.dataset.sagakIntroHide;
+    });
+    browserDocument.body.classList.remove('sagak-intro-active');
+  };
+}
+
+function getParticlePosition(particle, stage) {
+  if (stage === 'scatter') {
+    return { x: particle.startX, y: particle.startY };
+  }
+
+  if (stage === 'drift') {
+    return { x: particle.driftX, y: particle.driftY };
+  }
+
+  if (stage === 'gather') {
+    return { x: particle.surgeX, y: particle.surgeY };
+  }
+
+  if (stage === 'silhouette' || stage === 'pencil') {
+    if (particle.targetKind === 'text') {
+      const bridge = stage === 'silhouette' ? 0.78 : 0.42;
+
+      return {
+        x: particle.targetX + (particle.surgeX - particle.targetX) * bridge,
+        y: particle.targetY + (particle.surgeY - particle.targetY) * bridge
+      };
+    }
+
+    return { x: particle.targetX, y: particle.targetY };
+  }
+
+  return { x: particle.targetX, y: particle.targetY };
+}
+
+function getParticleOpacity(stage, reducedMotion, particle) {
+  if (reducedMotion || stage === 'exit') {
+    return 0;
+  }
+
+  if (stage === 'scatter') {
+    return particle.shape === 'studyToken' || particle.shape === 'mathToken' ? 0.78 : 0.5;
+  }
+
+  if (stage === 'drift') {
+    return particle.shape === 'dot' ? 0.64 : 0.95;
+  }
+
+  if (stage === 'gather') {
+    return 0.96;
+  }
+
+  if (stage === 'silhouette') {
+    return particle.targetKind === 'text' ? 0.12 : 1;
+  }
+
+  if (stage === 'pencil') {
+    return particle.targetKind === 'text' ? 0.24 : 0.54;
+  }
+
+  if (stage === 'textSilhouette') {
+    return particle.targetKind === 'text' ? 1 : 0.18;
+  }
+
+  if (stage === 'text') {
+    return particle.targetKind === 'text' ? 0.72 : 0.06;
+  }
+
+  if (stage === 'caption') {
+    return particle.targetKind === 'text' ? 0.34 : 0.03;
+  }
+
+  if (stage === 'shine') {
+    return particle.targetKind === 'text' ? 0.18 : 0.02;
+  }
+
+  if (stage === 'settle') {
+    return particle.targetKind === 'text' ? 0.12 : 0;
+  }
+
+  return 0;
+}
+
+function getMascotPartOpacity(part, stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'pencil') {
+    if (part === 'body') {
+      return 0.78;
+    }
+
+    if (part === 'cap') {
+      return 0.58;
+    }
+
+    return 0.48;
+  }
+
+  if (MASCOT_STAGES.has(stage)) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getMascotOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'pencil') {
+    return 0.9;
+  }
+
+  if (MASCOT_STAGES.has(stage)) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getWordOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'textSilhouette') {
+    return 0.08;
+  }
+
+  if (stage === 'text') {
+    return 0.64;
+  }
+
+  if (stage === 'caption') {
+    return 0.92;
+  }
+
+  if (stage === 'shine') {
+    return 1;
+  }
+
+  if (stage === 'settle' || stage === 'exit') {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getCaptionOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'caption') {
+    return 0.72;
+  }
+
+  if (stage === 'shine' || stage === 'settle' || stage === 'exit') {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getShineOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 0;
+  }
+
+  return stage === 'shine' ? 0.72 : 0;
+}
+
+function PencilMascot({ pencilWidth, reducedMotion, stage }) {
+  const bodyOpacity = getMascotPartOpacity('body', stage, reducedMotion);
+  const capOpacity = getMascotPartOpacity('cap', stage, reducedMotion);
+  const woodOpacity = getMascotPartOpacity('wood', stage, reducedMotion);
+  const tipOpacity = getMascotPartOpacity('tip', stage, reducedMotion);
+  const mascotOpacity = getMascotOpacity(stage, reducedMotion);
+
+  return (
+    <View
+      style={[
+        styles.pencilMascotWrap,
+        {
+          opacity: mascotOpacity,
+          transform: [
+            { translateX: -pencilWidth / 2 },
+            { translateY: -38 },
+            { rotate: '126deg' },
+            { scale: stage === 'pencil' ? 0.94 : 1 }
+          ],
+          width: pencilWidth
+        }
+      ]}
+    >
+      <View style={[styles.pencilCap, { opacity: capOpacity }]} />
+      <View style={[styles.pencilBody, { opacity: bodyOpacity }]}>
+        <View style={styles.pencilBodyHighlight} />
+        <View style={styles.pencilBodyRidgeOne} />
+        <View style={styles.pencilBodyRidgeTwo} />
+      </View>
+      <View style={[styles.pencilWood, { opacity: woodOpacity }]} />
+      <View style={[styles.pencilTip, { opacity: tipOpacity }]} />
+    </View>
+  );
+}
+
+function FragmentParticle({ particle, style }) {
+  const nodeStyle = [styles.particle, styles[`${particle.shape}Particle`], style];
+
+  if (particle.shape === 'mathToken' || particle.shape === 'studyToken' || particle.shape === 'keywordToken') {
+    return (
+      <Text key={particle.id} style={nodeStyle}>
+        {particle.token}
+      </Text>
+    );
+  }
+
+  if (particle.shape === 'pencilShard') {
+    return (
+      <View key={particle.id} style={nodeStyle}>
+        <View style={styles.pencilShardTip} />
+      </View>
+    );
+  }
+
+  return <View key={particle.id} style={nodeStyle} />;
+}
+
 export default function ParticlePencilIntro({ visible, onDone }) {
   const { t } = useLanguage();
+  const { height, width } = useWindowDimensions();
   const [stage, setStage] = useState('scatter');
-  const [writeProgress, setWriteProgress] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
-  const isPencilVisible = stage === 'pencil' || stage === 'write' || stage === 'exit' || reducedMotion;
-  const isWriting = stage === 'write' || stage === 'exit' || reducedMotion;
+  const particleCount = getParticleCount(width || 1024);
+  const pencilWidth = width < 520 ? 238 : width < 900 ? 310 : 390;
+  const wordWidth = Math.min((width || 1024) * 0.82, 440);
+  const shineTranslate = stage === 'shine' || stage === 'settle' || stage === 'exit' ? wordWidth * 0.72 : -wordWidth * 0.72;
+  const wordTranslateY = (WORD_STAGES.has(stage) ? 0 : 10) - WORD_TITLE_CENTER_OFFSET;
+  const wordExitTranslateY = 10 - WORD_TITLE_CENTER_OFFSET;
+  const textTargets = useMemo(() => createTextShapeTargets(width || 1024, height || 720, wordWidth), [height, width, wordWidth]);
+
+  const particles = useMemo(() => buildParticles(particleCount, textTargets), [particleCount, textTargets]);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -114,21 +732,33 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       return undefined;
     }
 
-    setStage(reducedMotion ? 'write' : 'scatter');
-    setWriteProgress(reducedMotion ? 100 : 0);
+    return lockIntroChrome();
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      return undefined;
+    }
+
+    setStage(reducedMotion ? 'settle' : 'scatter');
 
     if (reducedMotion) {
-      const timer = setTimeout(onDone, 1600);
+      const timer = setTimeout(onDone, 1400);
       return () => clearTimeout(timer);
     }
 
     const timers = [
-      setTimeout(() => setStage('orbit'), 360),
-      setTimeout(() => setStage('gather'), 1420),
-      setTimeout(() => setStage('pencil'), 2920),
-      setTimeout(() => setStage('write'), 3920),
-      setTimeout(() => setStage('exit'), 7600),
-      setTimeout(onDone, 8350)
+      setTimeout(() => setStage('drift'), INTRO_TIMELINE.drift),
+      setTimeout(() => setStage('gather'), INTRO_TIMELINE.gather),
+      setTimeout(() => setStage('silhouette'), INTRO_TIMELINE.silhouette),
+      setTimeout(() => setStage('pencil'), INTRO_TIMELINE.pencil),
+      setTimeout(() => setStage('textSilhouette'), INTRO_TIMELINE.textSilhouette),
+      setTimeout(() => setStage('text'), INTRO_TIMELINE.text),
+      setTimeout(() => setStage('caption'), INTRO_TIMELINE.caption),
+      setTimeout(() => setStage('shine'), INTRO_TIMELINE.shine),
+      setTimeout(() => setStage('settle'), INTRO_TIMELINE.settle),
+      setTimeout(() => setStage('exit'), INTRO_TIMELINE.exit),
+      setTimeout(onDone, INTRO_TIMELINE.done)
     ];
 
     return () => {
@@ -136,47 +766,61 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     };
   }, [onDone, reducedMotion, visible]);
 
-  useEffect(() => {
-    if (!visible || stage !== 'write' || reducedMotion) {
-      return undefined;
-    }
-
-    setWriteProgress(0);
-
-    const writer = setInterval(() => {
-      setWriteProgress((current) => Math.min(current + 2.9, 100));
-    }, 62);
-
-    return () => clearInterval(writer);
-  }, [reducedMotion, stage, visible]);
-
   const particleStyles = useMemo(
     () =>
-      PARTICLES.map((particle) => {
-        const position =
-          stage === 'scatter'
-            ? { x: particle.startX, y: particle.startY }
-            : stage === 'orbit'
-              ? { x: particle.orbitX, y: particle.orbitY }
-              : { x: particle.targetX, y: particle.targetY };
-        const formed = stage === 'pencil' || stage === 'write' || stage === 'exit';
-        const gathering = stage === 'gather' || stage === 'pencil';
+      particles.map((particle) => {
+        const position = getParticlePosition(particle, stage);
+        const formed = FORMED_STAGES.has(stage);
+        const transitionDuration =
+          stage === 'drift'
+            ? 1780
+            : stage === 'gather'
+              ? 2050
+              : stage === 'silhouette'
+                ? 1180
+                : stage === 'pencil'
+                  ? 1080
+                  : stage === 'textSilhouette'
+                    ? 1380
+                    : stage === 'text'
+                      ? 1260
+                      : stage === 'caption'
+                        ? 960
+                        : 820;
+        const isToken = particle.shape === 'mathToken' || particle.shape === 'studyToken' || particle.shape === 'keywordToken';
+        const textScale =
+          stage === 'caption'
+            ? 0.24
+            : stage === 'shine'
+              ? 0.2
+              : stage === 'settle' || stage === 'exit'
+                ? 0.16
+                : stage === 'text'
+                  ? 0.3
+                  : 0.36;
+        const silhouetteScale = particle.targetKind === 'text' ? textScale : 0.46;
+        const formedDelay = particle.targetKind === 'text' && (stage === 'textSilhouette' || stage === 'text') ? `${particle.index % 24 * 5}ms` : `${particle.index % 18 * 10}ms`;
 
         return {
+          backgroundColor: isToken ? 'transparent' : particle.color,
+          borderColor: particle.color,
+          color: particle.targetKind === 'text' ? '#D9FFF7' : particle.color,
+          height: particle.height,
           left: `${position.x}%`,
+          opacity: getParticleOpacity(stage, reducedMotion, particle),
           top: `${position.y}%`,
-          opacity: formed ? 0.2 : gathering ? 0.96 : 0.78,
-          fontSize: particle.size,
-          transitionDelay: `${stage === 'scatter' ? 0 : particle.delay}ms`,
+          transitionDelay: formed ? formedDelay : `${particle.index % 44 * 12}ms`,
+          transitionDuration: `${transitionDuration}ms`,
           transform: [
-            { translateX: -10 },
-            { translateY: -10 },
-            { rotate: `${formed ? -14 : particle.rotate}deg` },
-            { scale: formed ? 0.7 : stage === 'orbit' ? 1.18 : gathering ? 1.02 : 0.86 }
-          ]
+            { translateX: -particle.width / 2 },
+            { translateY: -particle.height / 2 },
+            { rotate: `${formed ? particle.rotate * 0.08 - 8 : particle.rotate}deg` },
+            { scale: formed ? silhouetteScale : stage === 'drift' ? 1.16 : stage === 'gather' ? 1.04 : 0.82 }
+          ],
+          width: particle.width
         };
       }),
-    [stage]
+    [particles, reducedMotion, stage]
   );
 
   if (!visible) {
@@ -185,68 +829,59 @@ export default function ParticlePencilIntro({ visible, onDone }) {
 
   return (
     <View
-      accessibilityLabel={t('landing.intro.accessibilityLabel', '사각사각 소개 인트로')}
+      accessibilityLabel={t('landing.intro.accessibilityLabel', '사각사각 인트로 애니메이션')}
+      dataSet={{ sagakIntroRoot: 'true' }}
       style={[styles.overlay, stage === 'exit' && styles.overlayExit]}
     >
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.backgroundGlow}>
         <View style={styles.glowMint} />
         <View style={styles.glowBlue} />
-        <View style={styles.orbitRing} />
+        <View style={styles.glowWarm} />
       </View>
 
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.particleLayer}>
-        {PARTICLES.map((particle, index) => (
-          <Text key={`${particle.token}-${index}`} style={[styles.particle, particleStyles[index]]}>
-            {particle.token}
-          </Text>
+        {particles.map((particle, index) => (
+          <FragmentParticle key={particle.id} particle={particle} style={particleStyles[index]} />
         ))}
       </View>
 
+      <View pointerEvents="none" style={[styles.mascotStage, stage === 'exit' && styles.mascotStageExit]}>
+        <PencilMascot pencilWidth={pencilWidth} reducedMotion={reducedMotion} stage={stage} />
+      </View>
+
       <View
-        pointerEvents="none"
         style={[
-          styles.pencilStage,
-          isPencilVisible && styles.pencilStageVisible,
-          stage === 'write' && styles.pencilStageWriting,
-          reducedMotion && styles.reducedPencilStage
+          styles.wordLockup,
+          {
+            transform: [
+              { translateX: -wordWidth / 2 },
+              { translateY: wordTranslateY }
+            ],
+            width: wordWidth
+          },
+          WORD_STAGES.has(stage) && styles.wordLockupVisible,
+          stage === 'exit' && {
+            opacity: 0,
+            transform: [{ translateX: -wordWidth / 2 }, { translateY: wordExitTranslateY }]
+          }
         ]}
       >
-        <View style={styles.pencilShadow} />
-        <View style={styles.pencil}>
-          <View style={styles.pencilEraser}>
-            <View style={styles.pencilEraserBand} />
-          </View>
-          <View style={styles.pencilBody}>
-            <View style={styles.pencilRidge} />
-            <View style={styles.pencilStripe} />
-          </View>
-          <View style={styles.pencilWood} />
-          <View style={styles.pencilTip} />
-        </View>
-      </View>
-
-      <View pointerEvents="none" style={[styles.wordStage, isWriting && styles.wordStageVisible]}>
-        <Text style={styles.wordGhost}>사각사각</Text>
-        <View style={[styles.wordStroke, { width: `${Math.max(writeProgress - 8, 0)}%` }]} />
-        <View style={[styles.wordReveal, { width: `${writeProgress}%` }]}>
-          <Text style={styles.wordText}>사각사각</Text>
-        </View>
-        <View style={[styles.wordPencil, { left: `${Math.min(Math.max(writeProgress, 8), 95)}%` }]}>
-          <View style={styles.wordPencilBody} />
-          <View style={styles.wordPencilWood} />
-          <View style={styles.wordPencilTip} />
-        </View>
-      </View>
-
-      <View style={styles.caption}>
-        <Text style={styles.captionTitle}>Sagak Sagak</Text>
-        <Text style={styles.captionText}>
-          {t('landing.intro.subtitle', '흩어진 학습 신호가 모여 오늘의 공부를 그립니다.')}
-        </Text>
+        <Text style={[styles.wordTitle, { opacity: getWordOpacity(stage, reducedMotion) }]}>{INTRO_WORD}</Text>
+        <Text style={[styles.wordCaption, { opacity: getCaptionOpacity(stage, reducedMotion) }]}>Smart Edu Platform</Text>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.logoShine,
+            {
+              opacity: getShineOpacity(stage, reducedMotion),
+              transform: [{ translateX: shineTranslate }, { rotate: '-10deg' }]
+            }
+          ]}
+        />
       </View>
 
       <Pressable accessibilityRole="button" onPress={onDone} style={styles.skipButton}>
-        <Text style={styles.skipButtonText}>{t('landing.intro.skip', '인트로 건너뛰기')}</Text>
+        <Text style={styles.skipButtonText}>{t('landing.intro.skip', 'Skip intro')}</Text>
       </Pressable>
     </View>
   );
@@ -259,268 +894,280 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: '#0B1E33',
-    overflow: 'hidden',
-    zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#071827',
+    transitionDuration: '680ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'ease-out',
+    zIndex: 2147483647,
+    elevation: 9999,
+    isolation: 'isolate'
+  },
+  overlayExit: {
+    opacity: 0,
+    transform: [{ scale: 1.035 }]
+  },
+  backgroundGlow: {
+    ...StyleSheet.absoluteFillObject
+  },
+  glowMint: {
+    position: 'absolute',
+    width: '68%',
+    height: '58%',
+    left: '-22%',
+    top: '-8%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(115, 201, 189, 0.075)'
+  },
+  glowBlue: {
+    position: 'absolute',
+    width: '76%',
+    height: '64%',
+    right: '-24%',
+    bottom: '-18%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(31, 94, 150, 0.09)'
+  },
+  glowWarm: {
+    position: 'absolute',
+    width: '52%',
+    height: '44%',
+    left: '25%',
+    top: '34%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(241, 200, 154, 0.035)'
+  },
+  particleLayer: {
+    ...StyleSheet.absoluteFillObject
+  },
+  particle: {
+    position: 'absolute',
+    borderRadius: 999,
+    transitionProperty: 'left, top, opacity, transform, width, height',
+    transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)',
+    shadowColor: '#73C9BD',
+    shadowOpacity: 0.36,
+    shadowRadius: 10
+  },
+  dotParticle: {
+    borderWidth: 0
+  },
+  dashParticle: {
+    borderRadius: 999
+  },
+  strokeShardParticle: {
+    borderRadius: 999,
+    backgroundColor: '#7BC7F6'
+  },
+  pencilShardParticle: {
+    flexDirection: 'row',
+    overflow: 'hidden',
+    borderRadius: 999,
+    backgroundColor: colors.mint
+  },
+  pencilShardTip: {
+    width: 7,
+    backgroundColor: '#173B63'
+  },
+  mathTokenParticle: {
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0,
+    textAlign: 'center',
+    textShadowColor: 'rgba(123, 199, 246, 0.6)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12
+  },
+  studyTokenParticle: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    textShadowColor: 'rgba(115, 201, 189, 0.65)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12
+  },
+  keywordTokenParticle: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0,
+    textAlign: 'center',
+    textShadowColor: 'rgba(241, 200, 154, 0.55)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10
+  },
+  mascotStage: {
+    ...StyleSheet.absoluteFillObject,
     transitionDuration: '680ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
-  overlayExit: {
+  mascotStageExit: {
     opacity: 0,
-    transform: [{ scale: 1.045 }]
+    transform: [{ scale: 0.96 }]
   },
-  backgroundGlow: {
+  pencilMascotWrap: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0
-  },
-  glowMint: {
-    position: 'absolute',
-    width: '64%',
-    height: '52%',
-    left: '-12%',
-    top: '8%',
-    borderRadius: 999,
-    backgroundColor: 'rgba(115, 201, 189, 0.22)'
-  },
-  glowBlue: {
-    position: 'absolute',
-    width: '70%',
-    height: '58%',
-    right: '-16%',
-    bottom: '-10%',
-    borderRadius: 999,
-    backgroundColor: 'rgba(55, 100, 154, 0.24)'
-  },
-  orbitRing: {
-    position: 'absolute',
-    width: '78%',
-    height: '62%',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(217, 255, 247, 0.12)',
-    left: '11%',
-    top: '18%',
-    transform: [{ rotate: '-8deg' }]
-  },
-  particleLayer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0
-  },
-  particle: {
-    position: 'absolute',
-    color: '#D9FFF7',
-    fontWeight: '900',
-    letterSpacing: 0,
-    textShadowColor: 'rgba(115, 201, 189, 0.6)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
-    transitionDuration: '1450ms',
-    transitionProperty: 'left, top, opacity, transform',
-    transitionTimingFunction: 'cubic-bezier(0.16, 0.9, 0.18, 1)'
-  },
-  pencilStage: {
-    width: '82%',
-    maxWidth: 720,
-    minHeight: 230,
-    opacity: 0,
-    transform: [{ translateY: 34 }, { scale: 0.8 }, { rotate: '-2deg' }],
-    transitionDuration: '860ms',
-    transitionProperty: 'opacity, transform',
-    transitionTimingFunction: 'cubic-bezier(0.18, 0.82, 0.25, 1)',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  pencilStageVisible: {
-    opacity: 1,
-    transform: [{ translateY: 0 }, { scale: 1 }, { rotate: '0deg' }]
-  },
-  pencilStageWriting: {
-    transform: [{ translateY: -28 }, { scale: 1.03 }, { rotate: '-4deg' }]
-  },
-  reducedPencilStage: {
-    transform: [{ translateY: -18 }, { scale: 0.96 }, { rotate: '-3deg' }]
-  },
-  pencilShadow: {
-    position: 'absolute',
-    bottom: 48,
-    width: '76%',
-    height: 28,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.26)',
-    transform: [{ rotate: '-8deg' }, { scaleX: 1.16 }]
-  },
-  pencil: {
-    width: '86%',
-    minWidth: 280,
-    height: 78,
+    left: '51%',
+    top: '40.5%',
     flexDirection: 'row',
-    alignItems: 'stretch',
-    transform: [{ rotate: '-13deg' }]
+    alignItems: 'center',
+    height: 76,
+    borderRadius: 999,
+    shadowColor: '#061322',
+    shadowOpacity: 0.5,
+    shadowRadius: 34,
+    shadowOffset: { width: 0, height: 22 },
+    transitionDuration: '680ms',
+    transitionProperty: 'opacity, transform, width',
+    transitionTimingFunction: 'cubic-bezier(0.18, 0.82, 0.25, 1)'
   },
-  pencilEraser: {
-    width: 78,
-    borderTopLeftRadius: 24,
-    borderBottomLeftRadius: 24,
-    backgroundColor: '#F2CDA5',
-    borderWidth: 3,
-    borderColor: '#D6E7FF',
-    justifyContent: 'center'
-  },
-  pencilEraserBand: {
-    height: 22,
-    backgroundColor: 'rgba(23, 59, 99, 0.24)'
-  },
-  pencilBody: {
-    flex: 1,
-    backgroundColor: colors.mint,
-    borderTopWidth: 3,
-    borderBottomWidth: 3,
-    borderColor: '#D6E7FF',
-    justifyContent: 'space-around',
-    overflow: 'hidden'
-  },
-  pencilRidge: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.28)'
-  },
-  pencilStripe: {
-    height: 13,
-    backgroundColor: 'rgba(23, 59, 99, 0.2)'
-  },
-  pencilWood: {
-    width: 48,
-    backgroundColor: '#FFF1D9',
-    borderTopWidth: 3,
-    borderBottomWidth: 3,
-    borderColor: '#D6E7FF'
-  },
-  pencilTip: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 39,
-    borderBottomWidth: 39,
-    borderLeftWidth: 68,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#F8F2E7'
-  },
-  wordStage: {
-    width: '86%',
-    maxWidth: 650,
-    height: 118,
-    marginTop: -18,
-    opacity: 0,
-    position: 'relative',
-    justifyContent: 'center',
+  pencilCap: {
+    width: '11%',
+    height: 56,
+    borderTopLeftRadius: 28,
+    borderBottomLeftRadius: 28,
+    borderWidth: 2,
+    borderColor: 'rgba(217, 255, 247, 0.7)',
+    backgroundColor: '#FFF0D0',
     transitionDuration: '520ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
   },
-  wordStageVisible: {
-    opacity: 1
-  },
-  wordGhost: {
-    color: 'rgba(255, 255, 255, 0.1)',
-    fontSize: 74,
-    fontWeight: '900',
-    letterSpacing: 0,
-    textAlign: 'center'
-  },
-  wordStroke: {
-    position: 'absolute',
-    left: 18,
-    bottom: 22,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 241, 217, 0.62)'
-  },
-  wordReveal: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    overflow: 'hidden',
-    justifyContent: 'center'
-  },
-  wordText: {
-    width: 650,
-    color: '#FFF1D9',
-    fontSize: 74,
-    fontWeight: '900',
-    letterSpacing: 0,
-    textAlign: 'center',
-    textShadowColor: 'rgba(115, 201, 189, 0.58)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 14
-  },
-  wordPencil: {
-    position: 'absolute',
-    top: 58,
-    width: 70,
-    height: 20,
-    flexDirection: 'row',
-    transform: [{ translateX: -32 }, { rotate: '-18deg' }]
-  },
-  wordPencilBody: {
+  pencilBody: {
+    position: 'relative',
     flex: 1,
-    borderRadius: 9,
-    backgroundColor: colors.mint
+    height: 62,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    borderTopWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: 'rgba(217, 255, 247, 0.62)',
+    backgroundColor: '#5ECABB',
+    transitionDuration: '560ms',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'ease-out'
   },
-  wordPencilWood: {
-    width: 12,
-    backgroundColor: '#FFF1D9'
+  pencilBodyHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.32)'
   },
-  wordPencilTip: {
+  pencilBodyRidgeOne: {
+    position: 'absolute',
+    top: 12,
+    bottom: 12,
+    left: '28%',
+    width: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)'
+  },
+  pencilBodyRidgeTwo: {
+    position: 'absolute',
+    top: 11,
+    bottom: 11,
+    right: '27%',
+    width: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(23, 59, 99, 0.08)'
+  },
+  pencilWood: {
+    width: '10%',
+    height: 62,
+    backgroundColor: '#F0B66D',
+    transitionDuration: '560ms',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'ease-out'
+  },
+  pencilTip: {
     width: 0,
     height: 0,
-    borderTopWidth: 10,
-    borderBottomWidth: 10,
-    borderLeftWidth: 17,
+    borderTopWidth: 31,
+    borderBottomWidth: 31,
+    borderLeftWidth: 48,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderLeftColor: '#FFF1D9'
+    borderLeftColor: '#12395F',
+    transitionDuration: '560ms',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'ease-out'
   },
-  caption: {
+  wordLockup: {
     position: 'absolute',
-    bottom: 78,
+    left: `${WORD_LOCKUP_CENTER_X}%`,
+    top: `${WORD_LOCKUP_CENTER_Y}%`,
     alignItems: 'center',
-    paddingHorizontal: 24
+    overflow: 'hidden',
+    paddingVertical: WORD_LOCKUP_PADDING_Y,
+    opacity: 0,
+    transitionDuration: '860ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)'
   },
-  captionTitle: {
-    color: colors.mint,
-    fontSize: 13,
+  wordLockupVisible: {
+    opacity: 1
+  },
+  wordTitle: {
+    color: '#D9FFF7',
+    width: '100%',
+    fontFamily: WORD_FONT_FAMILY,
+    fontSize: WORD_FONT_SIZE,
     fontWeight: '900',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase'
+    letterSpacing: WORD_LETTER_SPACING,
+    textAlign: 'center',
+    textShadowColor: 'rgba(31, 124, 196, 0.45)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 18,
+    lineHeight: WORD_LINE_HEIGHT,
+    transitionDuration: '960ms',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)'
   },
-  captionText: {
-    color: '#D6E7FF',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 22,
-    marginTop: 8,
-    textAlign: 'center'
+  wordCaption: {
+    marginTop: 6,
+    color: 'rgba(255, 246, 223, 0.82)',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    textShadowColor: 'rgba(123, 199, 246, 0.35)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
+    transitionDuration: '760ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'ease-out'
+  },
+  logoShine: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: '50%',
+    width: 46,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
+    shadowColor: '#D9FFF7',
+    shadowOpacity: 0.7,
+    shadowRadius: 20,
+    transitionDuration: '720ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'cubic-bezier(0.16, 0.9, 0.18, 1)'
   },
   skipButton: {
     position: 'absolute',
     top: 24,
     right: 24,
     minHeight: 42,
-    borderRadius: 999,
-    paddingHorizontal: 16,
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.24)'
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 16
   },
   skipButtonText: {
     color: '#FFFFFF',
