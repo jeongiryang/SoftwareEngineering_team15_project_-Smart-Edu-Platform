@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AccessibleTextInput from '../components/AccessibleTextInput';
 import FieldFeedback from '../components/FieldFeedback';
+import { useLanguage } from '../i18n';
 import { registerUser } from '../services/api';
 import { colors, shadows } from '../styles/theme';
 
@@ -53,8 +54,29 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
   const [name, setName] = useState('');
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [touchedFields, setTouchedFields] = useState({
+    name: false,
+    loginId: false,
+    password: false
+  });
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const { t, translateText } = useLanguage();
+
+  function handleFieldChange(field, setter) {
+    return (value) => {
+      setTouchedFields((current) => ({ ...current, [field]: true }));
+      setter(value);
+    };
+  }
+
+  function localizeFeedback(feedback) {
+    return feedback ? { ...feedback, message: translateText(feedback.message) } : null;
+  }
+
+  const nameFeedback = touchedFields.name ? localizeFeedback(getNameFeedback(name)) : null;
+  const loginIdFeedback = touchedFields.loginId ? localizeFeedback(getLoginIdFeedback(loginId)) : null;
+  const passwordFeedback = touchedFields.password ? localizeFeedback(getPasswordFeedback(password)) : null;
 
   async function handleRegister() {
     setErrorMessage('');
@@ -91,14 +113,14 @@ export default function RegisterScreen({ onAuthenticated, onNavigate }) {
         <Text style={styles.title}>회원가입</Text>
         <Text style={styles.subtitle}>사각사각에서 나만의 학습 공간을 만드세요.</Text>
         <Text style={styles.label}>닉네임</Text>
-        <AccessibleTextInput enableVoiceInput={false} onChangeText={setName} placeholder="닉네임을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={name} />
-        <FieldFeedback {...getNameFeedback(name)} />
+        <AccessibleTextInput enableVoiceInput={false} onChangeText={handleFieldChange('name', setName)} placeholder={translateText('닉네임을 입력하세요')} placeholderTextColor={colors.muted} style={styles.input} value={name} />
+        {nameFeedback ? <FieldFeedback {...nameFeedback} /> : null}
         <Text style={styles.label}>아이디</Text>
-        <AccessibleTextInput autoCapitalize="none" enableVoiceInput={false} onChangeText={setLoginId} placeholder="dev_user" placeholderTextColor={colors.muted} style={styles.input} value={loginId} />
-        <FieldFeedback {...getLoginIdFeedback(loginId)} />
+        <AccessibleTextInput autoCapitalize="none" enableVoiceInput={false} onChangeText={handleFieldChange('loginId', setLoginId)} placeholder={t('login.identifierPlaceholder', '아이디를 입력하세요')} placeholderTextColor={colors.muted} style={styles.input} value={loginId} />
+        {loginIdFeedback ? <FieldFeedback {...loginIdFeedback} /> : null}
         <Text style={styles.label}>비밀번호</Text>
-        <AccessibleTextInput enableVoiceInput={false} onChangeText={setPassword} placeholder="비밀번호를 입력하세요" placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
-        <FieldFeedback {...getPasswordFeedback(password)} />
+        <AccessibleTextInput enableVoiceInput={false} onChangeText={handleFieldChange('password', setPassword)} placeholder={t('login.passwordPlaceholder', '비밀번호를 입력하세요')} placeholderTextColor={colors.muted} secureTextEntry style={styles.input} value={password} />
+        {passwordFeedback ? <FieldFeedback {...passwordFeedback} /> : null}
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         <Pressable accessibilityRole="button" disabled={loading} onPress={handleRegister} style={[styles.primaryButton, loading && styles.disabledButton]}>
           {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>가입하고 시작하기</Text>}

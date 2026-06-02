@@ -105,21 +105,15 @@ export default function MaintenanceScreen({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t('maintenance.screen.adminLogin', '관리자 로그인')}
+              accessibilityLabel={t('maintenance.screen.adminLogin', '로그인')}
               onPress={onAdminLogin}
               style={(state) => [styles.secondaryButton, ...interactiveStateStyles(state)]}
             >
               <Text style={styles.secondaryButtonText}>
-                {t('maintenance.screen.adminLogin', '관리자 로그인')}
+                {t('maintenance.screen.adminLogin', '로그인')}
               </Text>
             </Pressable>
           </View>
-          <Text style={styles.notice}>
-            {t(
-              'maintenance.screen.notice',
-              '관리자는 로그인 후 점검 중에도 관리자 화면에 접근할 수 있어요.'
-            )}
-          </Text>
         </View>
       </View>
     </SafeAreaView>
@@ -300,12 +294,4 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.65
   },
-  notice: {
-    maxWidth: 460,
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 18,
-    textAlign: 'center'
-  }
 });

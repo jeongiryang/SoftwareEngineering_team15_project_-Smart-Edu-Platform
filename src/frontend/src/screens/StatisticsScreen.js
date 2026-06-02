@@ -9,6 +9,7 @@ import {
   getStatisticsSummary,
   retryPendingFocusSessions
 } from '../services/api';
+import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, shadows } from '../styles/theme';
 
 const EMPTY_SUMMARY = {
@@ -297,6 +298,7 @@ function EmptyAction({ onPress }) {
 }
 
 export default function StatisticsScreen({ onNavigate, token }) {
+  const { translateText } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -630,11 +632,11 @@ export default function StatisticsScreen({ onNavigate, token }) {
               ) : (
                 <View style={styles.upcomingReminderBox}>
                   <Text style={styles.upcomingReminderTitle}>아직 등록된 복습 알림이 없습니다.</Text>
-                  <Text style={styles.upcomingReminderText}>필요한 경우 접근성 화면에서 원하는 시간에 알림을 직접 등록할 수 있습니다.</Text>
+                  <Text style={styles.upcomingReminderText}>{translateText('필요한 경우 일정 화면에서 원하는 시간에 복습 알림을 직접 등록할 수 있습니다.')}</Text>
                 </View>
               )}
-              <Pressable accessibilityRole="button" onPress={() => onNavigate('accessibility')} style={(state) => [styles.reviewPlanButton, ...interactiveStateStyles(state)]}>
-                <Text style={styles.reviewPlanButtonText}>복습 알림 설정하기</Text>
+              <Pressable accessibilityRole="button" onPress={() => onNavigate('schedule')} style={(state) => [styles.reviewPlanButton, ...interactiveStateStyles(state)]}>
+                <Text style={styles.reviewPlanButtonText}>{translateText('복습 알림 설정하기')}</Text>
               </Pressable>
             </View>
           </View>
