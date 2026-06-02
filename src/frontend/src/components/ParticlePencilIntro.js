@@ -40,6 +40,19 @@ const SHAPE_SEQUENCE = [
 const FORMED_STAGES = new Set(['silhouette', 'pencil', 'textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
 const MASCOT_STAGES = new Set(['pencil', 'textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
 const WORD_STAGES = new Set(['textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
+const INTRO_WORD = '사각사각';
+const WORD_FONT_SIZE = 56;
+const WORD_LINE_HEIGHT = 64;
+const WORD_LETTER_SPACING = 1.8;
+const WORD_LOCKUP_PADDING_Y = 10;
+const WORD_TITLE_CENTER_OFFSET = WORD_LOCKUP_PADDING_Y + WORD_LINE_HEIGHT / 2;
+const TEXT_TARGET_BASE_X = 40.55;
+const TEXT_TARGET_BASE_Y = 63.95;
+const TEXT_TARGET_CHAR_STEP_X = 4.72;
+const TEXT_TARGET_CELL_STEP_X = 0.48;
+const TEXT_TARGET_CELL_STEP_Y = 0.58;
+const TEXT_TARGET_CENTER_X = 49.4;
+const TEXT_TARGET_CENTER_Y = 66.32;
 const TEXT_SEQUENCE = ['sa', 'gak', 'sa', 'gak'];
 const TEXT_MASKS = {
   sa: [
@@ -226,8 +239,8 @@ function getTextTarget(index) {
 
   return {
     kind: 'text',
-    x: 40.55 + charIndex * 4.72 + cellX * 0.48 + jitterX,
-    y: 63.95 + cellY * 0.58 + jitterY
+    x: TEXT_TARGET_BASE_X + charIndex * TEXT_TARGET_CHAR_STEP_X + cellX * TEXT_TARGET_CELL_STEP_X + jitterX,
+    y: TEXT_TARGET_BASE_Y + cellY * TEXT_TARGET_CELL_STEP_Y + jitterY
   };
 }
 
@@ -627,6 +640,8 @@ export default function ParticlePencilIntro({ visible, onDone }) {
   const pencilWidth = width < 520 ? 238 : width < 900 ? 310 : 390;
   const wordWidth = Math.min((width || 1024) * 0.82, 440);
   const shineTranslate = stage === 'shine' || stage === 'settle' || stage === 'exit' ? wordWidth * 0.72 : -wordWidth * 0.72;
+  const wordTranslateY = (WORD_STAGES.has(stage) ? 0 : 10) - WORD_TITLE_CENTER_OFFSET;
+  const wordExitTranslateY = 10 - WORD_TITLE_CENTER_OFFSET;
 
   const particles = useMemo(() => buildParticles(particleCount), [particleCount]);
 
@@ -785,18 +800,18 @@ export default function ParticlePencilIntro({ visible, onDone }) {
           {
             transform: [
               { translateX: -wordWidth / 2 },
-              { translateY: WORD_STAGES.has(stage) ? 0 : 10 }
+              { translateY: wordTranslateY }
             ],
             width: wordWidth
           },
           WORD_STAGES.has(stage) && styles.wordLockupVisible,
           stage === 'exit' && {
             opacity: 0,
-            transform: [{ translateX: -wordWidth / 2 }, { translateY: 10 }]
+            transform: [{ translateX: -wordWidth / 2 }, { translateY: wordExitTranslateY }]
           }
         ]}
       >
-        <Text style={[styles.wordTitle, { opacity: getWordOpacity(stage, reducedMotion) }]}>사각사각</Text>
+        <Text style={[styles.wordTitle, { opacity: getWordOpacity(stage, reducedMotion) }]}>{INTRO_WORD}</Text>
         <Text style={[styles.wordCaption, { opacity: getCaptionOpacity(stage, reducedMotion) }]}>Smart Edu Platform</Text>
         <View
           pointerEvents="none"
@@ -1029,11 +1044,11 @@ const styles = StyleSheet.create({
   },
   wordLockup: {
     position: 'absolute',
-    left: '50%',
-    top: '64%',
+    left: `${TEXT_TARGET_CENTER_X}%`,
+    top: `${TEXT_TARGET_CENTER_Y}%`,
     alignItems: 'center',
     overflow: 'hidden',
-    paddingVertical: 10,
+    paddingVertical: WORD_LOCKUP_PADDING_Y,
     opacity: 0,
     transitionDuration: '860ms',
     transitionProperty: 'opacity, transform',
@@ -1044,13 +1059,13 @@ const styles = StyleSheet.create({
   },
   wordTitle: {
     color: '#D9FFF7',
-    fontSize: 56,
+    fontSize: WORD_FONT_SIZE,
     fontWeight: '900',
-    letterSpacing: 1.8,
+    letterSpacing: WORD_LETTER_SPACING,
     textShadowColor: 'rgba(31, 124, 196, 0.45)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 18,
-    lineHeight: 64,
+    lineHeight: WORD_LINE_HEIGHT,
     transitionDuration: '960ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)'
