@@ -9,7 +9,7 @@ const DEMO_FINAL_PHASE = DEMO_PHASE_COUNT - 1;
 const DEMO_VISUAL_FINAL_PHASE = 4;
 const DEMO_PHASE_SEQUENCE = [0, 1, 2, 3, 4, 5, 5];
 const DEMO_PHASE_INTERVAL_MS = 850;
-const TRUST_STEP_INTERVAL_MS = 1980;
+const TRUST_STEP_INTERVAL_MS = 2200;
 
 const promoSlides = [
   {
@@ -1085,7 +1085,7 @@ const styles = StyleSheet.create({
     zIndex: 5
   },
   sectionEyebrow: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.4,
@@ -1308,9 +1308,9 @@ const styles = StyleSheet.create({
     flex: 1.25,
     minWidth: 290,
     borderRadius: 26,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     padding: 26
   },
   recordHeaderRow: {
@@ -1339,7 +1339,7 @@ const styles = StyleSheet.create({
   recordLogRow: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceWarm,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -1357,7 +1357,7 @@ const styles = StyleSheet.create({
   },
   recordLogText: {
     flex: 1,
-    color: '#334155',
+    color: colors.muted,
     fontSize: 14,
     fontWeight: '700'
   },
@@ -1370,34 +1370,34 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
-    shadowColor: '#173B63',
+    borderColor: colors.line,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.07,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 }
   },
   recordMiniCardMint: {
-    backgroundColor: '#E8FAF6'
+    backgroundColor: colors.mintSoft
   },
   recordMiniCardCream: {
-    backgroundColor: '#FFF5D6'
+    backgroundColor: colors.cream
   },
   recordMiniLabel: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
     marginBottom: 8
   },
   recordMiniValue: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 30,
     lineHeight: 36,
     fontWeight: '900',
     marginBottom: 8
   },
   recordMiniText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 22,
     fontWeight: '700'
@@ -1416,11 +1416,11 @@ const styles = StyleSheet.create({
     paddingVertical: 94,
     paddingHorizontal: 24,
     borderRadius: 32,
-    backgroundColor: '#FFFDF6',
+    backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     marginBottom: 64,
-    shadowColor: '#173B63',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.07,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 }
@@ -1442,9 +1442,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 240,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     padding: 24
   },
   projectCardRule: {
@@ -1486,13 +1486,13 @@ const styles = StyleSheet.create({
     padding: 25,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     backgroundColor: colors.surface
   },
   featureLabel: {
     alignSelf: 'flex-start',
-    color: '#173B63',
-    backgroundColor: '#E8FAF6',
+    color: colors.blueDeep,
+    backgroundColor: colors.mintSoft,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 12,
@@ -1578,7 +1578,7 @@ const styles = StyleSheet.create({
   newSectionTitle: {
     fontSize: 40,
     fontWeight: '900',
-    color: '#15202B',
+    color: colors.ink,
     lineHeight: 52,
     marginBottom: 20,
     letterSpacing: 0,
@@ -1589,7 +1589,7 @@ const styles = StyleSheet.create({
   },
   newSectionDesc: {
     fontSize: 18,
-    color: '#475569',
+    color: colors.muted,
     lineHeight: 28,
     marginBottom: 32
   },
@@ -1612,9 +1612,9 @@ const styles = StyleSheet.create({
     transitionTimingFunction: 'ease-in-out'
   },
   demoCurrentStep: {
-    borderColor: 'rgba(15, 118, 110, 0.32)',
-    backgroundColor: '#E8FAF6',
-    shadowColor: '#173B63',
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -1623,7 +1623,7 @@ const styles = StyleSheet.create({
     transitionTimingFunction: 'ease-in-out'
   },
   demoMiniActive: {
-    borderColor: 'rgba(15, 118, 110, 0.32)',
+    borderColor: colors.mint,
     transform: [{ translateY: -4 }, { scale: 1.02 }],
     transitionDuration: '560ms',
     transitionTimingFunction: 'ease-in-out'
@@ -1632,12 +1632,12 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.08 }]
   },
   demoPanelActive: {
-    borderColor: 'rgba(15, 118, 110, 0.3)',
-    backgroundColor: '#F1FDF9'
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
   },
   demoChipActive: {
-    borderColor: 'rgba(15, 118, 110, 0.34)',
-    backgroundColor: '#CDEFE9',
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
     transform: [{ translateY: -3 }, { scale: 1.03 }]
   },
   demoTextActive: {
@@ -1663,38 +1663,38 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   focusTimerPhase0: {
-    borderColor: '#BDE0FE'
+    borderColor: colors.blue
   },
   focusTimerPhase1: {
-    borderColor: '#CDEFE9',
+    borderColor: colors.mint,
     transform: [{ scale: 1.02 }]
   },
   focusTimerPhase2: {
-    borderColor: '#73C9BD',
+    borderColor: colors.mint,
     transform: [{ scale: 1.05 }]
   },
   focusTimerPhase3: {
-    borderColor: '#0F766E',
+    borderColor: colors.mintDeep,
     transform: [{ scale: 1.07 }]
   },
   focusTimerPhase4: {
-    borderColor: '#0B5F59',
-    backgroundColor: '#E8FAF6',
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.mintSoft,
     transform: [{ scale: 1.09 }]
   },
   focusBarFillActive: {
-    backgroundColor: '#0F766E'
+    backgroundColor: colors.mintDeep
   },
   typingDotsRow: {
     flexDirection: 'row',
     alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 12,
-    shadowColor: '#173B63',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }
@@ -1702,7 +1702,7 @@ const styles = StyleSheet.create({
   aiWaitRow: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     paddingHorizontal: 14,
     paddingVertical: 8,
     marginBottom: 12
@@ -1720,8 +1720,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mintDeep
   },
   languageRowSelected: {
-    borderColor: 'rgba(15, 118, 110, 0.36)',
-    backgroundColor: '#CDEFE9'
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
   },
   microDelay0: {
     animationDelay: '0s'
@@ -1770,10 +1770,10 @@ const styles = StyleSheet.create({
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { borderColor: '#CDEFE9', transform: 'scale(0.96)' },
-        '38%': { borderColor: '#0F766E', transform: 'scale(1.08)' },
-        '68%': { borderColor: '#73C9BD', transform: 'scale(1)' },
-        '100%': { borderColor: '#CDEFE9', transform: 'scale(0.96)' }
+        '0%': { borderColor: colors.mintSoft, transform: 'scale(0.96)' },
+        '38%': { borderColor: colors.mintDeep, transform: 'scale(1.08)' },
+        '68%': { borderColor: colors.mint, transform: 'scale(1)' },
+        '100%': { borderColor: colors.mintSoft, transform: 'scale(0.96)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
@@ -1823,10 +1823,10 @@ const styles = StyleSheet.create({
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { backgroundColor: '#E8FAF6', transform: 'scale(1)' },
-        '30%': { backgroundColor: '#73C9BD', transform: 'scale(1.16)' },
-        '58%': { backgroundColor: '#CDEFE9', transform: 'scale(1.04)' },
-        '100%': { backgroundColor: '#E8FAF6', transform: 'scale(1)' }
+        '0%': { backgroundColor: colors.mintSoft, transform: 'scale(1)' },
+        '30%': { backgroundColor: colors.mint, transform: 'scale(1.16)' },
+        '58%': { backgroundColor: colors.mintSoft, transform: 'scale(1.04)' },
+        '100%': { backgroundColor: colors.mintSoft, transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
@@ -1874,10 +1874,10 @@ const styles = StyleSheet.create({
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { backgroundColor: '#F8FAFC' },
-        '42%': { backgroundColor: '#DDF8F3' },
-        '72%': { backgroundColor: '#F1F9F7' },
-        '100%': { backgroundColor: '#F8FAFC' }
+        '0%': { backgroundColor: colors.surfaceWarm },
+        '42%': { backgroundColor: colors.mintSoft },
+        '72%': { backgroundColor: colors.surfaceWarm },
+        '100%': { backgroundColor: colors.surfaceWarm }
       }
     ],
     animationTimingFunction: 'ease-in-out'
@@ -1953,10 +1953,10 @@ const styles = StyleSheet.create({
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { backgroundColor: '#FFFFFF', transform: 'translateX(0) scale(1)' },
-        '32%': { backgroundColor: '#CDEFE9', transform: 'translateX(8px) scale(1.025)' },
-        '66%': { backgroundColor: '#E8FAF6', transform: 'translateX(2px) scale(1)' },
-        '100%': { backgroundColor: '#FFFFFF', transform: 'translateX(0) scale(1)' }
+        '0%': { backgroundColor: colors.surface, transform: 'translateX(0) scale(1)' },
+        '32%': { backgroundColor: colors.mintSoft, transform: 'translateX(8px) scale(1.025)' },
+        '66%': { backgroundColor: colors.mintSoft, transform: 'translateX(2px) scale(1)' },
+        '100%': { backgroundColor: colors.surface, transform: 'translateX(0) scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
@@ -1975,16 +1975,16 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   tagWrap: {
-    backgroundColor: 'rgba(92, 198, 184, 0.1)',
+    backgroundColor: colors.mintSoft,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: 'rgba(92, 198, 184, 0.18)'
+    borderColor: colors.mint
   },
   tagText: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontWeight: '900',
     fontSize: 14,
     letterSpacing: 0.2
@@ -1997,7 +1997,8 @@ const styles = StyleSheet.create({
     fontSize: 198,
     lineHeight: 220,
     fontWeight: '900',
-    color: 'rgba(23, 59, 99, 0.08)',
+    color: colors.blueDeep,
+    opacity: 0.08,
     zIndex: 0,
     pointerEvents: 'none',
     textAlign: 'center',
@@ -2008,7 +2009,8 @@ const styles = StyleSheet.create({
     top: '46%'
   },
   bgSubtleKeyword: {
-    color: 'rgba(23, 59, 99, 0.045)',
+    color: colors.blueDeep,
+    opacity: 0.06,
     fontSize: 168,
     lineHeight: 190
   },
@@ -2055,15 +2057,15 @@ const styles = StyleSheet.create({
     top: '50%'
   },
   mockCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 26,
     padding: 32,
-    shadowColor: '#173B63',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.14,
     shadowRadius: 34,
     shadowOffset: { width: 0, height: 18 },
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)'
+    borderColor: colors.line
   },
   planMock: {
     width: '100%',
@@ -2078,7 +2080,7 @@ const styles = StyleSheet.create({
   planMonth: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#15202B',
+    color: colors.ink,
     wordBreak: 'keep-all',
     overflowWrap: 'normal'
   },
@@ -2112,37 +2114,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF8A65'
   },
   planTimeDotBlue: {
-    backgroundColor: '#173B63'
+    backgroundColor: colors.blueDeep
   },
   planTimeText: {
-    color: '#334155',
+    color: colors.muted,
     fontWeight: '700',
     fontSize: 15,
     flex: 1
   },
   planPriorityBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: colors.line
   },
   planPriorityTitle: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 16,
     fontWeight: '900',
     marginBottom: 8
   },
   planPriorityText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '700'
   },
   focusMock: {
-    borderColor: '#CDEFE9',
+    borderColor: colors.mint,
     borderWidth: 2,
-    backgroundColor: '#F8FFFD',
+    backgroundColor: colors.surfaceWarm,
     minHeight: 300
   },
   focusHeader: {
@@ -2157,11 +2159,11 @@ const styles = StyleSheet.create({
     height: 136,
     borderRadius: 68,
     borderWidth: 12,
-    borderColor: '#73C9BD',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.mint,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#173B63',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
@@ -2169,13 +2171,13 @@ const styles = StyleSheet.create({
     transitionTimingFunction: 'ease-in-out'
   },
   focusTimerValue: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 28,
     lineHeight: 32,
     fontWeight: '900'
   },
   focusTimerLabel: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '900',
@@ -2186,14 +2188,14 @@ const styles = StyleSheet.create({
     minWidth: 170
   },
   focusSummaryLabel: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
     marginBottom: 6
   },
   focusSummaryValue: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 26,
     lineHeight: 32,
     fontWeight: '900',
@@ -2201,8 +2203,8 @@ const styles = StyleSheet.create({
   },
   focusStreakChip: {
     alignSelf: 'flex-start',
-    color: '#0F766E',
-    backgroundColor: '#E8FAF6',
+    color: colors.mintDeep,
+    backgroundColor: colors.mintSoft,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -2229,33 +2231,33 @@ const styles = StyleSheet.create({
     maxWidth: 34,
     height: 84,
     borderRadius: 999,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.line,
     overflow: 'hidden',
     justifyContent: 'flex-end'
   },
   focusBarFill: {
     width: '100%',
-    backgroundColor: '#73C9BD',
+    backgroundColor: colors.mint,
     borderRadius: 999,
     transitionDuration: '760ms',
     transitionProperty: 'height, opacity, background-color',
     transitionTimingFunction: 'ease-in-out'
   },
   focusBarLabel: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '900'
   },
   focusSavedBox: {
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.16)',
+    borderColor: colors.mintSoft,
     padding: 14
   },
   focusSavedText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '900',
@@ -2264,7 +2266,7 @@ const styles = StyleSheet.create({
   chatMock: {
     width: '100%',
     padding: 24,
-    backgroundColor: '#F8FAFC'
+    backgroundColor: colors.surfaceWarm
   },
   chatUserBubble: {
     backgroundColor: '#15202B',
@@ -2285,13 +2287,13 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   chatAiBubble: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     padding: 20,
     borderRadius: 20,
     borderBottomLeftRadius: 4,
     alignSelf: 'flex-start',
     maxWidth: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 10
   },
@@ -2300,7 +2302,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   chatAiText: {
-    color: '#334155',
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 23,
     marginBottom: 16
@@ -2311,34 +2313,34 @@ const styles = StyleSheet.create({
     gap: 8
   },
   chatBtn: {
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12
   },
   chatBtnMuted: {
-    backgroundColor: '#F1F5F9'
+    backgroundColor: colors.surfaceWarm
   },
   chatBtnText: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontWeight: '800',
     fontSize: 12
   },
   chatBtnMutedText: {
-    color: '#64748B'
+    color: colors.muted
   },
   chatBtnCream: {
-    backgroundColor: '#FFF5D6'
+    backgroundColor: colors.cream
   },
   chatBtnCreamText: {
-    color: '#A15C00'
+    color: colors.warning
   },
   noteMock: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#FFFDF6',
+    backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: colors.line
   },
   noteBadge: {
     alignSelf: 'flex-start',
@@ -2356,7 +2358,7 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#15202B',
+    color: colors.ink,
     marginBottom: 24
   },
   summaryBulletList: {
@@ -2371,21 +2373,21 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E8FAF6',
-    color: '#0F766E',
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep,
     textAlign: 'center',
     lineHeight: 24,
     fontWeight: '800'
   },
   summaryBulletText: {
     flex: 1,
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 21,
     fontWeight: '600'
   },
   summaryHighlightText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontWeight: '900'
   },
   reportStack: {
@@ -2399,7 +2401,7 @@ const styles = StyleSheet.create({
     left: 18,
     right: 0,
     height: 350,
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     opacity: 0.75,
     transform: [{ rotate: '-2deg' }]
   },
@@ -2409,7 +2411,7 @@ const styles = StyleSheet.create({
     left: 34,
     right: -10,
     height: 350,
-    backgroundColor: '#FFF5D6',
+    backgroundColor: colors.cream,
     opacity: 0.7,
     transform: [{ rotate: '2deg' }]
   },
@@ -2426,7 +2428,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.line,
     paddingBottom: 14,
     marginBottom: 14,
     gap: 12
@@ -2435,7 +2437,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '800',
-    color: '#15202B',
+    color: colors.ink,
     wordBreak: 'keep-all',
     overflowWrap: 'normal'
   },
@@ -2452,10 +2454,10 @@ const styles = StyleSheet.create({
     gap: 14
   },
   reportAnalysisRow: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)',
+    borderColor: colors.line,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 10
@@ -2465,7 +2467,7 @@ const styles = StyleSheet.create({
     gap: 3
   },
   reportLabel: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 21,
     fontWeight: '700',
@@ -2488,21 +2490,21 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   reportReason: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 16,
     padding: 14,
     marginTop: 2,
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.12)'
+    borderColor: colors.mintSoft
   },
   reportReasonTitle: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 14,
     fontWeight: '900',
     marginBottom: 8
   },
   reportReasonText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '600'
@@ -2514,21 +2516,21 @@ const styles = StyleSheet.create({
     minHeight: 250
   },
   messageMock: {
-    borderColor: '#BDE0FE',
+    borderColor: colors.blue,
     borderWidth: 2,
-    backgroundColor: '#F0F8FF'
+    backgroundColor: colors.blueSoft
   },
   messageScore: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 15
   },
   communityMock: {
-    borderColor: '#CDEFE9',
+    borderColor: colors.mint,
     borderWidth: 2,
-    backgroundColor: '#F8FFFD'
+    backgroundColor: colors.mintSoft
   },
   communityScore: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 15
   },
   communityActionGrid: {
@@ -2538,10 +2540,10 @@ const styles = StyleSheet.create({
     marginBottom: 14
   },
   communityPostPreview: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.16)',
+    borderColor: colors.mintSoft,
     padding: 14,
     marginBottom: 14
   },
@@ -2553,21 +2555,21 @@ const styles = StyleSheet.create({
     marginBottom: 7
   },
   communityPostComment: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800'
   },
   communityActionPill: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     paddingHorizontal: 12,
     paddingVertical: 8
   },
   communityActionText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 13,
     fontWeight: '900'
   },
@@ -2579,8 +2581,8 @@ const styles = StyleSheet.create({
     marginBottom: 14
   },
   socialStatusText: {
-    color: '#173B63',
-    backgroundColor: '#E8FAF6',
+    color: colors.blueDeep,
+    backgroundColor: colors.mintSoft,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -2589,11 +2591,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   socialUnreadPill: {
-    color: '#0F766E',
-    backgroundColor: '#FFFFFF',
+    color: colors.mintDeep,
+    backgroundColor: colors.surface,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.18)',
+    borderColor: colors.mintSoft,
     paddingHorizontal: 12,
     paddingVertical: 7,
     fontSize: 13,
@@ -2604,7 +2606,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 12
@@ -2633,28 +2635,28 @@ const styles = StyleSheet.create({
   messageBubble: {
     flex: 1,
     maxWidth: '82%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 18,
     borderBottomLeftRadius: 5,
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)',
-    shadowColor: '#173B63',
+    borderColor: colors.line,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }
   },
   messageBubbleMint: {
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 5
   },
   messageBubbleCream: {
-    backgroundColor: '#FFF5D6'
+    backgroundColor: colors.cream
   },
   messageAuthor: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '900',
@@ -2667,21 +2669,21 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   socialFooterText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '800',
     marginTop: 2
   },
   coopMock: {
-    borderColor: '#FFC8C8',
+    borderColor: colors.danger,
     borderWidth: 2,
-    backgroundColor: '#FFF7F7'
+    backgroundColor: colors.dangerSoft
   },
   raidProgressBar: {
     width: '100%',
     height: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.line,
     borderRadius: 8,
     overflow: 'hidden',
     marginTop: 20
@@ -2689,7 +2691,7 @@ const styles = StyleSheet.create({
   raidProgressFill: {
     width: '74%',
     height: '100%',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: colors.danger,
     borderRadius: 8,
     transitionDuration: '760ms',
     transitionProperty: 'width, opacity',
@@ -2702,10 +2704,10 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   coopContributionChip: {
-    color: '#7F1D1D',
-    backgroundColor: '#FFFFFF',
+    color: colors.danger,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.14)',
+    borderColor: colors.dangerSoft,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -2715,19 +2717,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   raidProgressText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 21,
     marginTop: 12,
     fontWeight: '700'
   },
   rewardMock: {
-    borderColor: '#FFE4B5',
+    borderColor: colors.creamStrong,
     borderWidth: 2,
-    backgroundColor: '#FFFDF0'
+    backgroundColor: colors.warningSoft
   },
   rewardScore: {
-    color: '#A15C00'
+    color: colors.warning
   },
   rewardPreviewRow: {
     flexDirection: 'row',
@@ -2738,9 +2740,9 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 26,
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     borderWidth: 12,
-    borderColor: '#73C9BD',
+    borderColor: colors.mint,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -2750,7 +2752,7 @@ const styles = StyleSheet.create({
   },
   rewardAvatarPreviewMoon: {
     backgroundColor: '#173B63',
-    borderColor: '#FFE4B5'
+    borderColor: colors.creamStrong
   },
   rewardMoonSky: {
     ...StyleSheet.absoluteFillObject,
@@ -2802,7 +2804,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     opacity: 0.72
   },
   rewardAvatarInnerActive: {
@@ -2823,11 +2825,11 @@ const styles = StyleSheet.create({
     marginBottom: 2
   },
   rewardItemChip: {
-    color: '#A15C00',
-    backgroundColor: '#FFFFFF',
+    color: colors.warning,
+    backgroundColor: colors.surface,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(161, 92, 0, 0.12)',
+    borderColor: colors.warningSoft,
     paddingHorizontal: 9,
     paddingVertical: 6,
     fontSize: 12,
@@ -2836,12 +2838,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   languageMock: {
-    borderColor: '#CDEFE9',
+    borderColor: colors.mint,
     borderWidth: 2,
-    backgroundColor: '#F8FFFD'
+    backgroundColor: colors.mintSoft
   },
   languageScore: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 16
   },
   languageList: {
@@ -2851,12 +2853,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)',
+    borderColor: colors.line,
     transitionDuration: '580ms',
     transitionTimingFunction: 'ease-in-out'
   },
@@ -2873,9 +2875,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     color: colors.ink,
     fontSize: 16,
     lineHeight: 28,
@@ -2886,19 +2888,19 @@ const styles = StyleSheet.create({
     transitionTimingFunction: 'ease-in-out'
   },
   languageFlagBadgeSelected: {
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(15, 118, 110, 0.36)',
+    backgroundColor: colors.surface,
+    borderColor: colors.mint,
     transform: [{ scale: 1.06 }]
   },
   languageText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '800',
     flex: 1
   },
   languageNote: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '700',
@@ -2907,8 +2909,8 @@ const styles = StyleSheet.create({
   languageSampleBox: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.18)',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.mintSoft,
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginTop: 12,
@@ -2916,8 +2918,8 @@ const styles = StyleSheet.create({
     transitionTimingFunction: 'ease-in-out'
   },
   languageSampleBoxSynced: {
-    borderColor: 'rgba(15, 118, 110, 0.3)',
-    backgroundColor: '#F8FFFD'
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
   },
   languageSampleText: {
     color: colors.ink,
@@ -2938,8 +2940,8 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    color: '#94A3B8',
-    backgroundColor: '#F1F5F9',
+    color: colors.muted,
+    backgroundColor: colors.line,
     textAlign: 'center',
     lineHeight: 28,
     fontSize: 14,
@@ -2947,7 +2949,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   trustCheckActive: {
-    color: '#FFFFFF',
+    color: colors.background,
     backgroundColor: colors.mintDeep,
     transform: [{ scale: 1.04 }],
     transitionDuration: '520ms',
@@ -2957,12 +2959,12 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     alignItems: 'center',
     justifyContent: 'center'
   },
   trustIcon: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 15,
     fontWeight: '900'
   },
