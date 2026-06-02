@@ -4,10 +4,11 @@ import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
-const DEMO_PHASE_COUNT = 5;
+const DEMO_PHASE_COUNT = 6;
 const DEMO_FINAL_PHASE = DEMO_PHASE_COUNT - 1;
-const DEMO_PHASE_SEQUENCE = [0, 1, 2, 3, 4, 3, 2, 1];
-const DEMO_PHASE_INTERVAL_MS = 680;
+const DEMO_VISUAL_FINAL_PHASE = 4;
+const DEMO_PHASE_SEQUENCE = [0, 0, 1, 2, 3, 4, 5, 5, 4, 3, 2, 1];
+const DEMO_PHASE_INTERVAL_MS = 660;
 
 const promoSlides = [
   {
@@ -280,10 +281,11 @@ function getBarHeightForPhase(targetHeight, index, demoPhase, reducedMotion) {
 
 function getCoopProgressWidth(demoPhase, reducedMotion) {
   if (reducedMotion) {
-    return '82%';
+    return '24%';
   }
 
-  return ['18%', '36%', '54%', '70%', '86%'][demoPhase] || '54%';
+  const phase = Math.min(demoPhase, DEMO_VISUAL_FINAL_PHASE);
+  return ['82%', '68%', '55%', '39%', '24%'][phase] || '55%';
 }
 
 function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevious, onSelect, t }) {
@@ -373,7 +375,7 @@ function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevi
 }
 
 function DesignNotesRecordCards({ demoPhase, reducedMotion, t }) {
-  const phase = reducedMotion ? DEMO_FINAL_PHASE : demoPhase;
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
   const dateValues = ['05/24', '05/25', '05/26', '05/27', '05/28'];
   const streakValues = ['연속 1일째', '연속 2일째', '연속 3일째', '연속 4일째', t('landing.designRecord.streak', '연속 5일째')];
   const rows = [
@@ -409,7 +411,7 @@ function DesignNotesRecordCards({ demoPhase, reducedMotion, t }) {
         </View>
         <View style={[styles.recordMiniCard, styles.recordMiniCardCream, demoPhase >= 3 && styles.demoMiniActive]}>
           <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini2Label', 'Saved Questions')}</Text>
-          <Text style={styles.recordMiniValue}>{String(Math.max(1, Math.min(3, phase)))}</Text>
+          <Text style={styles.recordMiniValue}>{String(phase)}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini2Text', '질문과 요약을 다시 볼 수 있게 모아둡니다.')}</Text>
         </View>
       </View>
@@ -457,6 +459,7 @@ function PlanMock({ demoPhase, reducedMotion, t }) {
 }
 
 function FocusMock({ demoPhase, reducedMotion, t }) {
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
   const weeklyBars = [
     ['landing.focus.week.mon', '62%'],
     ['landing.focus.week.tue', '48%'],
@@ -466,17 +469,17 @@ function FocusMock({ demoPhase, reducedMotion, t }) {
   ];
   const timerValues = [
     t('landing.focus.timerValue', '25:00'),
+    t('landing.focus.timerValue', '25:00'),
     '24:59',
     '24:58',
-    '24:57',
-    '24:56'
+    '24:57'
   ];
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.focusMock]}>
       <View style={styles.focusHeader}>
-        <View style={[styles.focusTimerCircle, animatedStyle(styles.microTimerPulse, reducedMotion), styles[`focusTimerPhase${demoPhase}`]]}>
-          <Text style={styles.focusTimerValue}>{reducedMotion ? t('landing.focus.timerValue', '25:00') : timerValues[demoPhase]}</Text>
+        <View style={[styles.focusTimerCircle, animatedStyle(styles.microTimerPulse, reducedMotion), styles[`focusTimerPhase${phase}`]]}>
+          <Text style={styles.focusTimerValue}>{timerValues[phase]}</Text>
           <Text style={styles.focusTimerLabel}>{t('landing.focus.timerLabel', '집중 타이머')}</Text>
         </View>
         <View style={styles.focusSummaryStack}>
@@ -492,9 +495,8 @@ function FocusMock({ demoPhase, reducedMotion, t }) {
               <View
                 style={[
                   styles.focusBarFill,
-                  { height: getBarHeightForPhase(height, index, demoPhase, reducedMotion) },
-                  isPhaseReached(index, demoPhase + 1, reducedMotion) && styles.focusBarFillActive,
-                  animatedStyle(styles.microBarRise, reducedMotion),
+                  { height: getBarHeightForPhase(height, index, phase, reducedMotion) },
+                  isPhaseReached(index, phase + 1, reducedMotion) && styles.focusBarFillActive,
                   animatedStyle(getMicroDelayStyle(index), reducedMotion)
                 ]}
               />
@@ -503,7 +505,7 @@ function FocusMock({ demoPhase, reducedMotion, t }) {
           </View>
         ))}
       </View>
-      <View style={[styles.focusSavedBox, demoPhase >= 4 && styles.demoPanelActive]}>
+      <View style={[styles.focusSavedBox, phase >= 4 && styles.demoPanelActive]}>
         <Text style={styles.focusSavedText}>{t('landing.focus.saved', '집중 기록 저장 완료')}</Text>
       </View>
     </View>
@@ -516,23 +518,26 @@ function ChatMock({ demoPhase, reducedMotion, t }) {
       <View style={[styles.chatUserBubble, animatedStyle(styles.microBubbleLift, reducedMotion), getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>
         <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem1', '이 개념을 한 문단으로 요약해줘')}</Text>
       </View>
-      <View style={[styles.typingDotsRow, getCurrentStepStyle(1, demoPhase, reducedMotion)]}>
+      <View style={[styles.aiWaitRow, getCurrentStepStyle(1, demoPhase, reducedMotion)]}>
+        <Text style={styles.aiWaitText}>AI가 질문을 읽는 중</Text>
+      </View>
+      <View style={[styles.typingDotsRow, getCurrentStepStyle(2, demoPhase, reducedMotion)]}>
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion)]} />
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]} />
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]} />
       </View>
-      <View style={[styles.chatAiBubble, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getCurrentOrCompleteStyle(2, demoPhase, reducedMotion)]}>
+      <View style={[styles.chatAiBubble, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getCurrentOrCompleteStyle(3, demoPhase, reducedMotion)]}>
         <Text style={styles.chatAiText}>막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.</Text>
       </View>
-      <View style={[styles.chatUserBubble, styles.chatUserBubbleFollowup, animatedStyle(styles.microBubbleLift, reducedMotion), getStepStyle(3, demoPhase, reducedMotion)]}>
+      <View style={[styles.chatUserBubble, styles.chatUserBubbleFollowup, animatedStyle(styles.microBubbleLift, reducedMotion), getStepStyle(4, demoPhase, reducedMotion)]}>
         <Text style={styles.chatUserText}>예시도 같이 보여줘</Text>
       </View>
-      <View style={[styles.chatAiBubble, styles.chatAiBubbleFollowup, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getStepStyle(4, demoPhase, reducedMotion)]}>
+      <View style={[styles.chatAiBubble, styles.chatAiBubbleFollowup, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getStepStyle(5, demoPhase, reducedMotion)]}>
         <Text style={styles.chatAiText}>복습 질문으로 이어가면 요약, 다시 보기, 예시 보기 순서로 정리됩니다.</Text>
         <View style={styles.chatActions}>
-          <View style={[styles.chatBtn, animatedStyle(styles.microChipHighlight, reducedMotion), demoPhase >= 2 && styles.demoChipActive]}><Text style={styles.chatBtnText}>요약하기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnMuted, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), demoPhase >= 3 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnCream, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion), demoPhase >= 4 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
+          <View style={[styles.chatBtn, animatedStyle(styles.microChipHighlight, reducedMotion), demoPhase >= 3 && styles.demoChipActive]}><Text style={styles.chatBtnText}>요약하기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnMuted, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), demoPhase >= 5 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnCream, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion), demoPhase >= 5 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
         </View>
       </View>
     </View>
@@ -633,7 +638,7 @@ function MessageMock({ demoPhase, reducedMotion, t }) {
       <View style={[styles.messageBubbleRow, styles.messageBubbleRowRight, getStepStyle(3, demoPhase, reducedMotion)]}>
         <View style={[styles.messageBubble, styles.messageBubbleMint, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}>
           <Text style={styles.messageAuthor}>지환</Text>
-          <Text style={styles.messageBubbleText}>응, 서비스 소개 쪽 먼저 볼게.</Text>
+          <Text style={styles.messageBubbleText}>지금 PR 확인하고 리뷰 남길게.</Text>
         </View>
         <View style={[styles.friendAvatar, styles.friendAvatarMint]} />
       </View>
@@ -641,7 +646,7 @@ function MessageMock({ demoPhase, reducedMotion, t }) {
         <View style={[styles.friendAvatar, styles.friendAvatarCream]} />
         <View style={[styles.messageBubble, styles.messageBubbleCream, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}>
           <Text style={styles.messageAuthor}>대겸</Text>
-          <Text style={styles.messageBubbleText}>인트로는 보류하고 카드 연출부터 가자.</Text>
+          <Text style={styles.messageBubbleText}>너무 힘들어요 ㅠㅠ 코멘트 남겼어요.</Text>
         </View>
       </View>
       <Text style={styles.socialFooterText}>{t('landing.message.footer', '친구 접속 상태 · 읽지 않은 메시지 · 실시간 흐름')}</Text>
@@ -665,8 +670,8 @@ function CommunityMock({ demoPhase, reducedMotion, t }) {
         <Text style={[styles.reportScore, styles.communityScore]}>{t('landing.community.previewPill', 'Share')}</Text>
       </View>
       <View style={[styles.communityPostPreview, getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>
-        <Text style={styles.communityPostTitle}>게시글: 서비스 소개 UI 피드백 정리</Text>
-        <Text style={[styles.communityPostComment, getStepStyle(1, demoPhase, reducedMotion)]}>댓글: FOCUS 섹션 간격 수정 제안</Text>
+        <Text style={styles.communityPostTitle}>질문: DFS 방문 순서가 헷갈려요</Text>
+        <Text style={[styles.communityPostComment, getStepStyle(1, demoPhase, reducedMotion)]}>댓글: 스택 흐름으로 다시 보면 쉬워요</Text>
       </View>
       <View style={styles.communityActionGrid}>
         {items.map((item, index) => (
@@ -689,7 +694,7 @@ function CommunityMock({ demoPhase, reducedMotion, t }) {
 }
 
 function CoopMock({ demoPhase, reducedMotion, t }) {
-  const phase = reducedMotion ? DEMO_FINAL_PHASE : demoPhase;
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
   const hpValues = ['HP 82%', 'HP 68%', 'HP 55%', 'HP 39%', 'HP 24%'];
   const contributionLabels = ['이량 +12분', '지환 +18분', '대겸 +15분'];
 
@@ -700,7 +705,7 @@ function CoopMock({ demoPhase, reducedMotion, t }) {
         <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion), demoPhase >= 1 && styles.demoTextActive]}>{hpValues[phase]}</Text>
       </View>
       <View style={styles.raidProgressBar}>
-        <View style={[styles.raidProgressFill, { width: getCoopProgressWidth(demoPhase, reducedMotion) }, animatedStyle(styles.microProgressBreathe, reducedMotion)]} />
+        <View style={[styles.raidProgressFill, { width: getCoopProgressWidth(demoPhase, reducedMotion) }]} />
       </View>
       <View style={styles.coopContributionRow}>
         {contributionLabels.map((item, index) => (
@@ -715,8 +720,8 @@ function CoopMock({ demoPhase, reducedMotion, t }) {
 }
 
 function RewardMock({ demoPhase, reducedMotion, t }) {
-  const phase = reducedMotion ? DEMO_FINAL_PHASE : demoPhase;
-  const pointValues = ['3,200P', '3,600P', '3,900P', '4,100P', '4,200P'];
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
+  const pointValues = ['4,200P', '4,200P', '4,200P', '3,400P', '3,400P'];
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.rewardMock]}>
@@ -730,11 +735,12 @@ function RewardMock({ demoPhase, reducedMotion, t }) {
         </View>
         <View style={styles.rewardCopy}>
           <View style={styles.rewardItemRow}>
-            <Text style={[styles.rewardItemChip, getStepStyle(2, demoPhase, reducedMotion)]}>프로필 이미지</Text>
-            <Text style={[styles.rewardItemChip, getStepStyle(3, demoPhase, reducedMotion)]}>배경</Text>
-            <Text style={[styles.rewardItemChip, getStepStyle(4, demoPhase, reducedMotion)]}>칭호</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(1, demoPhase, reducedMotion)]}>달빛 배경 선택</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(2, demoPhase, reducedMotion)]}>구매하기</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(3, demoPhase, reducedMotion)]}>800P 차감</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(4, demoPhase, reducedMotion)]}>적용 완료</Text>
           </View>
-          <Text style={[styles.raidProgressText, getStepStyle(4, demoPhase, reducedMotion)]}>학습 성취를 프로필 꾸미기로 이어갑니다.</Text>
+          <Text style={[styles.raidProgressText, getStepStyle(4, demoPhase, reducedMotion)]}>달빛 테마를 프로필 배경에 적용합니다.</Text>
         </View>
       </View>
     </View>
@@ -1523,17 +1529,20 @@ const styles = StyleSheet.create({
   demoStepActive: {
     opacity: 1,
     transform: [{ translateY: 0 }, { scale: 1 }],
-    transitionDuration: '360ms'
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   demoStepWaiting: {
     opacity: 0.18,
     transform: [{ translateY: 12 }, { scale: 0.97 }],
-    transitionDuration: '360ms'
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   demoStepDimmed: {
     opacity: 0.34,
     transform: [{ translateY: 5 }, { scale: 0.985 }],
-    transitionDuration: '360ms'
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   demoCurrentStep: {
     borderColor: 'rgba(15, 118, 110, 0.32)',
@@ -1542,11 +1551,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    transform: [{ translateY: -3 }, { scale: 1.02 }]
+    transform: [{ translateY: -3 }, { scale: 1.02 }],
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   demoMiniActive: {
     borderColor: 'rgba(15, 118, 110, 0.32)',
-    transform: [{ translateY: -4 }, { scale: 1.02 }]
+    transform: [{ translateY: -4 }, { scale: 1.02 }],
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   demoBadgeActive: {
     transform: [{ scale: 1.08 }]
@@ -1619,6 +1632,20 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }
   },
+  aiWaitRow: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: '#E8FAF6',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 12
+  },
+  aiWaitText: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '900'
+  },
   typingDot: {
     width: 7,
     height: 7,
@@ -1645,7 +1672,7 @@ const styles = StyleSheet.create({
     animationDelay: '2.8s'
   },
   microDotPulse: {
-    animationDuration: '4.6s',
+    animationDuration: '6.6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1659,7 +1686,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBadgePulse: {
-    animationDuration: '4.8s',
+    animationDuration: '6.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1672,7 +1699,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microTimerPulse: {
-    animationDuration: '5s',
+    animationDuration: '7s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1685,7 +1712,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBarRise: {
-    animationDuration: '5s',
+    animationDuration: '7s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1699,7 +1726,7 @@ const styles = StyleSheet.create({
     transformOrigin: 'bottom center'
   },
   microBubbleLift: {
-    animationDuration: '5.2s',
+    animationDuration: '7.2s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1712,7 +1739,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microChipHighlight: {
-    animationDuration: '4.8s',
+    animationDuration: '6.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1725,7 +1752,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBulletHighlight: {
-    animationDuration: '5s',
+    animationDuration: '7s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1738,7 +1765,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microSummaryRow: {
-    animationDuration: '5s',
+    animationDuration: '7s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1751,7 +1778,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microStackFloat: {
-    animationDuration: '5.4s',
+    animationDuration: '7.4s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1763,7 +1790,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microScorePulse: {
-    animationDuration: '4.8s',
+    animationDuration: '6.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1776,7 +1803,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microSoftGlow: {
-    animationDuration: '5.4s',
+    animationDuration: '7.4s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1789,7 +1816,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microUnreadPulse: {
-    animationDuration: '4.2s',
+    animationDuration: '6.6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1802,7 +1829,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microMessageLift: {
-    animationDuration: '5s',
+    animationDuration: '7s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1815,7 +1842,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microProgressBreathe: {
-    animationDuration: '5.2s',
+    animationDuration: '7.2s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1829,7 +1856,7 @@ const styles = StyleSheet.create({
     transformOrigin: 'left center'
   },
   microRewardGlow: {
-    animationDuration: '4.8s',
+    animationDuration: '6.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1842,7 +1869,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microAvatarPulse: {
-    animationDuration: '5s',
+    animationDuration: '7s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1855,7 +1882,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microLanguageHighlight: {
-    animationDuration: '5.6s',
+    animationDuration: '7.2s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1868,7 +1895,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microTrustPulse: {
-    animationDuration: '5s',
+    animationDuration: '6.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -2070,7 +2097,9 @@ const styles = StyleSheet.create({
     shadowColor: '#173B63',
     shadowOpacity: 0.08,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 }
+    shadowOffset: { width: 0, height: 8 },
+    transitionDuration: '620ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   focusTimerValue: {
     color: '#173B63',
@@ -2140,7 +2169,10 @@ const styles = StyleSheet.create({
   focusBarFill: {
     width: '100%',
     backgroundColor: '#73C9BD',
-    borderRadius: 999
+    borderRadius: 999,
+    transitionDuration: '680ms',
+    transitionProperty: 'height, opacity, background-color',
+    transitionTimingFunction: 'ease-in-out'
   },
   focusBarLabel: {
     color: '#64748B',
@@ -2291,7 +2323,7 @@ const styles = StyleSheet.create({
   },
   reportStack: {
     width: '100%',
-    height: 320,
+    height: 372,
     position: 'relative'
   },
   reportCardBg1: {
@@ -2299,7 +2331,7 @@ const styles = StyleSheet.create({
     top: 18,
     left: 18,
     right: 0,
-    height: 300,
+    height: 350,
     backgroundColor: '#E8FAF6',
     opacity: 0.75,
     transform: [{ rotate: '-2deg' }]
@@ -2309,7 +2341,7 @@ const styles = StyleSheet.create({
     top: 34,
     left: 34,
     right: -10,
-    height: 300,
+    height: 350,
     backgroundColor: '#FFF5D6',
     opacity: 0.7,
     transform: [{ rotate: '2deg' }]
@@ -2319,7 +2351,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     width: '100%',
-    height: 300,
+    minHeight: 350,
     zIndex: 10
   },
   reportHeader: {
@@ -2328,8 +2360,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-    paddingBottom: 16,
-    marginBottom: 24,
+    paddingBottom: 14,
+    marginBottom: 14,
     gap: 12
   },
   reportTitle: {
@@ -2391,7 +2423,10 @@ const styles = StyleSheet.create({
   reportReason: {
     backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    padding: 16
+    padding: 14,
+    marginTop: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 118, 110, 0.12)'
   },
   reportReasonTitle: {
     color: '#173B63',
@@ -2588,7 +2623,10 @@ const styles = StyleSheet.create({
     width: '74%',
     height: '100%',
     backgroundColor: '#FF6B6B',
-    borderRadius: 8
+    borderRadius: 8,
+    transitionDuration: '720ms',
+    transitionProperty: 'width, opacity',
+    transitionTimingFunction: 'ease-in-out'
   },
   coopContributionRow: {
     flexDirection: 'row',
@@ -2637,7 +2675,9 @@ const styles = StyleSheet.create({
     borderWidth: 12,
     borderColor: '#73C9BD',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    transitionDuration: '640ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   rewardAvatarInner: {
     width: 26,
@@ -2647,8 +2687,12 @@ const styles = StyleSheet.create({
     opacity: 0.72
   },
   rewardAvatarInnerActive: {
-    backgroundColor: '#FFE4B5',
-    transform: [{ scale: 1.2 }]
+    backgroundColor: '#173B63',
+    shadowColor: '#FFE4B5',
+    shadowOpacity: 0.42,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
+    transform: [{ scale: 1.26 }]
   },
   rewardCopy: {
     flex: 1
@@ -2693,7 +2737,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)'
+    borderColor: 'rgba(23, 59, 99, 0.08)',
+    transitionDuration: '580ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   languageDot: {
     width: 10,
@@ -2725,7 +2771,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginTop: 12
+    marginTop: 12,
+    transitionDuration: '580ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   languageSampleText: {
     color: colors.ink,
@@ -2757,7 +2805,9 @@ const styles = StyleSheet.create({
   trustCheckActive: {
     color: '#FFFFFF',
     backgroundColor: colors.mintDeep,
-    transform: [{ scale: 1.1 }]
+    transform: [{ scale: 1.04 }],
+    transitionDuration: '520ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   trustIconWrap: {
     width: 52,
