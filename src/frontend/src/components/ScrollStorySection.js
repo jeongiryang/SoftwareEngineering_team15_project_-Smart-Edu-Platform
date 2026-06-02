@@ -7,8 +7,8 @@ const icon = require('../assets/sagaksagak-app-icon.png');
 const DEMO_PHASE_COUNT = 6;
 const DEMO_FINAL_PHASE = DEMO_PHASE_COUNT - 1;
 const DEMO_VISUAL_FINAL_PHASE = 4;
-const DEMO_PHASE_SEQUENCE = [0, 0, 1, 2, 3, 4, 5, 5, 4, 3, 2, 1];
-const DEMO_PHASE_INTERVAL_MS = 660;
+const DEMO_PHASE_SEQUENCE = [0, 1, 2, 3, 4, 5, 5];
+const DEMO_PHASE_INTERVAL_MS = 980;
 
 const promoSlides = [
   {
@@ -1672,7 +1672,7 @@ const styles = StyleSheet.create({
     animationDelay: '2.8s'
   },
   microDotPulse: {
-    animationDuration: '6.6s',
+    animationDuration: '6.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1699,7 +1699,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microTimerPulse: {
-    animationDuration: '7s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1712,7 +1712,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBarRise: {
-    animationDuration: '7s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1726,7 +1726,7 @@ const styles = StyleSheet.create({
     transformOrigin: 'bottom center'
   },
   microBubbleLift: {
-    animationDuration: '7.2s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1752,7 +1752,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBulletHighlight: {
-    animationDuration: '7s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1765,7 +1765,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microSummaryRow: {
-    animationDuration: '7s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1778,7 +1778,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microStackFloat: {
-    animationDuration: '7.4s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1803,7 +1803,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microSoftGlow: {
-    animationDuration: '7.4s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1816,7 +1816,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microUnreadPulse: {
-    animationDuration: '6.6s',
+    animationDuration: '6.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1829,7 +1829,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microMessageLift: {
-    animationDuration: '7s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1842,7 +1842,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microProgressBreathe: {
-    animationDuration: '7.2s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1869,7 +1869,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microAvatarPulse: {
-    animationDuration: '7s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1882,7 +1882,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microLanguageHighlight: {
-    animationDuration: '7.2s',
+    animationDuration: '6.9s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
