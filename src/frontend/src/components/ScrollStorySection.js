@@ -732,13 +732,67 @@ function CoopMock({ demoPhase, reducedMotion, t }) {
 
 function RewardMock({ demoPhase, reducedMotion, t }) {
   const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
-  const pointValues = ['4,200P', '4,000P', '3,800P', '3,600P', '3,400P'];
+  const [displayedPoints, setDisplayedPoints] = useState(reducedMotion ? 3400 : 4200);
+  const pointText = `${displayedPoints.toLocaleString('en-US')}P`;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setDisplayedPoints(3400);
+      return undefined;
+    }
+
+    if (phase <= 2) {
+      setDisplayedPoints(4200);
+      return undefined;
+    }
+
+    if (phase >= 4) {
+      setDisplayedPoints(3400);
+      return undefined;
+    }
+
+    const startValue = 4200;
+    const endValue = 3400;
+    const durationMs = 980;
+    const getNow = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+    const startTime = getNow();
+    let frameId;
+
+    setDisplayedPoints(startValue);
+
+    const updatePointCount = (now) => {
+      const progress = Math.min((now - startTime) / durationMs, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round((startValue - (startValue - endValue) * eased) / 10) * 10;
+
+      setDisplayedPoints(Math.max(endValue, nextValue));
+
+      if (progress < 1 && typeof requestAnimationFrame === 'function') {
+        frameId = requestAnimationFrame(updatePointCount);
+      } else {
+        setDisplayedPoints(endValue);
+      }
+    };
+
+    if (typeof requestAnimationFrame !== 'function') {
+      setDisplayedPoints(endValue);
+      return undefined;
+    }
+
+    frameId = requestAnimationFrame(updatePointCount);
+
+    return () => {
+      if (typeof cancelAnimationFrame === 'function' && frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [phase, reducedMotion]);
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.rewardMock]}>
       <View style={styles.reportHeader}>
         <Text style={styles.reportTitle}>포인트 상점</Text>
-        <Text style={[styles.reportScore, styles.rewardScore, animatedStyle(styles.microRewardGlow, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>{pointValues[phase]}</Text>
+        <Text style={[styles.reportScore, styles.rewardScore, animatedStyle(styles.microRewardGlow, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>{pointText}</Text>
       </View>
       <View style={styles.rewardPreviewRow}>
         <View style={[styles.rewardAvatarPreview, phase >= 4 && styles.rewardAvatarPreviewMoon, animatedStyle(styles.microAvatarPulse, reducedMotion), getStepStyle(1, demoPhase, reducedMotion)]}>
