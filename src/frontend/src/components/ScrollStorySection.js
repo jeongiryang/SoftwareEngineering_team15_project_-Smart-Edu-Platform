@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
@@ -229,6 +229,80 @@ function getPrefersReducedMotion() {
   }
 
   return browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function getViewportWidth() {
+  const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+
+  return browserWindow?.innerWidth || 1180;
+}
+
+function clamp(value, min = 0, max = 1) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function easeOutCubic(value) {
+  const safeValue = clamp(value);
+
+  return 1 - ((1 - safeValue) ** 3);
+}
+
+function resolveDomNode(node) {
+  if (!node) {
+    return null;
+  }
+
+  if (typeof node.getBoundingClientRect === 'function') {
+    return node;
+  }
+
+  if (typeof node.getNode === 'function') {
+    const resolvedNode = node.getNode();
+    return typeof resolvedNode?.getBoundingClientRect === 'function' ? resolvedNode : null;
+  }
+
+  if (typeof node._node?.getBoundingClientRect === 'function') {
+    return node._node;
+  }
+
+  return null;
+}
+
+function getRevealStyle(progress, variant = 'content', compact = false, reducedMotion = false) {
+  if (reducedMotion) {
+    return styles.revealStatic;
+  }
+
+  const easedProgress = easeOutCubic(progress);
+  const hiddenAmount = 1 - easedProgress;
+
+  if (variant === 'keyword') {
+    return {
+      opacity: 0.25 + (0.75 * easedProgress),
+      transform: [{ scale: 0.96 + (0.04 * easedProgress) }]
+    };
+  }
+
+  if (compact || variant === 'text' || variant === 'center') {
+    return {
+      opacity: easedProgress,
+      transform: [
+        { translateY: hiddenAmount * (variant === 'text' ? 40 : 34) },
+        { scale: 0.98 + (0.02 * easedProgress) }
+      ]
+    };
+  }
+
+  const direction = variant === 'left' ? -1 : 1;
+
+  return {
+    opacity: easedProgress,
+    transform: [
+      { translateX: direction * hiddenAmount * 78 },
+      { translateY: hiddenAmount * 16 },
+      { scale: 0.96 + (0.04 * easedProgress) }
+    ]
+  };
 }
 
 function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevious, onSelect, t }) {
@@ -639,31 +713,41 @@ function SectionVisual({ type, t }) {
   return <TrustMock t={t} />;
 }
 
-function ProjectGroundedCopySection({ t }) {
+function ProjectGroundedCopySection({ compact, progress, reducedMotion, setRevealRef, t }) {
+  const textRevealStyle = getRevealStyle(progress, 'text', compact, reducedMotion);
+  const cardRevealStyle = getRevealStyle(progress, 'right', compact, reducedMotion);
+  const keywordRevealStyle = getRevealStyle(progress, 'keyword', compact, reducedMotion);
+
   return (
-    <View style={styles.projectSection}>
-      <SectionKeyword label="NOTES" style={[styles.bgSubtleKeyword, styles.bgNotes]} />
-      <View style={styles.projectHeading}>
+    <View ref={setRevealRef('design-notes')} style={styles.projectSection}>
+      <SectionKeyword label="NOTES" style={[styles.bgSubtleKeyword, styles.bgNotes, keywordRevealStyle]} />
+      <View style={[styles.projectHeading, textRevealStyle]}>
         <Text style={styles.sectionEyebrow}>{t('landing.projectNotes.eyebrow', 'DESIGN NOTES')}</Text>
         <Text style={styles.sectionTitle}>{t('landing.projectNotes.title', '사각사각이 학습을 여는 방식')}</Text>
         <Text style={styles.sectionDescription}>
           {t('landing.projectNotes.description', '초기 요구사항에서 출발한 학습 흐름을 실제 사용자가 바로 이해할 수 있는 기능 구조로 정리했습니다.')}
         </Text>
       </View>
-      <DesignNotesRecordCards t={t} />
+      <View style={cardRevealStyle}>
+        <DesignNotesRecordCards t={t} />
+      </View>
     </View>
   );
 }
 
-function ServiceSection({ section, t }) {
+function ServiceSection({ compact, progress, reducedMotion, section, setRevealRef, t }) {
   const reverse = section.layout === 'reverse';
   const center = section.layout === 'center';
+  const textRevealStyle = getRevealStyle(progress, 'text', compact, reducedMotion);
+  const visualVariant = center ? 'center' : reverse ? 'left' : 'right';
+  const visualRevealStyle = getRevealStyle(progress, visualVariant, compact, reducedMotion);
+  const keywordRevealStyle = getRevealStyle(progress, 'keyword', compact, reducedMotion);
 
   return (
-    <View style={styles.newSection}>
-      <SectionKeyword label={section.keyword} style={styles[`bg${section.id}`]} />
+    <View ref={setRevealRef(section.id)} style={styles.newSection}>
+      <SectionKeyword label={section.keyword} style={[styles[`bg${section.id}`], keywordRevealStyle]} />
       <View style={[styles.newSectionInner, reverse && styles.newSectionInnerReverse, center && styles.newSectionInnerCenter]}>
-        <View style={[styles.newTextCol, center && styles.newTextColCenter]}>
+        <View style={[styles.newTextCol, center && styles.newTextColCenter, textRevealStyle]}>
           <Text style={[styles.newSectionTitle, center && styles.textCenter]}>
             {section.titleKey ? t(section.titleKey, section.titleFallback) : section.titleFallback}
           </Text>
@@ -674,7 +758,7 @@ function ServiceSection({ section, t }) {
             <Text style={styles.tagText}>{section.chipKey ? t(section.chipKey, section.chipFallback) : section.chipFallback}</Text>
           </View>
         </View>
-        <View style={[styles.newVisualCol, center && styles.newVisualColCenter]}>
+        <View style={[styles.newVisualCol, center && styles.newVisualColCenter, visualRevealStyle]}>
           <SectionVisual t={t} type={section.visual} />
         </View>
       </View>
@@ -688,6 +772,22 @@ export default function ScrollStorySection({ onNavigate }) {
   const [isPromoPaused, setIsPromoPaused] = useState(false);
   const [promoTimerKey, setPromoTimerKey] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
+  const [revealProgress, setRevealProgress] = useState({});
+  const [viewportWidth, setViewportWidth] = useState(getViewportWidth);
+  const revealRefs = useRef(new Map());
+  const compactReveal = viewportWidth < 768;
+
+  const setRevealRef = useCallback((id) => (node) => {
+    if (node) {
+      revealRefs.current.set(id, node);
+    } else {
+      revealRefs.current.delete(id);
+    }
+  }, []);
+
+  const getProgress = useCallback((id) => (
+    reducedMotion ? 1 : revealProgress[id] ?? 0
+  ), [reducedMotion, revealProgress]);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -715,6 +815,76 @@ export default function ScrollStorySection({ onNavigate }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+    const browserDocument = browserWindow?.document;
+
+    if (!browserWindow || !browserDocument) {
+      return undefined;
+    }
+
+    if (reducedMotion) {
+      return undefined;
+    }
+
+    let frameId = 0;
+
+    const updateProgress = () => {
+      frameId = 0;
+      const viewportHeight = browserWindow.innerHeight || browserDocument.documentElement?.clientHeight || 800;
+      const nextViewportWidth = browserWindow.innerWidth || 1180;
+      const startLine = viewportHeight * 0.92;
+      const endLine = viewportHeight * 0.36;
+      const nextProgress = {};
+
+      revealRefs.current.forEach((node, id) => {
+        const domNode = resolveDomNode(node);
+
+        if (!domNode) {
+          nextProgress[id] = 1;
+          return;
+        }
+
+        const rect = domNode.getBoundingClientRect();
+        nextProgress[id] = clamp((startLine - rect.top) / (startLine - endLine));
+      });
+
+      setViewportWidth((current) => (
+        Math.abs(current - nextViewportWidth) > 1 ? nextViewportWidth : current
+      ));
+
+      setRevealProgress((current) => {
+        const currentKeys = Object.keys(current);
+        const nextKeys = Object.keys(nextProgress);
+        const changed = currentKeys.length !== nextKeys.length
+          || nextKeys.some((key) => Math.abs((current[key] ?? -1) - nextProgress[key]) > 0.015);
+
+        return changed ? nextProgress : current;
+      });
+    };
+
+    const requestProgressUpdate = () => {
+      if (frameId) {
+        return;
+      }
+
+      frameId = browserWindow.requestAnimationFrame(updateProgress);
+    };
+
+    requestProgressUpdate();
+    browserWindow.addEventListener('scroll', requestProgressUpdate, { passive: true });
+    browserWindow.addEventListener('resize', requestProgressUpdate, { passive: true });
+
+    return () => {
+      if (frameId) {
+        browserWindow.cancelAnimationFrame(frameId);
+      }
+
+      browserWindow.removeEventListener('scroll', requestProgressUpdate);
+      browserWindow.removeEventListener('resize', requestProgressUpdate);
+    };
+  }, [reducedMotion]);
 
   useEffect(() => {
     if (isPromoPaused || reducedMotion) {
@@ -758,17 +928,33 @@ export default function ScrollStorySection({ onNavigate }) {
         t={t}
       />
 
-      <ProjectGroundedCopySection t={t} />
+      <ProjectGroundedCopySection
+        compact={compactReveal}
+        progress={getProgress('design-notes')}
+        reducedMotion={reducedMotion}
+        setRevealRef={setRevealRef}
+        t={t}
+      />
 
       {serviceSections.map((section) => (
         <ServiceSection
           key={section.id}
+          compact={compactReveal}
+          progress={getProgress(section.id)}
+          reducedMotion={reducedMotion}
           section={section}
+          setRevealRef={setRevealRef}
           t={t}
         />
       ))}
 
-      <View style={styles.finalCta}>
+      <View
+        ref={setRevealRef('final-cta')}
+        style={[
+          styles.finalCta,
+          getRevealStyle(getProgress('final-cta'), 'center', compactReveal, reducedMotion)
+        ]}
+      >
         <Text style={styles.finalCtaTitle}>{t('landing.final.title', '오늘의 공부를 사각사각 시작해 보세요')}</Text>
         <Text style={styles.finalCtaDescription}>
           {t('landing.final.description', '계획, 질문, 기록, 복습을 한 흐름으로 연결하는 나만의 학습 공간을 만들 수 있습니다.')}
@@ -832,7 +1018,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 23,
     marginTop: 10,
-    maxWidth: 640
+    maxWidth: 680,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   promo: {
     width: '100%',
@@ -892,7 +1080,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 27,
     marginTop: 14,
-    maxWidth: 500
+    maxWidth: 520,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
   },
   promoDetailRow: {
     flexDirection: 'row',
@@ -1022,7 +1212,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 18,
+    gap: 20,
     paddingHorizontal: 18,
     position: 'relative',
     zIndex: 2
@@ -1136,13 +1326,13 @@ const styles = StyleSheet.create({
     maxWidth: 1180,
     position: 'relative',
     overflow: 'hidden',
-    paddingVertical: 94,
+    paddingVertical: 88,
     paddingHorizontal: 24,
     borderRadius: 32,
     backgroundColor: '#FFFDF6',
     borderWidth: 1,
     borderColor: 'rgba(23, 59, 99, 0.1)',
-    marginBottom: 64,
+    marginBottom: 56,
     shadowColor: '#173B63',
     shadowOpacity: 0.07,
     shadowRadius: 24,
@@ -1243,8 +1433,8 @@ const styles = StyleSheet.create({
   newSection: {
     width: '100%',
     maxWidth: 1180,
-    paddingVertical: 132,
-    paddingHorizontal: 20,
+    paddingVertical: 124,
+    paddingHorizontal: 22,
     position: 'relative',
     overflow: 'hidden'
   },
@@ -1254,7 +1444,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     flexWrap: 'wrap',
-    gap: 48,
+    gap: 44,
     zIndex: 5
   },
   newSectionInnerReverse: {
@@ -1266,7 +1456,7 @@ const styles = StyleSheet.create({
   },
   newTextCol: {
     flex: 1,
-    minWidth: 300,
+    minWidth: 280,
     maxWidth: 520,
     zIndex: 10
   },
@@ -1277,7 +1467,7 @@ const styles = StyleSheet.create({
   },
   newVisualCol: {
     flex: 1,
-    minWidth: 300,
+    minWidth: 280,
     zIndex: 10,
     position: 'relative'
   },
@@ -1290,10 +1480,10 @@ const styles = StyleSheet.create({
     maxWidth: 760
   },
   newSectionTitle: {
-    fontSize: 40,
+    fontSize: 39,
     fontWeight: '900',
     color: '#15202B',
-    lineHeight: 52,
+    lineHeight: 51,
     marginBottom: 20,
     letterSpacing: 0,
     maxWidth: 560,
@@ -1305,7 +1495,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#475569',
     lineHeight: 28,
-    marginBottom: 32
+    marginBottom: 30,
+    wordBreak: 'keep-all',
+    overflowWrap: 'normal'
+  },
+  revealStatic: {
+    opacity: 1,
+    transform: [
+      { translateX: 0 },
+      { translateY: 0 },
+      { scale: 1 }
+    ]
   },
   tagWrap: {
     backgroundColor: 'rgba(92, 198, 184, 0.1)',
@@ -1327,10 +1527,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: '46%',
-    fontSize: 198,
-    lineHeight: 220,
+    fontSize: 190,
+    lineHeight: 212,
     fontWeight: '900',
-    color: 'rgba(23, 59, 99, 0.08)',
+    color: 'rgba(23, 59, 99, 0.07)',
     zIndex: 0,
     pointerEvents: 'none',
     textAlign: 'center',
@@ -1476,19 +1676,20 @@ const styles = StyleSheet.create({
     borderColor: '#CDEFE9',
     borderWidth: 2,
     backgroundColor: '#F8FFFD',
-    minHeight: 300
+    minHeight: 292,
+    padding: 28
   },
   focusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    gap: 18,
     flexWrap: 'wrap',
     marginBottom: 24
   },
   focusTimerCircle: {
-    width: 136,
-    height: 136,
-    borderRadius: 68,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     borderWidth: 12,
     borderColor: '#73C9BD',
     backgroundColor: '#FFFFFF',
@@ -1547,7 +1748,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: 10,
-    minHeight: 110,
+    minHeight: 104,
     marginBottom: 16
   },
   focusBarItem: {
@@ -1809,7 +2010,7 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     height: 'auto',
-    minHeight: 250
+    minHeight: 260
   },
   messageMock: {
     borderColor: '#BDE0FE',
@@ -1884,7 +2085,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
-    marginBottom: 12
+    marginBottom: 12,
+    minHeight: 58
   },
   friendAvatar: {
     width: 34,
@@ -1973,7 +2175,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)'
+    borderColor: 'rgba(23, 59, 99, 0.08)',
+    minHeight: 48
   },
   languageDot: {
     width: 10,
@@ -2004,6 +2207,7 @@ const styles = StyleSheet.create({
   trustCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 16,
     padding: 20
   },
@@ -2013,7 +2217,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#E8FAF6',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    flexShrink: 0
   },
   trustIcon: {
     color: '#173B63',
@@ -2021,7 +2226,8 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   trustCardContent: {
-    flex: 1
+    flex: 1,
+    minWidth: 220
   },
   trustCardTitle: {
     color: colors.ink,
