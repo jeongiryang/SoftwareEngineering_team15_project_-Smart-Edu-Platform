@@ -478,7 +478,14 @@ function NoteMock({ reducedMotion, t }) {
       <Text style={styles.noteTitle}>수학 미적분 핵심 개념</Text>
       <View style={styles.summaryBulletList}>
         {bullets.map((item, index) => (
-          <View key={item} style={styles.summaryBulletRow}>
+          <View
+            key={item}
+            style={[
+              styles.summaryBulletRow,
+              animatedStyle(styles.microSummaryRow, reducedMotion),
+              animatedStyle(getMicroDelayStyle(index), reducedMotion)
+            ]}
+          >
             <Text
               style={[
                 styles.summaryBulletNumber,
@@ -1357,219 +1364,248 @@ const styles = StyleSheet.create({
     animationDelay: '0s'
   },
   microDelay1: {
-    animationDelay: '0.45s'
+    animationDelay: '0.7s'
   },
   microDelay2: {
-    animationDelay: '0.9s'
+    animationDelay: '1.4s'
   },
   microDelay3: {
-    animationDelay: '1.35s'
+    animationDelay: '2.1s'
   },
   microDelay4: {
-    animationDelay: '1.8s'
+    animationDelay: '2.8s'
   },
   microDotPulse: {
-    animationDuration: '3.6s',
+    animationDuration: '4.6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 1, transform: 'scale(1)' },
-        '38%': { opacity: 0.82, transform: 'scale(1.18)' },
-        '76%': { opacity: 1, transform: 'scale(1)' },
+        '0%': { opacity: 0.55, transform: 'scale(1)' },
+        '22%': { opacity: 1, transform: 'scale(2.05)' },
+        '44%': { opacity: 0.82, transform: 'scale(1.18)' },
+        '72%': { opacity: 0.55, transform: 'scale(1)' },
         '100%': { opacity: 1, transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microBadgePulse: {
-    animationDuration: '4.2s',
+    animationDuration: '4.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
         '0%': { opacity: 1, transform: 'scale(1)' },
-        '45%': { opacity: 0.9, transform: 'scale(1.025)' },
+        '35%': { opacity: 0.82, transform: 'scale(1.1)' },
+        '64%': { opacity: 1, transform: 'scale(1.03)' },
         '100%': { opacity: 1, transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microTimerPulse: {
-    animationDuration: '4.8s',
+    animationDuration: '5s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { borderColor: '#73C9BD', transform: 'scale(1)' },
-        '50%': { borderColor: '#0F766E', transform: 'scale(1.018)' },
-        '100%': { borderColor: '#73C9BD', transform: 'scale(1)' }
+        '0%': { borderColor: '#CDEFE9', transform: 'scale(0.96)' },
+        '38%': { borderColor: '#0F766E', transform: 'scale(1.08)' },
+        '68%': { borderColor: '#73C9BD', transform: 'scale(1)' },
+        '100%': { borderColor: '#CDEFE9', transform: 'scale(0.96)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microBarRise: {
-    animationDuration: '4.4s',
+    animationDuration: '5s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 0.72, transform: 'scaleY(0.86)' },
-        '45%': { opacity: 1, transform: 'scaleY(1)' },
-        '100%': { opacity: 0.9, transform: 'scaleY(0.94)' }
+        '0%': { opacity: 0.45, transform: 'scaleY(0.18)' },
+        '36%': { opacity: 1, transform: 'scaleY(1.08)' },
+        '68%': { opacity: 0.92, transform: 'scaleY(0.82)' },
+        '100%': { opacity: 0.45, transform: 'scaleY(0.18)' }
       }
     ],
     animationTimingFunction: 'ease-in-out',
     transformOrigin: 'bottom center'
   },
   microBubbleLift: {
-    animationDuration: '4.6s',
+    animationDuration: '5.2s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 0.96, transform: 'translateY(0)' },
-        '50%': { opacity: 1, transform: 'translateY(-4px)' },
-        '100%': { opacity: 0.96, transform: 'translateY(0)' }
+        '0%': { opacity: 0.38, transform: 'translateY(12px) scale(0.98)' },
+        '28%': { opacity: 1, transform: 'translateY(0) scale(1)' },
+        '76%': { opacity: 1, transform: 'translateY(-3px) scale(1)' },
+        '100%': { opacity: 0.38, transform: 'translateY(12px) scale(0.98)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microChipHighlight: {
-    animationDuration: '4s',
+    animationDuration: '4.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 0.9, transform: 'scale(1)' },
-        '45%': { opacity: 1, transform: 'scale(1.018)' },
-        '100%': { opacity: 0.9, transform: 'scale(1)' }
+        '0%': { opacity: 0.62, transform: 'translateY(0) scale(1)' },
+        '26%': { opacity: 1, transform: 'translateY(-4px) scale(1.06)' },
+        '54%': { opacity: 0.86, transform: 'translateY(0) scale(1.02)' },
+        '100%': { opacity: 0.62, transform: 'translateY(0) scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microBulletHighlight: {
-    animationDuration: '4.2s',
+    animationDuration: '5s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
         '0%': { backgroundColor: '#E8FAF6', transform: 'scale(1)' },
-        '45%': { backgroundColor: '#CDEFE9', transform: 'scale(1.04)' },
+        '30%': { backgroundColor: '#73C9BD', transform: 'scale(1.16)' },
+        '58%': { backgroundColor: '#CDEFE9', transform: 'scale(1.04)' },
         '100%': { backgroundColor: '#E8FAF6', transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
-  microStackFloat: {
+  microSummaryRow: {
     animationDuration: '5s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 0.7, transform: 'translateY(0)' },
-        '50%': { opacity: 0.82, transform: 'translateY(-4px)' },
-        '100%': { opacity: 0.7, transform: 'translateY(0)' }
+        '0%': { opacity: 0.66, transform: 'translateX(0)' },
+        '30%': { opacity: 1, transform: 'translateX(6px)' },
+        '62%': { opacity: 0.84, transform: 'translateX(2px)' },
+        '100%': { opacity: 0.66, transform: 'translateX(0)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microStackFloat: {
+    animationDuration: '5.4s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.5 },
+        '42%': { opacity: 0.92 },
+        '100%': { opacity: 0.5 }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microScorePulse: {
-    animationDuration: '4.4s',
+    animationDuration: '4.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 1, transform: 'scale(1)' },
-        '48%': { opacity: 0.82, transform: 'scale(1.025)' },
+        '0%': { opacity: 0.65, transform: 'scale(1)' },
+        '30%': { opacity: 1, transform: 'scale(1.14)' },
+        '62%': { opacity: 0.86, transform: 'scale(1.04)' },
         '100%': { opacity: 1, transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microSoftGlow: {
-    animationDuration: '5.2s',
+    animationDuration: '5.4s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
         '0%': { backgroundColor: '#F8FAFC' },
-        '50%': { backgroundColor: '#F1F9F7' },
+        '42%': { backgroundColor: '#DDF8F3' },
+        '72%': { backgroundColor: '#F1F9F7' },
         '100%': { backgroundColor: '#F8FAFC' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microUnreadPulse: {
-    animationDuration: '3.8s',
+    animationDuration: '4.2s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 1, transform: 'scale(1)' },
-        '50%': { opacity: 0.86, transform: 'scale(1.025)' },
+        '0%': { opacity: 0.72, transform: 'scale(1)' },
+        '32%': { opacity: 1, transform: 'scale(1.1)' },
+        '62%': { opacity: 0.88, transform: 'scale(1.03)' },
         '100%': { opacity: 1, transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microMessageLift: {
-    animationDuration: '4.8s',
+    animationDuration: '5s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { transform: 'translateY(0)' },
-        '50%': { transform: 'translateY(-3px)' },
-        '100%': { transform: 'translateY(0)' }
+        '0%': { opacity: 0.38, transform: 'translateY(12px)' },
+        '28%': { opacity: 1, transform: 'translateY(0)' },
+        '74%': { opacity: 1, transform: 'translateY(-3px)' },
+        '100%': { opacity: 0.38, transform: 'translateY(12px)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microProgressBreathe: {
-    animationDuration: '5s',
+    animationDuration: '5.2s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 0.86, transform: 'scaleX(0.94)' },
-        '48%': { opacity: 1, transform: 'scaleX(1)' },
-        '100%': { opacity: 0.9, transform: 'scaleX(0.97)' }
+        '0%': { opacity: 0.62, transform: 'scaleX(0.28)' },
+        '42%': { opacity: 1, transform: 'scaleX(1.06)' },
+        '72%': { opacity: 0.9, transform: 'scaleX(0.74)' },
+        '100%': { opacity: 0.62, transform: 'scaleX(0.28)' }
       }
     ],
     animationTimingFunction: 'ease-in-out',
     transformOrigin: 'left center'
   },
   microRewardGlow: {
-    animationDuration: '4.6s',
+    animationDuration: '4.8s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 1, transform: 'scale(1)' },
-        '50%': { opacity: 0.86, transform: 'scale(1.025)' },
-        '100%': { opacity: 1, transform: 'scale(1)' }
+        '0%': { opacity: 0.68, transform: 'scale(1)' },
+        '36%': { opacity: 1, transform: 'scale(1.16)' },
+        '68%': { opacity: 0.88, transform: 'scale(1.04)' },
+        '100%': { opacity: 0.68, transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microAvatarPulse: {
-    animationDuration: '4.8s',
+    animationDuration: '5s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { transform: 'scale(1)' },
-        '50%': { transform: 'scale(1.025)' },
+        '0%': { transform: 'scale(0.96)' },
+        '42%': { transform: 'scale(1.12)' },
+        '70%': { transform: 'scale(1.03)' },
         '100%': { transform: 'scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microLanguageHighlight: {
-    animationDuration: '5.2s',
+    animationDuration: '5.6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { backgroundColor: '#FFFFFF', transform: 'translateY(0)' },
-        '44%': { backgroundColor: '#E8FAF6', transform: 'translateY(-2px)' },
-        '100%': { backgroundColor: '#FFFFFF', transform: 'translateY(0)' }
+        '0%': { backgroundColor: '#FFFFFF', transform: 'translateX(0) scale(1)' },
+        '32%': { backgroundColor: '#CDEFE9', transform: 'translateX(8px) scale(1.025)' },
+        '66%': { backgroundColor: '#E8FAF6', transform: 'translateX(2px) scale(1)' },
+        '100%': { backgroundColor: '#FFFFFF', transform: 'translateX(0) scale(1)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microTrustPulse: {
-    animationDuration: '4.8s',
+    animationDuration: '5s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 1, transform: 'scale(1)' },
-        '50%': { opacity: 0.88, transform: 'scale(1.025)' },
+        '0%': { opacity: 0.72, transform: 'scale(1)' },
+        '34%': { opacity: 1, transform: 'scale(1.13)' },
+        '64%': { opacity: 0.9, transform: 'scale(1.04)' },
         '100%': { opacity: 1, transform: 'scale(1)' }
       }
     ],
