@@ -7,81 +7,77 @@ const icon = require('../assets/sagaksagak-app-icon.png');
 
 const promoSlides = [
   {
-    id: 'open',
-    labelKey: 'landing.promo.1.label',
-    titleKey: 'landing.promo.1.title',
-    descriptionKey: 'landing.promo.1.description',
-    ctaKey: 'landing.promo.1.cta',
-    labelFallback: 'SERVICE OPEN',
-    titleFallback: '사각사각 정식 오픈',
-    descriptionFallback: '계획과 질문, 복습 기록을 한 흐름으로 이어보세요.',
-    ctaFallback: '지금 시작하기',
+    id: 'scope-auth',
+    labelKey: 'landing.scope.auth.label',
+    titleKey: 'landing.scope.auth.title',
+    descriptionKey: 'landing.scope.auth.description',
+    ctaKey: 'landing.cta.primary',
+    labelFallback: 'ACCOUNT',
+    titleFallback: 'User registration and login',
+    descriptionFallback: 'Separate learning records by account and enter the study flow after login.',
+    ctaFallback: 'Start for free',
     mood: 'mint'
   },
   {
-    id: 'ai',
-    labelKey: 'landing.promo.2.label',
-    titleKey: 'landing.promo.2.title',
-    descriptionKey: 'landing.promo.2.description',
-    ctaKey: 'landing.promo.2.cta',
-    labelFallback: 'AI STUDY',
-    titleFallback: 'AI 학습',
-    descriptionFallback: '질문, 요약, 오답 분석으로 막힌 부분을 다시 정리합니다.',
-    ctaFallback: '기능 보기',
+    id: 'scope-schedule',
+    labelKey: 'landing.scope.schedule.label',
+    titleKey: 'landing.scope.schedule.title',
+    descriptionKey: 'landing.scope.schedule.description',
+    ctaKey: 'landing.cta.primary',
+    labelFallback: 'SCHEDULE',
+    titleFallback: 'Learning schedule management',
+    descriptionFallback: 'Organize today’s plan with schedules, D-Day items, and Kanban tasks.',
+    ctaFallback: 'Start for free',
     mood: 'blue'
   },
   {
-    id: 'focus',
-    labelKey: 'landing.promo.3.label',
-    titleKey: 'landing.promo.3.title',
-    descriptionKey: 'landing.promo.3.description',
-    ctaKey: 'landing.promo.3.cta',
-    labelFallback: 'FOCUS',
-    titleFallback: '집중 시간과 통계',
-    descriptionFallback: '타이머와 주간 기록으로 학습 리듬을 확인합니다.',
-    ctaFallback: '리듬 확인하기',
+    id: 'scope-note-quiz',
+    labelKey: 'landing.scope.noteQuiz.label',
+    titleKey: 'landing.scope.noteQuiz.title',
+    descriptionKey: 'landing.scope.noteQuiz.description',
+    ctaKey: 'landing.cta.primary',
+    labelFallback: 'NOTE & QUIZ',
+    titleFallback: 'Note and quiz creation/management',
+    descriptionFallback: 'Create and revisit study notes and review quizzes as a continuous record flow.',
+    ctaFallback: 'Start for free',
     mood: 'cream'
   },
   {
-    id: 'community',
-    labelKey: 'landing.promo.4.label',
-    titleKey: 'landing.promo.4.title',
-    descriptionKey: 'landing.promo.4.description',
-    ctaKey: 'landing.promo.4.cta',
-    labelFallback: 'TOGETHER',
-    titleFallback: '커뮤니티와 친구',
-    descriptionFallback: '게시글, 댓글, 쪽지, 공개 프로필로 함께 공부합니다.',
-    ctaFallback: '함께 보기',
+    id: 'scope-recommendation',
+    labelKey: 'landing.scope.recommendation.label',
+    titleKey: 'landing.scope.recommendation.title',
+    descriptionKey: 'landing.scope.recommendation.description',
+    ctaKey: 'landing.cta.primary',
+    labelFallback: 'AI GUIDE',
+    titleFallback: 'AI-based learning recommendation',
+    descriptionFallback: 'Use questions, summaries, wrong-answer analysis, and recommendations to suggest the next study direction.',
+    ctaFallback: 'Start for free',
     mood: 'blue'
   },
   {
-    id: 'coop',
-    labelKey: 'landing.promo.5.label',
-    titleKey: 'landing.promo.5.title',
-    descriptionKey: 'landing.promo.5.description',
-    ctaKey: 'landing.promo.5.cta',
-    labelFallback: 'COOP REWARD',
-    titleFallback: '협동 퀘스트와 보상',
-    descriptionFallback: '레이드, 협동 퀘스트, 포인트 상점으로 목표를 이어갑니다. 팀 목표 진행률과 기여 시간, 꾸미기 보상을 연결해 학습 동기를 유지하세요.',
-    ctaFallback: '도전 보기',
-    detailKeys: [
-      'landing.promo.5.detail1',
-      'landing.promo.5.detail2',
-      'landing.promo.5.detail3',
-      'landing.promo.5.detail4'
-    ],
-    detailFallbacks: ['레이드 진행률', '기여 시간 누적', '포인트 상점', '프로필 꾸미기'],
+    id: 'scope-visualization',
+    labelKey: 'landing.scope.visualization.label',
+    titleKey: 'landing.scope.visualization.title',
+    descriptionKey: 'landing.scope.visualization.description',
+    ctaKey: 'landing.cta.primary',
+    labelFallback: 'INSIGHT',
+    titleFallback: 'Data visualization',
+    descriptionFallback: 'Visualize focus time, activity statistics, and study progress.',
+    ctaFallback: 'Start for free',
+    mood: 'cream'
+  },
+  {
+    id: 'scope-privacy',
+    labelKey: 'landing.scope.privacy.label',
+    titleKey: 'landing.scope.privacy.title',
+    descriptionKey: 'landing.scope.privacy.description',
+    ctaKey: 'landing.cta.primary',
+    labelFallback: 'TRUST',
+    titleFallback: 'Security and privacy considerations',
+    descriptionFallback: 'Handle personal learning data with authentication, authorization, and account-status policies.',
+    ctaFallback: 'Start for free',
     mood: 'mint'
   }
-];
-
-const availableFeatureKeys = [
-  ['landing.scope.auth.label', 'landing.scope.auth.title', 'landing.scope.auth.description', 'ACCOUNT', '사용자 등록/로그인', '개인 계정으로 학습 기록을 분리하고 로그인 상태에서 학습 흐름에 접근합니다.'],
-  ['landing.scope.schedule.label', 'landing.scope.schedule.title', 'landing.scope.schedule.description', 'SCHEDULE', '학습 일정 관리', '일정, D-Day, 칸반 태스크로 오늘 해야 할 학습 계획을 정리합니다.'],
-  ['landing.scope.noteQuiz.label', 'landing.scope.noteQuiz.title', 'landing.scope.noteQuiz.description', 'NOTE & QUIZ', '노트 및 퀴즈 생성/관리', '학습 노트와 복습 퀴즈를 생성하고 다시 볼 수 있는 기록 흐름을 제공합니다.'],
-  ['landing.scope.recommendation.label', 'landing.scope.recommendation.title', 'landing.scope.recommendation.description', 'AI GUIDE', 'AI 기반 학습 추천', '질문, 요약, 오답 분석과 추천 흐름으로 다음 학습 방향을 제안합니다.'],
-  ['landing.scope.visualization.label', 'landing.scope.visualization.title', 'landing.scope.visualization.description', 'INSIGHT', '데이터 시각화', '집중 시간, 활동 통계, 학습 진행률을 시각적으로 확인할 수 있게 합니다.'],
-  ['landing.scope.privacy.label', 'landing.scope.privacy.title', 'landing.scope.privacy.description', 'TRUST', '보안 및 프라이버시 고려', '인증, 권한, 계정 상태 정책을 통해 개인 학습 데이터를 안전하게 다룹니다.']
 ];
 
 const serviceSections = [
@@ -342,44 +338,6 @@ function DesignNotesRecordCards({ t }) {
           <Text style={styles.recordMiniValue}>{t('landing.designRecord.mini2Value', '3')}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini2Text', '질문과 요약을 다시 볼 수 있게 모아둡니다.')}</Text>
         </View>
-      </View>
-    </View>
-  );
-}
-
-function FeatureGridSection({ t }) {
-  return (
-    <View style={styles.availableSection}>
-      <SectionKeyword label="SCOPE" style={[styles.bgSubtleKeyword, styles.bgScope]} />
-      <View style={styles.sectionHeading}>
-        <Text style={styles.sectionEyebrow}>{t('landing.section.available.eyebrow', 'PROJECT SCOPE')}</Text>
-        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '연결된 핵심 기능')}</Text>
-        <Text style={styles.sectionDescription}>
-          {t('landing.section.available.description', '주요 학습 흐름을 실제 사용 기능으로 연결했습니다.')}
-        </Text>
-      </View>
-      <View style={styles.featureGrid}>
-        {availableFeatureKeys.map(([labelKey, titleKey, descriptionKey, labelFallback, titleFallback, descriptionFallback]) => {
-          const label = t(labelKey, labelFallback);
-          const title = t(titleKey, titleFallback);
-
-          return (
-            <Pressable
-              accessibilityLabel={`${label}: ${title}`}
-              accessibilityRole="text"
-              key={titleKey}
-              style={(state) => [
-                styles.featureCard,
-                shadows.card,
-                ...interactiveStateStyles(state, { kind: 'card' })
-              ]}
-            >
-              <Text style={styles.featureLabel}>{label}</Text>
-              <Text style={styles.featureTitle}>{title}</Text>
-              <Text style={styles.featureDescription}>{t(descriptionKey, descriptionFallback)}</Text>
-            </Pressable>
-          );
-        })}
       </View>
     </View>
   );
@@ -747,8 +705,6 @@ export default function ScrollStorySection({ onNavigate }) {
         onSelect={selectSlide}
         t={t}
       />
-
-      <FeatureGridSection t={t} />
 
       <ProjectGroundedCopySection t={t} />
 
