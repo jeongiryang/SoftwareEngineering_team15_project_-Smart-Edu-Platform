@@ -92,7 +92,7 @@ const serviceSections = [
   },
   {
     id: 'question',
-    keyword: 'ASK',
+    keyword: 'AI',
     titleKey: 'landing.story.ai.title',
     titleFallback: '질문하고, 요약하고, 다시 보기',
     descriptionKey: 'landing.story.ai.description',
@@ -127,16 +127,28 @@ const serviceSections = [
     visual: 'report'
   },
   {
-    id: 'social',
-    keyword: 'SOCIAL',
-    titleKey: 'landing.social.title',
-    titleFallback: '함께 공부하는 학습 커뮤니티',
-    descriptionKey: 'landing.social.description',
-    descriptionFallback: '친구와 쪽지를 주고받고, 접속 상태와 읽지 않은 메시지를 확인하며 함께 공부할 동기를 얻으세요.',
-    chipKey: 'landing.social.chip',
-    chipFallback: '커뮤니티',
+    id: 'message',
+    keyword: 'MESSAGE',
+    titleKey: 'landing.message.title',
+    titleFallback: '실시간 쪽지로 이어지는 학습 소통',
+    descriptionKey: 'landing.message.description',
+    descriptionFallback: '친구 접속 상태와 읽지 않은 쪽지를 확인하고, 1:1 대화로 학습 흐름을 이어갑니다.',
+    chipKey: 'landing.message.chip',
+    chipFallback: 'MESSAGE',
     layout: 'row',
-    visual: 'social'
+    visual: 'message'
+  },
+  {
+    id: 'community',
+    keyword: 'COMMUNITY',
+    titleKey: 'landing.community.title',
+    titleFallback: '질문과 기록을 나누는 학습 게시판',
+    descriptionKey: 'landing.community.description',
+    descriptionFallback: '게시글, 댓글, 반응, 북마크, 공유 흐름으로 학습 기록을 함께 나눕니다.',
+    chipKey: 'landing.community.chip',
+    chipFallback: 'COMMUNITY',
+    layout: 'reverse',
+    visual: 'community'
   },
   {
     id: 'coop',
@@ -470,20 +482,47 @@ function ReportMock({ t }) {
   );
 }
 
-function SocialMock({ t }) {
+function MessageMock({ t }) {
   return (
-    <View style={[styles.mockCard, styles.simpleMockCard, styles.socialMock]}>
+    <View style={[styles.mockCard, styles.simpleMockCard, styles.messageMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>{t('landing.social.previewTitle', '실시간 학습 소통')}</Text>
-        <Text style={[styles.reportScore, styles.socialScore]}>{t('landing.social.unreadCount', '2 unread')}</Text>
+        <Text style={styles.reportTitle}>{t('landing.message.previewTitle', '1:1 쪽지 대화')}</Text>
+        <Text style={[styles.reportScore, styles.messageScore]}>{t('landing.message.realtimePill', 'Realtime')}</Text>
       </View>
       <View style={styles.socialStatusRow}>
-        <Text style={styles.socialStatusText}>{t('landing.social.onlineCount', '친구 3명 접속중')}</Text>
-        <Text style={styles.socialUnreadPill}>{t('landing.social.unreadBadge', '읽지 않은 쪽지 2개')}</Text>
+        <Text style={styles.socialStatusText}>{t('landing.message.onlineCount', '친구 3명 접속중')}</Text>
+        <Text style={styles.socialUnreadPill}>{t('landing.message.unreadBadge', '읽지 않은 쪽지 2개')}</Text>
       </View>
-      <View style={styles.friendRow}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>{t('landing.social.message1', '이량: 오늘 목표 시작했어요.')}</Text></View>
-      <View style={styles.friendRow}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>{t('landing.social.message2', '지환: 나 지금 수학 과제 거의 다했어!')}</Text></View>
-      <Text style={styles.socialFooterText}>{t('landing.social.footer', '공개 프로필 · 게시글/댓글/공유 흐름 연결')}</Text>
+      <View style={styles.friendRow}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>{t('landing.message.chat1', '이량: 오늘 목표 시작했어요.')}</Text></View>
+      <View style={styles.friendRow}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>{t('landing.message.chat2', '지환: 나 지금 수학 과제 거의 다했어!')}</Text></View>
+      <Text style={styles.socialFooterText}>{t('landing.message.footer', '친구 접속 상태 · 읽지 않은 메시지 · 실시간 흐름')}</Text>
+    </View>
+  );
+}
+
+function CommunityMock({ t }) {
+  const items = [
+    t('landing.community.previewPost', '게시글'),
+    t('landing.community.previewComment', '댓글'),
+    t('landing.community.previewReaction', '반응'),
+    t('landing.community.previewBookmark', '북마크'),
+    t('landing.community.previewShare', '공유')
+  ];
+
+  return (
+    <View style={[styles.mockCard, styles.simpleMockCard, styles.communityMock]}>
+      <View style={styles.reportHeader}>
+        <Text style={styles.reportTitle}>{t('landing.community.previewTitle', '학습 게시판')}</Text>
+        <Text style={[styles.reportScore, styles.communityScore]}>{t('landing.community.previewPill', 'Share')}</Text>
+      </View>
+      <View style={styles.communityActionGrid}>
+        {items.map((item) => (
+          <View key={item} style={styles.communityActionPill}>
+            <Text style={styles.communityActionText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.socialFooterText}>{t('landing.community.footer', '질문과 학습 기록을 게시글 중심으로 정리합니다.')}</Text>
     </View>
   );
 }
@@ -581,36 +620,37 @@ function SectionVisual({ type, t }) {
   if (type === 'chat') return <ChatMock t={t} />;
   if (type === 'note') return <NoteMock t={t} />;
   if (type === 'report') return <ReportMock t={t} />;
-  if (type === 'social') return <SocialMock t={t} />;
+  if (type === 'message') return <MessageMock t={t} />;
+  if (type === 'community') return <CommunityMock t={t} />;
   if (type === 'coop') return <CoopMock t={t} />;
   if (type === 'reward') return <RewardMock t={t} />;
   if (type === 'language') return <LanguageMock t={t} />;
   return <TrustMock t={t} />;
 }
 
-function ProjectGroundedCopySection() {
+function ProjectGroundedCopySection({ t }) {
   const cards = [
-    ['계획은 작게, 실행은 분명하게', '캘린더와 칸반으로 오늘 할 일을 나누고, D-Day와 집중 시간으로 학습 리듬을 확인합니다.'],
-    ['AI는 답변보다 복습 흐름으로', '질문, 요약, 오답노트, 추천, 퀴즈가 다시 볼 기록으로 남아 다음 학습을 준비합니다.'],
-    ['모두가 쓰는 학습 공간', '큰 글씨, 고대비, TTS/STT, 커뮤니티와 보상 흐름까지 고려해 이어 쓸 수 있게 설계했습니다.']
+    ['landing.projectNotes.card1.title', 'landing.projectNotes.card1.description', '계획은 작게, 실행은 분명하게', '캘린더와 칸반으로 오늘 할 일을 나누고, D-Day와 집중 시간으로 학습 리듬을 확인합니다.'],
+    ['landing.projectNotes.card2.title', 'landing.projectNotes.card2.description', 'AI는 답변보다 복습 흐름으로', '질문, 요약, 오답노트, 추천, 퀴즈가 다시 볼 기록으로 남아 다음 학습을 준비합니다.'],
+    ['landing.projectNotes.card3.title', 'landing.projectNotes.card3.description', '모두가 쓰기 쉬운 학습 공간', '큰 글씨, 고대비, 읽어주기, 소통 흐름까지 고려해 이어 쓸 수 있게 설계했습니다.']
   ];
 
   return (
     <View style={styles.projectSection}>
       <SectionKeyword label="NOTES" style={[styles.bgSubtleKeyword, styles.bgNotes]} />
       <View style={styles.projectHeading}>
-        <Text style={styles.sectionEyebrow}>PROJECT NOTES</Text>
-        <Text style={styles.sectionTitle}>회의록과 설계 문서에서 이어진 사각사각의 방향</Text>
+        <Text style={styles.sectionEyebrow}>{t('landing.projectNotes.eyebrow', 'DESIGN NOTES')}</Text>
+        <Text style={styles.sectionTitle}>{t('landing.projectNotes.title', '사각사각이 학습을 여는 방식')}</Text>
         <Text style={styles.sectionDescription}>
-          요구사항과 설계 문서에는 사각사각이 전 연령층을 위한 개인화 학습 관리 앱으로, 일정·칸반·AI 학습·커뮤니티·접근성·보상을 하나의 학습 흐름으로 연결해야 한다고 정리되어 있습니다.
+          {t('landing.projectNotes.description', '초기 요구사항에서 출발한 학습 흐름을 실제 사용자가 바로 이해할 수 있는 기능 구조로 정리했습니다.')}
         </Text>
       </View>
       <View style={styles.projectCardGrid}>
-        {cards.map(([title, description]) => (
-          <View key={title} style={[styles.projectCard, shadows.card]}>
+        {cards.map(([titleKey, descriptionKey, titleFallback, descriptionFallback]) => (
+          <View key={titleKey} style={[styles.projectCard, shadows.card]}>
             <View style={styles.projectCardRule} />
-            <Text style={styles.projectCardTitle}>{title}</Text>
-            <Text style={styles.projectCardDescription}>{description}</Text>
+            <Text style={styles.projectCardTitle}>{t(titleKey, titleFallback)}</Text>
+            <Text style={styles.projectCardDescription}>{t(descriptionKey, descriptionFallback)}</Text>
           </View>
         ))}
       </View>
@@ -720,7 +760,7 @@ export default function ScrollStorySection() {
 
       <FeatureGridSection t={t} />
 
-      <ProjectGroundedCopySection />
+      <ProjectGroundedCopySection t={t} />
 
       {serviceSections.map((section) => (
         <ServiceSection
@@ -1302,7 +1342,10 @@ const styles = StyleSheet.create({
   bgreport: {
     top: '50%'
   },
-  bgsocial: {
+  bgmessage: {
+    top: '50%'
+  },
+  bgcommunity: {
     top: '50%'
   },
   bgcoop: {
@@ -1627,14 +1670,42 @@ const styles = StyleSheet.create({
     height: 'auto',
     minHeight: 250
   },
-  socialMock: {
+  messageMock: {
     borderColor: '#BDE0FE',
     borderWidth: 2,
     backgroundColor: '#F0F8FF'
   },
-  socialScore: {
+  messageScore: {
     color: '#173B63',
     fontSize: 15
+  },
+  communityMock: {
+    borderColor: '#CDEFE9',
+    borderWidth: 2,
+    backgroundColor: '#F8FFFD'
+  },
+  communityScore: {
+    color: '#0F766E',
+    fontSize: 15
+  },
+  communityActionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 14
+  },
+  communityActionPill: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(23, 59, 99, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  communityActionText: {
+    color: '#173B63',
+    fontSize: 13,
+    fontWeight: '900'
   },
   socialStatusRow: {
     flexDirection: 'row',
