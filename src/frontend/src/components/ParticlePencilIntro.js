@@ -4,15 +4,17 @@ import { useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
 const INTRO_TIMELINE = {
-  drift: 480,
-  gather: 1520,
-  silhouette: 2840,
-  pencil: 3860,
-  textSilhouette: 4640,
-  text: 5400,
-  settle: 6280,
-  exit: 7040,
-  done: 7480
+  drift: 320,
+  gather: 1800,
+  silhouette: 3850,
+  pencil: 4850,
+  textSilhouette: 5750,
+  text: 6600,
+  caption: 7350,
+  shine: 8100,
+  settle: 8850,
+  exit: 11100,
+  done: 11650
 };
 
 const PARTICLE_COLORS = ['#FFF6DF', '#D9FFF7', '#73C9BD', '#1F5E96', '#7BC7F6', '#F1C89A'];
@@ -35,9 +37,9 @@ const SHAPE_SEQUENCE = [
   'studyToken',
   'keywordToken'
 ];
-const FORMED_STAGES = new Set(['silhouette', 'pencil', 'textSilhouette', 'text', 'settle', 'exit']);
-const MASCOT_STAGES = new Set(['pencil', 'textSilhouette', 'text', 'settle', 'exit']);
-const WORD_STAGES = new Set(['textSilhouette', 'text', 'settle', 'exit']);
+const FORMED_STAGES = new Set(['silhouette', 'pencil', 'textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
+const MASCOT_STAGES = new Set(['pencil', 'textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
+const WORD_STAGES = new Set(['textSilhouette', 'text', 'caption', 'shine', 'settle', 'exit']);
 const TEXT_SEQUENCE = ['sa', 'gak', 'sa', 'gak'];
 const TEXT_MASKS = {
   sa: [
@@ -431,6 +433,14 @@ function getParticleOpacity(stage, reducedMotion, particle) {
     return particle.targetKind === 'text' ? 0.58 : 0.06;
   }
 
+  if (stage === 'caption') {
+    return particle.targetKind === 'text' ? 0.3 : 0.03;
+  }
+
+  if (stage === 'shine') {
+    return particle.targetKind === 'text' ? 0.2 : 0.02;
+  }
+
   if (stage === 'settle') {
     return particle.targetKind === 'text' ? 0.12 : 0;
   }
@@ -491,11 +501,39 @@ function getWordOpacity(stage, reducedMotion) {
     return 0.82;
   }
 
+  if (stage === 'caption' || stage === 'shine') {
+    return 1;
+  }
+
   if (stage === 'settle' || stage === 'exit') {
     return 1;
   }
 
   return 0;
+}
+
+function getCaptionOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'caption') {
+    return 0.72;
+  }
+
+  if (stage === 'shine' || stage === 'settle' || stage === 'exit') {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getShineOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 0;
+  }
+
+  return stage === 'shine' ? 0.72 : 0;
 }
 
 function PencilMascot({ pencilWidth, reducedMotion, stage }) {
@@ -563,6 +601,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
   const particleCount = getParticleCount(width || 1024);
   const pencilWidth = width < 520 ? 238 : width < 900 ? 310 : 390;
   const wordWidth = Math.min((width || 1024) * 0.82, 440);
+  const shineTranslate = stage === 'shine' || stage === 'settle' || stage === 'exit' ? wordWidth * 0.72 : -wordWidth * 0.72;
 
   const particles = useMemo(() => buildParticles(particleCount), [particleCount]);
 
@@ -620,6 +659,8 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       setTimeout(() => setStage('pencil'), INTRO_TIMELINE.pencil),
       setTimeout(() => setStage('textSilhouette'), INTRO_TIMELINE.textSilhouette),
       setTimeout(() => setStage('text'), INTRO_TIMELINE.text),
+      setTimeout(() => setStage('caption'), INTRO_TIMELINE.caption),
+      setTimeout(() => setStage('shine'), INTRO_TIMELINE.shine),
       setTimeout(() => setStage('settle'), INTRO_TIMELINE.settle),
       setTimeout(() => setStage('exit'), INTRO_TIMELINE.exit),
       setTimeout(onDone, INTRO_TIMELINE.done)
@@ -635,7 +676,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       particles.map((particle) => {
         const position = getParticlePosition(particle, stage);
         const formed = FORMED_STAGES.has(stage);
-        const transitionDuration = stage === 'drift' ? 1280 : stage === 'gather' ? 1640 : stage === 'silhouette' ? 980 : 720;
+        const transitionDuration = stage === 'drift' ? 1680 : stage === 'gather' ? 1920 : stage === 'silhouette' ? 980 : 720;
         const isToken = particle.shape === 'mathToken' || particle.shape === 'studyToken' || particle.shape === 'keywordToken';
         const silhouetteScale = particle.targetKind === 'text' ? 0.52 : 0.46;
 
@@ -705,6 +746,17 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         ]}
       >
         <Text style={[styles.wordTitle, { opacity: getWordOpacity(stage, reducedMotion) }]}>사각사각</Text>
+        <Text style={[styles.wordCaption, { opacity: getCaptionOpacity(stage, reducedMotion) }]}>Smart Edu Platform</Text>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.logoShine,
+            {
+              opacity: getShineOpacity(stage, reducedMotion),
+              transform: [{ translateX: shineTranslate }, { rotate: '-10deg' }]
+            }
+          ]}
+        />
       </View>
 
       <Pressable accessibilityRole="button" onPress={onDone} style={styles.skipButton}>
@@ -929,6 +981,8 @@ const styles = StyleSheet.create({
     left: '50%',
     top: '64%',
     alignItems: 'center',
+    overflow: 'hidden',
+    paddingVertical: 10,
     opacity: 0,
     transitionDuration: '520ms',
     transitionProperty: 'opacity, transform',
@@ -948,6 +1002,35 @@ const styles = StyleSheet.create({
     transitionDuration: '520ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
+  },
+  wordCaption: {
+    marginTop: 6,
+    color: 'rgba(255, 246, 223, 0.82)',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    textShadowColor: 'rgba(123, 199, 246, 0.35)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
+    transitionDuration: '640ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'ease-out'
+  },
+  logoShine: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: '50%',
+    width: 46,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
+    shadowColor: '#D9FFF7',
+    shadowOpacity: 0.7,
+    shadowRadius: 20,
+    transitionDuration: '720ms',
+    transitionProperty: 'opacity, transform',
+    transitionTimingFunction: 'cubic-bezier(0.16, 0.9, 0.18, 1)'
   },
   skipButton: {
     position: 'absolute',
