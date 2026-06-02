@@ -93,7 +93,7 @@ function GitHubMark() {
 }
 
 export default function LandingScreen({ onNavigate }) {
-  const { t } = useLanguage();
+  const { currentLanguage, t } = useLanguage();
   const [scrollY, setScrollY] = useState(0);
   const [showIntro, setShowIntro] = useState(shouldShowIntro);
   const [githubTooltipState, setGithubTooltipState] = useState({
@@ -103,6 +103,9 @@ export default function LandingScreen({ onNavigate }) {
   const showGithubTooltip = githubTooltipState.focused || githubTooltipState.hovered;
   const writingWord = t('landing.hero.writingWord', '사각사각');
   const heroSuffix = t('landing.hero.suffix', '쌓아가세요');
+  const heroLine1 = t('landing.hero.line1', t('landing.hero.prefix', '공부의 흔적을'));
+  const heroLine2 = t('landing.hero.line2', `${writingWord}${heroSuffix ? ` ${heroSuffix}` : ''}`);
+  const shouldAnimateHeroWord = currentLanguage === 'ko';
   const introProgress = Math.min(scrollY / 360, 1);
 
   const handleLandingScroll = (event) => {
@@ -149,19 +152,23 @@ export default function LandingScreen({ onNavigate }) {
             <Text style={styles.replayIntroText}>{t('landing.intro.replay', '인트로 다시 보기')}</Text>
           </Pressable>
           <Text accessibilityLabel={t('landing.hero.fullLabel', '공부의 흔적을 사각사각 쌓아가세요')} style={styles.title}>
-            {t('landing.hero.prefix', '공부의 흔적을')}{'\n'}
-            <WritingEraseText
-              accessibilityElementsHidden
-              cursorStyle={styles.writingCursor}
-              eraseInterval={58}
-              holdMs={1300}
-              importantForAccessibility="no"
-              pauseMs={500}
-              style={styles.writingWord}
-              text={writingWord}
-              writeInterval={150}
-            />
-            {heroSuffix ? ` ${heroSuffix}` : ''}
+            {heroLine1}{'\n'}
+            {shouldAnimateHeroWord ? (
+              <>
+                <WritingEraseText
+                  accessibilityElementsHidden
+                  cursorStyle={styles.writingCursor}
+                  eraseInterval={58}
+                  holdMs={1300}
+                  importantForAccessibility="no"
+                  pauseMs={500}
+                  style={styles.writingWord}
+                  text={writingWord}
+                  writeInterval={150}
+                />
+                {heroSuffix ? ` ${heroSuffix}` : ''}
+              </>
+            ) : heroLine2}
           </Text>
           <Text style={styles.description}>
             {t(

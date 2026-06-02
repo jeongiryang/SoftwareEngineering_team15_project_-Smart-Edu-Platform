@@ -4,6 +4,12 @@ import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
+const DEMO_PHASE_COUNT = 6;
+const DEMO_FINAL_PHASE = DEMO_PHASE_COUNT - 1;
+const DEMO_VISUAL_FINAL_PHASE = 4;
+const DEMO_PHASE_SEQUENCE = [0, 1, 2, 3, 4, 5, 5];
+const DEMO_PHASE_INTERVAL_MS = 850;
+const TRUST_STEP_INTERVAL_MS = 2200;
 
 const promoSlides = [
   {
@@ -168,8 +174,11 @@ const serviceSections = [
   {
     id: 'coop',
     keyword: 'COOP',
+    titleKey: 'landing.coop.title',
     titleFallback: '같이 목표를 달성하는 쾌감',
+    descriptionKey: 'landing.coop.description',
     descriptionFallback: '등록된 보스 레이드에 참여하고, 팀원과 직접 협동 퀘스트를 만들어 함께 목표를 달성하고 포인트를 받으세요.',
+    chipKey: 'landing.coop.chip',
     chipFallback: '협동',
     layout: 'reverse',
     visual: 'coop'
@@ -177,8 +186,11 @@ const serviceSections = [
   {
     id: 'reward',
     keyword: 'REWARD',
+    titleKey: 'landing.reward.title',
     titleFallback: '노력한 만큼 쌓이는 보상',
+    descriptionKey: 'landing.reward.description',
     descriptionFallback: '퀘스트와 목표 달성으로 모은 포인트로 나만의 프로필을 꾸미고, 학습 성취감을 높여보세요.',
+    chipKey: 'landing.reward.chip',
     chipFallback: '포인트 상점',
     layout: 'row',
     visual: 'reward'
@@ -202,6 +214,7 @@ const serviceSections = [
     titleFallback: '차분하지만 믿을 수 있는 학습 공간',
     descriptionKey: 'landing.trust.description',
     descriptionFallback: '사각사각은 화려한 효과보다 실제 학습 흐름, 접근성, 기존 API 안정성을 우선합니다.',
+    chipKey: 'landing.trust.chip',
     chipFallback: '안정성',
     layout: 'reverse',
     visual: 'trust'
@@ -229,6 +242,62 @@ function getPrefersReducedMotion() {
   }
 
   return browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function animatedStyle(style, reducedMotion) {
+  return reducedMotion ? null : style;
+}
+
+function getMicroDelayStyle(index) {
+  return styles[`microDelay${index}`] || styles.microDelay0;
+}
+
+function isPhaseReached(index, demoPhase, reducedMotion) {
+  return reducedMotion || index <= demoPhase;
+}
+
+function getStepStyle(index, demoPhase, reducedMotion) {
+  return isPhaseReached(index, demoPhase, reducedMotion) ? styles.demoStepActive : styles.demoStepWaiting;
+}
+
+function getCurrentStepStyle(index, demoPhase, reducedMotion) {
+  return reducedMotion || index === demoPhase ? styles.demoStepActive : styles.demoStepDimmed;
+}
+
+function getCurrentOrCompleteStyle(index, demoPhase, reducedMotion) {
+  return [
+    getStepStyle(index, demoPhase, reducedMotion),
+    !reducedMotion && index === demoPhase && styles.demoCurrentStep
+  ];
+}
+
+function getAiThinkingStyle(demoPhase, reducedMotion) {
+  return reducedMotion || demoPhase === 1 || demoPhase === 2 ? styles.demoStepActive : styles.demoStepWaiting;
+}
+
+function getBarHeightForPhase(targetHeight, index, demoPhase, reducedMotion) {
+  if (reducedMotion) {
+    return targetHeight;
+  }
+
+  const targetValue = Number.parseInt(String(targetHeight).replace('%', ''), 10) || 50;
+  const activeCount = [1, 2, 3, 4, 5][demoPhase] || 5;
+
+  if (index >= activeCount) {
+    return '10%';
+  }
+
+  const scale = [0.26, 0.48, 0.68, 0.84, 1][demoPhase] || 1;
+  return `${Math.max(16, Math.round(targetValue * scale))}%`;
+}
+
+function getCoopProgressWidth(demoPhase, reducedMotion) {
+  if (reducedMotion) {
+    return '24%';
+  }
+
+  const phase = Math.min(demoPhase, DEMO_VISUAL_FINAL_PHASE);
+  return ['82%', '68%', '55%', '39%', '24%'][phase] || '55%';
 }
 
 function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevious, onSelect, t }) {
@@ -317,37 +386,56 @@ function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevi
   );
 }
 
-function DesignNotesRecordCards({ t }) {
+function DesignNotesRecordCards({ demoPhase, reducedMotion, t }) {
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
+  const dateValues = ['05/24', '05/25', '05/26', '05/27', '05/28'];
+  const streakValues = [
+    t('landing.designRecord.streak1', '연속 1일째'),
+    t('landing.designRecord.streak2', '연속 2일째'),
+    t('landing.designRecord.streak3', '연속 3일째'),
+    t('landing.designRecord.streak4', '연속 4일째'),
+    t('landing.designRecord.streak', '연속 5일째')
+  ];
   const rows = [
     t('landing.designRecord.row1', '자료구조 DFS 복습 완료 · 42분'),
     t('landing.designRecord.row2', '미적분 문제풀이 · 1시간 10분'),
     t('landing.designRecord.row3', '영어 단어 암기 · 25분'),
     t('landing.designRecord.row4', '오늘 질문 3개 / 요약 2개 저장')
   ];
+  const recordRowCount = reducedMotion ? rows.length : phase;
 
   return (
     <View style={styles.recordExperience}>
       <View style={[styles.recordMainCard, shadows.card]}>
         <View style={styles.recordHeaderRow}>
           <Text style={styles.recordCardTitle}>{t('landing.designRecord.mainTitle', '오늘의 학습 기록')}</Text>
-          <Text style={styles.recordStreak}>{t('landing.designRecord.streak', '연속 5일째')}</Text>
+          <Text style={[styles.recordStreak, styles.recordStreakLive]}>{streakValues[phase]}</Text>
         </View>
-        {rows.map((item, index) => (
-          <View key={item} style={styles.recordLogRow}>
-            <View style={[styles.recordLogDot, index === 1 && styles.recordLogDotWarm]} />
-            <Text style={styles.recordLogText}>{item}</Text>
+        {rows.map((item, index) => {
+          const rowVisible = reducedMotion || index < recordRowCount;
+          const rowCurrent = !reducedMotion && index === recordRowCount - 1;
+
+          return (
+          <View key={item} style={[styles.recordLogRow, rowVisible ? styles.demoStepActive : styles.demoStepWaiting, rowCurrent && styles.demoCurrentStep]}>
+            <View style={[
+              styles.recordLogDot,
+              index === 1 && styles.recordLogDotWarm,
+              rowVisible && styles.recordLogDotActive
+            ]} />
+            <Text style={[styles.recordLogText, rowVisible && styles.recordLogTextActive]}>{item}</Text>
           </View>
-        ))}
+          );
+        })}
       </View>
       <View style={styles.recordSideStack}>
-        <View style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardMint, phase >= 1 && styles.demoMiniActive]}>
           <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini1Label', 'Opening Notes')}</Text>
-          <Text style={styles.recordMiniValue}>{t('landing.designRecord.mini1Value', '05/28')}</Text>
+          <Text style={styles.recordMiniValue}>{dateValues[phase]}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini1Text', '학습 목표와 오늘의 기록을 한눈에 정리합니다.')}</Text>
         </View>
-        <View style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardCream, phase >= 1 && styles.demoMiniActive]}>
           <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini2Label', 'Saved Questions')}</Text>
-          <Text style={styles.recordMiniValue}>{t('landing.designRecord.mini2Value', '3')}</Text>
+          <Text style={styles.recordMiniValue}>{String(phase)}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini2Text', '질문과 요약을 다시 볼 수 있게 모아둡니다.')}</Text>
         </View>
       </View>
@@ -355,36 +443,47 @@ function DesignNotesRecordCards({ t }) {
   );
 }
 
-function PlanMock({ t }) {
+function PlanMock({ demoPhase, reducedMotion, t }) {
   const rows = [
     t('landing.story.plan.previewItem1', '09:00 자료구조 복습'),
     t('landing.story.plan.previewItem2', '14:00 알고리즘 과제'),
     t('landing.story.plan.previewItem3', '20:00 오답 노트 정리')
   ];
+  const activeScheduleIndex = Math.min(demoPhase, rows.length - 1);
 
   return (
     <View style={[styles.mockCard, styles.planMock]}>
       <View style={styles.planHeader}>
         <Text style={styles.planMonth}>{t('landing.story.plan.previewTitle', '오늘의 학습 일정')}</Text>
-        <View style={styles.planDday}><Text style={styles.planDdayText}>D-12</Text></View>
+        <View style={[styles.planDday, animatedStyle(styles.microBadgePulse, reducedMotion), demoPhase >= 4 && styles.demoBadgeActive]}><Text style={styles.planDdayText}>D-12</Text></View>
       </View>
       <View style={styles.planTimeline}>
         {rows.map((item, index) => (
-          <View key={item} style={styles.planTimeItem}>
-            <View style={[styles.planTimeDot, index === 1 && styles.planTimeDotWarm, index === 2 && styles.planTimeDotBlue]} />
-            <Text style={styles.planTimeText}>{item}</Text>
+          <View key={item} style={[styles.planTimeItem, getStepStyle(index, demoPhase, reducedMotion), index === activeScheduleIndex && styles.demoCurrentStep]}>
+            <View
+              style={[
+                styles.planTimeDot,
+                index === 1 && styles.planTimeDotWarm,
+                index === 2 && styles.planTimeDotBlue,
+                isPhaseReached(index, demoPhase, reducedMotion) && styles.planTimeDotActive,
+                animatedStyle(styles.microDotPulse, reducedMotion),
+                animatedStyle(getMicroDelayStyle(index), reducedMotion)
+              ]}
+            />
+            <Text style={[styles.planTimeText, isPhaseReached(index, demoPhase, reducedMotion) && styles.planTimeTextActive]}>{item}</Text>
           </View>
         ))}
       </View>
-      <View style={styles.planPriorityBox}>
+      <View style={[styles.planPriorityBox, demoPhase >= 4 && styles.demoPanelActive]}>
         <Text style={styles.planPriorityTitle}>{t('landing.story.plan.previewMeta', '중간고사 D-12')}</Text>
-        <Text style={styles.planPriorityText}>오늘 할 일을 정리하고 우선순위를 확인합니다.</Text>
+        <Text style={styles.planPriorityText}>{t('landing.story.plan.priorityText', '오늘 할 일을 정리하고 우선순위를 확인합니다.')}</Text>
       </View>
     </View>
   );
 }
 
-function FocusMock({ t }) {
+function FocusMock({ demoPhase, reducedMotion, t }) {
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
   const weeklyBars = [
     ['landing.focus.week.mon', '62%'],
     ['landing.focus.week.tue', '48%'],
@@ -392,12 +491,19 @@ function FocusMock({ t }) {
     ['landing.focus.week.thu', '56%'],
     ['landing.focus.week.fri', '84%']
   ];
+  const timerValues = [
+    t('landing.focus.timerValue', '25:00'),
+    t('landing.focus.timerValue', '25:00'),
+    '24:59',
+    '24:58',
+    '24:57'
+  ];
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.focusMock]}>
       <View style={styles.focusHeader}>
-        <View style={styles.focusTimerCircle}>
-          <Text style={styles.focusTimerValue}>{t('landing.focus.timerValue', '25:00')}</Text>
+        <View style={[styles.focusTimerCircle, animatedStyle(styles.microTimerPulse, reducedMotion), styles[`focusTimerPhase${phase}`]]}>
+          <Text style={styles.focusTimerValue}>{timerValues[phase]}</Text>
           <Text style={styles.focusTimerLabel}>{t('landing.focus.timerLabel', '집중 타이머')}</Text>
         </View>
         <View style={styles.focusSummaryStack}>
@@ -407,56 +513,93 @@ function FocusMock({ t }) {
         </View>
       </View>
       <View style={styles.focusBarGroup}>
-        {weeklyBars.map(([labelKey, height]) => (
+        {weeklyBars.map(([labelKey, height], index) => (
           <View key={labelKey} style={styles.focusBarItem}>
             <View style={styles.focusBarTrack}>
-              <View style={[styles.focusBarFill, { height }]} />
+              <View
+                style={[
+                  styles.focusBarFill,
+                  { height: getBarHeightForPhase(height, index, phase, reducedMotion) },
+                  isPhaseReached(index, phase + 1, reducedMotion) && styles.focusBarFillActive,
+                  animatedStyle(getMicroDelayStyle(index), reducedMotion)
+                ]}
+              />
             </View>
             <Text style={styles.focusBarLabel}>{t(labelKey)}</Text>
           </View>
         ))}
       </View>
-      <View style={styles.focusSavedBox}>
+      <View style={[styles.focusSavedBox, phase >= 4 && styles.demoPanelActive]}>
         <Text style={styles.focusSavedText}>{t('landing.focus.saved', '집중 기록 저장 완료')}</Text>
       </View>
     </View>
   );
 }
 
-function ChatMock({ t }) {
+function ChatMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.chatMock]}>
-      <View style={styles.chatUserBubble}>
+      <View style={[styles.chatUserBubble, getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>
         <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem1', '이 개념을 한 문단으로 요약해줘')}</Text>
       </View>
-      <View style={styles.chatAiBubble}>
-        <Text style={styles.chatAiText}>막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.</Text>
+      <View style={[styles.aiWaitRow, getAiThinkingStyle(demoPhase, reducedMotion)]}>
+        <Text style={styles.aiWaitText}>{t('landing.story.ai.waiting', 'AI가 질문을 읽는 중')}</Text>
+      </View>
+      <View style={[styles.typingDotsRow, getAiThinkingStyle(demoPhase, reducedMotion)]}>
+        <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion)]} />
+        <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]} />
+        <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]} />
+      </View>
+      <View style={[styles.chatAiBubble, getCurrentOrCompleteStyle(3, demoPhase, reducedMotion)]}>
+        <Text style={styles.chatAiText}>{t('landing.story.ai.answer1', '막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.')}</Text>
+      </View>
+      <View style={[styles.chatUserBubble, styles.chatUserBubbleFollowup, getStepStyle(4, demoPhase, reducedMotion)]}>
+        <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem2', '예시도 같이 보여줘')}</Text>
+      </View>
+      <View style={[styles.chatAiBubble, styles.chatAiBubbleFollowup, getStepStyle(5, demoPhase, reducedMotion)]}>
+        <Text style={styles.chatAiText}>{t('landing.story.ai.answer2', '복습 질문으로 이어가면 요약, 다시 보기, 예시 보기 순서로 정리됩니다.')}</Text>
         <View style={styles.chatActions}>
-          <View style={styles.chatBtn}><Text style={styles.chatBtnText}>요약하기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnMuted]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnCream]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
+          <View style={styles.chatBtn}><Text style={styles.chatBtnText}>{t('landing.story.ai.actionSummary', '요약하기')}</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnMuted]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>{t('landing.story.ai.actionReview', '다시 보기')}</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnCream]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>{t('landing.story.ai.actionExample', '예시 보기')}</Text></View>
         </View>
       </View>
     </View>
   );
 }
 
-function NoteMock({ t }) {
+function NoteMock({ demoPhase, reducedMotion, t }) {
   const bullets = [
-    '미분 = 순간 변화율',
-    '도함수 = 접선의 기울기',
-    '적분 = 누적량',
-    '기본정리 = 미분·적분 연결'
+    t('landing.summary.bullet1', '미분 = 순간 변화율'),
+    t('landing.summary.bullet2', '도함수 = 접선의 기울기'),
+    t('landing.summary.bullet3', '적분 = 누적량'),
+    t('landing.summary.bullet4', '기본정리 = 미분·적분 연결')
   ];
 
   return (
     <View style={[styles.mockCard, styles.noteMock]}>
-      <View style={styles.noteBadge}><Text style={styles.noteBadgeText}>AI 요약 완료</Text></View>
-      <Text style={styles.noteTitle}>수학 미적분 핵심 개념</Text>
+      <View style={[styles.noteBadge, demoPhase >= 4 && styles.demoBadgeActive]}><Text style={styles.noteBadgeText}>{t('landing.summary.badge', 'AI 요약 완료')}</Text></View>
+      <Text style={styles.noteTitle}>{t('landing.summary.previewTitle', '수학 미적분 핵심 개념')}</Text>
       <View style={styles.summaryBulletList}>
         {bullets.map((item, index) => (
-          <View key={item} style={styles.summaryBulletRow}>
-            <Text style={styles.summaryBulletNumber}>{index + 1}</Text>
+          <View
+            key={item}
+            style={[
+              styles.summaryBulletRow,
+              getCurrentOrCompleteStyle(index, demoPhase, reducedMotion),
+              animatedStyle(styles.microSummaryRow, reducedMotion),
+              animatedStyle(getMicroDelayStyle(index), reducedMotion)
+            ]}
+          >
+            <Text
+              style={[
+                styles.summaryBulletNumber,
+                animatedStyle(styles.microBulletHighlight, reducedMotion),
+                animatedStyle(getMicroDelayStyle(index), reducedMotion)
+              ]}
+            >
+              {index + 1}
+            </Text>
             <Text style={[styles.summaryBulletText, index === 2 && styles.summaryHighlightText]}>{item}</Text>
           </View>
         ))}
@@ -465,34 +608,40 @@ function NoteMock({ t }) {
   );
 }
 
-function ReportMock({ t }) {
+function ReportMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={styles.reportStack}>
-      <View style={[styles.mockCard, styles.reportCardBg2]} />
-      <View style={[styles.mockCard, styles.reportCardBg1]} />
+      <View style={[styles.mockCard, styles.reportCardBg2, animatedStyle(styles.microStackFloat, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]} />
+      <View style={[styles.mockCard, styles.reportCardBg1, animatedStyle(styles.microStackFloat, reducedMotion)]} />
       <View style={[styles.mockCard, styles.reportCardMain]}>
         <View style={styles.reportHeader}>
           <Text style={styles.reportTitle}>{t('landing.feature.ai.title')}</Text>
-          <Text style={styles.reportScore}>-5</Text>
+          <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion), getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>-5</Text>
         </View>
-        <View style={styles.reportRow}>
-          <Text style={styles.reportLabel}>내 답안</Text>
-          <Text style={styles.reportWrong}>4</Text>
+        <View style={[styles.reportRow, styles.reportAnalysisRow, getCurrentOrCompleteStyle(1, demoPhase, reducedMotion)]}>
+          <View style={styles.reportAnalysisCopy}>
+            <Text style={styles.reportLabel}>{t('landing.report.myAnswerLabel', '내 답안')}</Text>
+            <Text style={styles.reportDetailText}>{t('landing.report.myAnswerText', '조건식을 반대로 해석했다')}</Text>
+          </View>
+          <Text style={[styles.reportWrong, animatedStyle(styles.microScorePulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}>4</Text>
         </View>
-        <View style={styles.reportRow}>
-          <Text style={styles.reportLabel}>정답</Text>
-          <Text style={styles.reportCorrect}>2</Text>
+        <View style={[styles.reportRow, styles.reportAnalysisRow, getCurrentOrCompleteStyle(2, demoPhase, reducedMotion)]}>
+          <View style={styles.reportAnalysisCopy}>
+            <Text style={styles.reportLabel}>{t('landing.report.correctLabel', '정답')}</Text>
+            <Text style={styles.reportDetailText}>{t('landing.report.correctText', '탐색 순서를 먼저 확인해야 한다')}</Text>
+          </View>
+          <Text style={[styles.reportCorrect, animatedStyle(styles.microScorePulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}>2</Text>
         </View>
-        <View style={styles.reportReason}>
-          <Text style={styles.reportReasonTitle}>틀린 이유</Text>
-          <Text style={styles.reportReasonText}>조건식을 반대로 해석해 탐색 순서를 잘못 판단했습니다.</Text>
+        <View style={[styles.reportReason, animatedStyle(styles.microSoftGlow, reducedMotion), getStepStyle(4, demoPhase, reducedMotion)]}>
+          <Text style={styles.reportReasonTitle}>{t('landing.report.reasonLabel', '틀린 이유')}</Text>
+          <Text style={styles.reportReasonText}>{t('landing.report.reasonText', '조건식을 반대로 해석해 탐색 순서를 잘못 판단했습니다.')}</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function MessageMock({ t }) {
+function MessageMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.messageMock]}>
       <View style={styles.reportHeader}>
@@ -500,17 +649,36 @@ function MessageMock({ t }) {
         <Text style={[styles.reportScore, styles.messageScore]}>{t('landing.message.realtimePill', 'Realtime')}</Text>
       </View>
       <View style={styles.socialStatusRow}>
-        <Text style={styles.socialStatusText}>{t('landing.message.onlineCount', '친구 3명 접속중')}</Text>
-        <Text style={styles.socialUnreadPill}>{t('landing.message.unreadBadge', '읽지 않은 쪽지 2개')}</Text>
+        <Text style={[styles.socialStatusText, animatedStyle(styles.microChipHighlight, reducedMotion), getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>{t('landing.message.onlineCount', '친구 3명 접속중')}</Text>
+        <Text style={[styles.socialUnreadPill, animatedStyle(styles.microUnreadPulse, reducedMotion), getCurrentOrCompleteStyle(1, demoPhase, reducedMotion)]}>{t('landing.message.unreadBadge', '읽지 않은 쪽지 2개')}</Text>
       </View>
-      <View style={styles.friendRow}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>{t('landing.message.chat1', '이량: 오늘 목표 시작했어요.')}</Text></View>
-      <View style={styles.friendRow}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>{t('landing.message.chat2', '지환: 나 지금 수학 과제 거의 다했어!')}</Text></View>
+      <View style={[styles.messageBubbleRow, getStepStyle(2, demoPhase, reducedMotion)]}>
+        <View style={styles.friendAvatar} />
+        <View style={[styles.messageBubble, animatedStyle(styles.microMessageLift, reducedMotion)]}>
+          <Text style={styles.messageAuthor}>{t('landing.message.author1', '이량')}</Text>
+          <Text style={styles.messageBubbleText}>{t('landing.message.bubble1', '소공 과제 PR 확인했어?')}</Text>
+        </View>
+      </View>
+      <View style={[styles.messageBubbleRow, styles.messageBubbleRowRight, getStepStyle(3, demoPhase, reducedMotion)]}>
+        <View style={[styles.messageBubble, styles.messageBubbleMint, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}>
+          <Text style={styles.messageAuthor}>{t('landing.message.author2', '지환')}</Text>
+          <Text style={styles.messageBubbleText}>{t('landing.message.bubble2', '지금 PR 확인하고 리뷰 남길게.')}</Text>
+        </View>
+        <View style={[styles.friendAvatar, styles.friendAvatarMint]} />
+      </View>
+      <View style={[styles.messageBubbleRow, getStepStyle(4, demoPhase, reducedMotion)]}>
+        <View style={[styles.friendAvatar, styles.friendAvatarCream]} />
+        <View style={[styles.messageBubble, styles.messageBubbleCream, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}>
+          <Text style={styles.messageAuthor}>{t('landing.message.author3', '대겸')}</Text>
+          <Text style={styles.messageBubbleText}>{t('landing.message.bubble3', '너무 힘들어요 ㅠㅠ PR 확인 후 리뷰 남겼어요.')}</Text>
+        </View>
+      </View>
       <Text style={styles.socialFooterText}>{t('landing.message.footer', '친구 접속 상태 · 읽지 않은 메시지 · 실시간 흐름')}</Text>
     </View>
   );
 }
 
-function CommunityMock({ t }) {
+function CommunityMock({ demoPhase, reducedMotion, t }) {
   const items = [
     t('landing.community.previewPost', '게시글'),
     t('landing.community.previewComment', '댓글'),
@@ -525,9 +693,21 @@ function CommunityMock({ t }) {
         <Text style={styles.reportTitle}>{t('landing.community.previewTitle', '학습 게시판')}</Text>
         <Text style={[styles.reportScore, styles.communityScore]}>{t('landing.community.previewPill', 'Share')}</Text>
       </View>
+      <View style={[styles.communityPostPreview, getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>
+        <Text style={styles.communityPostTitle}>{t('landing.community.postTitle', '질문: DFS 방문 순서가 헷갈려요')}</Text>
+        <Text style={[styles.communityPostComment, getStepStyle(1, demoPhase, reducedMotion)]}>{t('landing.community.commentText', '댓글: 스택 흐름으로 다시 보면 쉬워요')}</Text>
+      </View>
       <View style={styles.communityActionGrid}>
-        {items.map((item) => (
-          <View key={item} style={styles.communityActionPill}>
+        {items.map((item, index) => (
+          <View
+            key={item}
+            style={[
+              styles.communityActionPill,
+              isPhaseReached(index, demoPhase, reducedMotion) && styles.demoChipActive,
+              animatedStyle(styles.microChipHighlight, reducedMotion),
+              animatedStyle(getMicroDelayStyle(index), reducedMotion)
+            ]}
+          >
             <Text style={styles.communityActionText}>{item}</Text>
           </View>
         ))}
@@ -537,46 +717,208 @@ function CommunityMock({ t }) {
   );
 }
 
-function CoopMock({ t }) {
+function CoopMock({ demoPhase, reducedMotion, t }) {
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
+  const hpValues = ['HP 82%', 'HP 68%', 'HP 55%', 'HP 39%', 'HP 24%'];
+  const contributionLabels = [
+    t('landing.coop.contribution1', '이량 +12분'),
+    t('landing.coop.contribution2', '지환 +18분'),
+    t('landing.coop.contribution3', '대겸 +15분')
+  ];
+
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.coopMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>중간고사 집중 레이드</Text>
-        <Text style={styles.reportScore}>HP 진행률</Text>
+        <Text style={styles.reportTitle}>{t('landing.coop.previewTitle', '중간고사 집중 레이드')}</Text>
+        <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion), demoPhase >= 1 && styles.demoTextActive]}>{hpValues[phase]}</Text>
       </View>
       <View style={styles.raidProgressBar}>
-        <View style={[styles.raidProgressFill, { width: '55%' }]} />
+        <View style={[styles.raidProgressFill, { width: getCoopProgressWidth(demoPhase, reducedMotion) }]} />
       </View>
-      <Text style={styles.raidProgressText}>남은 HP 45% · 팀 기여도 반영 중</Text>
+      <View style={styles.coopContributionRow}>
+        {contributionLabels.map((item, index) => (
+          <Text key={item} style={[styles.coopContributionChip, isPhaseReached(index + 1, demoPhase, reducedMotion) && styles.demoChipActive]}>
+            {item}
+          </Text>
+        ))}
+      </View>
+      <Text style={styles.raidProgressText}>{t('landing.coop.footer', '레이드 진행률과 협동 기여 시간이 함께 반영됩니다.')}</Text>
     </View>
   );
 }
 
-function RewardMock({ t }) {
+function RewardMock({ demoPhase, reducedMotion, t }) {
+  const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
+  const [displayedPoints, setDisplayedPoints] = useState(reducedMotion ? 3400 : 4200);
+  const pointText = `${displayedPoints.toLocaleString('en-US')}P`;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setDisplayedPoints(3400);
+      return undefined;
+    }
+
+    if (phase <= 2) {
+      setDisplayedPoints(4200);
+      return undefined;
+    }
+
+    if (phase >= 4) {
+      setDisplayedPoints(3400);
+      return undefined;
+    }
+
+    const startValue = 4200;
+    const endValue = 3400;
+    const durationMs = 980;
+    const getNow = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+    const startTime = getNow();
+    let frameId;
+
+    setDisplayedPoints(startValue);
+
+    const updatePointCount = (now) => {
+      const progress = Math.min((now - startTime) / durationMs, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round((startValue - (startValue - endValue) * eased) / 10) * 10;
+
+      setDisplayedPoints(Math.max(endValue, nextValue));
+
+      if (progress < 1 && typeof requestAnimationFrame === 'function') {
+        frameId = requestAnimationFrame(updatePointCount);
+      } else {
+        setDisplayedPoints(endValue);
+      }
+    };
+
+    if (typeof requestAnimationFrame !== 'function') {
+      setDisplayedPoints(endValue);
+      return undefined;
+    }
+
+    frameId = requestAnimationFrame(updatePointCount);
+
+    return () => {
+      if (typeof cancelAnimationFrame === 'function' && frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [phase, reducedMotion]);
+
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.rewardMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>포인트 상점</Text>
-        <Text style={[styles.reportScore, styles.rewardScore]}>4,200P</Text>
+        <Text style={styles.reportTitle}>{t('landing.reward.previewTitle', '포인트 상점')}</Text>
+        <Text style={[styles.reportScore, styles.rewardScore, animatedStyle(styles.microRewardGlow, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>{pointText}</Text>
       </View>
       <View style={styles.rewardPreviewRow}>
-        <View style={styles.rewardAvatarPreview} />
+        <View style={[styles.rewardAvatarPreview, phase >= 4 && styles.rewardAvatarPreviewMoon, animatedStyle(styles.microAvatarPulse, reducedMotion), getStepStyle(1, demoPhase, reducedMotion)]}>
+          <View style={[styles.rewardMoonSky, phase >= 4 && styles.rewardMoonSkyActive]}>
+            <View style={[styles.rewardMoonCrescent, phase >= 4 && styles.rewardMoonCrescentActive]}>
+              <View style={styles.rewardMoonCut} />
+            </View>
+            <View style={[styles.rewardMoonStar, phase >= 4 && styles.rewardMoonStarActive]} />
+          </View>
+          <View style={[styles.rewardAvatarInner, phase >= 4 && styles.rewardAvatarInnerActive]} />
+        </View>
         <View style={styles.rewardCopy}>
-          <Text style={styles.reportLabel}>프로필 이미지 · 배경 · 칭호</Text>
-          <Text style={styles.raidProgressText}>학습 성취를 프로필 꾸미기로 이어갑니다.</Text>
+          <View style={styles.rewardItemRow}>
+            <Text style={[styles.rewardItemChip, getStepStyle(1, demoPhase, reducedMotion)]}>{t('landing.reward.stepSelect', '달빛 배경 선택')}</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(2, demoPhase, reducedMotion)]}>{t('landing.reward.stepBuy', '구매하기')}</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(3, demoPhase, reducedMotion)]}>{t('landing.reward.stepDeduct', '800P 차감')}</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(4, demoPhase, reducedMotion)]}>{t('landing.reward.stepApplied', '적용 완료')}</Text>
+          </View>
+          <Text style={[styles.raidProgressText, getStepStyle(4, demoPhase, reducedMotion)]}>{t('landing.reward.footer', '달빛 테마를 프로필 배경에 적용합니다.')}</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function LanguageMock({ t }) {
+function LanguageMock({ reducedMotion, t }) {
+  const [languageIndex, setLanguageIndex] = useState(0);
   const rows = [
     t('landing.language.previewKo', '한국어 기본'),
-    t('landing.language.previewEn', 'English Beta'),
     t('landing.language.previewJa', '日本語 Beta'),
+    t('landing.language.previewEn', 'English Beta'),
     t('landing.language.previewZh', '中文 Beta')
   ];
+  const languageFlagLabels = [
+    t('landing.language.flagKo', '한국어'),
+    t('landing.language.flagJa', '일본어'),
+    t('landing.language.flagEn', '영어'),
+    t('landing.language.flagZh', '중국어')
+  ];
+  const sampleSentences = [
+    t('landing.language.sampleKo', '오늘 학습 기록을 정리했어요.'),
+    t('landing.language.sampleJa', '今日の学習記録を整理しました。'),
+    t('landing.language.sampleEn', 'Today’s study log is ready.'),
+    t('landing.language.sampleZh', '今天的学习记录已整理。')
+  ];
+  const selectedLanguageIndex = reducedMotion ? 0 : languageIndex;
+  const renderLanguageFlag = (index, selected) => {
+    const badgeStyle = [
+      styles.languageFlagBadge,
+      index === 0 && styles.flagBadgeKorea,
+      index === 1 && styles.flagBadgeJapan,
+      index === 2 && styles.flagBadgeUs,
+      index === 3 && styles.flagBadgeChina,
+      selected && styles.languageFlagBadgeSelected
+    ];
+
+    if (index === 0) {
+      return (
+        <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+          <View style={styles.flagKoreaRing}>
+            <View style={styles.flagKoreaRed} />
+            <View style={styles.flagKoreaBlue} />
+          </View>
+          <View style={[styles.flagKoreaBar, styles.flagKoreaBarTopLeft]} />
+          <View style={[styles.flagKoreaBar, styles.flagKoreaBarBottomRight]} />
+        </View>
+      );
+    }
+
+    if (index === 1) {
+      return (
+        <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+          <View style={styles.flagJapanDot} />
+        </View>
+      );
+    }
+
+    if (index === 2) {
+      return (
+        <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+          <View style={[styles.flagUsStripe, styles.flagUsStripeTop]} />
+          <View style={[styles.flagUsStripe, styles.flagUsStripeMiddle]} />
+          <View style={[styles.flagUsStripe, styles.flagUsStripeBottom]} />
+          <View style={styles.flagUsCanton} />
+        </View>
+      );
+    }
+
+    return (
+      <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+        <Text style={styles.flagChinaStar}>★</Text>
+        <View style={styles.flagChinaMiniStar} />
+      </View>
+    );
+  };
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setLanguageIndex(0);
+      return undefined;
+    }
+
+    setLanguageIndex(0);
+    const timer = setInterval(() => {
+      setLanguageIndex((current) => (current + 1) % rows.length);
+    }, 1500);
+
+    return () => clearInterval(timer);
+  }, [reducedMotion, rows.length]);
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.languageMock]}>
@@ -586,60 +928,92 @@ function LanguageMock({ t }) {
       </View>
       <View style={styles.languageList}>
         {rows.map((item, index) => (
-          <View key={item} style={styles.languageRow}>
+          <View
+            key={item}
+            style={[
+              styles.languageRow,
+              getCurrentStepStyle(index, selectedLanguageIndex, reducedMotion),
+              index === selectedLanguageIndex && styles.languageRowSelected
+            ]}
+          >
+            {renderLanguageFlag(index, index === selectedLanguageIndex)}
             <View style={[styles.languageDot, index === 0 && styles.languageDotPrimary]} />
             <Text style={styles.languageText}>{item}</Text>
           </View>
         ))}
+      </View>
+      <View style={[styles.languageSampleBox, styles.demoPanelActive, styles.languageSampleBoxSynced]}>
+        <Text style={styles.languageSampleText}>{sampleSentences[selectedLanguageIndex]}</Text>
       </View>
       <Text style={styles.languageNote}>{t('landing.language.note', '정식 검수 전 1차 지원 언어로 가볍게 제공합니다.')}</Text>
     </View>
   );
 }
 
-function TrustMock({ t }) {
+function TrustMock({ reducedMotion, t }) {
+  const [trustIndex, setTrustIndex] = useState(0);
+  const activeTrustIndex = reducedMotion ? 0 : trustIndex;
+  const isTrustActive = (index) => reducedMotion || index === activeTrustIndex;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setTrustIndex(0);
+      return undefined;
+    }
+
+    setTrustIndex(0);
+    const timer = setInterval(() => {
+      setTrustIndex((current) => (current + 1) % 3);
+    }, TRUST_STEP_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [reducedMotion]);
+
   return (
     <View style={styles.trustCardsContainer}>
-      <View style={[styles.mockCard, styles.trustCard]}>
-        <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>↔</Text></View>
+      <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(0, activeTrustIndex, reducedMotion)]}>
+        <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion)]}><Text style={styles.trustIcon}>PW</Text></View>
         <View style={styles.trustCardContent}>
-          <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '기존 로그인/회원가입/라우팅 흐름 유지')}</Text>
-          <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '로그인, 회원가입, 화면 이동 구조를 무리 없이 이어갑니다.')}</Text>
+          <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '비밀번호 bcrypt 해시화 완료')}</Text>
+          <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '회원가입 시 비밀번호를 bcrypt 해시로 저장하고 원문을 응답에 노출하지 않습니다.')}</Text>
         </View>
+        <Text style={[styles.trustCheck, isTrustActive(0) && styles.trustCheckActive]}>✓</Text>
       </View>
-      <View style={[styles.mockCard, styles.trustCard]}>
-        <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>Aa</Text></View>
+      <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(1, activeTrustIndex, reducedMotion)]}>
+        <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}><Text style={styles.trustIcon}>Aa</Text></View>
         <View style={styles.trustCardContent}>
           <Text style={styles.trustCardTitle}>{t('landing.trust.item2', '모션 민감 사용자를 위한 감소 설정 대응')}</Text>
           <Text style={styles.trustCardDesc}>{t('landing.trust.description2', '글자 크기, 고대비, 읽어주기 같은 접근성 흐름을 함께 고려합니다.')}</Text>
         </View>
+        <Text style={[styles.trustCheck, isTrustActive(1) && styles.trustCheckActive]}>✓</Text>
       </View>
-      <View style={[styles.mockCard, styles.trustCard]}>
-        <View style={styles.trustIconWrap}><Text style={styles.trustIcon}>API</Text></View>
+      <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(2, activeTrustIndex, reducedMotion)]}>
+        <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}><Text style={styles.trustIcon}>API</Text></View>
         <View style={styles.trustCardContent}>
           <Text style={styles.trustCardTitle}>{t('landing.trust.item3', '백엔드 API 변경 없이 현재 기능 흐름 재사용')}</Text>
           <Text style={styles.trustCardDesc}>{t('landing.trust.description3', '현재 API 흐름을 유지하면서 소개 화면과 기능 예시를 안정적으로 확장합니다.')}</Text>
         </View>
+        <Text style={[styles.trustCheck, isTrustActive(2) && styles.trustCheckActive]}>✓</Text>
       </View>
     </View>
   );
 }
 
-function SectionVisual({ type, t }) {
-  if (type === 'plan') return <PlanMock t={t} />;
-  if (type === 'focus') return <FocusMock t={t} />;
-  if (type === 'chat') return <ChatMock t={t} />;
-  if (type === 'note') return <NoteMock t={t} />;
-  if (type === 'report') return <ReportMock t={t} />;
-  if (type === 'message') return <MessageMock t={t} />;
-  if (type === 'community') return <CommunityMock t={t} />;
-  if (type === 'coop') return <CoopMock t={t} />;
-  if (type === 'reward') return <RewardMock t={t} />;
-  if (type === 'language') return <LanguageMock t={t} />;
-  return <TrustMock t={t} />;
+function SectionVisual({ demoPhase, reducedMotion, type, t }) {
+  if (type === 'plan') return <PlanMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'focus') return <FocusMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'chat') return <ChatMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'note') return <NoteMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'report') return <ReportMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'message') return <MessageMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'community') return <CommunityMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'coop') return <CoopMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'reward') return <RewardMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'language') return <LanguageMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  return <TrustMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
 }
 
-function ProjectGroundedCopySection({ t }) {
+function ProjectGroundedCopySection({ demoPhase, reducedMotion, t }) {
   return (
     <View style={styles.projectSection}>
       <SectionKeyword label="NOTES" style={[styles.bgSubtleKeyword, styles.bgNotes]} />
@@ -650,20 +1024,21 @@ function ProjectGroundedCopySection({ t }) {
           {t('landing.projectNotes.description', '초기 요구사항에서 출발한 학습 흐름을 실제 사용자가 바로 이해할 수 있는 기능 구조로 정리했습니다.')}
         </Text>
       </View>
-      <DesignNotesRecordCards t={t} />
+      <DesignNotesRecordCards demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />
     </View>
   );
 }
 
-function ServiceSection({ section, t }) {
+function ServiceSection({ demoPhase, reducedMotion, section, t }) {
   const reverse = section.layout === 'reverse';
   const center = section.layout === 'center';
+  const compactAiSection = section.id === 'question';
 
   return (
     <View style={styles.newSection}>
       <SectionKeyword label={section.keyword} style={styles[`bg${section.id}`]} />
-      <View style={[styles.newSectionInner, reverse && styles.newSectionInnerReverse, center && styles.newSectionInnerCenter]}>
-        <View style={[styles.newTextCol, center && styles.newTextColCenter]}>
+      <View style={[styles.newSectionInner, reverse && styles.newSectionInnerReverse, center && styles.newSectionInnerCenter, compactAiSection && styles.aiSectionInnerTight]}>
+        <View style={[styles.newTextCol, center && styles.newTextColCenter, compactAiSection && styles.aiTextColTight]}>
           <Text style={[styles.newSectionTitle, center && styles.textCenter]}>
             {section.titleKey ? t(section.titleKey, section.titleFallback) : section.titleFallback}
           </Text>
@@ -674,8 +1049,8 @@ function ServiceSection({ section, t }) {
             <Text style={styles.tagText}>{section.chipKey ? t(section.chipKey, section.chipFallback) : section.chipFallback}</Text>
           </View>
         </View>
-        <View style={[styles.newVisualCol, center && styles.newVisualColCenter]}>
-          <SectionVisual t={t} type={section.visual} />
+        <View style={[styles.newVisualCol, center && styles.newVisualColCenter, compactAiSection && styles.aiVisualColTight]}>
+          <SectionVisual demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} type={section.visual} />
         </View>
       </View>
     </View>
@@ -688,6 +1063,8 @@ export default function ScrollStorySection({ onNavigate }) {
   const [isPromoPaused, setIsPromoPaused] = useState(false);
   const [promoTimerKey, setPromoTimerKey] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
+  const [demoPhaseIndex, setDemoPhaseIndex] = useState(DEMO_PHASE_SEQUENCE.indexOf(DEMO_FINAL_PHASE));
+  const demoPhase = reducedMotion ? DEMO_FINAL_PHASE : DEMO_PHASE_SEQUENCE[demoPhaseIndex] ?? 0;
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -715,6 +1092,20 @@ export default function ScrollStorySection({ onNavigate }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setDemoPhaseIndex(DEMO_PHASE_SEQUENCE.indexOf(DEMO_FINAL_PHASE));
+      return undefined;
+    }
+
+    setDemoPhaseIndex(0);
+    const timer = setInterval(() => {
+      setDemoPhaseIndex((current) => (current + 1) % DEMO_PHASE_SEQUENCE.length);
+    }, DEMO_PHASE_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [reducedMotion]);
 
   useEffect(() => {
     if (isPromoPaused || reducedMotion) {
@@ -758,11 +1149,13 @@ export default function ScrollStorySection({ onNavigate }) {
         t={t}
       />
 
-      <ProjectGroundedCopySection t={t} />
+      <ProjectGroundedCopySection demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />
 
       {serviceSections.map((section) => (
         <ServiceSection
+          demoPhase={demoPhase}
           key={section.id}
+          reducedMotion={reducedMotion}
           section={section}
           t={t}
         />
@@ -778,7 +1171,7 @@ export default function ScrollStorySection({ onNavigate }) {
           onPress={moveToRegister}
           style={(state) => [styles.finalCtaButton, ...interactiveStateStyles(state)]}
         >
-          <Text style={styles.finalCtaButtonText}>지금 시작하기</Text>
+          <Text style={styles.finalCtaButtonText}>{t('landing.final.button', '지금 시작하기')}</Text>
         </Pressable>
       </View>
     </View>
@@ -808,7 +1201,7 @@ const styles = StyleSheet.create({
     zIndex: 5
   },
   sectionEyebrow: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.4,
@@ -1031,9 +1424,9 @@ const styles = StyleSheet.create({
     flex: 1.25,
     minWidth: 290,
     borderRadius: 26,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     padding: 26
   },
   recordHeaderRow: {
@@ -1062,7 +1455,7 @@ const styles = StyleSheet.create({
   recordLogRow: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceWarm,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -1080,7 +1473,7 @@ const styles = StyleSheet.create({
   },
   recordLogText: {
     flex: 1,
-    color: '#334155',
+    color: colors.muted,
     fontSize: 14,
     fontWeight: '700'
   },
@@ -1093,34 +1486,34 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
-    shadowColor: '#173B63',
+    borderColor: colors.line,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.07,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 }
   },
   recordMiniCardMint: {
-    backgroundColor: '#E8FAF6'
+    backgroundColor: colors.mintSoft
   },
   recordMiniCardCream: {
-    backgroundColor: '#FFF5D6'
+    backgroundColor: colors.cream
   },
   recordMiniLabel: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
     marginBottom: 8
   },
   recordMiniValue: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 30,
     lineHeight: 36,
     fontWeight: '900',
     marginBottom: 8
   },
   recordMiniText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 22,
     fontWeight: '700'
@@ -1139,11 +1532,11 @@ const styles = StyleSheet.create({
     paddingVertical: 94,
     paddingHorizontal: 24,
     borderRadius: 32,
-    backgroundColor: '#FFFDF6',
+    backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     marginBottom: 64,
-    shadowColor: '#173B63',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.07,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 }
@@ -1165,9 +1558,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 240,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     padding: 24
   },
   projectCardRule: {
@@ -1209,13 +1602,13 @@ const styles = StyleSheet.create({
     padding: 25,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     backgroundColor: colors.surface
   },
   featureLabel: {
     alignSelf: 'flex-start',
-    color: '#173B63',
-    backgroundColor: '#E8FAF6',
+    color: colors.blueDeep,
+    backgroundColor: colors.mintSoft,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 12,
@@ -1285,6 +1678,15 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 600
   },
+  aiSectionInnerTight: {
+    gap: 24
+  },
+  aiTextColTight: {
+    marginBottom: 8
+  },
+  aiVisualColTight: {
+    marginTop: -6
+  },
   textCenter: {
     textAlign: 'center',
     maxWidth: 760
@@ -1292,7 +1694,7 @@ const styles = StyleSheet.create({
   newSectionTitle: {
     fontSize: 40,
     fontWeight: '900',
-    color: '#15202B',
+    color: colors.ink,
     lineHeight: 52,
     marginBottom: 20,
     letterSpacing: 0,
@@ -1303,21 +1705,402 @@ const styles = StyleSheet.create({
   },
   newSectionDesc: {
     fontSize: 18,
-    color: '#475569',
+    color: colors.muted,
     lineHeight: 28,
     marginBottom: 32
   },
+  demoStepActive: {
+    opacity: 1,
+    transform: [{ translateY: 0 }, { scale: 1 }],
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  demoStepWaiting: {
+    opacity: 0.18,
+    transform: [{ translateY: 12 }, { scale: 0.97 }],
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  demoStepDimmed: {
+    opacity: 0.34,
+    transform: [{ translateY: 5 }, { scale: 0.985 }],
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  demoCurrentStep: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    transform: [{ translateY: -3 }, { scale: 1.02 }],
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  demoMiniActive: {
+    borderColor: colors.mint,
+    transform: [{ translateY: -4 }, { scale: 1.02 }],
+    transitionDuration: '560ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  demoBadgeActive: {
+    transform: [{ scale: 1.08 }]
+  },
+  demoPanelActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  demoChipActive: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft,
+    transform: [{ translateY: -3 }, { scale: 1.03 }]
+  },
+  demoTextActive: {
+    color: colors.mintDeep,
+    transform: [{ scale: 1.04 }]
+  },
+  recordLogDotActive: {
+    transform: [{ scale: 1.38 }]
+  },
+  recordLogTextActive: {
+    color: colors.ink,
+    fontWeight: '900'
+  },
+  recordStreakLive: {
+    minWidth: 82,
+    textAlign: 'center'
+  },
+  planTimeDotActive: {
+    transform: [{ scale: 1.45 }]
+  },
+  planTimeTextActive: {
+    color: colors.ink,
+    fontWeight: '900'
+  },
+  focusTimerPhase0: {
+    borderColor: colors.blue
+  },
+  focusTimerPhase1: {
+    borderColor: colors.mint,
+    transform: [{ scale: 1.02 }]
+  },
+  focusTimerPhase2: {
+    borderColor: colors.mint,
+    transform: [{ scale: 1.05 }]
+  },
+  focusTimerPhase3: {
+    borderColor: colors.mintDeep,
+    transform: [{ scale: 1.07 }]
+  },
+  focusTimerPhase4: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.mintSoft,
+    transform: [{ scale: 1.09 }]
+  },
+  focusBarFillActive: {
+    backgroundColor: colors.mintDeep
+  },
+  typingDotsRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  aiWaitRow: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: colors.mintSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 12
+  },
+  aiWaitText: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '900'
+  },
+  typingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: colors.mintDeep
+  },
+  languageRowSelected: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  microDelay0: {
+    animationDelay: '0s'
+  },
+  microDelay1: {
+    animationDelay: '0.55s'
+  },
+  microDelay2: {
+    animationDelay: '1.1s'
+  },
+  microDelay3: {
+    animationDelay: '1.65s'
+  },
+  microDelay4: {
+    animationDelay: '2.2s'
+  },
+  microDotPulse: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.55, transform: 'scale(1)' },
+        '22%': { opacity: 1, transform: 'scale(2.05)' },
+        '44%': { opacity: 0.82, transform: 'scale(1.18)' },
+        '72%': { opacity: 0.55, transform: 'scale(1)' },
+        '100%': { opacity: 0.55, transform: 'scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microBadgePulse: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 1, transform: 'scale(1)' },
+        '35%': { opacity: 0.82, transform: 'scale(1.1)' },
+        '64%': { opacity: 1, transform: 'scale(1.03)' },
+        '100%': { opacity: 0.65, transform: 'scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microTimerPulse: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { borderColor: colors.mintSoft, transform: 'scale(0.96)' },
+        '38%': { borderColor: colors.mintDeep, transform: 'scale(1.08)' },
+        '68%': { borderColor: colors.mint, transform: 'scale(1)' },
+        '100%': { borderColor: colors.mintSoft, transform: 'scale(0.96)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microBarRise: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.45, transform: 'scaleY(0.18)' },
+        '36%': { opacity: 1, transform: 'scaleY(1.08)' },
+        '68%': { opacity: 0.92, transform: 'scaleY(0.82)' },
+        '100%': { opacity: 0.45, transform: 'scaleY(0.18)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out',
+    transformOrigin: 'bottom center'
+  },
+  microBubbleLift: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.38, transform: 'translateY(12px) scale(0.98)' },
+        '28%': { opacity: 1, transform: 'translateY(0) scale(1)' },
+        '76%': { opacity: 1, transform: 'translateY(-3px) scale(1)' },
+        '100%': { opacity: 0.38, transform: 'translateY(12px) scale(0.98)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microChipHighlight: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.62, transform: 'translateY(0) scale(1)' },
+        '26%': { opacity: 1, transform: 'translateY(-4px) scale(1.06)' },
+        '54%': { opacity: 0.86, transform: 'translateY(0) scale(1.02)' },
+        '100%': { opacity: 0.62, transform: 'translateY(0) scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microBulletHighlight: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { backgroundColor: colors.mintSoft, transform: 'scale(1)' },
+        '30%': { backgroundColor: colors.mint, transform: 'scale(1.16)' },
+        '58%': { backgroundColor: colors.mintSoft, transform: 'scale(1.04)' },
+        '100%': { backgroundColor: colors.mintSoft, transform: 'scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microSummaryRow: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.66, transform: 'translateX(0)' },
+        '30%': { opacity: 1, transform: 'translateX(6px)' },
+        '62%': { opacity: 0.84, transform: 'translateX(2px)' },
+        '100%': { opacity: 0.66, transform: 'translateX(0)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microStackFloat: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.5 },
+        '42%': { opacity: 0.92 },
+        '100%': { opacity: 0.5 }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microScorePulse: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.65, transform: 'scale(1)' },
+        '30%': { opacity: 1, transform: 'scale(1.14)' },
+        '62%': { opacity: 0.86, transform: 'scale(1.04)' },
+        '100%': { opacity: 0.72, transform: 'scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microSoftGlow: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { backgroundColor: colors.surfaceWarm },
+        '42%': { backgroundColor: colors.mintSoft },
+        '72%': { backgroundColor: colors.surfaceWarm },
+        '100%': { backgroundColor: colors.surfaceWarm }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microUnreadPulse: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.72, transform: 'scale(1)' },
+        '32%': { opacity: 1, transform: 'scale(1.1)' },
+        '62%': { opacity: 0.88, transform: 'scale(1.03)' },
+        '100%': { opacity: 1, transform: 'scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microMessageLift: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.82, transform: 'translateY(8px)' },
+        '28%': { opacity: 1, transform: 'translateY(0)' },
+        '74%': { opacity: 1, transform: 'translateY(-3px)' },
+        '100%': { opacity: 0.82, transform: 'translateY(8px)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microProgressBreathe: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.62, transform: 'scaleX(0.28)' },
+        '42%': { opacity: 1, transform: 'scaleX(1.06)' },
+        '72%': { opacity: 0.9, transform: 'scaleX(0.74)' },
+        '100%': { opacity: 0.62, transform: 'scaleX(0.28)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out',
+    transformOrigin: 'left center'
+  },
+  microRewardGlow: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.68, transform: 'scale(1)' },
+        '36%': { opacity: 1, transform: 'scale(1.16)' },
+        '68%': { opacity: 0.88, transform: 'scale(1.04)' },
+        '100%': { opacity: 0.68, transform: 'scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microAvatarPulse: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { transform: 'scale(0.96)' },
+        '42%': { transform: 'scale(1.12)' },
+        '70%': { transform: 'scale(1.03)' },
+        '100%': { transform: 'scale(0.96)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microLanguageHighlight: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { backgroundColor: colors.surface, transform: 'translateX(0) scale(1)' },
+        '32%': { backgroundColor: colors.mintSoft, transform: 'translateX(8px) scale(1.025)' },
+        '66%': { backgroundColor: colors.mintSoft, transform: 'translateX(2px) scale(1)' },
+        '100%': { backgroundColor: colors.surface, transform: 'translateX(0) scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
+  microTrustPulse: {
+    animationDuration: '6s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0.72, transform: 'scale(1)' },
+        '34%': { opacity: 1, transform: 'scale(1.13)' },
+        '64%': { opacity: 0.9, transform: 'scale(1.04)' },
+        '100%': { opacity: 0.72, transform: 'scale(1)' }
+      }
+    ],
+    animationTimingFunction: 'ease-in-out'
+  },
   tagWrap: {
-    backgroundColor: 'rgba(92, 198, 184, 0.1)',
+    backgroundColor: colors.mintSoft,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: 'rgba(92, 198, 184, 0.18)'
+    borderColor: colors.mint
   },
   tagText: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontWeight: '900',
     fontSize: 14,
     letterSpacing: 0.2
@@ -1330,7 +2113,8 @@ const styles = StyleSheet.create({
     fontSize: 198,
     lineHeight: 220,
     fontWeight: '900',
-    color: 'rgba(23, 59, 99, 0.08)',
+    color: colors.blueDeep,
+    opacity: 0.08,
     zIndex: 0,
     pointerEvents: 'none',
     textAlign: 'center',
@@ -1341,7 +2125,8 @@ const styles = StyleSheet.create({
     top: '46%'
   },
   bgSubtleKeyword: {
-    color: 'rgba(23, 59, 99, 0.045)',
+    color: colors.blueDeep,
+    opacity: 0.06,
     fontSize: 168,
     lineHeight: 190
   },
@@ -1388,15 +2173,15 @@ const styles = StyleSheet.create({
     top: '50%'
   },
   mockCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 26,
     padding: 32,
-    shadowColor: '#173B63',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.14,
     shadowRadius: 34,
     shadowOffset: { width: 0, height: 18 },
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)'
+    borderColor: colors.line
   },
   planMock: {
     width: '100%',
@@ -1411,7 +2196,7 @@ const styles = StyleSheet.create({
   planMonth: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#15202B',
+    color: colors.ink,
     wordBreak: 'keep-all',
     overflowWrap: 'normal'
   },
@@ -1445,37 +2230,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF8A65'
   },
   planTimeDotBlue: {
-    backgroundColor: '#173B63'
+    backgroundColor: colors.blueDeep
   },
   planTimeText: {
-    color: '#334155',
+    color: colors.muted,
     fontWeight: '700',
     fontSize: 15,
     flex: 1
   },
   planPriorityBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: colors.line
   },
   planPriorityTitle: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 16,
     fontWeight: '900',
     marginBottom: 8
   },
   planPriorityText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '700'
   },
   focusMock: {
-    borderColor: '#CDEFE9',
+    borderColor: colors.mint,
     borderWidth: 2,
-    backgroundColor: '#F8FFFD',
+    backgroundColor: colors.surfaceWarm,
     minHeight: 300
   },
   focusHeader: {
@@ -1490,23 +2275,25 @@ const styles = StyleSheet.create({
     height: 136,
     borderRadius: 68,
     borderWidth: 12,
-    borderColor: '#73C9BD',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.mint,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#173B63',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 }
+    shadowOffset: { width: 0, height: 8 },
+    transitionDuration: '620ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   focusTimerValue: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 28,
     lineHeight: 32,
     fontWeight: '900'
   },
   focusTimerLabel: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '900',
@@ -1517,14 +2304,14 @@ const styles = StyleSheet.create({
     minWidth: 170
   },
   focusSummaryLabel: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
     marginBottom: 6
   },
   focusSummaryValue: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 26,
     lineHeight: 32,
     fontWeight: '900',
@@ -1532,8 +2319,8 @@ const styles = StyleSheet.create({
   },
   focusStreakChip: {
     alignSelf: 'flex-start',
-    color: '#0F766E',
-    backgroundColor: '#E8FAF6',
+    color: colors.mintDeep,
+    backgroundColor: colors.mintSoft,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -1560,30 +2347,33 @@ const styles = StyleSheet.create({
     maxWidth: 34,
     height: 84,
     borderRadius: 999,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.line,
     overflow: 'hidden',
     justifyContent: 'flex-end'
   },
   focusBarFill: {
     width: '100%',
-    backgroundColor: '#73C9BD',
-    borderRadius: 999
+    backgroundColor: colors.mint,
+    borderRadius: 999,
+    transitionDuration: '760ms',
+    transitionProperty: 'height, opacity, background-color',
+    transitionTimingFunction: 'ease-in-out'
   },
   focusBarLabel: {
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '900'
   },
   focusSavedBox: {
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.16)',
+    borderColor: colors.mintSoft,
     padding: 14
   },
   focusSavedText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '900',
@@ -1592,7 +2382,7 @@ const styles = StyleSheet.create({
   chatMock: {
     width: '100%',
     padding: 24,
-    backgroundColor: '#F8FAFC'
+    backgroundColor: colors.surfaceWarm
   },
   chatUserBubble: {
     backgroundColor: '#15202B',
@@ -1603,24 +2393,32 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     maxWidth: '80%'
   },
+  chatUserBubbleFollowup: {
+    marginBottom: 12,
+    backgroundColor: '#173B63'
+  },
   chatUserText: {
     color: '#FFF',
     fontWeight: '600',
     fontSize: 15
   },
   chatAiBubble: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     padding: 20,
     borderRadius: 20,
     borderBottomLeftRadius: 4,
     alignSelf: 'flex-start',
     maxWidth: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 10
   },
+  chatAiBubbleFollowup: {
+    maxWidth: '94%',
+    marginTop: 2
+  },
   chatAiText: {
-    color: '#334155',
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 23,
     marginBottom: 16
@@ -1631,34 +2429,34 @@ const styles = StyleSheet.create({
     gap: 8
   },
   chatBtn: {
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12
   },
   chatBtnMuted: {
-    backgroundColor: '#F1F5F9'
+    backgroundColor: colors.surfaceWarm
   },
   chatBtnText: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontWeight: '800',
     fontSize: 12
   },
   chatBtnMutedText: {
-    color: '#64748B'
+    color: colors.muted
   },
   chatBtnCream: {
-    backgroundColor: '#FFF5D6'
+    backgroundColor: colors.cream
   },
   chatBtnCreamText: {
-    color: '#A15C00'
+    color: colors.warning
   },
   noteMock: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#FFFDF6',
+    backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: colors.line
   },
   noteBadge: {
     alignSelf: 'flex-start',
@@ -1676,7 +2474,7 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#15202B',
+    color: colors.ink,
     marginBottom: 24
   },
   summaryBulletList: {
@@ -1691,26 +2489,26 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E8FAF6',
-    color: '#0F766E',
+    backgroundColor: colors.mintSoft,
+    color: colors.mintDeep,
     textAlign: 'center',
     lineHeight: 24,
     fontWeight: '800'
   },
   summaryBulletText: {
     flex: 1,
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 21,
     fontWeight: '600'
   },
   summaryHighlightText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontWeight: '900'
   },
   reportStack: {
     width: '100%',
-    height: 320,
+    height: 372,
     position: 'relative'
   },
   reportCardBg1: {
@@ -1718,8 +2516,8 @@ const styles = StyleSheet.create({
     top: 18,
     left: 18,
     right: 0,
-    height: 300,
-    backgroundColor: '#E8FAF6',
+    height: 350,
+    backgroundColor: colors.mintSoft,
     opacity: 0.75,
     transform: [{ rotate: '-2deg' }]
   },
@@ -1728,8 +2526,8 @@ const styles = StyleSheet.create({
     top: 34,
     left: 34,
     right: -10,
-    height: 300,
-    backgroundColor: '#FFF5D6',
+    height: 350,
+    backgroundColor: colors.cream,
     opacity: 0.7,
     transform: [{ rotate: '2deg' }]
   },
@@ -1738,7 +2536,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     width: '100%',
-    height: 300,
+    minHeight: 350,
     zIndex: 10
   },
   reportHeader: {
@@ -1746,16 +2544,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingBottom: 16,
-    marginBottom: 24,
+    borderBottomColor: colors.line,
+    paddingBottom: 14,
+    marginBottom: 14,
     gap: 12
   },
   reportTitle: {
     flex: 1,
     fontSize: 18,
     fontWeight: '800',
-    color: '#15202B',
+    color: colors.ink,
     wordBreak: 'keep-all',
     overflowWrap: 'normal'
   },
@@ -1771,8 +2569,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 14
   },
+  reportAnalysisRow: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10
+  },
+  reportAnalysisCopy: {
+    flex: 1,
+    gap: 3
+  },
   reportLabel: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 21,
     fontWeight: '700',
@@ -1788,19 +2599,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900'
   },
+  reportDetailText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800'
+  },
   reportReason: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 16,
-    padding: 16
+    padding: 14,
+    marginTop: 2,
+    borderWidth: 1,
+    borderColor: colors.mintSoft
   },
   reportReasonTitle: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 14,
     fontWeight: '900',
     marginBottom: 8
   },
   reportReasonText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '600'
@@ -1812,21 +2632,21 @@ const styles = StyleSheet.create({
     minHeight: 250
   },
   messageMock: {
-    borderColor: '#BDE0FE',
+    borderColor: colors.blue,
     borderWidth: 2,
-    backgroundColor: '#F0F8FF'
+    backgroundColor: colors.blueSoft
   },
   messageScore: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 15
   },
   communityMock: {
-    borderColor: '#CDEFE9',
+    borderColor: colors.mint,
     borderWidth: 2,
-    backgroundColor: '#F8FFFD'
+    backgroundColor: colors.mintSoft
   },
   communityScore: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 15
   },
   communityActionGrid: {
@@ -1835,16 +2655,37 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 14
   },
+  communityPostPreview: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.mintSoft,
+    padding: 14,
+    marginBottom: 14
+  },
+  communityPostTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '900',
+    marginBottom: 7
+  },
+  communityPostComment: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800'
+  },
   communityActionPill: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderColor: colors.line,
     paddingHorizontal: 12,
     paddingVertical: 8
   },
   communityActionText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 13,
     fontWeight: '900'
   },
@@ -1856,8 +2697,8 @@ const styles = StyleSheet.create({
     marginBottom: 14
   },
   socialStatusText: {
-    color: '#173B63',
-    backgroundColor: '#E8FAF6',
+    color: colors.blueDeep,
+    backgroundColor: colors.mintSoft,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -1866,11 +2707,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   socialUnreadPill: {
-    color: '#0F766E',
-    backgroundColor: '#FFFFFF',
+    color: colors.mintDeep,
+    backgroundColor: colors.surface,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.18)',
+    borderColor: colors.mintSoft,
     paddingHorizontal: 12,
     paddingVertical: 7,
     fontSize: 13,
@@ -1881,7 +2722,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 12
@@ -1895,22 +2736,70 @@ const styles = StyleSheet.create({
   friendAvatarMint: {
     backgroundColor: '#73C9BD'
   },
+  friendAvatarCream: {
+    backgroundColor: '#FFE4B5'
+  },
+  messageBubbleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    marginBottom: 10
+  },
+  messageBubbleRowRight: {
+    justifyContent: 'flex-end'
+  },
+  messageBubble: {
+    flex: 1,
+    maxWidth: '82%',
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderBottomLeftRadius: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: colors.line,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  messageBubbleMint: {
+    backgroundColor: colors.mintSoft,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 5
+  },
+  messageBubbleCream: {
+    backgroundColor: colors.cream
+  },
+  messageAuthor: {
+    color: colors.mintDeep,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
+    marginBottom: 3
+  },
+  messageBubbleText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800'
+  },
   socialFooterText: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '800',
     marginTop: 2
   },
   coopMock: {
-    borderColor: '#FFC8C8',
+    borderColor: colors.danger,
     borderWidth: 2,
-    backgroundColor: '#FFF7F7'
+    backgroundColor: colors.dangerSoft
   },
   raidProgressBar: {
     width: '100%',
     height: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.line,
     borderRadius: 8,
     overflow: 'hidden',
     marginTop: 20
@@ -1918,23 +2807,45 @@ const styles = StyleSheet.create({
   raidProgressFill: {
     width: '74%',
     height: '100%',
-    backgroundColor: '#FF6B6B',
-    borderRadius: 8
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    transitionDuration: '760ms',
+    transitionProperty: 'width, opacity',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  coopContributionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14
+  },
+  coopContributionChip: {
+    color: colors.danger,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.dangerSoft,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
+    overflow: 'hidden'
   },
   raidProgressText: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 14,
     lineHeight: 21,
     marginTop: 12,
     fontWeight: '700'
   },
   rewardMock: {
-    borderColor: '#FFE4B5',
+    borderColor: colors.creamStrong,
     borderWidth: 2,
-    backgroundColor: '#FFFDF0'
+    backgroundColor: colors.warningSoft
   },
   rewardScore: {
-    color: '#A15C00'
+    color: colors.warning
   },
   rewardPreviewRow: {
     flexDirection: 'row',
@@ -1945,20 +2856,110 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 26,
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     borderWidth: 12,
-    borderColor: '#73C9BD'
+    borderColor: colors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    transitionDuration: '640ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  rewardAvatarPreviewMoon: {
+    backgroundColor: '#173B63',
+    borderColor: colors.creamStrong
+  },
+  rewardMoonSky: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    opacity: 0,
+    transitionDuration: '640ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  rewardMoonSkyActive: {
+    opacity: 1
+  },
+  rewardMoonCrescent: {
+    position: 'absolute',
+    top: 12,
+    right: 14,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFE4B5',
+    opacity: 0.94
+  },
+  rewardMoonCrescentActive: {
+    transform: [{ scale: 1.08 }]
+  },
+  rewardMoonCut: {
+    position: 'absolute',
+    top: -2,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#173B63'
+  },
+  rewardMoonStar: {
+    position: 'absolute',
+    left: 15,
+    bottom: 15,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#FDE68A',
+    opacity: 0
+  },
+  rewardMoonStarActive: {
+    opacity: 1,
+    transform: [{ scale: 1.16 }]
+  },
+  rewardAvatarInner: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surface,
+    opacity: 0.72
+  },
+  rewardAvatarInnerActive: {
+    backgroundColor: '#173B63',
+    shadowColor: '#FFE4B5',
+    shadowOpacity: 0.42,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
+    transform: [{ scale: 1.26 }]
   },
   rewardCopy: {
     flex: 1
   },
+  rewardItemRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 2
+  },
+  rewardItemChip: {
+    color: colors.warning,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.warningSoft,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
+    overflow: 'hidden'
+  },
   languageMock: {
-    borderColor: '#CDEFE9',
+    borderColor: colors.mint,
     borderWidth: 2,
-    backgroundColor: '#F8FFFD'
+    backgroundColor: colors.mintSoft
   },
   languageScore: {
-    color: '#0F766E',
+    color: colors.mintDeep,
     fontSize: 16
   },
   languageList: {
@@ -1968,12 +2969,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(23, 59, 99, 0.08)'
+    borderColor: colors.line,
+    transitionDuration: '580ms',
+    transitionTimingFunction: 'ease-in-out'
   },
   languageDot: {
     width: 10,
@@ -1984,19 +2987,152 @@ const styles = StyleSheet.create({
   languageDotPrimary: {
     backgroundColor: colors.mintDeep
   },
+  languageFlagBadge: {
+    width: 34,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+    position: 'relative',
+    transitionDuration: '520ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  languageFlagBadgeSelected: {
+    borderColor: colors.mint,
+    transform: [{ scale: 1.06 }]
+  },
+  flagBadgeKorea: {
+    backgroundColor: '#FFFFFF'
+  },
+  flagBadgeJapan: {
+    backgroundColor: '#FFFFFF'
+  },
+  flagBadgeUs: {
+    backgroundColor: '#FFFFFF'
+  },
+  flagBadgeChina: {
+    backgroundColor: '#D62828'
+  },
+  flagKoreaRing: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    overflow: 'hidden',
+    transform: [{ rotate: '-28deg' }]
+  },
+  flagKoreaRed: {
+    flex: 1,
+    backgroundColor: '#E63946'
+  },
+  flagKoreaBlue: {
+    flex: 1,
+    backgroundColor: '#2563EB'
+  },
+  flagKoreaBar: {
+    position: 'absolute',
+    width: 8,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: colors.ink,
+    opacity: 0.8
+  },
+  flagKoreaBarTopLeft: {
+    top: 4,
+    left: 4,
+    transform: [{ rotate: '-24deg' }]
+  },
+  flagKoreaBarBottomRight: {
+    right: 4,
+    bottom: 4,
+    transform: [{ rotate: '-24deg' }]
+  },
+  flagJapanDot: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#D62828'
+  },
+  flagUsCanton: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 14,
+    height: 12,
+    backgroundColor: '#1D4ED8'
+  },
+  flagUsStripe: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: '#DC2626'
+  },
+  flagUsStripeTop: {
+    top: 3
+  },
+  flagUsStripeMiddle: {
+    top: 10
+  },
+  flagUsStripeBottom: {
+    bottom: 3
+  },
+  flagChinaStar: {
+    position: 'absolute',
+    left: 5,
+    top: 1,
+    color: '#FDE68A',
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '900'
+  },
+  flagChinaMiniStar: {
+    position: 'absolute',
+    right: 7,
+    top: 8,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FDE68A'
+  },
   languageText: {
-    color: '#334155',
+    color: colors.ink,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '800',
     flex: 1
   },
   languageNote: {
-    color: '#475569',
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '700',
     marginTop: 14
+  },
+  languageSampleBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.mintSoft,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 12,
+    transitionDuration: '580ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  languageSampleBoxSynced: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  languageSampleText: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '900'
   },
   trustCardsContainer: {
     gap: 16
@@ -2007,16 +3143,35 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 20
   },
+  trustCheck: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    color: colors.muted,
+    backgroundColor: colors.line,
+    textAlign: 'center',
+    lineHeight: 28,
+    fontSize: 14,
+    fontWeight: '900',
+    overflow: 'hidden'
+  },
+  trustCheckActive: {
+    color: colors.background,
+    backgroundColor: colors.mintDeep,
+    transform: [{ scale: 1.04 }],
+    transitionDuration: '520ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
   trustIconWrap: {
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#E8FAF6',
+    backgroundColor: colors.mintSoft,
     alignItems: 'center',
     justifyContent: 'center'
   },
   trustIcon: {
-    color: '#173B63',
+    color: colors.blueDeep,
     fontSize: 15,
     fontWeight: '900'
   },
