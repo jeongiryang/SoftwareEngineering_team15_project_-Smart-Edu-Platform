@@ -150,6 +150,28 @@ function logProviderFallback(action, statusCode = undefined) {
   console.warn(`[AI Service] Provider unavailable for ${action}; fallback response used.${statusText}`);
 }
 
+function isProviderQuotaError(error) {
+  const statusCode = error?.providerStatusCode || error?.statusCode;
+  const diagnosticText = [
+    error?.code,
+    error?.message,
+    error?.providerDiagnostic
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  return statusCode === 429
+    || diagnosticText.includes('quota')
+    || diagnosticText.includes('rate limit')
+    || diagnosticText.includes('too many')
+    || diagnosticText.includes('insufficient')
+    || diagnosticText.includes('billing');
+}
+
+function buildProviderFallbackMeta(error) {
+  return {
+    type: isProviderQuotaError(error) ? 'quota' : 'provider'
+  };
+}
+
 async function callGeminiAPI(prompt, isJson = false) {
   const apiKey = process.env.AI_API_KEY;
 
@@ -184,8 +206,17 @@ async function callGeminiAPI(prompt, isJson = false) {
   });
 
   if (!response.ok) {
+    let providerDiagnostic = '';
+
+    try {
+      providerDiagnostic = await response.text();
+    } catch (diagnosticError) {
+      providerDiagnostic = '';
+    }
+
     const error = new AppError('AI provider returned an error', 503, 'AI_PROVIDER_UNAVAILABLE');
     error.providerStatusCode = response.status;
+    error.providerDiagnostic = providerDiagnostic.slice(0, 1000);
     throw error;
   }
 
@@ -201,10 +232,16 @@ async function callGeminiAPI(prompt, isJson = false) {
 
 async function useProviderOrFallback(action, providerCall, fallbackFactory) {
   try {
-    return await providerCall();
+    return {
+      value: await providerCall(),
+      providerFallback: null
+    };
   } catch (error) {
     logProviderFallback(action, error.providerStatusCode);
-    return fallbackFactory();
+    return {
+      value: fallbackFactory(),
+      providerFallback: buildProviderFallbackMeta(error)
+    };
   }
 }
 
@@ -390,7 +427,7 @@ async function askAIQuestion(userId, payload) {
   const noteId = await resolveOwnedNoteId(userId, payload.noteId);
   checkRateLimit(userId);
 
-  const answer = await useProviderOrFallback(
+  const { value: answer, providerFallback } = await useProviderOrFallback(
     'question',
     () => callGeminiAPI(
       `[중요] 반드시 한국어로만 답변하시오. 영어 사용 금지. Answer the following study question in 3~4 sentences. You MUST write the entire answer in Korean only. Do NOT use English: ${questionText.value}`
@@ -408,7 +445,8 @@ async function askAIQuestion(userId, payload) {
     ...record,
     isTruncated: questionText.isTruncated,
     originalLength: questionText.originalLength,
-    maxLength: MAX_QUESTION_LENGTH
+    maxLength: MAX_QUESTION_LENGTH,
+    providerFallback
   };
 }
 
@@ -440,7 +478,7 @@ async function generateAIRecommendation(userId) {
     .map((task) => `Title: ${task.title}, Status: ${task.status}`)
     .join('; ');
 
-  const recommendationJson = await useProviderOrFallback(
+  const { value: recommendationJson, providerFallback } = await useProviderOrFallback(
     'recommendation',
     async () => {
       const rawText = await callGeminiAPI(
@@ -452,10 +490,15 @@ async function generateAIRecommendation(userId) {
     () => getFallbackRecommendation(schedules, tasks)
   );
 
-  return createAIRecommendation(userId, {
+  const record = await createAIRecommendation(userId, {
     basisJson,
     recommendationJson
   });
+
+  return {
+    ...record,
+    providerFallback
+  };
 }
 
 async function summarizeText(userId, payload) {
@@ -464,7 +507,7 @@ async function summarizeText(userId, payload) {
   const contentText = normalizeLimitedText(payload, 'content', MAX_SUMMARY_LENGTH);
   checkRateLimit(userId);
 
-  const summary = await useProviderOrFallback(
+  const { value: summary, providerFallback } = await useProviderOrFallback(
     'summary',
     () => callGeminiAPI(
       `[중요] 반드시 한국어로만 작성하시오. 영어 사용 금지. Summarize the following study content into exactly 3 concise bullet points. Every single word MUST be in Korean only. Do NOT use English. Content: ${contentText.value}`
@@ -476,7 +519,8 @@ async function summarizeText(userId, payload) {
     summary,
     isTruncated: contentText.isTruncated,
     originalLength: contentText.originalLength,
-    maxLength: MAX_SUMMARY_LENGTH
+    maxLength: MAX_SUMMARY_LENGTH,
+    providerFallback
   };
 }
 
@@ -500,7 +544,7 @@ async function analyzeWrongAnswer(userId, payload) {
   const noteId = await resolveOwnedNoteId(userId, payload.noteId);
   checkRateLimit(userId);
 
-  const analysis = await useProviderOrFallback(
+  const { value: analysis, providerFallback } = await useProviderOrFallback(
     'wrong-answer',
     async () => {
       const rawText = await callGeminiAPI(
@@ -533,7 +577,8 @@ async function analyzeWrongAnswer(userId, payload) {
     isUserAnswerTruncated,
     originalProblemLength: problemText.originalLength,
     originalUserAnswerLength: rawUserAnswer ? rawUserAnswer.length : 0,
-    maxLength: MAX_WRONG_ANSWER_LENGTH
+    maxLength: MAX_WRONG_ANSWER_LENGTH,
+    providerFallback
   };
 }
 

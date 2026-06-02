@@ -176,6 +176,14 @@ const AI_LOCALIZED_COPY = {
         '오답노트에서 같은 유형 문제를 1개만 다시 풀어 보세요.'
       ]
     },
+    recommendationBasis: {
+      label: '실제 학습 데이터 기준',
+      empty: '저장된 일정이나 태스크가 부족해 기본 복습 루틴을 함께 제안했습니다.',
+      counts: ({ scheduleCount, taskCount }) => `일정 ${scheduleCount}개 · 태스크 ${taskCount}개를 기준으로 분석했습니다.`,
+      recentSchedules: '최근 일정',
+      recentTasks: '최근 태스크',
+      noData: '기록 없음'
+    },
     summary: (preview) => [
       '- 데모 요약입니다. 본문에서 핵심 개념과 연결 단어를 먼저 분리합니다.',
       '- 예시나 문제 풀이가 있다면 개념 적용 순서를 따로 표시합니다.',
@@ -212,8 +220,10 @@ const AI_LOCALIZED_COPY = {
     },
     errors: {
       token: '로그인 정보가 만료되었을 수 있습니다. 다시 로그인하거나 Mock 모드로 데모 흐름을 확인해 주세요.',
-      quota: 'AI 요청 한도나 quota를 초과했을 수 있습니다. 잠시 후 다시 시도하거나 Mock 모드를 켜서 데모를 이어가세요.',
+      quota: 'AI 사용 한도가 모두 소진되었거나 요청이 너무 많습니다. 잠시 후 다시 시도하거나 Mock 모드로 데모 흐름을 이어가세요.',
+      quotaFallback: 'AI 사용 한도 문제로 외부 AI 응답 대신 안전한 기본 응답을 표시했습니다. 잠시 후 다시 시도하거나 Mock 모드를 사용할 수 있습니다.',
       provider: 'AI 제공자 설정이나 API key 상태를 확인해야 합니다. 현재 화면에서는 Mock 모드로 안전하게 시연할 수 있습니다.',
+      providerFallback: 'AI 제공자 연결이 불안정해 안전한 기본 응답을 표시했습니다. 실제 학습 흐름은 계속 확인할 수 있습니다.',
       network: '네트워크 연결이 불안정해 AI 응답을 가져오지 못했습니다. 연결을 확인하거나 Mock 모드로 전환해 주세요.',
       fallback: 'AI 응답을 불러오지 못했습니다. 민감정보를 포함하지 않았는지 확인하고, 필요하면 Mock 모드로 데모 흐름을 확인해 주세요.'
     },
@@ -272,6 +282,14 @@ const AI_LOCALIZED_COPY = {
         'Redo just one similar problem from your wrong-answer notes.'
       ]
     },
+    recommendationBasis: {
+      label: 'Based on your learning data',
+      empty: 'There is not enough saved schedule or task data yet, so a default review routine is included.',
+      counts: ({ scheduleCount, taskCount }) => `Analyzed ${scheduleCount} schedule item${scheduleCount === 1 ? '' : 's'} and ${taskCount} task${taskCount === 1 ? '' : 's'}.`,
+      recentSchedules: 'Recent schedules',
+      recentTasks: 'Recent tasks',
+      noData: 'No records'
+    },
     summary: (preview) => [
       '- This is a demo summary. It first separates key concepts and linking words from the text.',
       '- If there is an example or solution, it marks the order for applying the concept.',
@@ -308,8 +326,10 @@ const AI_LOCALIZED_COPY = {
     },
     errors: {
       token: 'Your login session may have expired. Log in again or use Mock mode to continue the demo flow.',
-      quota: 'The AI request quota or rate limit may have been exceeded. Try again later or enable Mock mode.',
+      quota: 'The AI usage quota is exhausted or too many requests were sent. Try again later or use Mock mode for the demo flow.',
+      quotaFallback: 'The external AI quota was unavailable, so a safe fallback response is shown. Try again later or use Mock mode.',
       provider: 'The AI provider or API key setting needs to be checked. You can safely demo this screen with Mock mode.',
+      providerFallback: 'The AI provider connection was unavailable, so a safe fallback response is shown while the learning flow remains usable.',
       network: 'The network connection is unstable, so the AI response could not be loaded. Check the connection or switch to Mock mode.',
       fallback: 'Could not load the AI response. Check that no sensitive information is included, or use Mock mode for the demo flow.'
     },
@@ -368,6 +388,14 @@ const AI_LOCALIZED_COPY = {
         '誤答ノートから同じタイプの問題を1問だけ解き直しましょう。'
       ]
     },
+    recommendationBasis: {
+      label: '実際の学習データに基づく',
+      empty: '保存された予定やタスクがまだ少ないため、基本の復習ルーティンも合わせて提示しています。',
+      counts: ({ scheduleCount, taskCount }) => `予定${scheduleCount}件・タスク${taskCount}件を基準に分析しました。`,
+      recentSchedules: '最近の予定',
+      recentTasks: '最近のタスク',
+      noData: '記録なし'
+    },
     summary: (preview) => [
       '- デモ要約です。本文から重要概念とつながり語を先に分けます。',
       '- 例や解法があれば、概念を適用する順序を別に示します。',
@@ -404,8 +432,10 @@ const AI_LOCALIZED_COPY = {
     },
     errors: {
       token: 'ログイン情報の有効期限が切れた可能性があります。再ログインするか、Mockモードでデモの流れを確認してください。',
-      quota: 'AIリクエスト上限またはquotaを超えた可能性があります。しばらくしてから再試行するか、Mockモードをオンにしてください。',
+      quota: 'AI利用上限に達したか、リクエストが多すぎます。しばらくしてから再試行するか、Mockモードでデモを続けてください。',
+      quotaFallback: '外部AIの利用上限により、安全な基本応答を表示しました。しばらくしてから再試行するか、Mockモードを使用できます。',
       provider: 'AIプロバイダー設定またはAPI keyの状態確認が必要です。現在の画面はMockモードで安全にデモできます。',
+      providerFallback: 'AIプロバイダー接続が利用できないため、安全な基本応答を表示しました。学習の流れはそのまま確認できます。',
       network: 'ネットワーク接続が不安定でAI応答を取得できませんでした。接続を確認するかMockモードに切り替えてください。',
       fallback: 'AI応答を読み込めませんでした。機密情報が含まれていないか確認し、必要ならMockモードでデモの流れを確認してください。'
     },
@@ -464,6 +494,14 @@ const AI_LOCALIZED_COPY = {
         '从错题笔记中只重做一道相同类型的问题。'
       ]
     },
+    recommendationBasis: {
+      label: '基于实际学习数据',
+      empty: '已保存的日程或任务还不够多，因此同时提供默认复习节奏。',
+      counts: ({ scheduleCount, taskCount }) => `已基于 ${scheduleCount} 个日程和 ${taskCount} 个任务进行分析。`,
+      recentSchedules: '最近日程',
+      recentTasks: '最近任务',
+      noData: '暂无记录'
+    },
     summary: (preview) => [
       '- 这是演示摘要。先从正文中分离核心概念和连接词。',
       '- 如果有示例或解题过程，会另外标出概念应用顺序。',
@@ -500,8 +538,10 @@ const AI_LOCALIZED_COPY = {
     },
     errors: {
       token: '登录信息可能已过期。请重新登录，或使用 Mock 模式继续演示流程。',
-      quota: '可能已超过 AI 请求额度或频率限制。请稍后重试，或开启 Mock 模式继续演示。',
+      quota: 'AI 使用额度已耗尽，或请求过于频繁。请稍后重试，或使用 Mock 模式继续演示流程。',
+      quotaFallback: '由于外部 AI 额度不可用，已显示安全的默认回复。请稍后重试，或使用 Mock 模式。',
       provider: '需要检查 AI 服务提供方设置或 API key 状态。当前页面可使用 Mock 模式安全演示。',
+      providerFallback: 'AI 服务提供方连接不可用，因此显示安全的默认回复，学习流程仍可继续查看。',
       network: '网络连接不稳定，无法获取 AI 回复。请检查连接或切换到 Mock 模式。',
       fallback: '无法加载 AI 回复。请确认未包含敏感信息，必要时使用 Mock 模式查看演示流程。'
     },
@@ -795,7 +835,13 @@ function getAIErrorMessage(error, language) {
     return errors.token;
   }
 
-  if (status === 429 || code.includes('too_many') || message.includes('quota') || message.includes('rate limit') || message.includes('too many')) {
+  if (status === 429
+    || code.includes('too_many')
+    || message.includes('quota')
+    || message.includes('rate limit')
+    || message.includes('too many')
+    || message.includes('insufficient')
+    || message.includes('billing')) {
     return errors.quota;
   }
 
@@ -808,6 +854,107 @@ function getAIErrorMessage(error, language) {
   }
 
   return errors.fallback;
+}
+
+function getAIProviderFallbackMessage(providerFallback, language) {
+  if (!providerFallback) {
+    return '';
+  }
+
+  const { errors } = getAILocalizedCopy(language);
+  const fallbackType = String(providerFallback.type || '').toLowerCase();
+
+  if (fallbackType === 'quota') {
+    return errors.quotaFallback || errors.quota;
+  }
+
+  return errors.providerFallback || errors.provider;
+}
+
+function getRecommendationBasisCounts(basis = {}) {
+  const scheduleCount = Number.isFinite(Number(basis.scheduleCount)) ? Number(basis.scheduleCount) : 0;
+  const taskCount = Number.isFinite(Number(basis.taskCount)) ? Number(basis.taskCount) : 0;
+
+  return {
+    scheduleCount,
+    taskCount,
+    hasData: scheduleCount + taskCount > 0
+  };
+}
+
+function RecommendationBasisPanel({ basis, copy }) {
+  if (!basis) {
+    return null;
+  }
+
+  const basisCopy = copy.recommendationBasis;
+  const { scheduleCount, taskCount, hasData } = getRecommendationBasisCounts(basis);
+  const recentSchedules = Array.isArray(basis.recentSchedules) ? basis.recentSchedules.slice(0, 3) : [];
+  const recentTasks = Array.isArray(basis.recentTasks) ? basis.recentTasks.slice(0, 3) : [];
+
+  return (
+    <View style={styles.recommendBasisBox}>
+      <Text style={styles.recommendBasisLabel}>{basisCopy.label}</Text>
+      <Text style={styles.recommendBasisText}>
+        {hasData ? basisCopy.counts({ scheduleCount, taskCount }) : basisCopy.empty}
+      </Text>
+
+      <View style={styles.recommendBasisGrid}>
+        <View style={styles.recommendBasisColumn}>
+          <Text style={styles.recommendBasisColumnTitle}>{basisCopy.recentSchedules}</Text>
+          {recentSchedules.length > 0 ? recentSchedules.map((schedule, index) => (
+            <Text key={`${schedule.title || 'schedule'}-${index}`} style={styles.recommendBasisItem} numberOfLines={1}>
+              {schedule.subject ? `${schedule.subject} · ${schedule.title}` : schedule.title}
+            </Text>
+          )) : (
+            <Text style={styles.recommendBasisItemMuted}>{basisCopy.noData}</Text>
+          )}
+        </View>
+
+        <View style={styles.recommendBasisColumn}>
+          <Text style={styles.recommendBasisColumnTitle}>{basisCopy.recentTasks}</Text>
+          {recentTasks.length > 0 ? recentTasks.map((task, index) => (
+            <Text key={`${task.title || 'task'}-${index}`} style={styles.recommendBasisItem} numberOfLines={1}>
+              {task.status ? `${task.status} · ${task.title}` : task.title}
+            </Text>
+          )) : (
+            <Text style={styles.recommendBasisItemMuted}>{basisCopy.noData}</Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function PinIcon({ active = false, compact = false, inverse = false }) {
+  return (
+    <View style={[styles.pinIcon, compact && styles.pinIconCompact]}>
+      <View
+        style={[
+          styles.pinIconHead,
+          compact && styles.pinIconHeadCompact,
+          active && styles.pinIconHeadActive,
+          inverse && styles.pinIconHeadInverse
+        ]}
+      />
+      <View
+        style={[
+          styles.pinIconStem,
+          compact && styles.pinIconStemCompact,
+          active && styles.pinIconStemActive,
+          inverse && styles.pinIconStemInverse
+        ]}
+      />
+      <View
+        style={[
+          styles.pinIconPoint,
+          compact && styles.pinIconPointCompact,
+          active && styles.pinIconPointActive,
+          inverse && styles.pinIconPointInverse
+        ]}
+      />
+    </View>
+  );
 }
 
 export default function AILearningScreen({ onNavigate, token, user }) {
@@ -1316,6 +1463,10 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       });
       setQuestionInput('');
       setSuccessMsg('AI 답변 생성이 성공적으로 완료되었습니다.');
+      const providerFallbackMessage = getAIProviderFallbackMessage(qnaRecord.providerFallback, currentLanguage);
+      if (providerFallbackMessage) {
+        setErrorMsg(providerFallbackMessage);
+      }
     } catch (err) {
       setErrorMsg(getAIErrorMessage(err, currentLanguage));
     } finally {
@@ -1344,9 +1495,15 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       setRecommendationResult({
         recommendedSubject: rec.recommendationJson.recommendedSubject,
         tips: rec.recommendationJson.tips || [],
+        basis: rec.basisJson,
+        providerFallback: rec.providerFallback,
         isMock: false
       });
       setSuccessMsg('맞춤 학습 분석 및 추천 팁이 업데이트되었습니다.');
+      const providerFallbackMessage = getAIProviderFallbackMessage(rec.providerFallback, currentLanguage);
+      if (providerFallbackMessage) {
+        setErrorMsg(providerFallbackMessage);
+      }
     } catch (err) {
       setErrorMsg(getAIErrorMessage(err, currentLanguage));
     } finally {
@@ -1386,9 +1543,14 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       setSummaryResult({
         summary: response.summary,
         isTruncated: response.isTruncated,
+        providerFallback: response.providerFallback,
         isMock: false
       });
       setSuccessMsg('문서 3줄 요약이 완료되었습니다.');
+      const providerFallbackMessage = getAIProviderFallbackMessage(response.providerFallback, currentLanguage);
+      if (providerFallbackMessage) {
+        setErrorMsg(providerFallbackMessage);
+      }
     } catch (err) {
       setErrorMsg(getAIErrorMessage(err, currentLanguage));
     } finally {
@@ -1441,9 +1603,14 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         userAnswer: note.userAnswer,
         explanation: note.explanation,
         weakType: note.weakType,
+        providerFallback: note.providerFallback,
         isMock: false
       });
       setSuccessMsg('오답 원인 분석이 성공적으로 완료되었습니다.');
+      const providerFallbackMessage = getAIProviderFallbackMessage(note.providerFallback, currentLanguage);
+      if (providerFallbackMessage) {
+        setErrorMsg(providerFallbackMessage);
+      }
     } catch (err) {
       setErrorMsg(getAIErrorMessage(err, currentLanguage));
     } finally {
@@ -1534,7 +1701,11 @@ export default function AILearningScreen({ onNavigate, token, user }) {
             >
               <View style={styles.chatRoomChipCopy}>
                 <View style={styles.chatRoomChipTitleRow}>
-                  {room.isPinned ? <Text style={styles.chatRoomPinMark}>◆</Text> : null}
+                  {room.isPinned ? (
+                    <View style={styles.chatRoomPinMark}>
+                      <PinIcon active compact />
+                    </View>
+                  ) : null}
                   <Text style={[styles.chatRoomChipTitle, selected && styles.chatRoomChipTitleActive]} numberOfLines={1}>
                     {room.title}
                   </Text>
@@ -1556,9 +1727,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   ...interactiveStateStyles(state, { disabled: isSaving })
                 ]}
               >
-                <Text style={[styles.chatRoomIconText, room.isPinned && styles.chatRoomIconTextActive]}>
-                  {room.isPinned ? '◆' : '◇'}
-                </Text>
+                <PinIcon active={room.isPinned} compact inverse={room.isPinned} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -1909,12 +2078,15 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                         ...interactiveStateStyles(state, { disabled: activeChatRoomIsSaving })
                       ]}
                     >
-                      <Text style={[
-                        styles.chatMainActionText,
-                        activeChatRoom.isPinned && styles.chatMainActionTextActive
-                      ]}>
-                        {activeChatRoom.isPinned ? `◆ ${chatCopy.unpinRoom}` : `◇ ${chatCopy.pinRoom}`}
-                      </Text>
+                      <View style={styles.chatMainActionContent}>
+                        <PinIcon active={activeChatRoom.isPinned} compact inverse={activeChatRoom.isPinned} />
+                        <Text style={[
+                          styles.chatMainActionText,
+                          activeChatRoom.isPinned && styles.chatMainActionTextActive
+                        ]}>
+                          {activeChatRoom.isPinned ? chatCopy.unpinRoom : chatCopy.pinRoom}
+                        </Text>
+                      </View>
                     </Pressable>
                     <Pressable
                       accessibilityRole="button"
@@ -2193,6 +2365,8 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 <View style={styles.subjectBox}>
                   <Text style={styles.subjectText}>{recommendationResult.recommendedSubject}</Text>
                 </View>
+
+                <RecommendationBasisPanel basis={recommendationResult.basis} copy={aiCopy} />
 
                 <Text style={[styles.recommendLabel, { marginTop: 20 }]}>💡 오늘의 추천 공부 팁</Text>
                 <View style={styles.tipsBox}>
@@ -2842,9 +3016,10 @@ const styles = StyleSheet.create({
     gap: 5
   },
   chatRoomPinMark: {
-    color: colors.blueDeep,
-    fontSize: 10,
-    fontWeight: '900'
+    width: 14,
+    height: 14,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   chatRoomChipTitle: {
     color: colors.ink,
@@ -2890,6 +3065,71 @@ const styles = StyleSheet.create({
   },
   chatRoomIconTextActive: {
     color: colors.surface
+  },
+  pinIcon: {
+    width: 14,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    transform: [{ rotate: '-28deg' }]
+  },
+  pinIconCompact: {
+    width: 11,
+    height: 13
+  },
+  pinIconHead: {
+    width: 11,
+    height: 6,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: colors.blueDeep,
+    backgroundColor: colors.blueSoft
+  },
+  pinIconHeadCompact: {
+    width: 9,
+    height: 5
+  },
+  pinIconHeadActive: {
+    borderColor: colors.blue,
+    backgroundColor: colors.blue
+  },
+  pinIconHeadInverse: {
+    borderColor: colors.surface,
+    backgroundColor: colors.surface
+  },
+  pinIconStem: {
+    width: 2,
+    height: 8,
+    marginTop: -1,
+    borderRadius: 2,
+    backgroundColor: colors.blueDeep
+  },
+  pinIconStemCompact: {
+    height: 6
+  },
+  pinIconStemActive: {
+    backgroundColor: colors.blue
+  },
+  pinIconStemInverse: {
+    backgroundColor: colors.surface
+  },
+  pinIconPoint: {
+    width: 5,
+    height: 5,
+    marginTop: -2,
+    borderRadius: 1,
+    backgroundColor: colors.blueDeep,
+    transform: [{ rotate: '45deg' }]
+  },
+  pinIconPointCompact: {
+    width: 4,
+    height: 4
+  },
+  pinIconPointActive: {
+    backgroundColor: colors.blue
+  },
+  pinIconPointInverse: {
+    backgroundColor: colors.surface
   },
   chatRoomInlineDeleteButton: {
     width: 28,
@@ -3068,6 +3308,12 @@ const styles = StyleSheet.create({
   chatMainActionButtonActive: {
     borderColor: colors.blue,
     backgroundColor: colors.blue
+  },
+  chatMainActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6
   },
   chatMainActionText: {
     color: colors.blueDeep,
@@ -3579,6 +3825,53 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.mintDeep,
     textAlign: 'center'
+  },
+  recommendBasisBox: {
+    marginTop: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    padding: 14,
+    gap: 10
+  },
+  recommendBasisLabel: {
+    color: colors.blueDeep,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  recommendBasisText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700'
+  },
+  recommendBasisGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  recommendBasisColumn: {
+    flex: 1,
+    minWidth: 180,
+    gap: 5
+  },
+  recommendBasisColumnTitle: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  recommendBasisItem: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700'
+  },
+  recommendBasisItemMuted: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    fontStyle: 'italic'
   },
   tipsBox: {
     gap: 8

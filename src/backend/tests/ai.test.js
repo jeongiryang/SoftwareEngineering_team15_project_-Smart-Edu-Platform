@@ -270,6 +270,30 @@ describe('AI API integration tests', () => {
       expect(warnOutput).not.toContain(rawProviderBody);
     });
 
+    it('marks quota provider fallback without exposing raw provider body', async () => {
+      const { token } = await registerTestUser();
+      const rawProviderBody = 'insufficient quota diagnostic detail';
+      process.env.AI_API_KEY = 'mock-provider-key';
+      globalThis.fetch = jest.fn(async () => ({
+        ok: false,
+        status: 429,
+        text: async () => rawProviderBody
+      }));
+
+      const response = await request(app)
+        .post('/api/ai/questions')
+        .set(createAuthHeader(token))
+        .send({ question: 'Explain cohesion.' });
+
+      const responseText = JSON.stringify(response.body);
+      const warnOutput = warnSpy.mock.calls.flat().join(' ');
+      expect(response.status).toBe(201);
+      expect(response.body.question.answer).toContain('Fallback answer');
+      expect(response.body.question.providerFallback).toEqual({ type: 'quota' });
+      expect(responseText).not.toContain(rawProviderBody);
+      expect(warnOutput).not.toContain(rawProviderBody);
+    });
+
     it('accepts noteId only when the note belongs to the current user', async () => {
       const { token, user } = await registerTestUser();
       const note = createMockNote(user.id);
