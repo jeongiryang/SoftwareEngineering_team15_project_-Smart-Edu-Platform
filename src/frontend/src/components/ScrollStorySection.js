@@ -4,6 +4,8 @@ import { useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, shadows } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
+const DEMO_PHASE_COUNT = 4;
+const DEMO_PHASE_INTERVAL_MS = 1300;
 
 const promoSlides = [
   {
@@ -239,6 +241,42 @@ function getMicroDelayStyle(index) {
   return styles[`microDelay${index}`] || styles.microDelay0;
 }
 
+function isPhaseReached(index, demoPhase, reducedMotion) {
+  return reducedMotion || index <= demoPhase;
+}
+
+function getStepStyle(index, demoPhase, reducedMotion) {
+  return isPhaseReached(index, demoPhase, reducedMotion) ? styles.demoStepActive : styles.demoStepWaiting;
+}
+
+function getCurrentStepStyle(index, demoPhase, reducedMotion) {
+  return reducedMotion || index === demoPhase ? styles.demoStepActive : styles.demoStepDimmed;
+}
+
+function getBarHeightForPhase(targetHeight, index, demoPhase, reducedMotion) {
+  if (reducedMotion) {
+    return targetHeight;
+  }
+
+  const targetValue = Number.parseInt(String(targetHeight).replace('%', ''), 10) || 50;
+  const activeCount = [1, 2, 3, 5][demoPhase] || 5;
+
+  if (index >= activeCount) {
+    return '14%';
+  }
+
+  const scale = [0.35, 0.62, 0.84, 1][demoPhase] || 1;
+  return `${Math.max(16, Math.round(targetValue * scale))}%`;
+}
+
+function getCoopProgressWidth(demoPhase, reducedMotion) {
+  if (reducedMotion) {
+    return '55%';
+  }
+
+  return ['24%', '42%', '58%', '74%'][demoPhase] || '55%';
+}
+
 function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevious, onSelect, t }) {
   const slide = promoSlides[activeIndex];
   const pauseAutoSlide = () => onPauseChange(true);
@@ -325,7 +363,7 @@ function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevi
   );
 }
 
-function DesignNotesRecordCards({ t }) {
+function DesignNotesRecordCards({ demoPhase, reducedMotion, t }) {
   const rows = [
     t('landing.designRecord.row1', '자료구조 DFS 복습 완료 · 42분'),
     t('landing.designRecord.row2', '미적분 문제풀이 · 1시간 10분'),
@@ -341,19 +379,23 @@ function DesignNotesRecordCards({ t }) {
           <Text style={styles.recordStreak}>{t('landing.designRecord.streak', '연속 5일째')}</Text>
         </View>
         {rows.map((item, index) => (
-          <View key={item} style={styles.recordLogRow}>
-            <View style={[styles.recordLogDot, index === 1 && styles.recordLogDotWarm]} />
-            <Text style={styles.recordLogText}>{item}</Text>
+          <View key={item} style={[styles.recordLogRow, getStepStyle(index, demoPhase, reducedMotion)]}>
+            <View style={[
+              styles.recordLogDot,
+              index === 1 && styles.recordLogDotWarm,
+              isPhaseReached(index, demoPhase, reducedMotion) && styles.recordLogDotActive
+            ]} />
+            <Text style={[styles.recordLogText, isPhaseReached(index, demoPhase, reducedMotion) && styles.recordLogTextActive]}>{item}</Text>
           </View>
         ))}
       </View>
       <View style={styles.recordSideStack}>
-        <View style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardMint, demoPhase >= 2 && styles.demoMiniActive]}>
           <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini1Label', 'Opening Notes')}</Text>
           <Text style={styles.recordMiniValue}>{t('landing.designRecord.mini1Value', '05/28')}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini1Text', '학습 목표와 오늘의 기록을 한눈에 정리합니다.')}</Text>
         </View>
-        <View style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardCream, demoPhase >= 3 && styles.demoMiniActive]}>
           <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini2Label', 'Saved Questions')}</Text>
           <Text style={styles.recordMiniValue}>{t('landing.designRecord.mini2Value', '3')}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini2Text', '질문과 요약을 다시 볼 수 있게 모아둡니다.')}</Text>
@@ -363,7 +405,7 @@ function DesignNotesRecordCards({ t }) {
   );
 }
 
-function PlanMock({ reducedMotion, t }) {
+function PlanMock({ demoPhase, reducedMotion, t }) {
   const rows = [
     t('landing.story.plan.previewItem1', '09:00 자료구조 복습'),
     t('landing.story.plan.previewItem2', '14:00 알고리즘 과제'),
@@ -374,25 +416,26 @@ function PlanMock({ reducedMotion, t }) {
     <View style={[styles.mockCard, styles.planMock]}>
       <View style={styles.planHeader}>
         <Text style={styles.planMonth}>{t('landing.story.plan.previewTitle', '오늘의 학습 일정')}</Text>
-        <View style={[styles.planDday, animatedStyle(styles.microBadgePulse, reducedMotion)]}><Text style={styles.planDdayText}>D-12</Text></View>
+        <View style={[styles.planDday, animatedStyle(styles.microBadgePulse, reducedMotion), demoPhase >= 3 && styles.demoBadgeActive]}><Text style={styles.planDdayText}>D-12</Text></View>
       </View>
       <View style={styles.planTimeline}>
         {rows.map((item, index) => (
-          <View key={item} style={styles.planTimeItem}>
+          <View key={item} style={[styles.planTimeItem, getStepStyle(index, demoPhase, reducedMotion)]}>
             <View
               style={[
                 styles.planTimeDot,
                 index === 1 && styles.planTimeDotWarm,
                 index === 2 && styles.planTimeDotBlue,
+                isPhaseReached(index, demoPhase, reducedMotion) && styles.planTimeDotActive,
                 animatedStyle(styles.microDotPulse, reducedMotion),
                 animatedStyle(getMicroDelayStyle(index), reducedMotion)
               ]}
             />
-            <Text style={styles.planTimeText}>{item}</Text>
+            <Text style={[styles.planTimeText, isPhaseReached(index, demoPhase, reducedMotion) && styles.planTimeTextActive]}>{item}</Text>
           </View>
         ))}
       </View>
-      <View style={styles.planPriorityBox}>
+      <View style={[styles.planPriorityBox, demoPhase >= 3 && styles.demoPanelActive]}>
         <Text style={styles.planPriorityTitle}>{t('landing.story.plan.previewMeta', '중간고사 D-12')}</Text>
         <Text style={styles.planPriorityText}>오늘 할 일을 정리하고 우선순위를 확인합니다.</Text>
       </View>
@@ -400,7 +443,7 @@ function PlanMock({ reducedMotion, t }) {
   );
 }
 
-function FocusMock({ reducedMotion, t }) {
+function FocusMock({ demoPhase, reducedMotion, t }) {
   const weeklyBars = [
     ['landing.focus.week.mon', '62%'],
     ['landing.focus.week.tue', '48%'],
@@ -408,12 +451,18 @@ function FocusMock({ reducedMotion, t }) {
     ['landing.focus.week.thu', '56%'],
     ['landing.focus.week.fri', '84%']
   ];
+  const timerValues = [
+    t('landing.focus.timerValue', '25:00'),
+    '24:59',
+    '24:58',
+    '24:57'
+  ];
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.focusMock]}>
       <View style={styles.focusHeader}>
-        <View style={[styles.focusTimerCircle, animatedStyle(styles.microTimerPulse, reducedMotion)]}>
-          <Text style={styles.focusTimerValue}>{t('landing.focus.timerValue', '25:00')}</Text>
+        <View style={[styles.focusTimerCircle, animatedStyle(styles.microTimerPulse, reducedMotion), styles[`focusTimerPhase${demoPhase}`]]}>
+          <Text style={styles.focusTimerValue}>{reducedMotion ? t('landing.focus.timerValue', '25:00') : timerValues[demoPhase]}</Text>
           <Text style={styles.focusTimerLabel}>{t('landing.focus.timerLabel', '집중 타이머')}</Text>
         </View>
         <View style={styles.focusSummaryStack}>
@@ -429,7 +478,8 @@ function FocusMock({ reducedMotion, t }) {
               <View
                 style={[
                   styles.focusBarFill,
-                  { height },
+                  { height: getBarHeightForPhase(height, index, demoPhase, reducedMotion) },
+                  isPhaseReached(index, demoPhase + 1, reducedMotion) && styles.focusBarFillActive,
                   animatedStyle(styles.microBarRise, reducedMotion),
                   animatedStyle(getMicroDelayStyle(index), reducedMotion)
                 ]}
@@ -446,25 +496,30 @@ function FocusMock({ reducedMotion, t }) {
   );
 }
 
-function ChatMock({ reducedMotion, t }) {
+function ChatMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.chatMock]}>
-      <View style={[styles.chatUserBubble, animatedStyle(styles.microBubbleLift, reducedMotion)]}>
+      <View style={[styles.chatUserBubble, animatedStyle(styles.microBubbleLift, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>
         <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem1', '이 개념을 한 문단으로 요약해줘')}</Text>
       </View>
-      <View style={[styles.chatAiBubble, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}>
+      <View style={[styles.typingDotsRow, getCurrentStepStyle(1, demoPhase, reducedMotion)]}>
+        <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion)]} />
+        <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]} />
+        <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]} />
+      </View>
+      <View style={[styles.chatAiBubble, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getStepStyle(2, demoPhase, reducedMotion)]}>
         <Text style={styles.chatAiText}>막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.</Text>
         <View style={styles.chatActions}>
-          <View style={[styles.chatBtn, animatedStyle(styles.microChipHighlight, reducedMotion)]}><Text style={styles.chatBtnText}>요약하기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnMuted, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnCream, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
+          <View style={[styles.chatBtn, animatedStyle(styles.microChipHighlight, reducedMotion), demoPhase >= 3 && styles.demoChipActive]}><Text style={styles.chatBtnText}>요약하기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnMuted, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), demoPhase >= 3 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnCream, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion), demoPhase >= 3 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
         </View>
       </View>
     </View>
   );
 }
 
-function NoteMock({ reducedMotion, t }) {
+function NoteMock({ demoPhase, reducedMotion, t }) {
   const bullets = [
     '미분 = 순간 변화율',
     '도함수 = 접선의 기울기',
@@ -474,7 +529,7 @@ function NoteMock({ reducedMotion, t }) {
 
   return (
     <View style={[styles.mockCard, styles.noteMock]}>
-      <View style={styles.noteBadge}><Text style={styles.noteBadgeText}>AI 요약 완료</Text></View>
+      <View style={[styles.noteBadge, demoPhase >= 3 && styles.demoBadgeActive]}><Text style={styles.noteBadgeText}>AI 요약 완료</Text></View>
       <Text style={styles.noteTitle}>수학 미적분 핵심 개념</Text>
       <View style={styles.summaryBulletList}>
         {bullets.map((item, index) => (
@@ -482,6 +537,7 @@ function NoteMock({ reducedMotion, t }) {
             key={item}
             style={[
               styles.summaryBulletRow,
+              getStepStyle(index, demoPhase, reducedMotion),
               animatedStyle(styles.microSummaryRow, reducedMotion),
               animatedStyle(getMicroDelayStyle(index), reducedMotion)
             ]}
@@ -503,7 +559,7 @@ function NoteMock({ reducedMotion, t }) {
   );
 }
 
-function ReportMock({ reducedMotion, t }) {
+function ReportMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={styles.reportStack}>
       <View style={[styles.mockCard, styles.reportCardBg2, animatedStyle(styles.microStackFloat, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]} />
@@ -511,17 +567,17 @@ function ReportMock({ reducedMotion, t }) {
       <View style={[styles.mockCard, styles.reportCardMain]}>
         <View style={styles.reportHeader}>
           <Text style={styles.reportTitle}>{t('landing.feature.ai.title')}</Text>
-          <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion)]}>-5</Text>
+          <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>-5</Text>
         </View>
-        <View style={styles.reportRow}>
+        <View style={[styles.reportRow, getStepStyle(1, demoPhase, reducedMotion)]}>
           <Text style={styles.reportLabel}>내 답안</Text>
           <Text style={[styles.reportWrong, animatedStyle(styles.microScorePulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}>4</Text>
         </View>
-        <View style={styles.reportRow}>
+        <View style={[styles.reportRow, getStepStyle(2, demoPhase, reducedMotion)]}>
           <Text style={styles.reportLabel}>정답</Text>
           <Text style={[styles.reportCorrect, animatedStyle(styles.microScorePulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}>2</Text>
         </View>
-        <View style={[styles.reportReason, animatedStyle(styles.microSoftGlow, reducedMotion)]}>
+        <View style={[styles.reportReason, animatedStyle(styles.microSoftGlow, reducedMotion), getStepStyle(3, demoPhase, reducedMotion)]}>
           <Text style={styles.reportReasonTitle}>틀린 이유</Text>
           <Text style={styles.reportReasonText}>조건식을 반대로 해석해 탐색 순서를 잘못 판단했습니다.</Text>
         </View>
@@ -530,7 +586,7 @@ function ReportMock({ reducedMotion, t }) {
   );
 }
 
-function MessageMock({ reducedMotion, t }) {
+function MessageMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.messageMock]}>
       <View style={styles.reportHeader}>
@@ -538,17 +594,17 @@ function MessageMock({ reducedMotion, t }) {
         <Text style={[styles.reportScore, styles.messageScore]}>{t('landing.message.realtimePill', 'Realtime')}</Text>
       </View>
       <View style={styles.socialStatusRow}>
-        <Text style={[styles.socialStatusText, animatedStyle(styles.microChipHighlight, reducedMotion)]}>{t('landing.message.onlineCount', '친구 3명 접속중')}</Text>
-        <Text style={[styles.socialUnreadPill, animatedStyle(styles.microUnreadPulse, reducedMotion)]}>{t('landing.message.unreadBadge', '읽지 않은 쪽지 2개')}</Text>
+        <Text style={[styles.socialStatusText, animatedStyle(styles.microChipHighlight, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>{t('landing.message.onlineCount', '친구 3명 접속중')}</Text>
+        <Text style={[styles.socialUnreadPill, animatedStyle(styles.microUnreadPulse, reducedMotion), getStepStyle(1, demoPhase, reducedMotion)]}>{t('landing.message.unreadBadge', '읽지 않은 쪽지 2개')}</Text>
       </View>
-      <View style={[styles.friendRow, animatedStyle(styles.microMessageLift, reducedMotion)]}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>{t('landing.message.chat1', '이량: 오늘 목표 시작했어요.')}</Text></View>
-      <View style={[styles.friendRow, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>{t('landing.message.chat2', '지환: 나 지금 수학 과제 거의 다했어!')}</Text></View>
+      <View style={[styles.friendRow, animatedStyle(styles.microMessageLift, reducedMotion), getStepStyle(2, demoPhase, reducedMotion)]}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>{t('landing.message.chat1', '이량: 오늘 목표 시작했어요.')}</Text></View>
+      <View style={[styles.friendRow, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getStepStyle(3, demoPhase, reducedMotion)]}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>{t('landing.message.chat2', '지환: 나 지금 수학 과제 거의 다했어!')}</Text></View>
       <Text style={styles.socialFooterText}>{t('landing.message.footer', '친구 접속 상태 · 읽지 않은 메시지 · 실시간 흐름')}</Text>
     </View>
   );
 }
 
-function CommunityMock({ reducedMotion, t }) {
+function CommunityMock({ demoPhase, reducedMotion, t }) {
   const items = [
     t('landing.community.previewPost', '게시글'),
     t('landing.community.previewComment', '댓글'),
@@ -569,6 +625,7 @@ function CommunityMock({ reducedMotion, t }) {
             key={item}
             style={[
               styles.communityActionPill,
+              isPhaseReached(index, demoPhase + 1, reducedMotion) && styles.demoChipActive,
               animatedStyle(styles.microChipHighlight, reducedMotion),
               animatedStyle(getMicroDelayStyle(index), reducedMotion)
             ]}
@@ -582,40 +639,40 @@ function CommunityMock({ reducedMotion, t }) {
   );
 }
 
-function CoopMock({ reducedMotion, t }) {
+function CoopMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.coopMock]}>
       <View style={styles.reportHeader}>
         <Text style={styles.reportTitle}>중간고사 집중 레이드</Text>
-        <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion)]}>HP 진행률</Text>
+        <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion), demoPhase >= 1 && styles.demoTextActive]}>HP 진행률</Text>
       </View>
       <View style={styles.raidProgressBar}>
-        <View style={[styles.raidProgressFill, { width: '55%' }, animatedStyle(styles.microProgressBreathe, reducedMotion)]} />
+        <View style={[styles.raidProgressFill, { width: getCoopProgressWidth(demoPhase, reducedMotion) }, animatedStyle(styles.microProgressBreathe, reducedMotion)]} />
       </View>
       <Text style={styles.raidProgressText}>남은 HP 45% · 팀 기여도 반영 중</Text>
     </View>
   );
 }
 
-function RewardMock({ reducedMotion, t }) {
+function RewardMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.rewardMock]}>
       <View style={styles.reportHeader}>
         <Text style={styles.reportTitle}>포인트 상점</Text>
-        <Text style={[styles.reportScore, styles.rewardScore, animatedStyle(styles.microRewardGlow, reducedMotion)]}>4,200P</Text>
+        <Text style={[styles.reportScore, styles.rewardScore, animatedStyle(styles.microRewardGlow, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>4,200P</Text>
       </View>
       <View style={styles.rewardPreviewRow}>
-        <View style={[styles.rewardAvatarPreview, animatedStyle(styles.microAvatarPulse, reducedMotion)]} />
+        <View style={[styles.rewardAvatarPreview, animatedStyle(styles.microAvatarPulse, reducedMotion), getStepStyle(1, demoPhase, reducedMotion)]} />
         <View style={styles.rewardCopy}>
-          <Text style={styles.reportLabel}>프로필 이미지 · 배경 · 칭호</Text>
-          <Text style={styles.raidProgressText}>학습 성취를 프로필 꾸미기로 이어갑니다.</Text>
+          <Text style={[styles.reportLabel, getStepStyle(2, demoPhase, reducedMotion)]}>프로필 이미지 · 배경 · 칭호</Text>
+          <Text style={[styles.raidProgressText, getStepStyle(3, demoPhase, reducedMotion)]}>학습 성취를 프로필 꾸미기로 이어갑니다.</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function LanguageMock({ reducedMotion, t }) {
+function LanguageMock({ demoPhase, reducedMotion, t }) {
   const rows = [
     t('landing.language.previewKo', '한국어 기본'),
     t('landing.language.previewEn', 'English Beta'),
@@ -635,6 +692,8 @@ function LanguageMock({ reducedMotion, t }) {
             key={item}
             style={[
               styles.languageRow,
+              getCurrentStepStyle(index, demoPhase, reducedMotion),
+              index === demoPhase && styles.languageRowSelected,
               animatedStyle(styles.microLanguageHighlight, reducedMotion),
               animatedStyle(getMicroDelayStyle(index), reducedMotion)
             ]}
@@ -649,24 +708,24 @@ function LanguageMock({ reducedMotion, t }) {
   );
 }
 
-function TrustMock({ reducedMotion, t }) {
+function TrustMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={styles.trustCardsContainer}>
-      <View style={[styles.mockCard, styles.trustCard]}>
+      <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(0, Math.min(demoPhase, 2), reducedMotion)]}>
         <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion)]}><Text style={styles.trustIcon}>↔</Text></View>
         <View style={styles.trustCardContent}>
           <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '기존 로그인/회원가입/라우팅 흐름 유지')}</Text>
           <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '로그인, 회원가입, 화면 이동 구조를 무리 없이 이어갑니다.')}</Text>
         </View>
       </View>
-      <View style={[styles.mockCard, styles.trustCard]}>
+      <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(1, Math.min(demoPhase, 2), reducedMotion)]}>
         <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}><Text style={styles.trustIcon}>Aa</Text></View>
         <View style={styles.trustCardContent}>
           <Text style={styles.trustCardTitle}>{t('landing.trust.item2', '모션 민감 사용자를 위한 감소 설정 대응')}</Text>
           <Text style={styles.trustCardDesc}>{t('landing.trust.description2', '글자 크기, 고대비, 읽어주기 같은 접근성 흐름을 함께 고려합니다.')}</Text>
         </View>
       </View>
-      <View style={[styles.mockCard, styles.trustCard]}>
+      <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(2, Math.min(demoPhase, 2), reducedMotion)]}>
         <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}><Text style={styles.trustIcon}>API</Text></View>
         <View style={styles.trustCardContent}>
           <Text style={styles.trustCardTitle}>{t('landing.trust.item3', '백엔드 API 변경 없이 현재 기능 흐름 재사용')}</Text>
@@ -677,21 +736,21 @@ function TrustMock({ reducedMotion, t }) {
   );
 }
 
-function SectionVisual({ reducedMotion, type, t }) {
-  if (type === 'plan') return <PlanMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'focus') return <FocusMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'chat') return <ChatMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'note') return <NoteMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'report') return <ReportMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'message') return <MessageMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'community') return <CommunityMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'coop') return <CoopMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'reward') return <RewardMock reducedMotion={reducedMotion} t={t} />;
-  if (type === 'language') return <LanguageMock reducedMotion={reducedMotion} t={t} />;
-  return <TrustMock reducedMotion={reducedMotion} t={t} />;
+function SectionVisual({ demoPhase, reducedMotion, type, t }) {
+  if (type === 'plan') return <PlanMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'focus') return <FocusMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'chat') return <ChatMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'note') return <NoteMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'report') return <ReportMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'message') return <MessageMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'community') return <CommunityMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'coop') return <CoopMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'reward') return <RewardMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  if (type === 'language') return <LanguageMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
+  return <TrustMock demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />;
 }
 
-function ProjectGroundedCopySection({ t }) {
+function ProjectGroundedCopySection({ demoPhase, reducedMotion, t }) {
   return (
     <View style={styles.projectSection}>
       <SectionKeyword label="NOTES" style={[styles.bgSubtleKeyword, styles.bgNotes]} />
@@ -702,12 +761,12 @@ function ProjectGroundedCopySection({ t }) {
           {t('landing.projectNotes.description', '초기 요구사항에서 출발한 학습 흐름을 실제 사용자가 바로 이해할 수 있는 기능 구조로 정리했습니다.')}
         </Text>
       </View>
-      <DesignNotesRecordCards t={t} />
+      <DesignNotesRecordCards demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />
     </View>
   );
 }
 
-function ServiceSection({ reducedMotion, section, t }) {
+function ServiceSection({ demoPhase, reducedMotion, section, t }) {
   const reverse = section.layout === 'reverse';
   const center = section.layout === 'center';
 
@@ -727,7 +786,7 @@ function ServiceSection({ reducedMotion, section, t }) {
           </View>
         </View>
         <View style={[styles.newVisualCol, center && styles.newVisualColCenter]}>
-          <SectionVisual reducedMotion={reducedMotion} t={t} type={section.visual} />
+          <SectionVisual demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} type={section.visual} />
         </View>
       </View>
     </View>
@@ -740,6 +799,7 @@ export default function ScrollStorySection({ onNavigate }) {
   const [isPromoPaused, setIsPromoPaused] = useState(false);
   const [promoTimerKey, setPromoTimerKey] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
+  const [demoPhase, setDemoPhase] = useState(DEMO_PHASE_COUNT - 1);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -767,6 +827,20 @@ export default function ScrollStorySection({ onNavigate }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setDemoPhase(DEMO_PHASE_COUNT - 1);
+      return undefined;
+    }
+
+    setDemoPhase(0);
+    const timer = setInterval(() => {
+      setDemoPhase((current) => (current + 1) % DEMO_PHASE_COUNT);
+    }, DEMO_PHASE_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [reducedMotion]);
 
   useEffect(() => {
     if (isPromoPaused || reducedMotion) {
@@ -810,10 +884,11 @@ export default function ScrollStorySection({ onNavigate }) {
         t={t}
       />
 
-      <ProjectGroundedCopySection t={t} />
+      <ProjectGroundedCopySection demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} />
 
       {serviceSections.map((section) => (
         <ServiceSection
+          demoPhase={demoPhase}
           key={section.id}
           reducedMotion={reducedMotion}
           section={section}
@@ -1359,6 +1434,94 @@ const styles = StyleSheet.create({
     color: '#475569',
     lineHeight: 28,
     marginBottom: 32
+  },
+  demoStepActive: {
+    opacity: 1,
+    transform: [{ translateY: 0 }, { scale: 1 }]
+  },
+  demoStepWaiting: {
+    opacity: 0.26,
+    transform: [{ translateY: 10 }, { scale: 0.98 }]
+  },
+  demoStepDimmed: {
+    opacity: 0.38,
+    transform: [{ translateY: 4 }, { scale: 0.985 }]
+  },
+  demoMiniActive: {
+    borderColor: 'rgba(15, 118, 110, 0.32)',
+    transform: [{ translateY: -4 }, { scale: 1.02 }]
+  },
+  demoBadgeActive: {
+    transform: [{ scale: 1.08 }]
+  },
+  demoPanelActive: {
+    borderColor: 'rgba(15, 118, 110, 0.3)',
+    backgroundColor: '#F1FDF9'
+  },
+  demoChipActive: {
+    borderColor: 'rgba(15, 118, 110, 0.34)',
+    backgroundColor: '#CDEFE9',
+    transform: [{ translateY: -3 }, { scale: 1.03 }]
+  },
+  demoTextActive: {
+    color: colors.mintDeep,
+    transform: [{ scale: 1.04 }]
+  },
+  recordLogDotActive: {
+    transform: [{ scale: 1.38 }]
+  },
+  recordLogTextActive: {
+    color: colors.ink,
+    fontWeight: '900'
+  },
+  planTimeDotActive: {
+    transform: [{ scale: 1.45 }]
+  },
+  planTimeTextActive: {
+    color: colors.ink,
+    fontWeight: '900'
+  },
+  focusTimerPhase0: {
+    borderColor: '#BDE0FE'
+  },
+  focusTimerPhase1: {
+    borderColor: '#CDEFE9',
+    transform: [{ scale: 1.02 }]
+  },
+  focusTimerPhase2: {
+    borderColor: '#73C9BD',
+    transform: [{ scale: 1.05 }]
+  },
+  focusTimerPhase3: {
+    borderColor: '#0F766E',
+    transform: [{ scale: 1.07 }]
+  },
+  focusBarFillActive: {
+    backgroundColor: '#0F766E'
+  },
+  typingDotsRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+    shadowColor: '#173B63',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  typingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: colors.mintDeep
+  },
+  languageRowSelected: {
+    borderColor: 'rgba(15, 118, 110, 0.36)',
+    backgroundColor: '#CDEFE9'
   },
   microDelay0: {
     animationDelay: '0s'
