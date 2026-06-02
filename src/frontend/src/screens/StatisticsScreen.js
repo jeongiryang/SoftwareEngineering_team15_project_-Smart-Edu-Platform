@@ -128,22 +128,20 @@ function buildSpacedReviewPlan() {
   }));
 }
 
-function getHeatColor(minutes, maxMinutes) {
+function getHeatColor(minutes) {
   if (minutes <= 0) {
     return colors.surfaceWarm;
   }
 
-  const ratio = maxMinutes <= 0 ? 0 : minutes / maxMinutes;
-
-  if (ratio >= 0.75) {
+  if (minutes >= 60) {
     return colors.mintDeep;
   }
 
-  if (ratio >= 0.45) {
+  if (minutes >= 30) {
     return colors.mint;
   }
 
-  if (ratio >= 0.2) {
+  if (minutes >= 10) {
     return colors.mintSoft;
   }
 
@@ -414,13 +412,11 @@ export default function StatisticsScreen({ onNavigate, token }) {
       sessions: heatmap?.[date.key]?.sessionCount || 0
     }));
     const maxWeekMinutes = Math.max(1, ...weekDays.map((day) => day.minutes));
-    const maxMonthMinutes = Math.max(1, ...monthDays.map((day) => day.minutes));
 
     return {
       weekBars: weekDays,
       monthCells: monthDays,
       maxWeekMinutes,
-      maxMonthMinutes,
       story: buildStory({ todaySummary, weekSummary, weekBars: weekDays })
     };
   }, [heatmap, todaySummary, weekSummary]);
@@ -696,7 +692,7 @@ export default function StatisticsScreen({ onNavigate, token }) {
                     style={[
                       styles.heatCell,
                       {
-                        backgroundColor: getHeatColor(day.minutes, chartData.maxMonthMinutes)
+                        backgroundColor: getHeatColor(day.minutes)
                       }
                     ]}
                   >
