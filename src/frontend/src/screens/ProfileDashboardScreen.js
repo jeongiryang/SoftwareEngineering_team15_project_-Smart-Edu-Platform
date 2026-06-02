@@ -85,6 +85,25 @@ function normalizeProfileTab(value) {
   return value === PROFILE_TAB_KEYS.account ? PROFILE_TAB_KEYS.account : PROFILE_TAB_KEYS.learning;
 }
 
+function resolveProfileAppearance(shop, fallbackProfile = {}) {
+  const hasShopProfile = Boolean(shop?.profile);
+  const profile = hasShopProfile ? shop.profile : (fallbackProfile || {});
+  const equippedItems = shop?.equippedItems || {};
+
+  return {
+    ...profile,
+    profileImageUrl: profile?.profileImageUrl || (
+      hasShopProfile ? equippedItems.profileImage?.assetUrl || null : fallbackProfile?.profileImageUrl || null
+    ),
+    profileBackgroundUrl: profile?.profileBackgroundUrl || (
+      hasShopProfile ? equippedItems.profileBackground?.assetUrl || null : fallbackProfile?.profileBackgroundUrl || null
+    ),
+    titleText: profile?.titleText || equippedItems.title?.name || (
+      !hasShopProfile ? fallbackProfile?.titleText || null : null
+    )
+  };
+}
+
 function toDateKey(date) {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
   return localDate.toISOString().slice(0, 10);
@@ -549,7 +568,7 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
   }, [profileData]);
 
   const rewardPoints = profileData.rewards?.account?.pointBalance || 0;
-  const profileAppearance = profileData.shop?.profile || user?.profile || {};
+  const profileAppearance = resolveProfileAppearance(profileData.shop, user?.profile);
   const visibleBadges = derived.badges.slice(0, 4);
   const visibleQuests = derived.activeQuests.slice(0, 3);
   const activityStats = profileData.activityStats || EMPTY_PROFILE_DATA.activityStats;
