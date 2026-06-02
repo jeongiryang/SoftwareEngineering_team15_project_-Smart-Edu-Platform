@@ -8,7 +8,7 @@ const DEMO_PHASE_COUNT = 6;
 const DEMO_FINAL_PHASE = DEMO_PHASE_COUNT - 1;
 const DEMO_VISUAL_FINAL_PHASE = 4;
 const DEMO_PHASE_SEQUENCE = [0, 1, 2, 3, 4, 5, 5];
-const DEMO_PHASE_INTERVAL_MS = 980;
+const DEMO_PHASE_INTERVAL_MS = 850;
 
 const promoSlides = [
   {
@@ -384,6 +384,7 @@ function DesignNotesRecordCards({ demoPhase, reducedMotion, t }) {
     t('landing.designRecord.row3', '영어 단어 암기 · 25분'),
     t('landing.designRecord.row4', '오늘 질문 3개 / 요약 2개 저장')
   ];
+  const recordRowCount = reducedMotion ? rows.length : phase;
 
   return (
     <View style={styles.recordExperience}>
@@ -392,24 +393,29 @@ function DesignNotesRecordCards({ demoPhase, reducedMotion, t }) {
           <Text style={styles.recordCardTitle}>{t('landing.designRecord.mainTitle', '오늘의 학습 기록')}</Text>
           <Text style={[styles.recordStreak, styles.recordStreakLive]}>{streakValues[phase]}</Text>
         </View>
-        {rows.map((item, index) => (
-          <View key={item} style={[styles.recordLogRow, getCurrentOrCompleteStyle(index, demoPhase, reducedMotion)]}>
+        {rows.map((item, index) => {
+          const rowVisible = reducedMotion || index < recordRowCount;
+          const rowCurrent = !reducedMotion && index === recordRowCount - 1;
+
+          return (
+          <View key={item} style={[styles.recordLogRow, rowVisible ? styles.demoStepActive : styles.demoStepWaiting, rowCurrent && styles.demoCurrentStep]}>
             <View style={[
               styles.recordLogDot,
               index === 1 && styles.recordLogDotWarm,
-              isPhaseReached(index, demoPhase, reducedMotion) && styles.recordLogDotActive
+              rowVisible && styles.recordLogDotActive
             ]} />
-            <Text style={[styles.recordLogText, isPhaseReached(index, demoPhase, reducedMotion) && styles.recordLogTextActive]}>{item}</Text>
+            <Text style={[styles.recordLogText, rowVisible && styles.recordLogTextActive]}>{item}</Text>
           </View>
-        ))}
+          );
+        })}
       </View>
       <View style={styles.recordSideStack}>
-        <View style={[styles.recordMiniCard, styles.recordMiniCardMint, demoPhase >= 1 && styles.demoMiniActive]}>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardMint, phase >= 1 && styles.demoMiniActive]}>
           <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini1Label', 'Opening Notes')}</Text>
           <Text style={styles.recordMiniValue}>{dateValues[phase]}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini1Text', '학습 목표와 오늘의 기록을 한눈에 정리합니다.')}</Text>
         </View>
-        <View style={[styles.recordMiniCard, styles.recordMiniCardCream, demoPhase >= 3 && styles.demoMiniActive]}>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardCream, phase >= 1 && styles.demoMiniActive]}>
           <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini2Label', 'Saved Questions')}</Text>
           <Text style={styles.recordMiniValue}>{String(phase)}</Text>
           <Text style={styles.recordMiniText}>{t('landing.designRecord.mini2Text', '질문과 요약을 다시 볼 수 있게 모아둡니다.')}</Text>
@@ -646,7 +652,7 @@ function MessageMock({ demoPhase, reducedMotion, t }) {
         <View style={[styles.friendAvatar, styles.friendAvatarCream]} />
         <View style={[styles.messageBubble, styles.messageBubbleCream, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}>
           <Text style={styles.messageAuthor}>대겸</Text>
-          <Text style={styles.messageBubbleText}>너무 힘들어요 ㅠㅠ 코멘트 남겼어요.</Text>
+          <Text style={styles.messageBubbleText}>너무 힘들어요 ㅠㅠ PR 확인 후 리뷰 남겼어요.</Text>
         </View>
       </View>
       <Text style={styles.socialFooterText}>{t('landing.message.footer', '친구 접속 상태 · 읽지 않은 메시지 · 실시간 흐름')}</Text>
@@ -730,7 +736,13 @@ function RewardMock({ demoPhase, reducedMotion, t }) {
         <Text style={[styles.reportScore, styles.rewardScore, animatedStyle(styles.microRewardGlow, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>{pointValues[phase]}</Text>
       </View>
       <View style={styles.rewardPreviewRow}>
-        <View style={[styles.rewardAvatarPreview, animatedStyle(styles.microAvatarPulse, reducedMotion), getStepStyle(1, demoPhase, reducedMotion)]}>
+        <View style={[styles.rewardAvatarPreview, phase >= 4 && styles.rewardAvatarPreviewMoon, animatedStyle(styles.microAvatarPulse, reducedMotion), getStepStyle(1, demoPhase, reducedMotion)]}>
+          <View style={[styles.rewardMoonSky, phase >= 4 && styles.rewardMoonSkyActive]}>
+            <View style={[styles.rewardMoonCrescent, phase >= 4 && styles.rewardMoonCrescentActive]}>
+              <View style={styles.rewardMoonCut} />
+            </View>
+            <View style={[styles.rewardMoonStar, phase >= 4 && styles.rewardMoonStarActive]} />
+          </View>
           <View style={[styles.rewardAvatarInner, demoPhase >= 3 && styles.rewardAvatarInnerActive]} />
         </View>
         <View style={styles.rewardCopy}>
@@ -754,7 +766,7 @@ function LanguageMock({ demoPhase, reducedMotion, t }) {
     t('landing.language.previewJa', '日本語 Beta'),
     t('landing.language.previewZh', '中文 Beta')
   ];
-  const selectedLanguageIndex = Math.min(reducedMotion ? DEMO_FINAL_PHASE : demoPhase, rows.length - 1);
+  const languagePhase = Math.min(reducedMotion ? rows.length - 1 : demoPhase, rows.length - 1);
   const sampleSentences = [
     '오늘 학습 기록을 정리했어요.',
     'Today’s study log is ready.',
@@ -774,10 +786,8 @@ function LanguageMock({ demoPhase, reducedMotion, t }) {
             key={item}
             style={[
               styles.languageRow,
-              getCurrentStepStyle(index, selectedLanguageIndex, reducedMotion),
-              index === selectedLanguageIndex && styles.languageRowSelected,
-              animatedStyle(styles.microLanguageHighlight, reducedMotion),
-              animatedStyle(getMicroDelayStyle(index), reducedMotion)
+              getCurrentStepStyle(index, languagePhase, reducedMotion),
+              index === languagePhase && styles.languageRowSelected
             ]}
           >
             <View style={[styles.languageDot, index === 0 && styles.languageDotPrimary]} />
@@ -785,8 +795,8 @@ function LanguageMock({ demoPhase, reducedMotion, t }) {
           </View>
         ))}
       </View>
-      <View style={[styles.languageSampleBox, styles.demoPanelActive]}>
-        <Text style={styles.languageSampleText}>{sampleSentences[selectedLanguageIndex]}</Text>
+      <View style={[styles.languageSampleBox, styles.demoPanelActive, styles.languageSampleBoxSynced]}>
+        <Text style={styles.languageSampleText}>{sampleSentences[languagePhase]}</Text>
       </View>
       <Text style={styles.languageNote}>{t('landing.language.note', '정식 검수 전 1차 지원 언어로 가볍게 제공합니다.')}</Text>
     </View>
@@ -799,10 +809,10 @@ function TrustMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={styles.trustCardsContainer}>
       <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(0, activeTrustIndex, reducedMotion)]}>
-        <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion)]}><Text style={styles.trustIcon}>↔</Text></View>
+        <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion)]}><Text style={styles.trustIcon}>PW</Text></View>
         <View style={styles.trustCardContent}>
-          <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '기존 로그인/회원가입/라우팅 흐름 유지')}</Text>
-          <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '로그인, 회원가입, 화면 이동 구조를 무리 없이 이어갑니다.')}</Text>
+          <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '비밀번호 bcrypt 해시화 완료')}</Text>
+          <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '회원가입 시 비밀번호를 bcrypt 해시로 저장하고 원문을 응답에 노출하지 않습니다.')}</Text>
         </View>
         <Text style={[styles.trustCheck, isPhaseReached(0, demoPhase, reducedMotion) && styles.trustCheckActive]}>✓</Text>
       </View>
@@ -1660,19 +1670,19 @@ const styles = StyleSheet.create({
     animationDelay: '0s'
   },
   microDelay1: {
-    animationDelay: '0.7s'
+    animationDelay: '0.55s'
   },
   microDelay2: {
-    animationDelay: '1.4s'
+    animationDelay: '1.1s'
   },
   microDelay3: {
-    animationDelay: '2.1s'
+    animationDelay: '1.65s'
   },
   microDelay4: {
-    animationDelay: '2.8s'
+    animationDelay: '2.2s'
   },
   microDotPulse: {
-    animationDuration: '6.8s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1686,7 +1696,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBadgePulse: {
-    animationDuration: '6.8s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1699,7 +1709,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microTimerPulse: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1712,7 +1722,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBarRise: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1726,7 +1736,7 @@ const styles = StyleSheet.create({
     transformOrigin: 'bottom center'
   },
   microBubbleLift: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1739,7 +1749,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microChipHighlight: {
-    animationDuration: '6.8s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1752,7 +1762,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microBulletHighlight: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1765,7 +1775,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microSummaryRow: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1778,7 +1788,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microStackFloat: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1790,7 +1800,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microScorePulse: {
-    animationDuration: '6.8s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1803,7 +1813,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microSoftGlow: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1816,7 +1826,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microUnreadPulse: {
-    animationDuration: '6.8s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1829,20 +1839,20 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microMessageLift: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
-        '0%': { opacity: 0.38, transform: 'translateY(12px)' },
+        '0%': { opacity: 0.82, transform: 'translateY(8px)' },
         '28%': { opacity: 1, transform: 'translateY(0)' },
         '74%': { opacity: 1, transform: 'translateY(-3px)' },
-        '100%': { opacity: 0.38, transform: 'translateY(12px)' }
+        '100%': { opacity: 0.82, transform: 'translateY(8px)' }
       }
     ],
     animationTimingFunction: 'ease-in-out'
   },
   microProgressBreathe: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1856,7 +1866,7 @@ const styles = StyleSheet.create({
     transformOrigin: 'left center'
   },
   microRewardGlow: {
-    animationDuration: '6.8s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1869,7 +1879,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microAvatarPulse: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1882,7 +1892,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microLanguageHighlight: {
-    animationDuration: '6.9s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -1895,7 +1905,7 @@ const styles = StyleSheet.create({
     animationTimingFunction: 'ease-in-out'
   },
   microTrustPulse: {
-    animationDuration: '6.8s',
+    animationDuration: '6s',
     animationIterationCount: 'infinite',
     animationKeyframes: [
       {
@@ -2170,7 +2180,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#73C9BD',
     borderRadius: 999,
-    transitionDuration: '680ms',
+    transitionDuration: '760ms',
     transitionProperty: 'height, opacity, background-color',
     transitionTimingFunction: 'ease-in-out'
   },
@@ -2624,7 +2634,7 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#FF6B6B',
     borderRadius: 8,
-    transitionDuration: '720ms',
+    transitionDuration: '760ms',
     transitionProperty: 'width, opacity',
     transitionTimingFunction: 'ease-in-out'
   },
@@ -2676,8 +2686,60 @@ const styles = StyleSheet.create({
     borderColor: '#73C9BD',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
     transitionDuration: '640ms',
     transitionTimingFunction: 'ease-in-out'
+  },
+  rewardAvatarPreviewMoon: {
+    backgroundColor: '#173B63',
+    borderColor: '#FFE4B5'
+  },
+  rewardMoonSky: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    opacity: 0,
+    transitionDuration: '640ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  rewardMoonSkyActive: {
+    opacity: 1
+  },
+  rewardMoonCrescent: {
+    position: 'absolute',
+    top: 12,
+    right: 14,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFE4B5',
+    opacity: 0.94
+  },
+  rewardMoonCrescentActive: {
+    transform: [{ scale: 1.08 }]
+  },
+  rewardMoonCut: {
+    position: 'absolute',
+    top: -2,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#173B63'
+  },
+  rewardMoonStar: {
+    position: 'absolute',
+    left: 15,
+    bottom: 15,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#FDE68A',
+    opacity: 0
+  },
+  rewardMoonStarActive: {
+    opacity: 1,
+    transform: [{ scale: 1.16 }]
   },
   rewardAvatarInner: {
     width: 26,
@@ -2774,6 +2836,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     transitionDuration: '580ms',
     transitionTimingFunction: 'ease-in-out'
+  },
+  languageSampleBoxSynced: {
+    borderColor: 'rgba(15, 118, 110, 0.3)',
+    backgroundColor: '#F8FFFD'
   },
   languageSampleText: {
     color: colors.ink,
