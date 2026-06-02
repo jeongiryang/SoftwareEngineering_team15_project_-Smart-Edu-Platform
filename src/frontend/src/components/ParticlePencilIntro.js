@@ -77,6 +77,15 @@ const TEXT_MASKS = {
     [6, 8]
   ]
 };
+const PENCIL_AXIS = {
+  tip: { x: 45.4, y: 57.2 },
+  cap: { x: 56.8, y: 24.8 }
+};
+const PENCIL_DX = PENCIL_AXIS.cap.x - PENCIL_AXIS.tip.x;
+const PENCIL_DY = PENCIL_AXIS.cap.y - PENCIL_AXIS.tip.y;
+const PENCIL_LENGTH = Math.sqrt(PENCIL_DX * PENCIL_DX + PENCIL_DY * PENCIL_DY);
+const PENCIL_PERP_X = -PENCIL_DY / PENCIL_LENGTH;
+const PENCIL_PERP_Y = PENCIL_DX / PENCIL_LENGTH;
 
 function seeded(index, salt) {
   const value = Math.sin(index * 127.13 + salt * 811.7) * 10000;
@@ -153,8 +162,8 @@ function getStartPosition(index) {
 
 function getPencilLinePoint(t, offset) {
   return {
-    x: 44 + t * 13.5 + offset * 0.26,
-    y: 59 - t * 38 + offset
+    x: PENCIL_AXIS.tip.x + PENCIL_DX * t + PENCIL_PERP_X * offset,
+    y: PENCIL_AXIS.tip.y + PENCIL_DY * t + PENCIL_PERP_Y * offset
   };
 }
 
@@ -163,30 +172,30 @@ function getPencilTarget(index) {
   const t = seeded(index, 11);
   const u = seeded(index, 13);
   const bodyT = (index % 160) / 159;
-  const offset = (u - 0.5) * 9;
+  const offset = (u - 0.5) * 3.6;
 
   if (type <= 7) {
-    const point = getPencilLinePoint(bodyT, offset);
+    const point = getPencilLinePoint(0.27 + bodyT * 0.68, offset);
     return { kind: 'body', x: point.x, y: point.y };
   }
 
   if (type === 8) {
-    const point = getPencilLinePoint(0.86 + t * 0.12, (u - 0.5) * 7);
-    return { kind: 'cap', x: point.x - 2, y: point.y + 1 };
+    const point = getPencilLinePoint(0.9 + t * 0.09, (u - 0.5) * 3.2);
+    return { kind: 'cap', x: point.x, y: point.y };
   }
 
   if (type === 9) {
-    const point = getPencilLinePoint(0.24 + t * 0.46, -5 + (u - 0.5) * 2);
+    const point = getPencilLinePoint(0.34 + t * 0.5, -1.05 + (u - 0.5) * 0.6);
     return { kind: 'highlight', x: point.x, y: point.y };
   }
 
   if (type <= 11) {
-    const point = getPencilLinePoint(0.1 + t * 0.14, (u - 0.5) * 8);
-    return { kind: 'wood', x: point.x + 1.8, y: point.y };
+    const point = getPencilLinePoint(0.11 + t * 0.19, (u - 0.5) * 3.9);
+    return { kind: 'wood', x: point.x, y: point.y };
   }
 
-  const point = getPencilLinePoint(t * 0.1, (u - 0.5) * 7);
-  return { kind: 'tip', x: point.x + 3.2, y: point.y };
+  const point = getPencilLinePoint(t * 0.1, (u - 0.5) * 2.4);
+  return { kind: 'tip', x: point.x, y: point.y };
 }
 
 function getTextTarget(index) {
@@ -194,13 +203,13 @@ function getTextTarget(index) {
   const charIndex = textIndex % TEXT_SEQUENCE.length;
   const mask = TEXT_MASKS[TEXT_SEQUENCE[charIndex]];
   const [cellX, cellY] = mask[Math.floor(textIndex / TEXT_SEQUENCE.length) % mask.length];
-  const jitterX = (seeded(index, 17) - 0.5) * 1.2;
-  const jitterY = (seeded(index, 19) - 0.5) * 1.2;
+  const jitterX = (seeded(index, 17) - 0.5) * 0.42;
+  const jitterY = (seeded(index, 19) - 0.5) * 0.42;
 
   return {
     kind: 'text',
-    x: 31.5 + charIndex * 9.6 + cellX * 0.96 + jitterX,
-    y: 67.4 + cellY * 1.28 + jitterY
+    x: 41.6 + charIndex * 4.42 + cellX * 0.5 + jitterX,
+    y: 64.6 + cellY * 0.82 + jitterY
   };
 }
 
@@ -407,23 +416,23 @@ function getParticleOpacity(stage, reducedMotion, particle) {
   }
 
   if (stage === 'silhouette') {
-    return particle.targetKind === 'text' ? 0.12 : 0.98;
+    return particle.targetKind === 'text' ? 0.08 : 1;
   }
 
   if (stage === 'pencil') {
-    return particle.targetKind === 'text' ? 0.18 : 0.36;
+    return particle.targetKind === 'text' ? 0.14 : 0.54;
   }
 
   if (stage === 'textSilhouette') {
-    return particle.targetKind === 'text' ? 0.82 : 0.95;
+    return particle.targetKind === 'text' ? 1 : 0.18;
   }
 
   if (stage === 'text') {
-    return particle.targetKind === 'text' ? 0.92 : 0.24;
+    return particle.targetKind === 'text' ? 0.58 : 0.06;
   }
 
   if (stage === 'settle') {
-    return particle.targetKind === 'text' ? 0.22 : 0;
+    return particle.targetKind === 'text' ? 0.12 : 0;
   }
 
   return 0;
@@ -436,14 +445,14 @@ function getMascotPartOpacity(part, stage, reducedMotion) {
 
   if (stage === 'pencil') {
     if (part === 'body') {
-      return 0.64;
+      return 0.78;
     }
 
     if (part === 'cap') {
-      return 0.42;
+      return 0.58;
     }
 
-    return 0.3;
+    return 0.48;
   }
 
   if (MASCOT_STAGES.has(stage)) {
@@ -459,7 +468,7 @@ function getMascotOpacity(stage, reducedMotion) {
   }
 
   if (stage === 'pencil') {
-    return 0.82;
+    return 0.9;
   }
 
   if (MASCOT_STAGES.has(stage)) {
@@ -475,11 +484,11 @@ function getWordOpacity(stage, reducedMotion) {
   }
 
   if (stage === 'textSilhouette') {
-    return 0.22;
+    return 0.18;
   }
 
   if (stage === 'text') {
-    return 0.58;
+    return 0.82;
   }
 
   if (stage === 'settle' || stage === 'exit') {
