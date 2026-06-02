@@ -771,6 +771,8 @@ function LanguageMock({ reducedMotion, t }) {
     t('landing.language.previewEn', 'English Beta'),
     t('landing.language.previewZh', '中文 Beta')
   ];
+  const languageFlags = ['🇰🇷', '🇯🇵', '🇺🇸', '🇨🇳'];
+  const languageFlagLabels = ['한국어', '일본어', '영어', '중국어'];
   const sampleSentences = [
     '오늘 학습 기록을 정리했어요.',
     '今日の学習記録を整理しました。',
@@ -809,6 +811,15 @@ function LanguageMock({ reducedMotion, t }) {
               index === selectedLanguageIndex && styles.languageRowSelected
             ]}
           >
+            <Text
+              accessibilityLabel={languageFlagLabels[index]}
+              style={[
+                styles.languageFlagBadge,
+                index === selectedLanguageIndex && styles.languageFlagBadgeSelected
+              ]}
+            >
+              {languageFlags[index]}
+            </Text>
             <View style={[styles.languageDot, index === 0 && styles.languageDotPrimary]} />
             <Text style={styles.languageText}>{item}</Text>
           </View>
@@ -2840,6 +2851,27 @@ const styles = StyleSheet.create({
   },
   languageDotPrimary: {
     backgroundColor: colors.mintDeep
+  },
+  languageFlagBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: 'rgba(23, 59, 99, 0.1)',
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 28,
+    textAlign: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+    transitionDuration: '520ms',
+    transitionTimingFunction: 'ease-in-out'
+  },
+  languageFlagBadgeSelected: {
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(15, 118, 110, 0.36)',
+    transform: [{ scale: 1.06 }]
   },
   languageText: {
     color: '#334155',
