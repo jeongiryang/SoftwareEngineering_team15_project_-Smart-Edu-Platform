@@ -174,8 +174,11 @@ const serviceSections = [
   {
     id: 'coop',
     keyword: 'COOP',
+    titleKey: 'landing.coop.title',
     titleFallback: '같이 목표를 달성하는 쾌감',
+    descriptionKey: 'landing.coop.description',
     descriptionFallback: '등록된 보스 레이드에 참여하고, 팀원과 직접 협동 퀘스트를 만들어 함께 목표를 달성하고 포인트를 받으세요.',
+    chipKey: 'landing.coop.chip',
     chipFallback: '협동',
     layout: 'reverse',
     visual: 'coop'
@@ -183,8 +186,11 @@ const serviceSections = [
   {
     id: 'reward',
     keyword: 'REWARD',
+    titleKey: 'landing.reward.title',
     titleFallback: '노력한 만큼 쌓이는 보상',
+    descriptionKey: 'landing.reward.description',
     descriptionFallback: '퀘스트와 목표 달성으로 모은 포인트로 나만의 프로필을 꾸미고, 학습 성취감을 높여보세요.',
+    chipKey: 'landing.reward.chip',
     chipFallback: '포인트 상점',
     layout: 'row',
     visual: 'reward'
@@ -208,6 +214,7 @@ const serviceSections = [
     titleFallback: '차분하지만 믿을 수 있는 학습 공간',
     descriptionKey: 'landing.trust.description',
     descriptionFallback: '사각사각은 화려한 효과보다 실제 학습 흐름, 접근성, 기존 API 안정성을 우선합니다.',
+    chipKey: 'landing.trust.chip',
     chipFallback: '안정성',
     layout: 'reverse',
     visual: 'trust'
@@ -382,7 +389,13 @@ function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevi
 function DesignNotesRecordCards({ demoPhase, reducedMotion, t }) {
   const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
   const dateValues = ['05/24', '05/25', '05/26', '05/27', '05/28'];
-  const streakValues = ['연속 1일째', '연속 2일째', '연속 3일째', '연속 4일째', t('landing.designRecord.streak', '연속 5일째')];
+  const streakValues = [
+    t('landing.designRecord.streak1', '연속 1일째'),
+    t('landing.designRecord.streak2', '연속 2일째'),
+    t('landing.designRecord.streak3', '연속 3일째'),
+    t('landing.designRecord.streak4', '연속 4일째'),
+    t('landing.designRecord.streak', '연속 5일째')
+  ];
   const rows = [
     t('landing.designRecord.row1', '자료구조 DFS 복습 완료 · 42분'),
     t('landing.designRecord.row2', '미적분 문제풀이 · 1시간 10분'),
@@ -463,7 +476,7 @@ function PlanMock({ demoPhase, reducedMotion, t }) {
       </View>
       <View style={[styles.planPriorityBox, demoPhase >= 4 && styles.demoPanelActive]}>
         <Text style={styles.planPriorityTitle}>{t('landing.story.plan.previewMeta', '중간고사 D-12')}</Text>
-        <Text style={styles.planPriorityText}>오늘 할 일을 정리하고 우선순위를 확인합니다.</Text>
+        <Text style={styles.planPriorityText}>{t('landing.story.plan.priorityText', '오늘 할 일을 정리하고 우선순위를 확인합니다.')}</Text>
       </View>
     </View>
   );
@@ -530,7 +543,7 @@ function ChatMock({ demoPhase, reducedMotion, t }) {
         <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem1', '이 개념을 한 문단으로 요약해줘')}</Text>
       </View>
       <View style={[styles.aiWaitRow, getAiThinkingStyle(demoPhase, reducedMotion)]}>
-        <Text style={styles.aiWaitText}>AI가 질문을 읽는 중</Text>
+        <Text style={styles.aiWaitText}>{t('landing.story.ai.waiting', 'AI가 질문을 읽는 중')}</Text>
       </View>
       <View style={[styles.typingDotsRow, getAiThinkingStyle(demoPhase, reducedMotion)]}>
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion)]} />
@@ -538,17 +551,17 @@ function ChatMock({ demoPhase, reducedMotion, t }) {
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]} />
       </View>
       <View style={[styles.chatAiBubble, getCurrentOrCompleteStyle(3, demoPhase, reducedMotion)]}>
-        <Text style={styles.chatAiText}>막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.</Text>
+        <Text style={styles.chatAiText}>{t('landing.story.ai.answer1', '막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.')}</Text>
       </View>
       <View style={[styles.chatUserBubble, styles.chatUserBubbleFollowup, getStepStyle(4, demoPhase, reducedMotion)]}>
-        <Text style={styles.chatUserText}>예시도 같이 보여줘</Text>
+        <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem2', '예시도 같이 보여줘')}</Text>
       </View>
       <View style={[styles.chatAiBubble, styles.chatAiBubbleFollowup, getStepStyle(5, demoPhase, reducedMotion)]}>
-        <Text style={styles.chatAiText}>복습 질문으로 이어가면 요약, 다시 보기, 예시 보기 순서로 정리됩니다.</Text>
+        <Text style={styles.chatAiText}>{t('landing.story.ai.answer2', '복습 질문으로 이어가면 요약, 다시 보기, 예시 보기 순서로 정리됩니다.')}</Text>
         <View style={styles.chatActions}>
-          <View style={styles.chatBtn}><Text style={styles.chatBtnText}>요약하기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnMuted]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnCream]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
+          <View style={styles.chatBtn}><Text style={styles.chatBtnText}>{t('landing.story.ai.actionSummary', '요약하기')}</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnMuted]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>{t('landing.story.ai.actionReview', '다시 보기')}</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnCream]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>{t('landing.story.ai.actionExample', '예시 보기')}</Text></View>
         </View>
       </View>
     </View>
@@ -557,16 +570,16 @@ function ChatMock({ demoPhase, reducedMotion, t }) {
 
 function NoteMock({ demoPhase, reducedMotion, t }) {
   const bullets = [
-    '미분 = 순간 변화율',
-    '도함수 = 접선의 기울기',
-    '적분 = 누적량',
-    '기본정리 = 미분·적분 연결'
+    t('landing.summary.bullet1', '미분 = 순간 변화율'),
+    t('landing.summary.bullet2', '도함수 = 접선의 기울기'),
+    t('landing.summary.bullet3', '적분 = 누적량'),
+    t('landing.summary.bullet4', '기본정리 = 미분·적분 연결')
   ];
 
   return (
     <View style={[styles.mockCard, styles.noteMock]}>
-      <View style={[styles.noteBadge, demoPhase >= 4 && styles.demoBadgeActive]}><Text style={styles.noteBadgeText}>AI 요약 완료</Text></View>
-      <Text style={styles.noteTitle}>수학 미적분 핵심 개념</Text>
+      <View style={[styles.noteBadge, demoPhase >= 4 && styles.demoBadgeActive]}><Text style={styles.noteBadgeText}>{t('landing.summary.badge', 'AI 요약 완료')}</Text></View>
+      <Text style={styles.noteTitle}>{t('landing.summary.previewTitle', '수학 미적분 핵심 개념')}</Text>
       <View style={styles.summaryBulletList}>
         {bullets.map((item, index) => (
           <View
@@ -607,21 +620,21 @@ function ReportMock({ demoPhase, reducedMotion, t }) {
         </View>
         <View style={[styles.reportRow, styles.reportAnalysisRow, getCurrentOrCompleteStyle(1, demoPhase, reducedMotion)]}>
           <View style={styles.reportAnalysisCopy}>
-            <Text style={styles.reportLabel}>내 답안</Text>
-            <Text style={styles.reportDetailText}>조건식을 반대로 해석했다</Text>
+            <Text style={styles.reportLabel}>{t('landing.report.myAnswerLabel', '내 답안')}</Text>
+            <Text style={styles.reportDetailText}>{t('landing.report.myAnswerText', '조건식을 반대로 해석했다')}</Text>
           </View>
           <Text style={[styles.reportWrong, animatedStyle(styles.microScorePulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}>4</Text>
         </View>
         <View style={[styles.reportRow, styles.reportAnalysisRow, getCurrentOrCompleteStyle(2, demoPhase, reducedMotion)]}>
           <View style={styles.reportAnalysisCopy}>
-            <Text style={styles.reportLabel}>정답</Text>
-            <Text style={styles.reportDetailText}>탐색 순서를 먼저 확인해야 한다</Text>
+            <Text style={styles.reportLabel}>{t('landing.report.correctLabel', '정답')}</Text>
+            <Text style={styles.reportDetailText}>{t('landing.report.correctText', '탐색 순서를 먼저 확인해야 한다')}</Text>
           </View>
           <Text style={[styles.reportCorrect, animatedStyle(styles.microScorePulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}>2</Text>
         </View>
         <View style={[styles.reportReason, animatedStyle(styles.microSoftGlow, reducedMotion), getStepStyle(4, demoPhase, reducedMotion)]}>
-          <Text style={styles.reportReasonTitle}>틀린 이유</Text>
-          <Text style={styles.reportReasonText}>조건식을 반대로 해석해 탐색 순서를 잘못 판단했습니다.</Text>
+          <Text style={styles.reportReasonTitle}>{t('landing.report.reasonLabel', '틀린 이유')}</Text>
+          <Text style={styles.reportReasonText}>{t('landing.report.reasonText', '조건식을 반대로 해석해 탐색 순서를 잘못 판단했습니다.')}</Text>
         </View>
       </View>
     </View>
@@ -642,22 +655,22 @@ function MessageMock({ demoPhase, reducedMotion, t }) {
       <View style={[styles.messageBubbleRow, getStepStyle(2, demoPhase, reducedMotion)]}>
         <View style={styles.friendAvatar} />
         <View style={[styles.messageBubble, animatedStyle(styles.microMessageLift, reducedMotion)]}>
-          <Text style={styles.messageAuthor}>이량</Text>
-          <Text style={styles.messageBubbleText}>소공 과제 PR 확인했어?</Text>
+          <Text style={styles.messageAuthor}>{t('landing.message.author1', '이량')}</Text>
+          <Text style={styles.messageBubbleText}>{t('landing.message.bubble1', '소공 과제 PR 확인했어?')}</Text>
         </View>
       </View>
       <View style={[styles.messageBubbleRow, styles.messageBubbleRowRight, getStepStyle(3, demoPhase, reducedMotion)]}>
         <View style={[styles.messageBubble, styles.messageBubbleMint, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}>
-          <Text style={styles.messageAuthor}>지환</Text>
-          <Text style={styles.messageBubbleText}>지금 PR 확인하고 리뷰 남길게.</Text>
+          <Text style={styles.messageAuthor}>{t('landing.message.author2', '지환')}</Text>
+          <Text style={styles.messageBubbleText}>{t('landing.message.bubble2', '지금 PR 확인하고 리뷰 남길게.')}</Text>
         </View>
         <View style={[styles.friendAvatar, styles.friendAvatarMint]} />
       </View>
       <View style={[styles.messageBubbleRow, getStepStyle(4, demoPhase, reducedMotion)]}>
         <View style={[styles.friendAvatar, styles.friendAvatarCream]} />
         <View style={[styles.messageBubble, styles.messageBubbleCream, animatedStyle(styles.microMessageLift, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}>
-          <Text style={styles.messageAuthor}>대겸</Text>
-          <Text style={styles.messageBubbleText}>너무 힘들어요 ㅠㅠ PR 확인 후 리뷰 남겼어요.</Text>
+          <Text style={styles.messageAuthor}>{t('landing.message.author3', '대겸')}</Text>
+          <Text style={styles.messageBubbleText}>{t('landing.message.bubble3', '너무 힘들어요 ㅠㅠ PR 확인 후 리뷰 남겼어요.')}</Text>
         </View>
       </View>
       <Text style={styles.socialFooterText}>{t('landing.message.footer', '친구 접속 상태 · 읽지 않은 메시지 · 실시간 흐름')}</Text>
@@ -681,8 +694,8 @@ function CommunityMock({ demoPhase, reducedMotion, t }) {
         <Text style={[styles.reportScore, styles.communityScore]}>{t('landing.community.previewPill', 'Share')}</Text>
       </View>
       <View style={[styles.communityPostPreview, getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>
-        <Text style={styles.communityPostTitle}>질문: DFS 방문 순서가 헷갈려요</Text>
-        <Text style={[styles.communityPostComment, getStepStyle(1, demoPhase, reducedMotion)]}>댓글: 스택 흐름으로 다시 보면 쉬워요</Text>
+        <Text style={styles.communityPostTitle}>{t('landing.community.postTitle', '질문: DFS 방문 순서가 헷갈려요')}</Text>
+        <Text style={[styles.communityPostComment, getStepStyle(1, demoPhase, reducedMotion)]}>{t('landing.community.commentText', '댓글: 스택 흐름으로 다시 보면 쉬워요')}</Text>
       </View>
       <View style={styles.communityActionGrid}>
         {items.map((item, index) => (
@@ -707,12 +720,16 @@ function CommunityMock({ demoPhase, reducedMotion, t }) {
 function CoopMock({ demoPhase, reducedMotion, t }) {
   const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
   const hpValues = ['HP 82%', 'HP 68%', 'HP 55%', 'HP 39%', 'HP 24%'];
-  const contributionLabels = ['이량 +12분', '지환 +18분', '대겸 +15분'];
+  const contributionLabels = [
+    t('landing.coop.contribution1', '이량 +12분'),
+    t('landing.coop.contribution2', '지환 +18분'),
+    t('landing.coop.contribution3', '대겸 +15분')
+  ];
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.coopMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>중간고사 집중 레이드</Text>
+        <Text style={styles.reportTitle}>{t('landing.coop.previewTitle', '중간고사 집중 레이드')}</Text>
         <Text style={[styles.reportScore, animatedStyle(styles.microScorePulse, reducedMotion), demoPhase >= 1 && styles.demoTextActive]}>{hpValues[phase]}</Text>
       </View>
       <View style={styles.raidProgressBar}>
@@ -725,7 +742,7 @@ function CoopMock({ demoPhase, reducedMotion, t }) {
           </Text>
         ))}
       </View>
-      <Text style={styles.raidProgressText}>레이드 진행률과 협동 기여 시간이 함께 반영됩니다.</Text>
+      <Text style={styles.raidProgressText}>{t('landing.coop.footer', '레이드 진행률과 협동 기여 시간이 함께 반영됩니다.')}</Text>
     </View>
   );
 }
@@ -791,7 +808,7 @@ function RewardMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.rewardMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>포인트 상점</Text>
+        <Text style={styles.reportTitle}>{t('landing.reward.previewTitle', '포인트 상점')}</Text>
         <Text style={[styles.reportScore, styles.rewardScore, animatedStyle(styles.microRewardGlow, reducedMotion), getStepStyle(0, demoPhase, reducedMotion)]}>{pointText}</Text>
       </View>
       <View style={styles.rewardPreviewRow}>
@@ -806,12 +823,12 @@ function RewardMock({ demoPhase, reducedMotion, t }) {
         </View>
         <View style={styles.rewardCopy}>
           <View style={styles.rewardItemRow}>
-            <Text style={[styles.rewardItemChip, getStepStyle(1, demoPhase, reducedMotion)]}>달빛 배경 선택</Text>
-            <Text style={[styles.rewardItemChip, getStepStyle(2, demoPhase, reducedMotion)]}>구매하기</Text>
-            <Text style={[styles.rewardItemChip, getStepStyle(3, demoPhase, reducedMotion)]}>800P 차감</Text>
-            <Text style={[styles.rewardItemChip, getStepStyle(4, demoPhase, reducedMotion)]}>적용 완료</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(1, demoPhase, reducedMotion)]}>{t('landing.reward.stepSelect', '달빛 배경 선택')}</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(2, demoPhase, reducedMotion)]}>{t('landing.reward.stepBuy', '구매하기')}</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(3, demoPhase, reducedMotion)]}>{t('landing.reward.stepDeduct', '800P 차감')}</Text>
+            <Text style={[styles.rewardItemChip, getStepStyle(4, demoPhase, reducedMotion)]}>{t('landing.reward.stepApplied', '적용 완료')}</Text>
           </View>
-          <Text style={[styles.raidProgressText, getStepStyle(4, demoPhase, reducedMotion)]}>달빛 테마를 프로필 배경에 적용합니다.</Text>
+          <Text style={[styles.raidProgressText, getStepStyle(4, demoPhase, reducedMotion)]}>{t('landing.reward.footer', '달빛 테마를 프로필 배경에 적용합니다.')}</Text>
         </View>
       </View>
     </View>
@@ -826,12 +843,17 @@ function LanguageMock({ reducedMotion, t }) {
     t('landing.language.previewEn', 'English Beta'),
     t('landing.language.previewZh', '中文 Beta')
   ];
-  const languageFlagLabels = ['한국어', '일본어', '영어', '중국어'];
+  const languageFlagLabels = [
+    t('landing.language.flagKo', '한국어'),
+    t('landing.language.flagJa', '일본어'),
+    t('landing.language.flagEn', '영어'),
+    t('landing.language.flagZh', '중국어')
+  ];
   const sampleSentences = [
-    '오늘 학습 기록을 정리했어요.',
-    '今日の学習記録を整理しました。',
-    'Today’s study log is ready.',
-    '今天的学习记录已整理。'
+    t('landing.language.sampleKo', '오늘 학습 기록을 정리했어요.'),
+    t('landing.language.sampleJa', '今日の学習記録を整理しました。'),
+    t('landing.language.sampleEn', 'Today’s study log is ready.'),
+    t('landing.language.sampleZh', '今天的学习记录已整理。')
   ];
   const selectedLanguageIndex = reducedMotion ? 0 : languageIndex;
   const renderLanguageFlag = (index, selected) => {
@@ -1149,7 +1171,7 @@ export default function ScrollStorySection({ onNavigate }) {
           onPress={moveToRegister}
           style={(state) => [styles.finalCtaButton, ...interactiveStateStyles(state)]}
         >
-          <Text style={styles.finalCtaButtonText}>지금 시작하기</Text>
+          <Text style={styles.finalCtaButtonText}>{t('landing.final.button', '지금 시작하기')}</Text>
         </Pressable>
       </View>
     </View>
