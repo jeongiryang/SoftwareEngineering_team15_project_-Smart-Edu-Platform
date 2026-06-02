@@ -46,12 +46,12 @@ const DRAW_SEGMENTS = [
   { left: 76, top: 43, width: 15, rotate: -12 }
 ];
 const PENCIL_WRITE_POSITIONS = [
-  { x: -146, y: 32, rotate: -19 },
-  { x: -94, y: 26, rotate: -15 },
-  { x: -42, y: 33, rotate: -20 },
-  { x: 8, y: 27, rotate: -15 },
-  { x: 58, y: 32, rotate: -19 },
-  { x: 102, y: 28, rotate: -17 }
+  { x: -128, y: 112, rotate: 132 },
+  { x: -84, y: 104, rotate: 134 },
+  { x: -38, y: 113, rotate: 131 },
+  { x: 8, y: 105, rotate: 134 },
+  { x: 54, y: 112, rotate: 132 },
+  { x: 96, y: 108, rotate: 133 }
 ];
 
 function seeded(index, salt) {
@@ -129,8 +129,8 @@ function getStartPosition(index) {
 
 function getPencilLinePoint(t, offset) {
   return {
-    x: 28 + t * 45 + offset * 0.56,
-    y: 54 - t * 25 + offset
+    x: 29 + t * 47 + offset * 0.48,
+    y: 61 - t * 38 + offset
   };
 }
 
@@ -147,7 +147,7 @@ function getPencilTarget(index) {
   }
 
   if (type === 8) {
-    const point = getPencilLinePoint(0.02 + t * 0.12, (u - 0.5) * 7);
+    const point = getPencilLinePoint(0.86 + t * 0.12, (u - 0.5) * 7);
     return { kind: 'cap', x: point.x - 2, y: point.y + 1 };
   }
 
@@ -157,12 +157,12 @@ function getPencilTarget(index) {
   }
 
   if (type <= 11) {
-    const point = getPencilLinePoint(0.76 + t * 0.1, (u - 0.5) * 8);
+    const point = getPencilLinePoint(0.1 + t * 0.14, (u - 0.5) * 8);
     return { kind: 'wood', x: point.x + 1.8, y: point.y };
   }
 
   if (type <= 13) {
-    const point = getPencilLinePoint(0.88 + t * 0.12, (u - 0.5) * 7);
+    const point = getPencilLinePoint(t * 0.1, (u - 0.5) * 7);
     return { kind: 'tip', x: point.x + 3.2, y: point.y };
   }
 
@@ -216,22 +216,24 @@ function buildParticles(count) {
     const start = getStartPosition(index);
     const target = getPencilTarget(index);
     const angle = seeded(index, 101) * Math.PI * 2;
-    const orbitRadius = 28 + seeded(index, 103) * 34;
     const dimensions = getFragmentDimensions(shape, index);
+    const surgeSpread = 12 + seeded(index, 103) * 18;
+    const sourceX = start.x < 0 ? -1 : start.x > 100 ? 1 : start.x < 50 ? -0.55 : 0.55;
+    const sourceY = start.y < 0 ? -1 : start.y > 100 ? 1 : start.y < 50 ? -0.45 : 0.45;
 
     return {
       id: `intro-fragment-${index}`,
       color: PARTICLE_COLORS[index % PARTICLE_COLORS.length],
-      driftX: 50 + Math.cos(angle) * orbitRadius + (seeded(index, 107) - 0.5) * 20,
-      driftY: 46 + Math.sin(angle) * orbitRadius * 0.72 + (seeded(index, 109) - 0.5) * 16,
+      driftX: start.x + Math.cos(angle) * (7 + seeded(index, 107) * 9) + (seeded(index, 109) - 0.5) * 12,
+      driftY: start.y + Math.sin(angle) * (6 + seeded(index, 113) * 9) + (seeded(index, 127) - 0.5) * 12,
       height: dimensions.height,
       index,
-      magnetX: 50 + Math.cos(angle + 0.9) * (10 + seeded(index, 113) * 13),
-      magnetY: 45 + Math.sin(angle + 0.9) * (8 + seeded(index, 127) * 11),
       rotate: -115 + seeded(index, 131) * 230,
       shape,
       startX: start.x,
       startY: start.y,
+      surgeX: target.x + sourceX * (4 + seeded(index, 137) * 8) + (seeded(index, 139) - 0.5) * surgeSpread,
+      surgeY: target.y + sourceY * (4 + seeded(index, 149) * 7) + (seeded(index, 151) - 0.5) * surgeSpread * 0.78,
       targetKind: target.kind,
       targetX: target.x,
       targetY: target.y,
@@ -261,7 +263,7 @@ function getParticlePosition(particle, stage) {
   }
 
   if (stage === 'gather') {
-    return { x: particle.magnetX, y: particle.magnetY };
+    return { x: particle.surgeX, y: particle.surgeY };
   }
 
   return { x: particle.targetX, y: particle.targetY };
@@ -352,8 +354,12 @@ function getMascotOpacity(stage, reducedMotion) {
 }
 
 function getMascotTravel(stage, drawStep) {
+  if (stage === 'settle' || stage === 'exit') {
+    return PENCIL_WRITE_POSITIONS[PENCIL_WRITE_POSITIONS.length - 1];
+  }
+
   if (stage !== 'write') {
-    return { x: 0, y: 0, rotate: -18 };
+    return { x: 0, y: 0, rotate: 132 };
   }
 
   return PENCIL_WRITE_POSITIONS[Math.min(drawStep, PENCIL_WRITE_POSITIONS.length - 1)];
@@ -386,11 +392,8 @@ function PencilMascot({ drawStep, pencilWidth, reducedMotion, stage }) {
       <View style={[styles.pencilCap, { opacity: capOpacity }]} />
       <View style={[styles.pencilBody, { opacity: bodyOpacity }]}>
         <View style={styles.pencilBodyHighlight} />
-        <View style={styles.mascotFace}>
-          <View style={styles.mascotEye} />
-          <View style={styles.mascotEye} />
-          <View style={styles.mascotSmile} />
-        </View>
+        <View style={styles.pencilBodyRidgeOne} />
+        <View style={styles.pencilBodyRidgeTwo} />
       </View>
       <View style={[styles.pencilWood, { opacity: woodOpacity }]} />
       <View style={[styles.pencilTip, { opacity: tipOpacity }]} />
@@ -602,7 +605,8 @@ const styles = StyleSheet.create({
     transitionDuration: '680ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out',
-    zIndex: 1000
+    zIndex: 2147483647,
+    elevation: 9999
   },
   overlayExit: {
     opacity: 0,
@@ -760,30 +764,23 @@ const styles = StyleSheet.create({
     height: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.32)'
   },
-  mascotFace: {
-    alignSelf: 'center',
-    width: 74,
-    height: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    transform: [{ rotate: '18deg' }]
-  },
-  mascotEye: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    backgroundColor: '#173B63'
-  },
-  mascotSmile: {
+  pencilBodyRidgeOne: {
     position: 'absolute',
-    bottom: 3,
-    width: 28,
-    height: 11,
-    borderBottomWidth: 2,
-    borderColor: '#173B63',
-    borderRadius: 999
+    top: 12,
+    bottom: 12,
+    left: '28%',
+    width: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)'
+  },
+  pencilBodyRidgeTwo: {
+    position: 'absolute',
+    top: 11,
+    bottom: 11,
+    right: '27%',
+    width: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(23, 59, 99, 0.08)'
   },
   pencilWood: {
     width: '10%',
@@ -808,7 +805,7 @@ const styles = StyleSheet.create({
   },
   brandLockup: {
     position: 'absolute',
-    bottom: 62,
+    top: '58%',
     alignItems: 'center',
     width: 360,
     maxWidth: '86%',
