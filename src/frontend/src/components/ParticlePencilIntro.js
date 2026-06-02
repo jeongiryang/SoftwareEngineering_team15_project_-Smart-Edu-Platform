@@ -4,18 +4,36 @@ import { useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
 const INTRO_TIMELINE = {
-  drift: 720,
-  gather: 2100,
-  icon: 3060,
-  write: 3650,
-  settle: 4880,
-  exit: 5320,
-  done: 5700
+  drift: 620,
+  gather: 1900,
+  assemble: 2920,
+  icon: 3560,
+  write: 4240,
+  settle: 5260,
+  exit: 5900,
+  done: 6350
 };
 
-const DRAW_STEP_DELAYS = [0, 180, 360, 560, 760, 980];
+const DRAW_STEP_DELAYS = [0, 190, 390, 610, 840, 1080];
 const PARTICLE_COLORS = ['#FFF6DF', '#D9FFF7', '#73C9BD', '#1F5E96', '#7BC7F6', '#F1C89A'];
-const PARTICLE_TOKENS = ['AI', 'Q', 'A', 'log', 'memo', 'plan', 'focus', 'quiz', 'D-7', '25'];
+const PARTICLE_TOKENS = ['AI', 'Quiz', 'Note', 'D-Day', 'A+', '✓', 'Q', 'Plan', 'Focus', 'Memo'];
+const SHAPE_SEQUENCE = [
+  'token',
+  'noteCard',
+  'graph',
+  'bubble',
+  'strokeShard',
+  'pencilShard',
+  'dash',
+  'paper',
+  'square',
+  'dot',
+  'dot',
+  'strokeShard',
+  'graph',
+  'dash',
+  'token'
+];
 const DRAW_SEGMENTS = [
   { left: 17, top: 62, width: 18, rotate: -15 },
   { left: 33, top: 56, width: 19, rotate: 18 },
@@ -31,6 +49,8 @@ const PENCIL_POSITIONS = [
   { left: 74, top: 55, rotate: -13 },
   { left: 84, top: 51, rotate: -8 }
 ];
+const FORMED_STAGES = new Set(['assemble', 'icon', 'write', 'settle', 'exit']);
+const ICON_STAGES = new Set(['assemble', 'icon', 'write', 'settle', 'exit']);
 
 function seeded(index, salt) {
   const value = Math.sin(index * 127.13 + salt * 811.7) * 10000;
@@ -38,122 +58,187 @@ function seeded(index, salt) {
 }
 
 function getParticleCount(width) {
+  if (width >= 1440) {
+    return 620;
+  }
+
   if (width >= 1180) {
-    return 390;
+    return 540;
   }
 
   if (width >= 780) {
-    return 230;
+    return 320;
   }
 
-  return 132;
+  return 178;
 }
 
 function getStartPosition(index) {
-  const side = index % 8;
+  const side = index % 12;
   const spread = seeded(index, 3);
   const secondary = seeded(index, 7);
 
   if (side === 0) {
-    return { x: -10 + spread * 8, y: secondary * 100 };
+    return { x: -24 - spread * 12, y: secondary * 100 };
   }
 
   if (side === 1) {
-    return { x: 102 + spread * 10, y: secondary * 100 };
+    return { x: 112 + spread * 16, y: secondary * 100 };
   }
 
   if (side === 2) {
-    return { x: spread * 100, y: -12 + secondary * 8 };
+    return { x: spread * 100, y: -24 - secondary * 12 };
   }
 
   if (side === 3) {
-    return { x: spread * 100, y: 102 + secondary * 10 };
+    return { x: spread * 100, y: 112 + secondary * 16 };
   }
 
   if (side === 4) {
-    return { x: 8 + spread * 24, y: 8 + secondary * 22 };
+    return { x: -16 + spread * 30, y: -10 + secondary * 38 };
   }
 
   if (side === 5) {
-    return { x: 68 + spread * 24, y: 10 + secondary * 30 };
+    return { x: 72 + spread * 32, y: -12 + secondary * 42 };
   }
 
   if (side === 6) {
-    return { x: 10 + spread * 30, y: 66 + secondary * 24 };
+    return { x: -14 + spread * 34, y: 66 + secondary * 38 };
   }
 
-  return { x: 58 + spread * 32, y: 60 + secondary * 28 };
+  if (side === 7) {
+    return { x: 68 + spread * 36, y: 62 + secondary * 40 };
+  }
+
+  if (side === 8) {
+    return { x: 4 + spread * 24, y: 25 + secondary * 50 };
+  }
+
+  if (side === 9) {
+    return { x: 74 + spread * 22, y: 23 + secondary * 52 };
+  }
+
+  if (side === 10) {
+    return { x: 21 + spread * 58, y: -18 + secondary * 20 };
+  }
+
+  return { x: 22 + spread * 56, y: 92 + secondary * 22 };
 }
 
-function getIconTarget(index, count) {
-  const type = index % 9;
+function getIconTarget(index) {
+  const type = index % 14;
   const t = seeded(index, 11);
   const u = seeded(index, 13);
 
-  if (type <= 2) {
+  if (type <= 3) {
     const edge = index % 4;
-    const edgeT = t;
 
     if (edge === 0) {
-      return { x: 39 + edgeT * 22, y: 27 + u * 2.2 };
+      return { kind: 'outline', x: 36.8 + t * 26.4, y: 25.4 + u * 2.8 };
     }
 
     if (edge === 1) {
-      return { x: 39 + edgeT * 22, y: 56 + u * 2.2 };
+      return { kind: 'outline', x: 36.8 + t * 26.4, y: 59 + u * 2.8 };
     }
 
     if (edge === 2) {
-      return { x: 38.5 + u * 2.4, y: 28 + edgeT * 28 };
+      return { kind: 'outline', x: 36.5 + u * 2.7, y: 26.8 + t * 33 };
     }
 
-    return { x: 61 + u * 2.4, y: 28 + edgeT * 28 };
+    return { kind: 'outline', x: 63.5 + u * 2.7, y: 26.8 + t * 33 };
   }
 
-  if (type <= 5) {
-    const lineT = (index % 64) / 63;
+  if (type <= 6) {
     return {
-      x: 41 + lineT * 22 + (u - 0.5) * 2.4,
-      y: 49 - lineT * 19 + (t - 0.5) * 3.2
+      kind: 'fill',
+      x: 39.6 + seeded(index, 17) * 21.6,
+      y: 29.4 + seeded(index, 19) * 26.8
     };
   }
 
-  if (type === 6) {
-    const zig = (index % 24) / 23;
+  if (type <= 10) {
+    const lineT = (index % 96) / 95;
     return {
-      x: 42 + zig * 18,
-      y: 47 + Math.sin(zig * Math.PI * 5) * 3.4 + (u - 0.5) * 1.8
+      kind: 'pencil',
+      x: 39.8 + lineT * 23 + (u - 0.5) * 2.6,
+      y: 52.6 - lineT * 22 + (t - 0.5) * 3.2
+    };
+  }
+
+  if (type <= 12) {
+    const zig = (index % 42) / 41;
+    return {
+      kind: 'stroke',
+      x: 41 + zig * 20.5,
+      y: 49.5 + Math.sin(zig * Math.PI * 5) * 3.7 + (u - 0.5) * 1.8
     };
   }
 
   return {
-    x: 41 + seeded(index, 19) * 20,
-    y: 30 + seeded(index, 23) * 24
+    kind: 'accent',
+    x: 39 + seeded(index, 23) * 23,
+    y: 28 + seeded(index, 29) * 29
   };
+}
+
+function getFragmentDimensions(shape, index) {
+  if (shape === 'token') {
+    return { width: 28 + Math.round(seeded(index, 31) * 26), height: 19 };
+  }
+
+  if (shape === 'noteCard') {
+    return { width: 36 + Math.round(seeded(index, 37) * 17), height: 25 + Math.round(seeded(index, 41) * 8) };
+  }
+
+  if (shape === 'graph') {
+    return { width: 29 + Math.round(seeded(index, 43) * 15), height: 22 + Math.round(seeded(index, 47) * 8) };
+  }
+
+  if (shape === 'bubble') {
+    return { width: 35 + Math.round(seeded(index, 53) * 20), height: 23 + Math.round(seeded(index, 59) * 8) };
+  }
+
+  if (shape === 'pencilShard') {
+    return { width: 24 + Math.round(seeded(index, 61) * 22), height: 7 + Math.round(seeded(index, 67) * 4) };
+  }
+
+  if (shape === 'strokeShard') {
+    return { width: 22 + Math.round(seeded(index, 71) * 22), height: 5 + Math.round(seeded(index, 73) * 4) };
+  }
+
+  if (shape === 'dash' || shape === 'paper') {
+    return { width: 10 + Math.round(seeded(index, 79) * 20), height: 5 + Math.round(seeded(index, 83) * 10) };
+  }
+
+  return { width: 5 + Math.round(seeded(index, 89) * 8), height: 5 + Math.round(seeded(index, 97) * 8) };
 }
 
 function buildParticles(count) {
   return Array.from({ length: count }, (_, index) => {
     const start = getStartPosition(index);
-    const target = getIconTarget(index, count);
-    const angle = seeded(index, 29) * Math.PI * 2;
-    const radius = 18 + seeded(index, 31) * 24;
+    const target = getIconTarget(index);
+    const angle = seeded(index, 101) * Math.PI * 2;
+    const orbitRadius = 26 + seeded(index, 103) * 31;
+    const dimensions = getFragmentDimensions(SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length], index);
 
     return {
-      id: `intro-particle-${index}`,
+      id: `intro-fragment-${index}`,
       color: PARTICLE_COLORS[index % PARTICLE_COLORS.length],
-      driftX: 50 + Math.cos(angle) * radius + (seeded(index, 37) - 0.5) * 16,
-      driftY: 43 + Math.sin(angle) * radius * 0.72 + (seeded(index, 41) - 0.5) * 12,
-      height: 4 + Math.round(seeded(index, 43) * 7),
+      driftX: 50 + Math.cos(angle) * orbitRadius + (seeded(index, 107) - 0.5) * 18,
+      driftY: 45 + Math.sin(angle) * orbitRadius * 0.72 + (seeded(index, 109) - 0.5) * 15,
+      height: dimensions.height,
       index,
-      rotate: -80 + seeded(index, 47) * 160,
-      shape: index % 11 === 0 ? 'token' : index % 5 === 0 ? 'dash' : index % 4 === 0 ? 'paper' : index % 3 === 0 ? 'square' : 'dot',
-      size: 4 + Math.round(seeded(index, 53) * 7),
+      magnetX: 50 + Math.cos(angle + 0.9) * (10 + seeded(index, 113) * 12),
+      magnetY: 45 + Math.sin(angle + 0.9) * (8 + seeded(index, 127) * 10),
+      rotate: -115 + seeded(index, 131) * 230,
+      shape: SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length],
       startX: start.x,
       startY: start.y,
+      targetKind: target.kind,
       targetX: target.x,
       targetY: target.y,
       token: PARTICLE_TOKENS[index % PARTICLE_TOKENS.length],
-      width: 5 + Math.round(seeded(index, 59) * 14)
+      width: dimensions.width
     };
   });
 }
@@ -177,35 +262,88 @@ function getParticlePosition(particle, stage) {
     return { x: particle.driftX, y: particle.driftY };
   }
 
+  if (stage === 'gather') {
+    return { x: particle.magnetX, y: particle.magnetY };
+  }
+
   return { x: particle.targetX, y: particle.targetY };
 }
 
-function getParticleOpacity(stage, reducedMotion) {
-  if (reducedMotion) {
+function getParticleOpacity(stage, reducedMotion, particle) {
+  if (reducedMotion || stage === 'exit' || stage === 'settle') {
     return 0;
   }
 
   if (stage === 'scatter') {
-    return 0.52;
+    return particle.shape === 'token' || particle.shape === 'noteCard' ? 0.72 : 0.5;
   }
 
   if (stage === 'drift') {
-    return 0.88;
+    return particle.shape === 'dot' ? 0.68 : 0.95;
   }
 
   if (stage === 'gather') {
     return 0.96;
   }
 
-  if (stage === 'exit') {
-    return 0;
+  if (stage === 'assemble') {
+    if (particle.targetKind === 'outline' || particle.targetKind === 'pencil' || particle.targetKind === 'stroke') {
+      return 0.9;
+    }
+
+    return 0.68;
   }
 
-  return 0.14;
+  if (stage === 'icon') {
+    if (particle.targetKind === 'pencil' || particle.targetKind === 'stroke') {
+      return 0.34;
+    }
+
+    return 0.16;
+  }
+
+  if (stage === 'write') {
+    return particle.targetKind === 'stroke' ? 0.1 : 0;
+  }
+
+  return 0;
+}
+
+function getIconOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'assemble') {
+    return 0.48;
+  }
+
+  if (stage === 'icon' || stage === 'write' || stage === 'settle' || stage === 'exit') {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getIconFillOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'assemble') {
+    return 0.35;
+  }
+
+  if (stage === 'icon' || stage === 'write' || stage === 'settle' || stage === 'exit') {
+    return 1;
+  }
+
+  return 0;
 }
 
 function IconPencil({ drawStep, stage }) {
   const position = PENCIL_POSITIONS[Math.min(drawStep, PENCIL_POSITIONS.length - 1)];
+  const isVisible = stage === 'icon' || stage === 'write' || stage === 'settle' || stage === 'exit';
   const isWriting = stage === 'write';
 
   return (
@@ -214,7 +352,7 @@ function IconPencil({ drawStep, stage }) {
         styles.iconPencil,
         {
           left: `${position.left}%`,
-          opacity: stage === 'icon' || stage === 'write' || stage === 'settle' || stage === 'exit' ? 1 : 0,
+          opacity: isVisible ? 1 : 0,
           top: `${position.top}%`,
           transform: [
             { translateX: -28 },
@@ -234,6 +372,56 @@ function IconPencil({ drawStep, stage }) {
   );
 }
 
+function FragmentParticle({ particle, style }) {
+  const nodeStyle = [styles.particle, styles[`${particle.shape}Particle`], style];
+
+  if (particle.shape === 'token') {
+    return (
+      <Text key={particle.id} style={nodeStyle}>
+        {particle.token}
+      </Text>
+    );
+  }
+
+  if (particle.shape === 'noteCard') {
+    return (
+      <View key={particle.id} style={nodeStyle}>
+        <View style={styles.noteCardLineWide} />
+        <View style={styles.noteCardLineShort} />
+      </View>
+    );
+  }
+
+  if (particle.shape === 'graph') {
+    return (
+      <View key={particle.id} style={nodeStyle}>
+        <View style={[styles.graphBar, styles.graphBarShort]} />
+        <View style={[styles.graphBar, styles.graphBarTall]} />
+        <View style={[styles.graphBar, styles.graphBarMid]} />
+      </View>
+    );
+  }
+
+  if (particle.shape === 'bubble') {
+    return (
+      <View key={particle.id} style={nodeStyle}>
+        <View style={styles.bubbleLineWide} />
+        <View style={styles.bubbleLineShort} />
+      </View>
+    );
+  }
+
+  if (particle.shape === 'pencilShard') {
+    return (
+      <View key={particle.id} style={nodeStyle}>
+        <View style={styles.pencilShardTip} />
+      </View>
+    );
+  }
+
+  return <View key={particle.id} style={nodeStyle} />;
+}
+
 export default function ParticlePencilIntro({ visible, onDone }) {
   const { t } = useLanguage();
   const { width } = useWindowDimensions();
@@ -241,7 +429,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
   const [drawStep, setDrawStep] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
   const particleCount = getParticleCount(width || 1024);
-  const iconSize = width < 520 ? 150 : width < 900 ? 178 : 206;
+  const iconSize = width < 520 ? 156 : width < 900 ? 188 : 222;
 
   const particles = useMemo(() => buildParticles(particleCount), [particleCount]);
 
@@ -281,13 +469,14 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     setDrawStep(reducedMotion ? DRAW_SEGMENTS.length : 0);
 
     if (reducedMotion) {
-      const timer = setTimeout(onDone, 1500);
+      const timer = setTimeout(onDone, 1400);
       return () => clearTimeout(timer);
     }
 
     const timers = [
       setTimeout(() => setStage('drift'), INTRO_TIMELINE.drift),
       setTimeout(() => setStage('gather'), INTRO_TIMELINE.gather),
+      setTimeout(() => setStage('assemble'), INTRO_TIMELINE.assemble),
       setTimeout(() => setStage('icon'), INTRO_TIMELINE.icon),
       setTimeout(() => setStage('write'), INTRO_TIMELINE.write),
       setTimeout(() => setStage('settle'), INTRO_TIMELINE.settle),
@@ -317,27 +506,27 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     () =>
       particles.map((particle) => {
         const position = getParticlePosition(particle, stage);
-        const formed = stage === 'icon' || stage === 'write' || stage === 'settle' || stage === 'exit';
-        const isDash = particle.shape === 'dash' || particle.shape === 'paper';
-        const transitionDuration = stage === 'drift' ? 1450 : stage === 'gather' ? 1860 : 720;
+        const formed = FORMED_STAGES.has(stage);
+        const transitionDuration = stage === 'drift' ? 1540 : stage === 'gather' ? 1780 : stage === 'assemble' ? 1050 : 720;
+        const fillFragment = particle.shape === 'noteCard' || particle.shape === 'graph' || particle.shape === 'bubble';
 
         return {
-          backgroundColor: particle.shape === 'token' ? 'transparent' : particle.color,
-          borderColor: particle.shape === 'paper' ? 'rgba(255, 246, 223, 0.75)' : particle.color,
+          backgroundColor: particle.shape === 'token' ? 'transparent' : fillFragment ? 'rgba(255, 246, 223, 0.16)' : particle.color,
+          borderColor: fillFragment || particle.shape === 'paper' ? 'rgba(217, 255, 247, 0.48)' : particle.color,
           color: particle.color,
-          height: isDash ? particle.height : particle.size,
+          height: particle.height,
           left: `${position.x}%`,
-          opacity: getParticleOpacity(stage, reducedMotion),
+          opacity: getParticleOpacity(stage, reducedMotion, particle),
           top: `${position.y}%`,
-          transitionDelay: formed ? '0ms' : `${particle.index % 32 * 13}ms`,
+          transitionDelay: formed ? `${particle.index % 18 * 10}ms` : `${particle.index % 44 * 12}ms`,
           transitionDuration: `${transitionDuration}ms`,
           transform: [
             { translateX: -particle.width / 2 },
             { translateY: -particle.height / 2 },
-            { rotate: `${formed ? particle.rotate * 0.16 - 12 : particle.rotate}deg` },
-            { scale: formed ? 0.58 : stage === 'drift' ? 1.16 : stage === 'gather' ? 1.02 : 0.82 }
+            { rotate: `${formed ? particle.rotate * 0.14 - 10 : particle.rotate}deg` },
+            { scale: formed ? 0.54 : stage === 'drift' ? 1.14 : stage === 'gather' ? 1.02 : 0.82 }
           ],
-          width: isDash ? particle.width : particle.size
+          width: particle.width
         };
       }),
     [particles, reducedMotion, stage]
@@ -347,36 +536,25 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     return null;
   }
 
+  const iconOpacity = getIconOpacity(stage, reducedMotion);
+  const iconFillOpacity = getIconFillOpacity(stage, reducedMotion);
+  const captionVisible = stage === 'write' || stage === 'settle' || stage === 'exit';
+
   return (
     <View
       accessibilityLabel={t('landing.intro.accessibilityLabel', 'Sagak Sagak intro animation')}
       style={[styles.overlay, stage === 'exit' && styles.overlayExit]}
     >
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.backgroundGlow}>
-        <View style={styles.glowCream} />
         <View style={styles.glowMint} />
         <View style={styles.glowBlue} />
-        <View style={styles.softGrid} />
+        <View style={styles.glowWarm} />
       </View>
 
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.particleLayer}>
-        {particles.map((particle, index) => {
-          const nodeStyle = [
-            styles.particle,
-            styles[`${particle.shape}Particle`],
-            particleStyles[index]
-          ];
-
-          if (particle.shape === 'token') {
-            return (
-              <Text key={particle.id} style={nodeStyle}>
-                {particle.token}
-              </Text>
-            );
-          }
-
-          return <View key={particle.id} style={nodeStyle} />;
-        })}
+        {particles.map((particle, index) => (
+          <FragmentParticle key={particle.id} particle={particle} style={particleStyles[index]} />
+        ))}
       </View>
 
       <View pointerEvents="none" style={[styles.iconStage, stage === 'exit' && styles.iconStageExit]}>
@@ -385,18 +563,18 @@ export default function ParticlePencilIntro({ visible, onDone }) {
             styles.appIcon,
             {
               height: iconSize,
-              opacity: stage === 'gather' ? 0.18 : stage === 'scatter' || stage === 'drift' ? 0 : 1,
+              opacity: iconOpacity,
               transform: [
                 { translateY: stage === 'settle' ? -3 : stage === 'exit' ? -18 : 0 },
-                { scale: stage === 'gather' ? 0.88 : stage === 'icon' ? 0.98 : 1 }
+                { scale: stage === 'assemble' ? 0.9 : stage === 'icon' ? 0.98 : 1 }
               ],
               width: iconSize
             }
           ]}
         >
-          <View style={styles.iconInnerGlow} />
-          <View style={styles.iconPaperFold} />
-          <View style={styles.iconLineGuide} />
+          <View style={[styles.iconFill, { opacity: iconFillOpacity }]} />
+          <View style={[styles.iconInnerGlow, { opacity: stage === 'assemble' ? 0.15 : 1 }]} />
+          <View style={[styles.iconPaperFold, { opacity: stage === 'assemble' ? 0.22 : 1 }]} />
           <View style={styles.drawLayer}>
             {DRAW_SEGMENTS.map((segment, index) => (
               <View
@@ -405,7 +583,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
                   styles.drawSegment,
                   {
                     left: `${segment.left}%`,
-                    opacity: drawStep > index ? 1 : stage === 'settle' ? 1 : 0,
+                    opacity: drawStep > index ? 1 : stage === 'settle' || reducedMotion ? 1 : 0,
                     top: `${segment.top}%`,
                     transform: [{ rotate: `${segment.rotate}deg` }],
                     width: drawStep > index || stage === 'settle' || reducedMotion ? `${segment.width}%` : '0%'
@@ -418,7 +596,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         </View>
       </View>
 
-      <View style={[styles.caption, stage === 'exit' && styles.captionExit]}>
+      <View style={[styles.caption, captionVisible && styles.captionVisible, stage === 'exit' && styles.captionExit]}>
         <Text style={styles.captionTitle}>Sagak Sagak</Text>
         <Text style={styles.captionText}>
           {t('landing.intro.subtitle', 'Scattered study signals gather into one learning icon.')}
@@ -455,43 +633,32 @@ const styles = StyleSheet.create({
   backgroundGlow: {
     ...StyleSheet.absoluteFillObject
   },
-  glowCream: {
-    position: 'absolute',
-    width: '58%',
-    height: '46%',
-    left: '18%',
-    top: '19%',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 246, 223, 0.08)'
-  },
   glowMint: {
     position: 'absolute',
-    width: '64%',
-    height: '52%',
-    left: '-18%',
-    top: '3%',
+    width: '68%',
+    height: '58%',
+    left: '-22%',
+    top: '-8%',
     borderRadius: 999,
-    backgroundColor: 'rgba(115, 201, 189, 0.22)'
+    backgroundColor: 'rgba(115, 201, 189, 0.2)'
   },
   glowBlue: {
     position: 'absolute',
-    width: '70%',
-    height: '58%',
-    right: '-18%',
-    bottom: '-12%',
+    width: '76%',
+    height: '64%',
+    right: '-24%',
+    bottom: '-18%',
     borderRadius: 999,
-    backgroundColor: 'rgba(55, 100, 154, 0.26)'
+    backgroundColor: 'rgba(31, 94, 150, 0.3)'
   },
-  softGrid: {
+  glowWarm: {
     position: 'absolute',
-    width: '78%',
-    height: '62%',
-    left: '11%',
-    top: '19%',
+    width: '52%',
+    height: '44%',
+    left: '25%',
+    top: '34%',
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(217, 255, 247, 0.12)',
-    transform: [{ rotate: '-7deg' }]
+    backgroundColor: 'rgba(241, 200, 154, 0.08)'
   },
   particleLayer: {
     ...StyleSheet.absoluteFillObject
@@ -502,8 +669,8 @@ const styles = StyleSheet.create({
     transitionProperty: 'left, top, opacity, transform, width, height',
     transitionTimingFunction: 'cubic-bezier(0.16, 0.9, 0.18, 1)',
     shadowColor: '#73C9BD',
-    shadowOpacity: 0.35,
-    shadowRadius: 8
+    shadowOpacity: 0.36,
+    shadowRadius: 10
   },
   dotParticle: {
     borderWidth: 0
@@ -514,15 +681,93 @@ const styles = StyleSheet.create({
   dashParticle: {
     borderRadius: 999
   },
+  strokeShardParticle: {
+    borderRadius: 999,
+    backgroundColor: '#7BC7F6'
+  },
+  pencilShardParticle: {
+    flexDirection: 'row',
+    overflow: 'hidden',
+    borderRadius: 999,
+    backgroundColor: colors.mint
+  },
+  pencilShardTip: {
+    width: 7,
+    backgroundColor: '#173B63'
+  },
   paperParticle: {
-    borderRadius: 3,
+    borderRadius: 4,
     borderWidth: 1,
-    backgroundColor: 'rgba(255, 246, 223, 0.18)'
+    backgroundColor: 'rgba(255, 246, 223, 0.16)'
+  },
+  noteCardParticle: {
+    justifyContent: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 7,
+    paddingHorizontal: 6
+  },
+  noteCardLineWide: {
+    height: 3,
+    width: '78%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(217, 255, 247, 0.62)'
+  },
+  noteCardLineShort: {
+    height: 3,
+    width: '48%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(123, 199, 246, 0.58)'
+  },
+  graphParticle: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 3,
+    borderWidth: 1,
+    borderRadius: 7,
+    paddingHorizontal: 5,
+    paddingBottom: 4
+  },
+  graphBar: {
+    width: 4,
+    borderRadius: 999,
+    backgroundColor: '#73C9BD'
+  },
+  graphBarShort: {
+    height: '42%'
+  },
+  graphBarTall: {
+    height: '78%',
+    backgroundColor: '#7BC7F6'
+  },
+  graphBarMid: {
+    height: '58%'
+  },
+  bubbleParticle: {
+    justifyContent: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 7
+  },
+  bubbleLineWide: {
+    height: 3,
+    width: '68%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 246, 223, 0.7)'
+  },
+  bubbleLineShort: {
+    height: 3,
+    width: '42%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(115, 201, 189, 0.75)'
   },
   tokenParticle: {
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0,
+    textAlign: 'center',
     textShadowColor: 'rgba(115, 201, 189, 0.65)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 12
@@ -545,22 +790,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 42,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.58)',
-    backgroundColor: '#FFF4DD',
+    borderColor: 'rgba(217, 255, 247, 0.72)',
+    backgroundColor: 'transparent',
     shadowColor: '#071728',
-    shadowOpacity: 0.36,
-    shadowRadius: 34,
+    shadowOpacity: 0.38,
+    shadowRadius: 36,
     shadowOffset: { width: 0, height: 24 },
     transitionDuration: '760ms',
     transitionProperty: 'opacity, transform, width, height',
     transitionTimingFunction: 'cubic-bezier(0.18, 0.82, 0.25, 1)'
+  },
+  iconFill: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FFF4DD',
+    transitionDuration: '760ms',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'ease-out'
   },
   iconInnerGlow: {
     position: 'absolute',
     width: '74%',
     height: '74%',
     borderRadius: 999,
-    backgroundColor: 'rgba(115, 201, 189, 0.16)'
+    backgroundColor: 'rgba(115, 201, 189, 0.16)',
+    transitionDuration: '640ms',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'ease-out'
   },
   iconPaperFold: {
     position: 'absolute',
@@ -569,16 +824,10 @@ const styles = StyleSheet.create({
     width: '26%',
     height: '26%',
     borderBottomLeftRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.56)'
-  },
-  iconLineGuide: {
-    position: 'absolute',
-    left: '19%',
-    right: '19%',
-    bottom: '25%',
-    height: 2,
-    borderRadius: 999,
-    backgroundColor: 'rgba(31, 94, 150, 0.13)'
+    backgroundColor: 'rgba(255, 255, 255, 0.56)',
+    transitionDuration: '640ms',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'ease-out'
   },
   drawLayer: {
     ...StyleSheet.absoluteFillObject
@@ -637,10 +886,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 420,
     paddingHorizontal: 24,
-    opacity: 1,
+    opacity: 0,
+    transform: [{ translateY: 12 }],
     transitionDuration: '420ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
+  },
+  captionVisible: {
+    opacity: 1,
+    transform: [{ translateY: 0 }]
   },
   captionExit: {
     opacity: 0,
