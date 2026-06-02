@@ -5,16 +5,15 @@ import { colors } from '../styles/theme';
 
 const INTRO_TIMELINE = {
   drift: 640,
-  gather: 1860,
-  assemble: 2860,
-  mascot: 3580,
-  write: 4300,
-  settle: 5420,
-  exit: 6080,
-  done: 6500
+  gather: 1840,
+  assemble: 2840,
+  mascot: 3560,
+  text: 4240,
+  settle: 5400,
+  exit: 6140,
+  done: 6520
 };
 
-const DRAW_STEP_DELAYS = [0, 170, 360, 570, 790, 1040];
 const PARTICLE_COLORS = ['#FFF6DF', '#D9FFF7', '#73C9BD', '#1F5E96', '#7BC7F6', '#F1C89A'];
 const MATH_TOKENS = ['∑', '√', 'π', 'x²', 'f(x)', '∫', 'Δ', '=', '%', '01', '10'];
 const STUDY_TOKENS = ['AI', 'QUIZ', 'PLAN', 'FOCUS', 'REVIEW', 'EXAM', 'TODO', 'D-DAY', 'CHECK', 'STUDY'];
@@ -36,23 +35,48 @@ const SHAPE_SEQUENCE = [
   'studyToken',
   'keywordToken'
 ];
-const FORMED_STAGES = new Set(['assemble', 'mascot', 'write', 'settle', 'exit']);
-const MASCOT_STAGES = new Set(['assemble', 'mascot', 'write', 'settle', 'exit']);
-const DRAW_SEGMENTS = [
-  { left: 8, top: 43, width: 19, rotate: -12 },
-  { left: 24, top: 35, width: 19, rotate: 17 },
-  { left: 42, top: 44, width: 19, rotate: -16 },
-  { left: 58, top: 36, width: 19, rotate: 16 },
-  { left: 76, top: 43, width: 15, rotate: -12 }
-];
-const PENCIL_WRITE_POSITIONS = [
-  { x: -128, y: 112, rotate: 132 },
-  { x: -84, y: 104, rotate: 134 },
-  { x: -38, y: 113, rotate: 131 },
-  { x: 8, y: 105, rotate: 134 },
-  { x: 54, y: 112, rotate: 132 },
-  { x: 96, y: 108, rotate: 133 }
-];
+const FORMED_STAGES = new Set(['assemble', 'mascot', 'text', 'settle', 'exit']);
+const MASCOT_STAGES = new Set(['assemble', 'mascot', 'text', 'settle', 'exit']);
+const WORD_STAGES = new Set(['text', 'settle', 'exit']);
+const TEXT_SEQUENCE = ['sa', 'gak', 'sa', 'gak'];
+const TEXT_MASKS = {
+  sa: [
+    [1, 1],
+    [2, 2],
+    [3, 3],
+    [2, 4],
+    [1, 5],
+    [5, 0],
+    [5, 1],
+    [5, 2],
+    [5, 3],
+    [5, 4],
+    [5, 5],
+    [5, 6],
+    [5, 7],
+    [5, 8],
+    [4, 4],
+    [6, 4]
+  ],
+  gak: [
+    [1, 1],
+    [2, 1],
+    [3, 1],
+    [4, 1],
+    [5, 1],
+    [5, 2],
+    [5, 3],
+    [5, 4],
+    [1, 6],
+    [2, 6],
+    [3, 6],
+    [4, 6],
+    [4, 7],
+    [4, 8],
+    [5, 8],
+    [6, 8]
+  ]
+};
 
 function seeded(index, salt) {
   const value = Math.sin(index * 127.13 + salt * 811.7) * 10000;
@@ -129,13 +153,13 @@ function getStartPosition(index) {
 
 function getPencilLinePoint(t, offset) {
   return {
-    x: 29 + t * 47 + offset * 0.48,
-    y: 61 - t * 38 + offset
+    x: 28 + t * 47 + offset * 0.48,
+    y: 52 - t * 38 + offset
   };
 }
 
 function getPencilTarget(index) {
-  const type = index % 16;
+  const type = index % 14;
   const t = seeded(index, 11);
   const u = seeded(index, 13);
   const bodyT = (index % 160) / 159;
@@ -161,17 +185,31 @@ function getPencilTarget(index) {
     return { kind: 'wood', x: point.x + 1.8, y: point.y };
   }
 
-  if (type <= 13) {
-    const point = getPencilLinePoint(t * 0.1, (u - 0.5) * 7);
-    return { kind: 'tip', x: point.x + 3.2, y: point.y };
+  const point = getPencilLinePoint(t * 0.1, (u - 0.5) * 7);
+  return { kind: 'tip', x: point.x + 3.2, y: point.y };
+}
+
+function getTextTarget(index) {
+  const textIndex = Math.floor(index / 3);
+  const charIndex = textIndex % TEXT_SEQUENCE.length;
+  const mask = TEXT_MASKS[TEXT_SEQUENCE[charIndex]];
+  const [cellX, cellY] = mask[Math.floor(textIndex / TEXT_SEQUENCE.length) % mask.length];
+  const jitterX = (seeded(index, 17) - 0.5) * 1.2;
+  const jitterY = (seeded(index, 19) - 0.5) * 1.2;
+
+  return {
+    kind: 'text',
+    x: 28.5 + charIndex * 10.7 + cellX * 1.05 + jitterX,
+    y: 63.2 + cellY * 1.45 + jitterY
+  };
+}
+
+function getParticleTarget(index) {
+  if (index % 10 >= 6) {
+    return getTextTarget(index);
   }
 
-  const zig = (index % 44) / 43;
-  return {
-    kind: 'trace',
-    x: 34 + zig * 32,
-    y: 66 + Math.sin(zig * Math.PI * 5) * 4 + (u - 0.5) * 1.6
-  };
+  return getPencilTarget(index);
 }
 
 function getToken(shape, index) {
@@ -214,7 +252,7 @@ function buildParticles(count) {
   return Array.from({ length: count }, (_, index) => {
     const shape = SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length];
     const start = getStartPosition(index);
-    const target = getPencilTarget(index);
+    const target = getParticleTarget(index);
     const angle = seeded(index, 101) * Math.PI * 2;
     const dimensions = getFragmentDimensions(shape, index);
     const surgeSpread = 12 + seeded(index, 103) * 18;
@@ -223,7 +261,7 @@ function buildParticles(count) {
 
     return {
       id: `intro-fragment-${index}`,
-      color: PARTICLE_COLORS[index % PARTICLE_COLORS.length],
+      color: target.kind === 'text' ? PARTICLE_COLORS[(index + 2) % PARTICLE_COLORS.length] : PARTICLE_COLORS[index % PARTICLE_COLORS.length],
       driftX: start.x + Math.cos(angle) * (7 + seeded(index, 107) * 9) + (seeded(index, 109) - 0.5) * 12,
       driftY: start.y + Math.sin(angle) * (6 + seeded(index, 113) * 9) + (seeded(index, 127) - 0.5) * 12,
       height: dimensions.height,
@@ -270,7 +308,7 @@ function getParticlePosition(particle, stage) {
 }
 
 function getParticleOpacity(stage, reducedMotion, particle) {
-  if (reducedMotion || stage === 'exit' || stage === 'settle') {
+  if (reducedMotion || stage === 'exit') {
     return 0;
   }
 
@@ -287,27 +325,19 @@ function getParticleOpacity(stage, reducedMotion, particle) {
   }
 
   if (stage === 'assemble') {
-    if (particle.targetKind === 'body' || particle.targetKind === 'wood' || particle.targetKind === 'tip') {
-      return 0.95;
-    }
-
-    return 0.72;
+    return particle.targetKind === 'text' ? 0.82 : 0.95;
   }
 
   if (stage === 'mascot') {
-    if (particle.targetKind === 'body' || particle.targetKind === 'highlight') {
-      return 0.28;
-    }
-
-    if (particle.targetKind === 'trace') {
-      return 0.18;
-    }
-
-    return 0.2;
+    return particle.targetKind === 'text' ? 0.92 : 0.24;
   }
 
-  if (stage === 'write') {
-    return particle.targetKind === 'trace' ? 0.1 : 0;
+  if (stage === 'text') {
+    return particle.targetKind === 'text' ? 0.78 : 0.08;
+  }
+
+  if (stage === 'settle') {
+    return particle.targetKind === 'text' ? 0.22 : 0;
   }
 
   return 0;
@@ -330,7 +360,7 @@ function getMascotPartOpacity(part, stage, reducedMotion) {
     return 0;
   }
 
-  if (stage === 'mascot' || stage === 'write' || stage === 'settle' || stage === 'exit') {
+  if (MASCOT_STAGES.has(stage)) {
     return 1;
   }
 
@@ -353,20 +383,23 @@ function getMascotOpacity(stage, reducedMotion) {
   return 0;
 }
 
-function getMascotTravel(stage, drawStep) {
+function getWordOpacity(stage, reducedMotion) {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  if (stage === 'text') {
+    return 0.58;
+  }
+
   if (stage === 'settle' || stage === 'exit') {
-    return PENCIL_WRITE_POSITIONS[PENCIL_WRITE_POSITIONS.length - 1];
+    return 1;
   }
 
-  if (stage !== 'write') {
-    return { x: 0, y: 0, rotate: 132 };
-  }
-
-  return PENCIL_WRITE_POSITIONS[Math.min(drawStep, PENCIL_WRITE_POSITIONS.length - 1)];
+  return 0;
 }
 
-function PencilMascot({ drawStep, pencilWidth, reducedMotion, stage }) {
-  const travel = getMascotTravel(stage, drawStep);
+function PencilMascot({ pencilWidth, reducedMotion, stage }) {
   const bodyOpacity = getMascotPartOpacity('body', stage, reducedMotion);
   const capOpacity = getMascotPartOpacity('cap', stage, reducedMotion);
   const woodOpacity = getMascotPartOpacity('wood', stage, reducedMotion);
@@ -379,12 +412,7 @@ function PencilMascot({ drawStep, pencilWidth, reducedMotion, stage }) {
         styles.pencilMascotWrap,
         {
           opacity: mascotOpacity,
-          transform: [
-            { translateX: travel.x },
-            { translateY: travel.y },
-            { rotate: `${travel.rotate}deg` },
-            { scale: stage === 'assemble' ? 0.92 : stage === 'write' ? 0.88 : 1 }
-          ],
+          transform: [{ rotate: '132deg' }, { scale: stage === 'assemble' ? 0.92 : 1 }],
           width: pencilWidth
         }
       ]}
@@ -427,7 +455,6 @@ export default function ParticlePencilIntro({ visible, onDone }) {
   const { t } = useLanguage();
   const { width } = useWindowDimensions();
   const [stage, setStage] = useState('scatter');
-  const [drawStep, setDrawStep] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
   const particleCount = getParticleCount(width || 1024);
   const pencilWidth = width < 520 ? 238 : width < 900 ? 310 : 390;
@@ -467,7 +494,6 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     }
 
     setStage(reducedMotion ? 'settle' : 'scatter');
-    setDrawStep(reducedMotion ? DRAW_SEGMENTS.length : 0);
 
     if (reducedMotion) {
       const timer = setTimeout(onDone, 1400);
@@ -479,7 +505,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       setTimeout(() => setStage('gather'), INTRO_TIMELINE.gather),
       setTimeout(() => setStage('assemble'), INTRO_TIMELINE.assemble),
       setTimeout(() => setStage('mascot'), INTRO_TIMELINE.mascot),
-      setTimeout(() => setStage('write'), INTRO_TIMELINE.write),
+      setTimeout(() => setStage('text'), INTRO_TIMELINE.text),
       setTimeout(() => setStage('settle'), INTRO_TIMELINE.settle),
       setTimeout(() => setStage('exit'), INTRO_TIMELINE.exit),
       setTimeout(onDone, INTRO_TIMELINE.done)
@@ -489,19 +515,6 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       timers.forEach((timer) => clearTimeout(timer));
     };
   }, [onDone, reducedMotion, visible]);
-
-  useEffect(() => {
-    if (!visible || stage !== 'write' || reducedMotion) {
-      return undefined;
-    }
-
-    setDrawStep(0);
-    const timers = DRAW_STEP_DELAYS.map((delay, index) => setTimeout(() => setDrawStep(index), delay));
-
-    return () => {
-      timers.forEach((timer) => clearTimeout(timer));
-    };
-  }, [reducedMotion, stage, visible]);
 
   const particleStyles = useMemo(
     () =>
@@ -514,7 +527,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         return {
           backgroundColor: isToken ? 'transparent' : particle.color,
           borderColor: particle.color,
-          color: particle.color,
+          color: particle.targetKind === 'text' ? '#D9FFF7' : particle.color,
           height: particle.height,
           left: `${position.x}%`,
           opacity: getParticleOpacity(stage, reducedMotion, particle),
@@ -524,8 +537,8 @@ export default function ParticlePencilIntro({ visible, onDone }) {
           transform: [
             { translateX: -particle.width / 2 },
             { translateY: -particle.height / 2 },
-            { rotate: `${formed ? particle.rotate * 0.12 - 18 : particle.rotate}deg` },
-            { scale: formed ? 0.52 : stage === 'drift' ? 1.13 : stage === 'gather' ? 1.02 : 0.82 }
+            { rotate: `${formed ? particle.rotate * 0.08 - 8 : particle.rotate}deg` },
+            { scale: formed ? (particle.targetKind === 'text' ? 0.54 : 0.5) : stage === 'drift' ? 1.13 : stage === 'gather' ? 1.02 : 0.82 }
           ],
           width: particle.width
         };
@@ -537,11 +550,9 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     return null;
   }
 
-  const captionVisible = stage === 'write' || stage === 'settle' || stage === 'exit';
-
   return (
     <View
-      accessibilityLabel={t('landing.intro.accessibilityLabel', 'Sagak Sagak intro animation')}
+      accessibilityLabel={t('landing.intro.accessibilityLabel', '사각사각 인트로 애니메이션')}
       style={[styles.overlay, stage === 'exit' && styles.overlayExit]}
     >
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.backgroundGlow}>
@@ -557,31 +568,11 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       </View>
 
       <View pointerEvents="none" style={[styles.mascotStage, stage === 'exit' && styles.mascotStageExit]}>
-        <PencilMascot drawStep={drawStep} pencilWidth={pencilWidth} reducedMotion={reducedMotion} stage={stage} />
+        <PencilMascot pencilWidth={pencilWidth} reducedMotion={reducedMotion} stage={stage} />
       </View>
 
-      <View style={[styles.brandLockup, captionVisible && styles.brandLockupVisible, stage === 'exit' && styles.brandLockupExit]}>
-        <Text style={styles.captionTitle}>Sagak Sagak</Text>
-        <View style={styles.traceCanvas}>
-          {DRAW_SEGMENTS.map((segment, index) => (
-            <View
-              key={`trace-segment-${index}`}
-              style={[
-                styles.drawSegment,
-                {
-                  left: `${segment.left}%`,
-                  opacity: drawStep > index ? 1 : stage === 'settle' || reducedMotion ? 1 : 0,
-                  top: `${segment.top}%`,
-                  transform: [{ rotate: `${segment.rotate}deg` }],
-                  width: drawStep > index || stage === 'settle' || reducedMotion ? `${segment.width}%` : '0%'
-                }
-              ]}
-            />
-          ))}
-        </View>
-        <Text style={styles.captionText}>
-          {t('landing.intro.subtitle', 'Scattered study symbols gather into a pencil trace.')}
-        </Text>
+      <View style={[styles.wordLockup, WORD_STAGES.has(stage) && styles.wordLockupVisible, stage === 'exit' && styles.wordLockupExit]}>
+        <Text style={[styles.wordTitle, { opacity: getWordOpacity(stage, reducedMotion) }]}>사각사각</Text>
       </View>
 
       <Pressable accessibilityRole="button" onPress={onDone} style={styles.skipButton}>
@@ -707,14 +698,15 @@ const styles = StyleSheet.create({
   mascotStage: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 260,
+    minHeight: 246,
+    transform: [{ translateY: -54 }],
     transitionDuration: '680ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
   mascotStageExit: {
     opacity: 0,
-    transform: [{ translateY: -16 }, { scale: 0.94 }]
+    transform: [{ translateY: -68 }, { scale: 0.94 }]
   },
   pencilMascotWrap: {
     position: 'relative',
@@ -803,57 +795,37 @@ const styles = StyleSheet.create({
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
   },
-  brandLockup: {
+  wordLockup: {
     position: 'absolute',
-    top: '58%',
+    top: '55%',
     alignItems: 'center',
-    width: 360,
-    maxWidth: '86%',
+    width: 440,
+    maxWidth: '90%',
     opacity: 0,
-    transform: [{ translateY: 14 }],
-    transitionDuration: '480ms',
+    transform: [{ translateY: 18 }],
+    transitionDuration: '520ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
-  brandLockupVisible: {
+  wordLockupVisible: {
     opacity: 1,
     transform: [{ translateY: 0 }]
   },
-  brandLockupExit: {
+  wordLockupExit: {
     opacity: 0,
     transform: [{ translateY: 10 }]
   },
-  captionTitle: {
-    color: colors.mint,
-    fontSize: 26,
+  wordTitle: {
+    color: '#D9FFF7',
+    fontSize: 54,
     fontWeight: '900',
-    letterSpacing: 0.8
-  },
-  traceCanvas: {
-    position: 'relative',
-    width: '100%',
-    height: 24,
-    marginTop: 3
-  },
-  drawSegment: {
-    position: 'absolute',
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: '#1F7CC4',
-    shadowColor: '#7BC7F6',
-    shadowOpacity: 0.42,
-    shadowRadius: 9,
-    transitionDuration: '250ms',
-    transitionProperty: 'width, opacity',
+    letterSpacing: 1.8,
+    textShadowColor: 'rgba(31, 124, 196, 0.45)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 18,
+    transitionDuration: '520ms',
+    transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
-  },
-  captionText: {
-    marginTop: 4,
-    color: '#D6E7FF',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 22,
-    textAlign: 'center'
   },
   skipButton: {
     position: 'absolute',
