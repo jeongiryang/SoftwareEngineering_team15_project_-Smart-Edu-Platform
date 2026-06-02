@@ -129,8 +129,11 @@ const serviceSections = [
   {
     id: 'social',
     keyword: 'SOCIAL',
+    titleKey: 'landing.social.title',
     titleFallback: '함께 공부하는 학습 커뮤니티',
-    descriptionFallback: '혼자 하는 공부의 외로움을 넘어서, 친구들과 실시간 쪽지를 나누고 접속 상태를 확인하며 동기부여를 얻으세요.',
+    descriptionKey: 'landing.social.description',
+    descriptionFallback: '친구와 쪽지를 주고받고, 접속 상태와 읽지 않은 메시지를 확인하며 함께 공부할 동기를 얻으세요.',
+    chipKey: 'landing.social.chip',
     chipFallback: '커뮤니티',
     layout: 'row',
     visual: 'social'
@@ -152,6 +155,18 @@ const serviceSections = [
     chipFallback: '포인트 상점',
     layout: 'row',
     visual: 'reward'
+  },
+  {
+    id: 'language',
+    keyword: 'LANG',
+    titleKey: 'landing.language.title',
+    titleFallback: '네 언어로 가볍게 시작하는 학습',
+    descriptionKey: 'landing.language.description',
+    descriptionFallback: '한국어를 기본으로, English / 日本語 / 中文 Beta 화면을 함께 제공합니다.',
+    chipKey: 'landing.language.chip',
+    chipFallback: 'LANGUAGE BETA',
+    layout: 'reverse',
+    visual: 'language'
   },
   {
     id: 'trust',
@@ -322,6 +337,7 @@ function RecordSection({ t }) {
 function FeatureGridSection({ t }) {
   return (
     <View style={styles.availableSection}>
+      <SectionKeyword label="SCOPE" style={[styles.bgSubtleKeyword, styles.bgScope]} />
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionEyebrow}>{t('landing.section.available.eyebrow', 'PROJECT SCOPE')}</Text>
         <Text style={styles.sectionTitle}>{t('landing.section.available.title', '과제 요구사항과 연결된 핵심 기능')}</Text>
@@ -458,11 +474,16 @@ function SocialMock({ t }) {
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.socialMock]}>
       <View style={styles.reportHeader}>
-        <Text style={styles.reportTitle}>실시간 쪽지함</Text>
-        <Text style={[styles.reportScore, styles.socialScore]}>WebSocket</Text>
+        <Text style={styles.reportTitle}>{t('landing.social.previewTitle', '실시간 학습 소통')}</Text>
+        <Text style={[styles.reportScore, styles.socialScore]}>{t('landing.social.unreadCount', '2 unread')}</Text>
       </View>
-      <View style={styles.friendRow}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>친구가 오늘 목표를 시작했어요.</Text></View>
-      <View style={styles.friendRow}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>대화에서 학습 응원을 주고받습니다.</Text></View>
+      <View style={styles.socialStatusRow}>
+        <Text style={styles.socialStatusText}>{t('landing.social.onlineCount', '친구 3명 접속중')}</Text>
+        <Text style={styles.socialUnreadPill}>{t('landing.social.unreadBadge', '읽지 않은 쪽지 2개')}</Text>
+      </View>
+      <View style={styles.friendRow}><View style={styles.friendAvatar} /><Text style={styles.reportLabel}>{t('landing.social.message1', '이량: 오늘 목표 시작했어요.')}</Text></View>
+      <View style={styles.friendRow}><View style={[styles.friendAvatar, styles.friendAvatarMint]} /><Text style={styles.reportLabel}>{t('landing.social.message2', '지환: 나 지금 수학 과제 거의 다했어!')}</Text></View>
+      <Text style={styles.socialFooterText}>{t('landing.social.footer', '공개 프로필 · 게시글/댓글/공유 흐름 연결')}</Text>
     </View>
   );
 }
@@ -496,6 +517,33 @@ function RewardMock({ t }) {
           <Text style={styles.raidProgressText}>학습 성취를 프로필 꾸미기로 이어갑니다.</Text>
         </View>
       </View>
+    </View>
+  );
+}
+
+function LanguageMock({ t }) {
+  const rows = [
+    t('landing.language.previewKo', '한국어 기본'),
+    t('landing.language.previewEn', 'English Beta'),
+    t('landing.language.previewJa', '日本語 Beta'),
+    t('landing.language.previewZh', '中文 Beta')
+  ];
+
+  return (
+    <View style={[styles.mockCard, styles.simpleMockCard, styles.languageMock]}>
+      <View style={styles.reportHeader}>
+        <Text style={styles.reportTitle}>{t('landing.language.previewTitle', 'Language Beta')}</Text>
+        <Text style={[styles.reportScore, styles.languageScore]}>Beta</Text>
+      </View>
+      <View style={styles.languageList}>
+        {rows.map((item, index) => (
+          <View key={item} style={styles.languageRow}>
+            <View style={[styles.languageDot, index === 0 && styles.languageDotPrimary]} />
+            <Text style={styles.languageText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.languageNote}>{t('landing.language.note', '정식 검수 전 1차 지원 언어로 가볍게 제공합니다.')}</Text>
     </View>
   );
 }
@@ -536,6 +584,7 @@ function SectionVisual({ type, t }) {
   if (type === 'social') return <SocialMock t={t} />;
   if (type === 'coop') return <CoopMock t={t} />;
   if (type === 'reward') return <RewardMock t={t} />;
+  if (type === 'language') return <LanguageMock t={t} />;
   return <TrustMock t={t} />;
 }
 
@@ -548,6 +597,7 @@ function ProjectGroundedCopySection() {
 
   return (
     <View style={styles.projectSection}>
+      <SectionKeyword label="NOTES" style={[styles.bgSubtleKeyword, styles.bgNotes]} />
       <View style={styles.projectHeading}>
         <Text style={styles.sectionEyebrow}>PROJECT NOTES</Text>
         <Text style={styles.sectionTitle}>회의록과 설계 문서에서 이어진 사각사각의 방향</Text>
@@ -1023,6 +1073,8 @@ const styles = StyleSheet.create({
   projectSection: {
     width: '100%',
     maxWidth: 1180,
+    position: 'relative',
+    overflow: 'hidden',
     paddingVertical: 94,
     paddingHorizontal: 24,
     borderRadius: 32,
@@ -1037,12 +1089,16 @@ const styles = StyleSheet.create({
   },
   projectHeading: {
     maxWidth: 720,
-    marginBottom: 26
+    marginBottom: 26,
+    position: 'relative',
+    zIndex: 5
   },
   projectCardGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16
+    gap: 16,
+    position: 'relative',
+    zIndex: 5
   },
   projectCard: {
     flex: 1,
@@ -1223,8 +1279,16 @@ const styles = StyleSheet.create({
   bgRecord: {
     top: '46%'
   },
-  bgAvailable: {
-    top: 110
+  bgSubtleKeyword: {
+    color: 'rgba(23, 59, 99, 0.045)',
+    fontSize: 168,
+    lineHeight: 190
+  },
+  bgScope: {
+    top: 58
+  },
+  bgNotes: {
+    top: 72
   },
   bgplan: {
     top: '50%'
@@ -1245,6 +1309,9 @@ const styles = StyleSheet.create({
     top: '50%'
   },
   bgreward: {
+    top: '50%'
+  },
+  bglanguage: {
     top: '50%'
   },
   bgtrust: {
@@ -1569,6 +1636,35 @@ const styles = StyleSheet.create({
     color: '#173B63',
     fontSize: 15
   },
+  socialStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 14
+  },
+  socialStatusText: {
+    color: '#173B63',
+    backgroundColor: '#E8FAF6',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontSize: 13,
+    fontWeight: '900',
+    overflow: 'hidden'
+  },
+  socialUnreadPill: {
+    color: '#0F766E',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 118, 110, 0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontSize: 13,
+    fontWeight: '900',
+    overflow: 'hidden'
+  },
   friendRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1586,6 +1682,13 @@ const styles = StyleSheet.create({
   },
   friendAvatarMint: {
     backgroundColor: '#73C9BD'
+  },
+  socialFooterText: {
+    color: '#173B63',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800',
+    marginTop: 2
   },
   coopMock: {
     borderColor: '#FFC8C8',
@@ -1636,6 +1739,52 @@ const styles = StyleSheet.create({
   },
   rewardCopy: {
     flex: 1
+  },
+  languageMock: {
+    borderColor: '#CDEFE9',
+    borderWidth: 2,
+    backgroundColor: '#F8FFFD'
+  },
+  languageScore: {
+    color: '#0F766E',
+    fontSize: 16
+  },
+  languageList: {
+    gap: 10
+  },
+  languageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(23, 59, 99, 0.08)'
+  },
+  languageDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#BDE0FE'
+  },
+  languageDotPrimary: {
+    backgroundColor: colors.mintDeep
+  },
+  languageText: {
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '800',
+    flex: 1
+  },
+  languageNote: {
+    color: '#475569',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '700',
+    marginTop: 14
   },
   trustCardsContainer: {
     gap: 16
