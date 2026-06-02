@@ -44,70 +44,13 @@ const INTRO_WORD = '사각사각';
 const WORD_FONT_SIZE = 56;
 const WORD_LINE_HEIGHT = 64;
 const WORD_LETTER_SPACING = 1.8;
+const WORD_FONT_FAMILY = '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", Arial, sans-serif';
 const WORD_LOCKUP_PADDING_Y = 10;
 const WORD_TITLE_CENTER_OFFSET = WORD_LOCKUP_PADDING_Y + WORD_LINE_HEIGHT / 2;
-const TEXT_TARGET_BASE_X = 40.55;
-const TEXT_TARGET_BASE_Y = 63.95;
-const TEXT_TARGET_CHAR_STEP_X = 4.72;
-const TEXT_TARGET_CELL_STEP_X = 0.48;
-const TEXT_TARGET_CELL_STEP_Y = 0.58;
-const TEXT_TARGET_CENTER_X = 49.4;
-const TEXT_TARGET_CENTER_Y = 66.32;
-const TEXT_SEQUENCE = ['sa', 'gak', 'sa', 'gak'];
-const TEXT_MASKS = {
-  sa: [
-    [1, 1],
-    [2, 2],
-    [3, 3],
-    [4, 4],
-    [3, 5],
-    [2, 6],
-    [1, 7],
-    [4, 2],
-    [2, 4],
-    [5, 0],
-    [5, 1],
-    [5, 2],
-    [5, 3],
-    [5, 4],
-    [5, 5],
-    [5, 6],
-    [5, 7],
-    [5, 8],
-    [5, 9],
-    [6, 3],
-    [7, 3],
-    [6, 4],
-    [7, 4]
-  ],
-  gak: [
-    [0, 1],
-    [1, 1],
-    [2, 1],
-    [3, 1],
-    [4, 1],
-    [4, 2],
-    [4, 3],
-    [4, 4],
-    [5, 0],
-    [5, 1],
-    [5, 2],
-    [5, 3],
-    [5, 4],
-    [5, 5],
-    [6, 3],
-    [7, 3],
-    [0, 7],
-    [1, 7],
-    [2, 7],
-    [3, 7],
-    [4, 7],
-    [4, 8],
-    [4, 9],
-    [5, 9],
-    [6, 9]
-  ]
-};
+const WORD_LOCKUP_CENTER_X = 50;
+const WORD_LOCKUP_CENTER_Y = 66.32;
+const TEXT_TARGET_ALPHA_THRESHOLD = 24;
+const TEXT_TARGET_SAMPLE_STEP = 5;
 const PENCIL_AXIS = {
   tip: { x: 45.4, y: 57.2 },
   cap: { x: 56.8, y: 24.8 }
@@ -229,24 +172,135 @@ function getPencilTarget(index) {
   return { kind: 'tip', x: point.x, y: point.y };
 }
 
-function getTextTarget(index) {
-  const textIndex = Math.floor(index / 3);
-  const charIndex = textIndex % TEXT_SEQUENCE.length;
-  const mask = TEXT_MASKS[TEXT_SEQUENCE[charIndex]];
-  const [cellX, cellY] = mask[Math.floor(textIndex / TEXT_SEQUENCE.length) % mask.length];
-  const jitterX = (seeded(index, 17) - 0.5) * 0.22;
-  const jitterY = (seeded(index, 19) - 0.5) * 0.2;
+function getWordTitleBox(screenWidth, screenHeight, wordWidth) {
+  const safeWidth = screenWidth || 1024;
+  const safeHeight = screenHeight || 720;
 
   return {
-    kind: 'text',
-    x: TEXT_TARGET_BASE_X + charIndex * TEXT_TARGET_CHAR_STEP_X + cellX * TEXT_TARGET_CELL_STEP_X + jitterX,
-    y: TEXT_TARGET_BASE_Y + cellY * TEXT_TARGET_CELL_STEP_Y + jitterY
+    height: WORD_LINE_HEIGHT,
+    left: safeWidth * (WORD_LOCKUP_CENTER_X / 100) - wordWidth / 2,
+    top: safeHeight * (WORD_LOCKUP_CENTER_Y / 100) - WORD_LINE_HEIGHT / 2,
+    width: wordWidth
   };
 }
 
-function getParticleTarget(index) {
+function toPercentTarget(box, x, y, screenWidth, screenHeight) {
+  return {
+    x: ((box.left + x) / screenWidth) * 100,
+    y: ((box.top + y) / screenHeight) * 100
+  };
+}
+
+function measureSpacedText(ctx, text) {
+  return Array.from(text).reduce((total, char, index, chars) => {
+    const spacing = index < chars.length - 1 ? WORD_LETTER_SPACING : 0;
+
+    return total + ctx.measureText(char).width + spacing;
+  }, 0);
+}
+
+function drawSpacedText(ctx, text, x, y) {
+  Array.from(text).forEach((char, index) => {
+    ctx.fillText(char, x, y);
+    x += ctx.measureText(char).width + (index < Array.from(text).length - 1 ? WORD_LETTER_SPACING : 0);
+  });
+}
+
+function createFallbackTextTargets(screenWidth, screenHeight, wordWidth) {
+  const box = getWordTitleBox(screenWidth, screenHeight, wordWidth);
+  const chars = Array.from(INTRO_WORD);
+  const charWidth = box.width / chars.length;
+  const points = [];
+
+  chars.forEach((_, charIndex) => {
+    const charLeft = charIndex * charWidth;
+
+    for (let y = 10; y <= box.height - 10; y += 5.5) {
+      for (let x = 7; x <= charWidth - 7; x += 5.5) {
+        const localX = x / charWidth;
+        const localY = y / box.height;
+        const strokeLikeBand =
+          localY > 0.24 && localY < 0.78 && (localX < 0.22 || localX > 0.76 || Math.abs(localY - 0.5) < 0.1 || Math.abs(localX - localY) < 0.16);
+
+        if (strokeLikeBand) {
+          points.push(toPercentTarget(box, charLeft + x, y, screenWidth, screenHeight));
+        }
+      }
+    }
+  });
+
+  return points;
+}
+
+function createTextShapeTargets(screenWidth, screenHeight, wordWidth) {
+  const browserDocument = typeof globalThis !== 'undefined' ? globalThis.document : null;
+  const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
+  const fallbackTargets = createFallbackTextTargets(screenWidth, screenHeight, wordWidth);
+
+  if (Platform.OS !== 'web' || !browserDocument?.createElement) {
+    return fallbackTargets;
+  }
+
+  const box = getWordTitleBox(screenWidth, screenHeight, wordWidth);
+  const ratio = Math.min(browserWindow?.devicePixelRatio || 1, 2);
+  const canvas = browserDocument.createElement('canvas');
+  const canvasWidth = Math.max(1, Math.ceil(box.width * ratio));
+  const canvasHeight = Math.max(1, Math.ceil(box.height * ratio));
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+
+  const ctx = canvas.getContext?.('2d');
+
+  if (!ctx) {
+    return fallbackTargets;
+  }
+
+  ctx.scale(ratio, ratio);
+  ctx.clearRect(0, 0, box.width, box.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${WORD_FONT_SIZE}px ${WORD_FONT_FAMILY}`;
+  ctx.textBaseline = 'middle';
+  const textWidth = measureSpacedText(ctx, INTRO_WORD);
+  const startX = (box.width - textWidth) / 2;
+  drawSpacedText(ctx, INTRO_WORD, startX, WORD_LINE_HEIGHT / 2);
+
+  const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data;
+  const step = Math.max(2, Math.round(TEXT_TARGET_SAMPLE_STEP * ratio));
+  const targets = [];
+
+  for (let y = 0; y < canvasHeight; y += step) {
+    for (let x = 0; x < canvasWidth; x += step) {
+      const alpha = imageData[(y * canvasWidth + x) * 4 + 3];
+
+      if (alpha >= TEXT_TARGET_ALPHA_THRESHOLD) {
+        targets.push(toPercentTarget(box, x / ratio, y / ratio, screenWidth, screenHeight));
+      }
+    }
+  }
+
+  return targets.length > 0 ? targets : fallbackTargets;
+}
+
+function getTextTarget(index, textTargets) {
+  if (!textTargets.length) {
+    return { kind: 'text', x: WORD_LOCKUP_CENTER_X, y: WORD_LOCKUP_CENTER_Y };
+  }
+
+  const textIndex = Math.floor(index / 3);
+  const target = textTargets[(textIndex * 37 + index * 17) % textTargets.length];
+  const jitterX = (seeded(index, 17) - 0.5) * 0.035;
+  const jitterY = (seeded(index, 19) - 0.5) * 0.035;
+
+  return {
+    kind: 'text',
+    x: target.x + jitterX,
+    y: target.y + jitterY
+  };
+}
+
+function getParticleTarget(index, textTargets) {
   if (index % 10 >= 6) {
-    return getTextTarget(index);
+    return getTextTarget(index, textTargets);
   }
 
   return getPencilTarget(index);
@@ -288,11 +342,11 @@ function getFragmentDimensions(shape, index) {
   return { width: 5 + Math.round(seeded(index, 71) * 8), height: 5 + Math.round(seeded(index, 73) * 8) };
 }
 
-function buildParticles(count) {
+function buildParticles(count, textTargets) {
   return Array.from({ length: count }, (_, index) => {
     const shape = SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length];
     const start = getStartPosition(index);
-    const target = getParticleTarget(index);
+    const target = getParticleTarget(index, textTargets);
     const angle = seeded(index, 101) * Math.PI * 2;
     const dimensions = getFragmentDimensions(shape, index);
     const surgeSpread = 12 + seeded(index, 103) * 18;
@@ -633,7 +687,7 @@ function FragmentParticle({ particle, style }) {
 
 export default function ParticlePencilIntro({ visible, onDone }) {
   const { t } = useLanguage();
-  const { width } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
   const [stage, setStage] = useState('scatter');
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
   const particleCount = getParticleCount(width || 1024);
@@ -642,8 +696,9 @@ export default function ParticlePencilIntro({ visible, onDone }) {
   const shineTranslate = stage === 'shine' || stage === 'settle' || stage === 'exit' ? wordWidth * 0.72 : -wordWidth * 0.72;
   const wordTranslateY = (WORD_STAGES.has(stage) ? 0 : 10) - WORD_TITLE_CENTER_OFFSET;
   const wordExitTranslateY = 10 - WORD_TITLE_CENTER_OFFSET;
+  const textTargets = useMemo(() => createTextShapeTargets(width || 1024, height || 720, wordWidth), [height, width, wordWidth]);
 
-  const particles = useMemo(() => buildParticles(particleCount), [particleCount]);
+  const particles = useMemo(() => buildParticles(particleCount, textTargets), [particleCount, textTargets]);
 
   useEffect(() => {
     const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
@@ -1044,8 +1099,8 @@ const styles = StyleSheet.create({
   },
   wordLockup: {
     position: 'absolute',
-    left: `${TEXT_TARGET_CENTER_X}%`,
-    top: `${TEXT_TARGET_CENTER_Y}%`,
+    left: `${WORD_LOCKUP_CENTER_X}%`,
+    top: `${WORD_LOCKUP_CENTER_Y}%`,
     alignItems: 'center',
     overflow: 'hidden',
     paddingVertical: WORD_LOCKUP_PADDING_Y,
@@ -1059,9 +1114,12 @@ const styles = StyleSheet.create({
   },
   wordTitle: {
     color: '#D9FFF7',
+    width: '100%',
+    fontFamily: WORD_FONT_FAMILY,
     fontSize: WORD_FONT_SIZE,
     fontWeight: '900',
     letterSpacing: WORD_LETTER_SPACING,
+    textAlign: 'center',
     textShadowColor: 'rgba(31, 124, 196, 0.45)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 18,
