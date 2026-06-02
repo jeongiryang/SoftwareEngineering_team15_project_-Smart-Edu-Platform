@@ -732,7 +732,7 @@ function CoopMock({ demoPhase, reducedMotion, t }) {
 
 function RewardMock({ demoPhase, reducedMotion, t }) {
   const phase = Math.min(reducedMotion ? DEMO_VISUAL_FINAL_PHASE : demoPhase, DEMO_VISUAL_FINAL_PHASE);
-  const pointValues = ['4,200P', '4,200P', '4,200P', '3,400P', '3,400P'];
+  const pointValues = ['4,200P', '4,000P', '3,800P', '3,600P', '3,400P'];
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.rewardMock]}>
@@ -748,7 +748,7 @@ function RewardMock({ demoPhase, reducedMotion, t }) {
             </View>
             <View style={[styles.rewardMoonStar, phase >= 4 && styles.rewardMoonStarActive]} />
           </View>
-          <View style={[styles.rewardAvatarInner, demoPhase >= 3 && styles.rewardAvatarInnerActive]} />
+          <View style={[styles.rewardAvatarInner, phase >= 4 && styles.rewardAvatarInnerActive]} />
         </View>
         <View style={styles.rewardCopy}>
           <View style={styles.rewardItemRow}>
@@ -772,7 +772,6 @@ function LanguageMock({ reducedMotion, t }) {
     t('landing.language.previewEn', 'English Beta'),
     t('landing.language.previewZh', '中文 Beta')
   ];
-  const languageFlags = ['🇰🇷', '🇯🇵', '🇺🇸', '🇨🇳'];
   const languageFlagLabels = ['한국어', '일본어', '영어', '중국어'];
   const sampleSentences = [
     '오늘 학습 기록을 정리했어요.',
@@ -781,6 +780,55 @@ function LanguageMock({ reducedMotion, t }) {
     '今天的学习记录已整理。'
   ];
   const selectedLanguageIndex = reducedMotion ? 0 : languageIndex;
+  const renderLanguageFlag = (index, selected) => {
+    const badgeStyle = [
+      styles.languageFlagBadge,
+      index === 0 && styles.flagBadgeKorea,
+      index === 1 && styles.flagBadgeJapan,
+      index === 2 && styles.flagBadgeUs,
+      index === 3 && styles.flagBadgeChina,
+      selected && styles.languageFlagBadgeSelected
+    ];
+
+    if (index === 0) {
+      return (
+        <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+          <View style={styles.flagKoreaRing}>
+            <View style={styles.flagKoreaRed} />
+            <View style={styles.flagKoreaBlue} />
+          </View>
+          <View style={[styles.flagKoreaBar, styles.flagKoreaBarTopLeft]} />
+          <View style={[styles.flagKoreaBar, styles.flagKoreaBarBottomRight]} />
+        </View>
+      );
+    }
+
+    if (index === 1) {
+      return (
+        <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+          <View style={styles.flagJapanDot} />
+        </View>
+      );
+    }
+
+    if (index === 2) {
+      return (
+        <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+          <View style={[styles.flagUsStripe, styles.flagUsStripeTop]} />
+          <View style={[styles.flagUsStripe, styles.flagUsStripeMiddle]} />
+          <View style={[styles.flagUsStripe, styles.flagUsStripeBottom]} />
+          <View style={styles.flagUsCanton} />
+        </View>
+      );
+    }
+
+    return (
+      <View accessibilityLabel={languageFlagLabels[index]} style={badgeStyle}>
+        <Text style={styles.flagChinaStar}>★</Text>
+        <View style={styles.flagChinaMiniStar} />
+      </View>
+    );
+  };
 
   useEffect(() => {
     if (reducedMotion) {
@@ -812,15 +860,7 @@ function LanguageMock({ reducedMotion, t }) {
               index === selectedLanguageIndex && styles.languageRowSelected
             ]}
           >
-            <Text
-              accessibilityLabel={languageFlagLabels[index]}
-              style={[
-                styles.languageFlagBadge,
-                index === selectedLanguageIndex && styles.languageFlagBadgeSelected
-              ]}
-            >
-              {languageFlags[index]}
-            </Text>
+            {renderLanguageFlag(index, index === selectedLanguageIndex)}
             <View style={[styles.languageDot, index === 0 && styles.languageDotPrimary]} />
             <Text style={styles.languageText}>{item}</Text>
           </View>
@@ -2872,25 +2912,116 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mintDeep
   },
   languageFlagBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.surfaceWarm,
+    width: 34,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: colors.line,
-    color: colors.ink,
-    fontSize: 16,
-    lineHeight: 28,
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
     flexShrink: 0,
+    position: 'relative',
     transitionDuration: '520ms',
     transitionTimingFunction: 'ease-in-out'
   },
   languageFlagBadgeSelected: {
-    backgroundColor: colors.surface,
     borderColor: colors.mint,
     transform: [{ scale: 1.06 }]
+  },
+  flagBadgeKorea: {
+    backgroundColor: '#FFFFFF'
+  },
+  flagBadgeJapan: {
+    backgroundColor: '#FFFFFF'
+  },
+  flagBadgeUs: {
+    backgroundColor: '#FFFFFF'
+  },
+  flagBadgeChina: {
+    backgroundColor: '#D62828'
+  },
+  flagKoreaRing: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    overflow: 'hidden',
+    transform: [{ rotate: '-28deg' }]
+  },
+  flagKoreaRed: {
+    flex: 1,
+    backgroundColor: '#E63946'
+  },
+  flagKoreaBlue: {
+    flex: 1,
+    backgroundColor: '#2563EB'
+  },
+  flagKoreaBar: {
+    position: 'absolute',
+    width: 8,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: colors.ink,
+    opacity: 0.8
+  },
+  flagKoreaBarTopLeft: {
+    top: 4,
+    left: 4,
+    transform: [{ rotate: '-24deg' }]
+  },
+  flagKoreaBarBottomRight: {
+    right: 4,
+    bottom: 4,
+    transform: [{ rotate: '-24deg' }]
+  },
+  flagJapanDot: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#D62828'
+  },
+  flagUsCanton: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 14,
+    height: 12,
+    backgroundColor: '#1D4ED8'
+  },
+  flagUsStripe: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: '#DC2626'
+  },
+  flagUsStripeTop: {
+    top: 3
+  },
+  flagUsStripeMiddle: {
+    top: 10
+  },
+  flagUsStripeBottom: {
+    bottom: 3
+  },
+  flagChinaStar: {
+    position: 'absolute',
+    left: 5,
+    top: 1,
+    color: '#FDE68A',
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '900'
+  },
+  flagChinaMiniStar: {
+    position: 'absolute',
+    right: 7,
+    top: 8,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FDE68A'
   },
   languageText: {
     color: colors.ink,
