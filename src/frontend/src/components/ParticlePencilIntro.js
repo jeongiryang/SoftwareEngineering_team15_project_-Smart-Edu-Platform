@@ -59,74 +59,6 @@ function seeded(index, salt) {
   return value - Math.floor(value);
 }
 
-function clamp01(value) {
-  return Math.max(0, Math.min(1, value));
-}
-
-function smoothstep(value) {
-  const x = clamp01(value);
-  return x * x * (3 - 2 * x);
-}
-
-function progressBetween(elapsed, start, end) {
-  return smoothstep((elapsed - start) / (end - start));
-}
-
-function lerp(start, end, progress) {
-  return start + (end - start) * progress;
-}
-
-function mixPoint(from, to, progress) {
-  return {
-    x: lerp(from.x, to.x, progress),
-    y: lerp(from.y, to.y, progress)
-  };
-}
-
-function getStageFromElapsed(elapsed) {
-  if (elapsed >= INTRO_TIMELINE.exit) {
-    return 'exit';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.settle) {
-    return 'settle';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.shine) {
-    return 'shine';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.caption) {
-    return 'caption';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.text) {
-    return 'text';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.textSilhouette) {
-    return 'textSilhouette';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.pencil) {
-    return 'pencil';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.silhouette) {
-    return 'silhouette';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.gather) {
-    return 'gather';
-  }
-
-  if (elapsed >= INTRO_TIMELINE.drift) {
-    return 'drift';
-  }
-
-  return 'scatter';
-}
-
 function getParticleCount(width) {
   if (width >= 1440) {
     return 640;
@@ -487,97 +419,165 @@ function lockIntroChrome() {
   };
 }
 
-function getParticlePosition(particle, elapsed) {
-  const start = { x: particle.startX, y: particle.startY };
-  const drift = { x: particle.driftX, y: particle.driftY };
-  const surge = { x: particle.surgeX, y: particle.surgeY };
-  const target = { x: particle.targetX, y: particle.targetY };
-  const driftProgress = progressBetween(elapsed, 0, INTRO_TIMELINE.gather);
-  const gatherProgress = progressBetween(elapsed, INTRO_TIMELINE.gather - 180, INTRO_TIMELINE.silhouette);
-  const pencilProgress = progressBetween(elapsed, INTRO_TIMELINE.silhouette - 120, INTRO_TIMELINE.pencil);
-  const textProgress = progressBetween(elapsed, INTRO_TIMELINE.pencil - 180, INTRO_TIMELINE.textSilhouette);
-  const earlyMotion = mixPoint(start, drift, driftProgress);
-  const gathered = mixPoint(earlyMotion, surge, gatherProgress);
-
-  if (particle.targetKind === 'text') {
-    return mixPoint(gathered, target, textProgress);
+function getParticlePosition(particle, stage) {
+  if (stage === 'scatter') {
+    return { x: particle.startX, y: particle.startY };
   }
 
-  return mixPoint(gathered, target, pencilProgress);
-}
-
-function getParticleOpacity(elapsed, reducedMotion, particle) {
-  if (reducedMotion || elapsed >= INTRO_TIMELINE.exit) {
-    return 0;
+  if (stage === 'drift') {
+    return { x: particle.driftX, y: particle.driftY };
   }
 
-  if (elapsed >= INTRO_TIMELINE.exit) {
-    return 0;
+  if (stage === 'gather') {
+    return { x: particle.surgeX, y: particle.surgeY };
   }
 
-  const baseOpacity = particle.shape === 'studyToken' || particle.shape === 'mathToken' ? 0.76 : 0.5;
-  const driftOpacity = particle.shape === 'dot' ? 0.64 : 0.95;
-  const gatherOpacity = lerp(driftOpacity, 0.96, progressBetween(elapsed, INTRO_TIMELINE.gather, INTRO_TIMELINE.silhouette));
+  if (stage === 'silhouette' || stage === 'pencil') {
+    if (particle.targetKind === 'text') {
+      const bridge = stage === 'silhouette' ? 0.78 : 0.42;
 
-  if (particle.targetKind === 'text') {
-    const textWake = progressBetween(elapsed, INTRO_TIMELINE.silhouette, INTRO_TIMELINE.pencil);
-    const silhouette = progressBetween(elapsed, INTRO_TIMELINE.pencil - 160, INTRO_TIMELINE.textSilhouette);
-    const solidify = progressBetween(elapsed, INTRO_TIMELINE.textSilhouette, INTRO_TIMELINE.caption);
-    const settleFade = progressBetween(elapsed, INTRO_TIMELINE.caption, INTRO_TIMELINE.settle);
-
-    if (elapsed < INTRO_TIMELINE.gather) {
-      return lerp(baseOpacity, driftOpacity, progressBetween(elapsed, 0, INTRO_TIMELINE.gather));
+      return {
+        x: particle.targetX + (particle.surgeX - particle.targetX) * bridge,
+        y: particle.targetY + (particle.surgeY - particle.targetY) * bridge
+      };
     }
 
-    return lerp(lerp(0.12, 1, Math.max(textWake * 0.35, silhouette)), 0.1, Math.max(solidify, settleFade * 0.9));
+    return { x: particle.targetX, y: particle.targetY };
   }
 
-  const mascotSolidify = progressBetween(elapsed, INTRO_TIMELINE.silhouette, INTRO_TIMELINE.textSilhouette);
-  const finalFade = progressBetween(elapsed, INTRO_TIMELINE.textSilhouette, INTRO_TIMELINE.shine);
-
-  if (elapsed < INTRO_TIMELINE.gather) {
-    return lerp(baseOpacity, driftOpacity, progressBetween(elapsed, 0, INTRO_TIMELINE.gather));
-  }
-
-  return lerp(lerp(gatherOpacity, 0.18, mascotSolidify), 0.02, finalFade);
+  return { x: particle.targetX, y: particle.targetY };
 }
 
-function getMascotPartOpacity(part, elapsed, reducedMotion) {
+function getParticleOpacity(stage, reducedMotion, particle) {
+  if (reducedMotion || stage === 'exit') {
+    return 0;
+  }
+
+  if (stage === 'scatter') {
+    return particle.shape === 'studyToken' || particle.shape === 'mathToken' ? 0.78 : 0.5;
+  }
+
+  if (stage === 'drift') {
+    return particle.shape === 'dot' ? 0.64 : 0.95;
+  }
+
+  if (stage === 'gather') {
+    return 0.96;
+  }
+
+  if (stage === 'silhouette') {
+    return particle.targetKind === 'text' ? 0.12 : 1;
+  }
+
+  if (stage === 'pencil') {
+    return particle.targetKind === 'text' ? 0.24 : 0.54;
+  }
+
+  if (stage === 'textSilhouette') {
+    return particle.targetKind === 'text' ? 1 : 0.18;
+  }
+
+  if (stage === 'text') {
+    return particle.targetKind === 'text' ? 0.72 : 0.06;
+  }
+
+  if (stage === 'caption') {
+    return particle.targetKind === 'text' ? 0.34 : 0.03;
+  }
+
+  if (stage === 'shine') {
+    return particle.targetKind === 'text' ? 0.18 : 0.02;
+  }
+
+  if (stage === 'settle') {
+    return particle.targetKind === 'text' ? 0.12 : 0;
+  }
+
+  return 0;
+}
+
+function getMascotPartOpacity(part, stage, reducedMotion) {
   if (reducedMotion) {
     return 1;
   }
 
-  const baseProgress = progressBetween(elapsed, INTRO_TIMELINE.silhouette, INTRO_TIMELINE.pencil + 260);
-  const partOffset = part === 'body' ? 0 : part === 'cap' ? 0.12 : part === 'wood' ? 0.2 : 0.28;
+  if (stage === 'pencil') {
+    if (part === 'body') {
+      return 0.78;
+    }
 
-  return clamp01((baseProgress - partOffset) / (1 - partOffset));
+    if (part === 'cap') {
+      return 0.58;
+    }
+
+    return 0.48;
+  }
+
+  if (MASCOT_STAGES.has(stage)) {
+    return 1;
+  }
+
+  return 0;
 }
 
-function getMascotOpacity(elapsed, reducedMotion) {
+function getMascotOpacity(stage, reducedMotion) {
   if (reducedMotion) {
     return 1;
   }
 
-  return progressBetween(elapsed, INTRO_TIMELINE.silhouette - 160, INTRO_TIMELINE.pencil + 120);
+  if (stage === 'pencil') {
+    return 0.9;
+  }
+
+  if (MASCOT_STAGES.has(stage)) {
+    return 1;
+  }
+
+  return 0;
 }
 
-function getWordOpacity(elapsed, reducedMotion) {
+function getWordOpacity(stage, reducedMotion) {
   if (reducedMotion) {
     return 1;
   }
 
-  const textStart = progressBetween(elapsed, INTRO_TIMELINE.textSilhouette + 260, INTRO_TIMELINE.caption);
-  const textFinish = progressBetween(elapsed, INTRO_TIMELINE.caption, INTRO_TIMELINE.shine);
+  if (stage === 'textSilhouette') {
+    return 0.08;
+  }
 
-  return lerp(textStart * 0.86, 1, textFinish);
+  if (stage === 'text') {
+    return 0.64;
+  }
+
+  if (stage === 'caption') {
+    return 0.92;
+  }
+
+  if (stage === 'shine') {
+    return 1;
+  }
+
+  if (stage === 'settle' || stage === 'exit') {
+    return 1;
+  }
+
+  return 0;
 }
 
-function getCaptionOpacity(elapsed, reducedMotion) {
+function getCaptionOpacity(stage, reducedMotion) {
   if (reducedMotion) {
     return 1;
   }
 
-  return progressBetween(elapsed, INTRO_TIMELINE.caption - 80, INTRO_TIMELINE.shine);
+  if (stage === 'caption') {
+    return 0.72;
+  }
+
+  if (stage === 'shine' || stage === 'settle' || stage === 'exit') {
+    return 1;
+  }
+
+  return 0;
 }
 
 function getShineOpacity(stage, reducedMotion) {
@@ -588,12 +588,12 @@ function getShineOpacity(stage, reducedMotion) {
   return stage === 'shine' ? 0.72 : 0;
 }
 
-function PencilMascot({ elapsed, pencilWidth, reducedMotion, stage }) {
-  const bodyOpacity = getMascotPartOpacity('body', elapsed, reducedMotion);
-  const capOpacity = getMascotPartOpacity('cap', elapsed, reducedMotion);
-  const woodOpacity = getMascotPartOpacity('wood', elapsed, reducedMotion);
-  const tipOpacity = getMascotPartOpacity('tip', elapsed, reducedMotion);
-  const mascotOpacity = getMascotOpacity(elapsed, reducedMotion);
+function PencilMascot({ pencilWidth, reducedMotion, stage }) {
+  const bodyOpacity = getMascotPartOpacity('body', stage, reducedMotion);
+  const capOpacity = getMascotPartOpacity('cap', stage, reducedMotion);
+  const woodOpacity = getMascotPartOpacity('wood', stage, reducedMotion);
+  const tipOpacity = getMascotPartOpacity('tip', stage, reducedMotion);
+  const mascotOpacity = getMascotOpacity(stage, reducedMotion);
 
   return (
     <View
@@ -648,12 +648,11 @@ function FragmentParticle({ particle, style }) {
 export default function ParticlePencilIntro({ visible, onDone }) {
   const { t } = useLanguage();
   const { height, width } = useWindowDimensions();
-  const [elapsed, setElapsed] = useState(0);
+  const [stage, setStage] = useState('scatter');
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
   const particleCount = getParticleCount(width || 1024);
   const pencilWidth = width < 520 ? 238 : width < 900 ? 310 : 390;
   const wordWidth = Math.min((width || 1024) * 0.82, 440);
-  const stage = reducedMotion ? 'settle' : getStageFromElapsed(elapsed);
   const shineTranslate = stage === 'shine' || stage === 'settle' || stage === 'exit' ? wordWidth * 0.72 : -wordWidth * 0.72;
   const textTargets = useMemo(() => createTextShapeTargets(width || 1024, height || 720, wordWidth), [height, width, wordWidth]);
 
@@ -699,66 +698,36 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       return undefined;
     }
 
-    setElapsed(reducedMotion ? INTRO_TIMELINE.settle : 0);
+    setStage(reducedMotion ? 'settle' : 'scatter');
 
     if (reducedMotion) {
       const timer = setTimeout(onDone, 1400);
       return () => clearTimeout(timer);
     }
 
-    const browserWindow = typeof globalThis !== 'undefined' ? globalThis.window : null;
-    let frameId;
-    let doneTimer;
-    let lastRender = 0;
-    const startedAt = Date.now();
-    const update = () => {
-      const nextElapsed = Date.now() - startedAt;
-
-      if (nextElapsed - lastRender > 28 || nextElapsed >= INTRO_TIMELINE.exit) {
-        lastRender = nextElapsed;
-        setElapsed(Math.min(nextElapsed, INTRO_TIMELINE.done));
-      }
-
-      if (nextElapsed < INTRO_TIMELINE.done && browserWindow?.requestAnimationFrame) {
-        frameId = browserWindow.requestAnimationFrame(update);
-      }
-    };
-
-    if (browserWindow?.requestAnimationFrame) {
-      frameId = browserWindow.requestAnimationFrame(update);
-    } else {
-      const interval = setInterval(() => {
-        const nextElapsed = Date.now() - startedAt;
-        setElapsed(Math.min(nextElapsed, INTRO_TIMELINE.done));
-
-        if (nextElapsed >= INTRO_TIMELINE.done) {
-          clearInterval(interval);
-        }
-      }, 33);
-
-      doneTimer = setTimeout(onDone, INTRO_TIMELINE.done);
-
-      return () => {
-        clearInterval(interval);
-        clearTimeout(doneTimer);
-      };
-    }
-
-    doneTimer = setTimeout(onDone, INTRO_TIMELINE.done);
+    const timers = [
+      setTimeout(() => setStage('drift'), INTRO_TIMELINE.drift),
+      setTimeout(() => setStage('gather'), INTRO_TIMELINE.gather),
+      setTimeout(() => setStage('silhouette'), INTRO_TIMELINE.silhouette),
+      setTimeout(() => setStage('pencil'), INTRO_TIMELINE.pencil),
+      setTimeout(() => setStage('textSilhouette'), INTRO_TIMELINE.textSilhouette),
+      setTimeout(() => setStage('text'), INTRO_TIMELINE.text),
+      setTimeout(() => setStage('caption'), INTRO_TIMELINE.caption),
+      setTimeout(() => setStage('shine'), INTRO_TIMELINE.shine),
+      setTimeout(() => setStage('settle'), INTRO_TIMELINE.settle),
+      setTimeout(() => setStage('exit'), INTRO_TIMELINE.exit),
+      setTimeout(onDone, INTRO_TIMELINE.done)
+    ];
 
     return () => {
-      if (frameId && browserWindow?.cancelAnimationFrame) {
-        browserWindow.cancelAnimationFrame(frameId);
-      }
-
-      clearTimeout(doneTimer);
+      timers.forEach((timer) => clearTimeout(timer));
     };
   }, [onDone, reducedMotion, visible]);
 
   const particleStyles = useMemo(
     () =>
       particles.map((particle) => {
-        const position = getParticlePosition(particle, elapsed);
+        const position = getParticlePosition(particle, stage);
         const formed = FORMED_STAGES.has(stage);
         const transitionDuration =
           stage === 'drift'
@@ -796,7 +765,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
           color: particle.targetKind === 'text' ? '#D9FFF7' : particle.color,
           height: particle.height,
           left: `${position.x}%`,
-          opacity: getParticleOpacity(elapsed, reducedMotion, particle),
+          opacity: getParticleOpacity(stage, reducedMotion, particle),
           top: `${position.y}%`,
           transitionDelay: formed ? formedDelay : `${particle.index % 44 * 12}ms`,
           transitionDuration: `${transitionDuration}ms`,
@@ -809,7 +778,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
           width: particle.width
         };
       }),
-    [elapsed, particles, reducedMotion, stage]
+    [particles, reducedMotion, stage]
   );
 
   if (!visible) {
@@ -835,7 +804,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       </View>
 
       <View pointerEvents="none" style={[styles.mascotStage, stage === 'exit' && styles.mascotStageExit]}>
-        <PencilMascot elapsed={elapsed} pencilWidth={pencilWidth} reducedMotion={reducedMotion} stage={stage} />
+        <PencilMascot pencilWidth={pencilWidth} reducedMotion={reducedMotion} stage={stage} />
       </View>
 
       <View
@@ -855,8 +824,8 @@ export default function ParticlePencilIntro({ visible, onDone }) {
           }
         ]}
       >
-        <Text style={[styles.wordTitle, { opacity: getWordOpacity(elapsed, reducedMotion) }]}>{INTRO_WORD}</Text>
-        <Text style={[styles.wordCaption, { opacity: getCaptionOpacity(elapsed, reducedMotion) }]}>Smart Edu Platform</Text>
+        <Text style={[styles.wordTitle, { opacity: getWordOpacity(stage, reducedMotion) }]}>{INTRO_WORD}</Text>
+        <Text style={[styles.wordCaption, { opacity: getCaptionOpacity(stage, reducedMotion) }]}>Smart Edu Platform</Text>
         <View
           pointerEvents="none"
           style={[
@@ -1103,13 +1072,13 @@ const styles = StyleSheet.create({
   },
   wordTitle: {
     color: '#D9FFF7',
-    fontSize: 56,
+    fontSize: WORD_FONT_SIZE,
     fontWeight: '900',
-    letterSpacing: 1.8,
+    letterSpacing: WORD_LETTER_SPACING,
     textShadowColor: 'rgba(31, 124, 196, 0.45)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 18,
-    lineHeight: 64,
+    lineHeight: WORD_LINE_HEIGHT,
     transitionDuration: '960ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)'
