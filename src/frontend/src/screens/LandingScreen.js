@@ -211,7 +211,7 @@ export default function LandingScreen({ onNavigate }) {
         </View>
       </View>
 
-      <ScrollStorySection scrollY={scrollY} />
+      <ScrollStorySection onNavigate={onNavigate} scrollY={scrollY} />
 
       <View dataSet={{ sagakI18nIgnore: 'true' }} style={styles.footer}>
         <View style={styles.footerInner}>

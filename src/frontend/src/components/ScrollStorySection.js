@@ -223,7 +223,7 @@ function getPrefersReducedMotion() {
   return browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function PromoCarousel({ activeIndex, onNext, onPauseChange, onPrevious, onSelect, t }) {
+function PromoCarousel({ activeIndex, onCtaPress, onNext, onPauseChange, onPrevious, onSelect, t }) {
   const slide = promoSlides[activeIndex];
   const pauseAutoSlide = () => onPauseChange(true);
   const resumeAutoSlide = () => onPauseChange(false);
@@ -265,9 +265,13 @@ function PromoCarousel({ activeIndex, onNext, onPauseChange, onPrevious, onSelec
             ))}
           </View>
         ) : null}
-        <View style={styles.promoCta}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onCtaPress}
+          style={(state) => [styles.promoCta, ...interactiveStateStyles(state)]}
+        >
           <Text style={styles.promoCtaText}>{t(slide.ctaKey, slide.ctaFallback)}</Text>
-        </View>
+        </Pressable>
       </View>
       <View style={styles.promoVisual}>
         <View style={styles.promoBubbleLarge} />
@@ -668,7 +672,7 @@ function ServiceSection({ section, t }) {
   );
 }
 
-export default function ScrollStorySection() {
+export default function ScrollStorySection({ onNavigate }) {
   const { t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPromoPaused, setIsPromoPaused] = useState(false);
@@ -728,10 +732,15 @@ export default function ScrollStorySection() {
     resetPromoTimer();
   };
 
+  const moveToRegister = () => {
+    onNavigate?.('register');
+  };
+
   return (
     <View style={styles.story}>
       <PromoCarousel
         activeIndex={activeIndex}
+        onCtaPress={moveToRegister}
         onNext={() => moveSlide(1)}
         onPauseChange={setIsPromoPaused}
         onPrevious={() => moveSlide(-1)}
@@ -756,9 +765,13 @@ export default function ScrollStorySection() {
         <Text style={styles.finalCtaDescription}>
           {t('landing.final.description', '계획, 질문, 기록, 복습을 한 흐름으로 연결하는 나만의 학습 공간을 만들 수 있습니다.')}
         </Text>
-        <View style={styles.finalCtaButton}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={moveToRegister}
+          style={(state) => [styles.finalCtaButton, ...interactiveStateStyles(state)]}
+        >
           <Text style={styles.finalCtaButtonText}>지금 시작하기</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
