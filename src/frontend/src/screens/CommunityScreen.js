@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -870,6 +871,22 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     loadPostDetail(post.id, 1);
   }
 
+  function closeDetailOverlay() {
+    setSelectedPost(null);
+    setCommentContent('');
+    setReplyTarget(null);
+    setReplyContent('');
+    setEditingComment(null);
+    setEditingCommentContent('');
+    setCommentPage(1);
+    setCommentPagination({
+      page: 1,
+      pageSize: PAGE_SIZE,
+      total: 0,
+      totalPages: 1
+    });
+  }
+
   function changeCommentPage(nextPage) {
     if (!selectedPost) {
       return;
@@ -895,9 +912,9 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   const visibleCount = activeTab === 'posts' ? posts.length : bookmarks.length;
   const totalCount = currentPageInfo.total || 0;
   const boardLabel = activeTab === 'posts' ? translateText('게시글') : translateText('북마크');
-  const detailLabel = selectedPost ? selectedPost.title : translateText('상세 대기');
 
   return (
+    <>
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <View style={styles.headerText}>
@@ -990,8 +1007,6 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
       ) : null}
 
       {postFormMode ? renderPostForm() : null}
-      {renderDeleteModal()}
-      {renderReportModal()}
 
       <View style={styles.boardStatusBar}>
         <Text style={styles.boardStatusText}>
@@ -1003,10 +1018,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         <Text style={styles.boardStatusText}>
           {currentPage} / {Math.max(currentPageInfo.totalPages || 1, 1)} {translateText('페이지')}
         </Text>
-        <Text style={styles.boardStatusDivider}>/</Text>
-        <Text style={styles.boardStatusText} numberOfLines={1}>
-          {translateText('선택:')} {detailLabel}
-        </Text>
+        {selectedPost ? (
+          <>
+            <Text style={styles.boardStatusDivider}>/</Text>
+            <Text style={styles.boardStatusText} numberOfLines={1}>
+              {translateText('선택:')} {selectedPost.title}
+            </Text>
+          </>
+        ) : null}
       </View>
 
       <View style={styles.boardLayout}>
@@ -1015,23 +1034,12 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           {loading ? renderListSkeleton(activeTab === 'bookmarks') : activeTab === 'posts' ? renderPostList() : renderBookmarkList()}
           {renderPagination(currentPageInfo, currentPage, setCurrentPage)}
         </View>
-
-        <View style={styles.boardDetailPane}>
-          {detailLoading ? (
-            renderDetailSkeleton()
-          ) : selectedPost ? (
-            renderPostDetail()
-          ) : (
-            <View style={styles.emptyDetail}>
-              <Text style={styles.emptyTitle}>{translateText('게시글을 선택해 주세요.')}</Text>
-              <Text style={styles.emptyText}>
-                {translateText('목록에서 게시글을 열면 상세, 댓글, 반응, 신고 기능을 사용할 수 있습니다.')}
-              </Text>
-            </View>
-          )}
-        </View>
       </View>
     </ScrollView>
+    {renderDetailOverlay()}
+    {renderDeleteModal()}
+    {renderReportModal()}
+    </>
   );
 
   function renderListSkeleton(isBookmarkList = false) {
@@ -1124,6 +1132,62 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         />
         <Text style={styles.counterText}>{reportReason.trim().length}/500</Text>
       </ConfirmModal>
+    );
+  }
+
+  function renderDetailOverlay() {
+    const visible = !postFormMode && (detailLoading || Boolean(selectedPost));
+
+    if (!visible) {
+      return null;
+    }
+
+    return (
+      <Modal
+        animationType="fade"
+        onRequestClose={closeDetailOverlay}
+        transparent
+        visible={visible}
+      >
+        <View style={styles.detailOverlayRoot}>
+          <Pressable
+            accessibilityLabel={translateText('닫기')}
+            accessibilityRole="button"
+            onPress={closeDetailOverlay}
+            style={styles.detailOverlayBackdrop}
+          />
+          <View
+            accessibilityViewIsModal
+            style={[styles.detailOverlayPanel, shadows.card]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.detailOverlayHeader}>
+              <View style={styles.detailOverlayHeaderCopy}>
+                <Text style={styles.helperLabel}>{translateText('상세')}</Text>
+                {selectedPost?.title ? (
+                  <Text style={styles.detailOverlayTitle} numberOfLines={1}>{selectedPost.title}</Text>
+                ) : null}
+              </View>
+              <Pressable
+                accessibilityLabel={translateText('닫기')}
+                accessibilityRole="button"
+                onPress={closeDetailOverlay}
+                style={(state) => [styles.smallButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.smallButtonText}>{translateText('닫기')}</Text>
+              </Pressable>
+            </View>
+            <ScrollView
+              contentContainerStyle={styles.detailOverlayContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+              style={styles.detailOverlayScroll}
+            >
+              {detailLoading ? renderDetailSkeleton() : selectedPost ? renderPostDetail() : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     );
   }
 
@@ -1580,8 +1644,6 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     return (
       <View style={styles.metricRow}>
         <Text style={styles.metricText}>{translateText('댓글')} {post.commentCount ?? 0}</Text>
-        <Text style={styles.metricText}>{translateText('좋아요')} {post.likeCount ?? 0}</Text>
-        <Text style={styles.metricText}>{translateText('싫어요')} {post.dislikeCount ?? 0}</Text>
         <Text style={styles.metricText}>{translateText('조회수')} {post.viewCount ?? 0}</Text>
         <Text style={styles.metricText}>{translateText('북마크')} {post.bookmarkCount ?? 0}</Text>
       </View>
@@ -2049,14 +2111,57 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap'
   },
   boardMainPane: {
-    flex: 1.8,
+    flex: 1,
     minWidth: 260,
+    width: '100%',
     gap: 12
   },
-  boardDetailPane: {
-    flex: 0.8,
-    minWidth: 260,
-    maxWidth: 420
+  detailOverlayRoot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(14, 34, 50, 0.58)',
+    padding: 18
+  },
+  detailOverlayBackdrop: {
+    ...StyleSheet.absoluteFillObject
+  },
+  detailOverlayPanel: {
+    width: '100%',
+    maxWidth: 980,
+    maxHeight: '92%',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    overflow: 'hidden'
+  },
+  detailOverlayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    backgroundColor: colors.surfaceWarm,
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
+  detailOverlayHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4
+  },
+  detailOverlayTitle: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '800'
+  },
+  detailOverlayScroll: {
+    width: '100%'
+  },
+  detailOverlayContent: {
+    padding: 14
   },
   searchRow: {
     flexDirection: 'row',
