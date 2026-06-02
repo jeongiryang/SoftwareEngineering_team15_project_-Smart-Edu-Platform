@@ -62,8 +62,15 @@ const promoSlides = [
     ctaKey: 'landing.promo.5.cta',
     labelFallback: 'COOP REWARD',
     titleFallback: '협동 퀘스트와 보상',
-    descriptionFallback: '레이드, 협동 퀘스트, 포인트 상점으로 목표를 이어갑니다.',
+    descriptionFallback: '레이드, 협동 퀘스트, 포인트 상점으로 목표를 이어갑니다. 팀 목표 진행률과 기여 시간, 꾸미기 보상을 연결해 학습 동기를 유지하세요.',
     ctaFallback: '도전 보기',
+    detailKeys: [
+      'landing.promo.5.detail1',
+      'landing.promo.5.detail2',
+      'landing.promo.5.detail3',
+      'landing.promo.5.detail4'
+    ],
+    detailFallbacks: ['레이드 진행률', '기여 시간 누적', '포인트 상점', '프로필 꾸미기'],
     mood: 'mint'
   }
 ];
@@ -249,6 +256,15 @@ function PromoCarousel({ activeIndex, onNext, onPauseChange, onPrevious, onSelec
         <Text style={styles.promoLabel}>{t(slide.labelKey, slide.labelFallback)}</Text>
         <Text style={styles.promoTitle}>{t(slide.titleKey, slide.titleFallback)}</Text>
         <Text style={styles.promoDescription}>{t(slide.descriptionKey, slide.descriptionFallback)}</Text>
+        {slide.detailKeys?.length ? (
+          <View style={styles.promoDetailRow}>
+            {slide.detailKeys.map((detailKey, index) => (
+              <Text key={detailKey} style={styles.promoDetailChip}>
+                {t(detailKey, slide.detailFallbacks[index])}
+              </Text>
+            ))}
+          </View>
+        ) : null}
         <View style={styles.promoCta}>
           <Text style={styles.promoCtaText}>{t(slide.ctaKey, slide.ctaFallback)}</Text>
         </View>
@@ -289,57 +305,38 @@ function PromoCarousel({ activeIndex, onNext, onPauseChange, onPrevious, onSelec
   );
 }
 
-function SectionHeading({ descriptionKey, eyebrow, titleKey, t }) {
-  return (
-    <View style={styles.sectionHeading}>
-      <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
-      <Text style={styles.sectionTitle}>{t(titleKey, '사각사각이 학습을 여는 방식')}</Text>
-      <Text style={styles.sectionDescription}>{t(descriptionKey, '조용한 기록, 다정한 피드백, 반복되는 복습을 한 페이지에서 이어갑니다.')}</Text>
-    </View>
-  );
-}
-
-function RecordSection({ t }) {
+function DesignNotesRecordCards({ t }) {
   const rows = [
-    '자료구조 DFS 복습 완료 · 42분',
-    '미적분 문제풀이 · 1시간 10분',
-    '영어 단어 암기 · 25분',
-    '오늘 질문 3개 / 요약 2개 저장'
+    t('landing.designRecord.row1', '자료구조 DFS 복습 완료 · 42분'),
+    t('landing.designRecord.row2', '미적분 문제풀이 · 1시간 10분'),
+    t('landing.designRecord.row3', '영어 단어 암기 · 25분'),
+    t('landing.designRecord.row4', '오늘 질문 3개 / 요약 2개 저장')
   ];
 
   return (
-    <View style={styles.revealSection}>
-      <SectionKeyword label="RECORD" style={styles.bgRecord} />
-      <SectionHeading
-        descriptionKey="landing.reveal.description"
-        eyebrow="OPENING NOTES"
-        titleKey="landing.reveal.title"
-        t={t}
-      />
-      <View style={styles.recordExperience}>
-        <View style={[styles.recordMainCard, shadows.card]}>
-          <View style={styles.recordHeaderRow}>
-            <Text style={styles.recordCardTitle}>오늘의 학습 기록</Text>
-            <Text style={styles.recordStreak}>연속 5일째</Text>
-          </View>
-          {rows.map((item, index) => (
-            <View key={item} style={styles.recordLogRow}>
-              <View style={[styles.recordLogDot, index === 1 && styles.recordLogDotWarm]} />
-              <Text style={styles.recordLogText}>{item}</Text>
-            </View>
-          ))}
+    <View style={styles.recordExperience}>
+      <View style={[styles.recordMainCard, shadows.card]}>
+        <View style={styles.recordHeaderRow}>
+          <Text style={styles.recordCardTitle}>{t('landing.designRecord.mainTitle', '오늘의 학습 기록')}</Text>
+          <Text style={styles.recordStreak}>{t('landing.designRecord.streak', '연속 5일째')}</Text>
         </View>
-        <View style={styles.recordSideStack}>
-          <View style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
-            <Text style={styles.recordMiniLabel}>Opening Notes</Text>
-            <Text style={styles.recordMiniValue}>05/28</Text>
-            <Text style={styles.recordMiniText}>학습 목표와 오늘의 기록을 한눈에 정리합니다.</Text>
+        {rows.map((item, index) => (
+          <View key={item} style={styles.recordLogRow}>
+            <View style={[styles.recordLogDot, index === 1 && styles.recordLogDotWarm]} />
+            <Text style={styles.recordLogText}>{item}</Text>
           </View>
-          <View style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
-            <Text style={styles.recordMiniLabel}>Saved Questions</Text>
-            <Text style={styles.recordMiniValue}>3</Text>
-            <Text style={styles.recordMiniText}>질문과 요약을 다시 볼 수 있게 모아둡니다.</Text>
-          </View>
+        ))}
+      </View>
+      <View style={styles.recordSideStack}>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardMint]}>
+          <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini1Label', 'Opening Notes')}</Text>
+          <Text style={styles.recordMiniValue}>{t('landing.designRecord.mini1Value', '05/28')}</Text>
+          <Text style={styles.recordMiniText}>{t('landing.designRecord.mini1Text', '학습 목표와 오늘의 기록을 한눈에 정리합니다.')}</Text>
+        </View>
+        <View style={[styles.recordMiniCard, styles.recordMiniCardCream]}>
+          <Text style={styles.recordMiniLabel}>{t('landing.designRecord.mini2Label', 'Saved Questions')}</Text>
+          <Text style={styles.recordMiniValue}>{t('landing.designRecord.mini2Value', '3')}</Text>
+          <Text style={styles.recordMiniText}>{t('landing.designRecord.mini2Text', '질문과 요약을 다시 볼 수 있게 모아둡니다.')}</Text>
         </View>
       </View>
     </View>
@@ -352,9 +349,9 @@ function FeatureGridSection({ t }) {
       <SectionKeyword label="SCOPE" style={[styles.bgSubtleKeyword, styles.bgScope]} />
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionEyebrow}>{t('landing.section.available.eyebrow', 'PROJECT SCOPE')}</Text>
-        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '과제 요구사항과 연결된 핵심 기능')}</Text>
+        <Text style={styles.sectionTitle}>{t('landing.section.available.title', '연결된 핵심 기능')}</Text>
         <Text style={styles.sectionDescription}>
-          {t('landing.section.available.description', '초기 주제 요구사항을 실제 구현 기능 흐름으로 연결했습니다.')}
+          {t('landing.section.available.description', '주요 학습 흐름을 실제 사용 기능으로 연결했습니다.')}
         </Text>
       </View>
       <View style={styles.featureGrid}>
@@ -629,12 +626,6 @@ function SectionVisual({ type, t }) {
 }
 
 function ProjectGroundedCopySection({ t }) {
-  const cards = [
-    ['landing.projectNotes.card1.title', 'landing.projectNotes.card1.description', '계획은 작게, 실행은 분명하게', '캘린더와 칸반으로 오늘 할 일을 나누고, D-Day와 집중 시간으로 학습 리듬을 확인합니다.'],
-    ['landing.projectNotes.card2.title', 'landing.projectNotes.card2.description', 'AI는 답변보다 복습 흐름으로', '질문, 요약, 오답노트, 추천, 퀴즈가 다시 볼 기록으로 남아 다음 학습을 준비합니다.'],
-    ['landing.projectNotes.card3.title', 'landing.projectNotes.card3.description', '모두가 쓰기 쉬운 학습 공간', '큰 글씨, 고대비, 읽어주기, 소통 흐름까지 고려해 이어 쓸 수 있게 설계했습니다.']
-  ];
-
   return (
     <View style={styles.projectSection}>
       <SectionKeyword label="NOTES" style={[styles.bgSubtleKeyword, styles.bgNotes]} />
@@ -645,15 +636,7 @@ function ProjectGroundedCopySection({ t }) {
           {t('landing.projectNotes.description', '초기 요구사항에서 출발한 학습 흐름을 실제 사용자가 바로 이해할 수 있는 기능 구조로 정리했습니다.')}
         </Text>
       </View>
-      <View style={styles.projectCardGrid}>
-        {cards.map(([titleKey, descriptionKey, titleFallback, descriptionFallback]) => (
-          <View key={titleKey} style={[styles.projectCard, shadows.card]}>
-            <View style={styles.projectCardRule} />
-            <Text style={styles.projectCardTitle}>{t(titleKey, titleFallback)}</Text>
-            <Text style={styles.projectCardDescription}>{t(descriptionKey, descriptionFallback)}</Text>
-          </View>
-        ))}
-      </View>
+      <DesignNotesRecordCards t={t} />
     </View>
   );
 }
@@ -755,8 +738,6 @@ export default function ScrollStorySection() {
         onSelect={selectSlide}
         t={t}
       />
-
-      <RecordSection t={t} />
 
       <FeatureGridSection t={t} />
 
@@ -891,6 +872,25 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     marginTop: 14,
     maxWidth: 500
+  },
+  promoDetailRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 18,
+    maxWidth: 520
+  },
+  promoDetailChip: {
+    color: colors.blueDeep,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(23, 59, 99, 0.1)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontSize: 12,
+    fontWeight: '900',
+    overflow: 'hidden'
   },
   promoCta: {
     alignSelf: 'flex-start',
