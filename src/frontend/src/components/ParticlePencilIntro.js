@@ -4,14 +4,15 @@ import { useLanguage } from '../i18n';
 import { colors } from '../styles/theme';
 
 const INTRO_TIMELINE = {
-  drift: 640,
-  gather: 1840,
-  assemble: 2840,
-  mascot: 3560,
-  text: 4240,
-  settle: 5400,
-  exit: 6140,
-  done: 6520
+  drift: 480,
+  gather: 1520,
+  silhouette: 2840,
+  pencil: 3860,
+  textSilhouette: 4640,
+  text: 5400,
+  settle: 6280,
+  exit: 7040,
+  done: 7480
 };
 
 const PARTICLE_COLORS = ['#FFF6DF', '#D9FFF7', '#73C9BD', '#1F5E96', '#7BC7F6', '#F1C89A'];
@@ -25,7 +26,6 @@ const SHAPE_SEQUENCE = [
   'strokeShard',
   'pencilShard',
   'dot',
-  'square',
   'mathToken',
   'studyToken',
   'dash',
@@ -35,9 +35,9 @@ const SHAPE_SEQUENCE = [
   'studyToken',
   'keywordToken'
 ];
-const FORMED_STAGES = new Set(['assemble', 'mascot', 'text', 'settle', 'exit']);
-const MASCOT_STAGES = new Set(['assemble', 'mascot', 'text', 'settle', 'exit']);
-const WORD_STAGES = new Set(['text', 'settle', 'exit']);
+const FORMED_STAGES = new Set(['silhouette', 'pencil', 'textSilhouette', 'text', 'settle', 'exit']);
+const MASCOT_STAGES = new Set(['pencil', 'textSilhouette', 'text', 'settle', 'exit']);
+const WORD_STAGES = new Set(['textSilhouette', 'text', 'settle', 'exit']);
 const TEXT_SEQUENCE = ['sa', 'gak', 'sa', 'gak'];
 const TEXT_MASKS = {
   sa: [
@@ -153,8 +153,8 @@ function getStartPosition(index) {
 
 function getPencilLinePoint(t, offset) {
   return {
-    x: 28 + t * 47 + offset * 0.48,
-    y: 52 - t * 38 + offset
+    x: 44 + t * 13.5 + offset * 0.26,
+    y: 59 - t * 38 + offset
   };
 }
 
@@ -199,8 +199,8 @@ function getTextTarget(index) {
 
   return {
     kind: 'text',
-    x: 28.5 + charIndex * 10.7 + cellX * 1.05 + jitterX,
-    y: 63.2 + cellY * 1.45 + jitterY
+    x: 31.5 + charIndex * 9.6 + cellX * 0.96 + jitterX,
+    y: 67.4 + cellY * 1.28 + jitterY
   };
 }
 
@@ -291,6 +291,80 @@ function getPrefersReducedMotion() {
   return browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function lockIntroChrome() {
+  const browserDocument = typeof globalThis !== 'undefined' ? globalThis.document : null;
+
+  if (Platform.OS !== 'web' || !browserDocument?.body) {
+    return undefined;
+  }
+
+  const styleId = 'sagak-intro-chrome-lock';
+  let styleNode = browserDocument.getElementById(styleId);
+
+  if (!styleNode) {
+    styleNode = browserDocument.createElement('style');
+    styleNode.id = styleId;
+    styleNode.textContent = `
+      body.sagak-intro-active {
+        overflow: hidden !important;
+      }
+      body.sagak-intro-active header,
+      body.sagak-intro-active nav,
+      body.sagak-intro-active [role="banner"],
+      body.sagak-intro-active [data-sagak-intro-hide="true"] {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      body.sagak-intro-active [data-sagak-intro-root="true"] {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+      }
+    `;
+    browserDocument.head?.appendChild(styleNode);
+  }
+
+  browserDocument.body.classList.add('sagak-intro-active');
+
+  const hiddenNodes = [];
+  const candidates = Array.from(browserDocument.querySelectorAll('header, nav, [role="banner"], div'));
+
+  candidates.forEach((node) => {
+    if (node.closest?.('[data-sagak-intro-root="true"]')) {
+      return;
+    }
+
+    const rect = node.getBoundingClientRect?.();
+    const text = node.textContent || '';
+    const looksLikeHeader = /사각사각|Smart Edu Platform|서비스 소개|로그인/.test(text);
+    const isTopChrome = rect && rect.top <= 120 && rect.height > 20 && rect.height <= 160 && rect.width >= 260;
+
+    if (looksLikeHeader && isTopChrome) {
+      hiddenNodes.push({
+        node,
+        opacity: node.style.opacity,
+        pointerEvents: node.style.pointerEvents,
+        visibility: node.style.visibility
+      });
+      node.dataset.sagakIntroHide = 'true';
+      node.style.opacity = '0';
+      node.style.visibility = 'hidden';
+      node.style.pointerEvents = 'none';
+    }
+  });
+
+  return () => {
+    hiddenNodes.forEach(({ node, opacity, pointerEvents, visibility }) => {
+      node.style.opacity = opacity;
+      node.style.pointerEvents = pointerEvents;
+      node.style.visibility = visibility;
+      delete node.dataset.sagakIntroHide;
+    });
+    browserDocument.body.classList.remove('sagak-intro-active');
+  };
+}
+
 function getParticlePosition(particle, stage) {
   if (stage === 'scatter') {
     return { x: particle.startX, y: particle.startY };
@@ -302,6 +376,14 @@ function getParticlePosition(particle, stage) {
 
   if (stage === 'gather') {
     return { x: particle.surgeX, y: particle.surgeY };
+  }
+
+  if (stage === 'silhouette' || stage === 'pencil') {
+    if (particle.targetKind === 'text') {
+      return { x: particle.surgeX, y: particle.surgeY };
+    }
+
+    return { x: particle.targetX, y: particle.targetY };
   }
 
   return { x: particle.targetX, y: particle.targetY };
@@ -324,16 +406,20 @@ function getParticleOpacity(stage, reducedMotion, particle) {
     return 0.96;
   }
 
-  if (stage === 'assemble') {
+  if (stage === 'silhouette') {
+    return particle.targetKind === 'text' ? 0.12 : 0.98;
+  }
+
+  if (stage === 'pencil') {
+    return particle.targetKind === 'text' ? 0.18 : 0.36;
+  }
+
+  if (stage === 'textSilhouette') {
     return particle.targetKind === 'text' ? 0.82 : 0.95;
   }
 
-  if (stage === 'mascot') {
-    return particle.targetKind === 'text' ? 0.92 : 0.24;
-  }
-
   if (stage === 'text') {
-    return particle.targetKind === 'text' ? 0.78 : 0.08;
+    return particle.targetKind === 'text' ? 0.92 : 0.24;
   }
 
   if (stage === 'settle') {
@@ -348,16 +434,16 @@ function getMascotPartOpacity(part, stage, reducedMotion) {
     return 1;
   }
 
-  if (stage === 'assemble') {
+  if (stage === 'pencil') {
     if (part === 'body') {
-      return 0.48;
+      return 0.64;
     }
 
     if (part === 'cap') {
-      return 0.28;
+      return 0.42;
     }
 
-    return 0;
+    return 0.3;
   }
 
   if (MASCOT_STAGES.has(stage)) {
@@ -372,8 +458,8 @@ function getMascotOpacity(stage, reducedMotion) {
     return 1;
   }
 
-  if (stage === 'assemble') {
-    return 0.74;
+  if (stage === 'pencil') {
+    return 0.82;
   }
 
   if (MASCOT_STAGES.has(stage)) {
@@ -386,6 +472,10 @@ function getMascotOpacity(stage, reducedMotion) {
 function getWordOpacity(stage, reducedMotion) {
   if (reducedMotion) {
     return 1;
+  }
+
+  if (stage === 'textSilhouette') {
+    return 0.22;
   }
 
   if (stage === 'text') {
@@ -412,7 +502,12 @@ function PencilMascot({ pencilWidth, reducedMotion, stage }) {
         styles.pencilMascotWrap,
         {
           opacity: mascotOpacity,
-          transform: [{ rotate: '132deg' }, { scale: stage === 'assemble' ? 0.92 : 1 }],
+          transform: [
+            { translateX: -pencilWidth / 2 },
+            { translateY: -38 },
+            { rotate: '126deg' },
+            { scale: stage === 'pencil' ? 0.94 : 1 }
+          ],
           width: pencilWidth
         }
       ]}
@@ -458,6 +553,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
   const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
   const particleCount = getParticleCount(width || 1024);
   const pencilWidth = width < 520 ? 238 : width < 900 ? 310 : 390;
+  const wordWidth = Math.min((width || 1024) * 0.82, 440);
 
   const particles = useMemo(() => buildParticles(particleCount), [particleCount]);
 
@@ -493,6 +589,14 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       return undefined;
     }
 
+    return lockIntroChrome();
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      return undefined;
+    }
+
     setStage(reducedMotion ? 'settle' : 'scatter');
 
     if (reducedMotion) {
@@ -503,8 +607,9 @@ export default function ParticlePencilIntro({ visible, onDone }) {
     const timers = [
       setTimeout(() => setStage('drift'), INTRO_TIMELINE.drift),
       setTimeout(() => setStage('gather'), INTRO_TIMELINE.gather),
-      setTimeout(() => setStage('assemble'), INTRO_TIMELINE.assemble),
-      setTimeout(() => setStage('mascot'), INTRO_TIMELINE.mascot),
+      setTimeout(() => setStage('silhouette'), INTRO_TIMELINE.silhouette),
+      setTimeout(() => setStage('pencil'), INTRO_TIMELINE.pencil),
+      setTimeout(() => setStage('textSilhouette'), INTRO_TIMELINE.textSilhouette),
       setTimeout(() => setStage('text'), INTRO_TIMELINE.text),
       setTimeout(() => setStage('settle'), INTRO_TIMELINE.settle),
       setTimeout(() => setStage('exit'), INTRO_TIMELINE.exit),
@@ -521,8 +626,9 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       particles.map((particle) => {
         const position = getParticlePosition(particle, stage);
         const formed = FORMED_STAGES.has(stage);
-        const transitionDuration = stage === 'drift' ? 1520 : stage === 'gather' ? 1780 : stage === 'assemble' ? 1060 : 720;
+        const transitionDuration = stage === 'drift' ? 1280 : stage === 'gather' ? 1640 : stage === 'silhouette' ? 980 : 720;
         const isToken = particle.shape === 'mathToken' || particle.shape === 'studyToken' || particle.shape === 'keywordToken';
+        const silhouetteScale = particle.targetKind === 'text' ? 0.52 : 0.46;
 
         return {
           backgroundColor: isToken ? 'transparent' : particle.color,
@@ -538,7 +644,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
             { translateX: -particle.width / 2 },
             { translateY: -particle.height / 2 },
             { rotate: `${formed ? particle.rotate * 0.08 - 8 : particle.rotate}deg` },
-            { scale: formed ? (particle.targetKind === 'text' ? 0.54 : 0.5) : stage === 'drift' ? 1.13 : stage === 'gather' ? 1.02 : 0.82 }
+            { scale: formed ? silhouetteScale : stage === 'drift' ? 1.16 : stage === 'gather' ? 1.04 : 0.82 }
           ],
           width: particle.width
         };
@@ -553,6 +659,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
   return (
     <View
       accessibilityLabel={t('landing.intro.accessibilityLabel', '사각사각 인트로 애니메이션')}
+      dataSet={{ sagakIntroRoot: 'true' }}
       style={[styles.overlay, stage === 'exit' && styles.overlayExit]}
     >
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.backgroundGlow}>
@@ -571,7 +678,23 @@ export default function ParticlePencilIntro({ visible, onDone }) {
         <PencilMascot pencilWidth={pencilWidth} reducedMotion={reducedMotion} stage={stage} />
       </View>
 
-      <View style={[styles.wordLockup, WORD_STAGES.has(stage) && styles.wordLockupVisible, stage === 'exit' && styles.wordLockupExit]}>
+      <View
+        style={[
+          styles.wordLockup,
+          {
+            transform: [
+              { translateX: -wordWidth / 2 },
+              { translateY: WORD_STAGES.has(stage) ? 0 : 18 }
+            ],
+            width: wordWidth
+          },
+          WORD_STAGES.has(stage) && styles.wordLockupVisible,
+          stage === 'exit' && {
+            opacity: 0,
+            transform: [{ translateX: -wordWidth / 2 }, { translateY: 10 }]
+          }
+        ]}
+      >
         <Text style={[styles.wordTitle, { opacity: getWordOpacity(stage, reducedMotion) }]}>사각사각</Text>
       </View>
 
@@ -592,12 +715,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: '#0B1E33',
+    backgroundColor: '#071827',
     transitionDuration: '680ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out',
     zIndex: 2147483647,
-    elevation: 9999
+    elevation: 9999,
+    isolation: 'isolate'
   },
   overlayExit: {
     opacity: 0,
@@ -613,7 +737,7 @@ const styles = StyleSheet.create({
     left: '-22%',
     top: '-8%',
     borderRadius: 999,
-    backgroundColor: 'rgba(115, 201, 189, 0.2)'
+    backgroundColor: 'rgba(115, 201, 189, 0.075)'
   },
   glowBlue: {
     position: 'absolute',
@@ -622,7 +746,7 @@ const styles = StyleSheet.create({
     right: '-24%',
     bottom: '-18%',
     borderRadius: 999,
-    backgroundColor: 'rgba(31, 94, 150, 0.3)'
+    backgroundColor: 'rgba(31, 94, 150, 0.09)'
   },
   glowWarm: {
     position: 'absolute',
@@ -631,7 +755,7 @@ const styles = StyleSheet.create({
     left: '25%',
     top: '34%',
     borderRadius: 999,
-    backgroundColor: 'rgba(241, 200, 154, 0.07)'
+    backgroundColor: 'rgba(241, 200, 154, 0.035)'
   },
   particleLayer: {
     ...StyleSheet.absoluteFillObject
@@ -647,9 +771,6 @@ const styles = StyleSheet.create({
   },
   dotParticle: {
     borderWidth: 0
-  },
-  squareParticle: {
-    borderRadius: 3
   },
   dashParticle: {
     borderRadius: 999
@@ -696,26 +817,25 @@ const styles = StyleSheet.create({
     textShadowRadius: 10
   },
   mascotStage: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 246,
-    transform: [{ translateY: -54 }],
+    ...StyleSheet.absoluteFillObject,
     transitionDuration: '680ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
   mascotStageExit: {
     opacity: 0,
-    transform: [{ translateY: -68 }, { scale: 0.94 }]
+    transform: [{ scale: 0.96 }]
   },
   pencilMascotWrap: {
-    position: 'relative',
+    position: 'absolute',
+    left: '51%',
+    top: '40.5%',
     flexDirection: 'row',
     alignItems: 'center',
     height: 76,
     borderRadius: 999,
     shadowColor: '#061322',
-    shadowOpacity: 0.38,
+    shadowOpacity: 0.5,
     shadowRadius: 34,
     shadowOffset: { width: 0, height: 22 },
     transitionDuration: '680ms',
@@ -729,7 +849,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 28,
     borderWidth: 2,
     borderColor: 'rgba(217, 255, 247, 0.7)',
-    backgroundColor: '#FFF4DD',
+    backgroundColor: '#FFF0D0',
     transitionDuration: '520ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
@@ -743,7 +863,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderBottomWidth: 2,
     borderColor: 'rgba(217, 255, 247, 0.62)',
-    backgroundColor: colors.mint,
+    backgroundColor: '#5ECABB',
     transitionDuration: '560ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
@@ -777,7 +897,7 @@ const styles = StyleSheet.create({
   pencilWood: {
     width: '10%',
     height: 62,
-    backgroundColor: '#F1C89A',
+    backgroundColor: '#F0B66D',
     transitionDuration: '560ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
@@ -790,34 +910,27 @@ const styles = StyleSheet.create({
     borderLeftWidth: 48,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderLeftColor: '#173B63',
+    borderLeftColor: '#12395F',
     transitionDuration: '560ms',
     transitionProperty: 'opacity',
     transitionTimingFunction: 'ease-out'
   },
   wordLockup: {
     position: 'absolute',
-    top: '55%',
+    left: '50%',
+    top: '64%',
     alignItems: 'center',
-    width: 440,
-    maxWidth: '90%',
     opacity: 0,
-    transform: [{ translateY: 18 }],
     transitionDuration: '520ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
   wordLockupVisible: {
-    opacity: 1,
-    transform: [{ translateY: 0 }]
-  },
-  wordLockupExit: {
-    opacity: 0,
-    transform: [{ translateY: 10 }]
+    opacity: 1
   },
   wordTitle: {
     color: '#D9FFF7',
-    fontSize: 54,
+    fontSize: 56,
     fontWeight: '900',
     letterSpacing: 1.8,
     textShadowColor: 'rgba(31, 124, 196, 0.45)',
