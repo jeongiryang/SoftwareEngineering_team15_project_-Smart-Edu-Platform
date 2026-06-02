@@ -9,12 +9,12 @@ const INTRO_TIMELINE = {
   silhouette: 3850,
   pencil: 4850,
   textSilhouette: 5750,
-  text: 6600,
-  caption: 7350,
-  shine: 8100,
-  settle: 8850,
-  exit: 11100,
-  done: 11650
+  text: 6900,
+  caption: 7800,
+  shine: 8550,
+  settle: 9300,
+  exit: 11350,
+  done: 11900
 };
 
 const PARTICLE_COLORS = ['#FFF6DF', '#D9FFF7', '#73C9BD', '#1F5E96', '#7BC7F6', '#F1C89A'];
@@ -46,8 +46,12 @@ const TEXT_MASKS = {
     [1, 1],
     [2, 2],
     [3, 3],
+    [4, 4],
+    [3, 5],
+    [2, 6],
+    [1, 7],
+    [4, 2],
     [2, 4],
-    [1, 5],
     [5, 0],
     [5, 1],
     [5, 2],
@@ -57,26 +61,38 @@ const TEXT_MASKS = {
     [5, 6],
     [5, 7],
     [5, 8],
-    [4, 4],
-    [6, 4]
+    [5, 9],
+    [6, 3],
+    [7, 3],
+    [6, 4],
+    [7, 4]
   ],
   gak: [
+    [0, 1],
     [1, 1],
     [2, 1],
     [3, 1],
     [4, 1],
+    [4, 2],
+    [4, 3],
+    [4, 4],
+    [5, 0],
     [5, 1],
     [5, 2],
     [5, 3],
     [5, 4],
-    [1, 6],
-    [2, 6],
-    [3, 6],
-    [4, 6],
+    [5, 5],
+    [6, 3],
+    [7, 3],
+    [0, 7],
+    [1, 7],
+    [2, 7],
+    [3, 7],
     [4, 7],
     [4, 8],
-    [5, 8],
-    [6, 8]
+    [4, 9],
+    [5, 9],
+    [6, 9]
   ]
 };
 const PENCIL_AXIS = {
@@ -205,13 +221,13 @@ function getTextTarget(index) {
   const charIndex = textIndex % TEXT_SEQUENCE.length;
   const mask = TEXT_MASKS[TEXT_SEQUENCE[charIndex]];
   const [cellX, cellY] = mask[Math.floor(textIndex / TEXT_SEQUENCE.length) % mask.length];
-  const jitterX = (seeded(index, 17) - 0.5) * 0.42;
-  const jitterY = (seeded(index, 19) - 0.5) * 0.42;
+  const jitterX = (seeded(index, 17) - 0.5) * 0.22;
+  const jitterY = (seeded(index, 19) - 0.5) * 0.2;
 
   return {
     kind: 'text',
-    x: 41.6 + charIndex * 4.42 + cellX * 0.5 + jitterX,
-    y: 64.6 + cellY * 0.82 + jitterY
+    x: 40.55 + charIndex * 4.72 + cellX * 0.48 + jitterX,
+    y: 63.95 + cellY * 0.58 + jitterY
   };
 }
 
@@ -391,7 +407,12 @@ function getParticlePosition(particle, stage) {
 
   if (stage === 'silhouette' || stage === 'pencil') {
     if (particle.targetKind === 'text') {
-      return { x: particle.surgeX, y: particle.surgeY };
+      const bridge = stage === 'silhouette' ? 0.78 : 0.42;
+
+      return {
+        x: particle.targetX + (particle.surgeX - particle.targetX) * bridge,
+        y: particle.targetY + (particle.surgeY - particle.targetY) * bridge
+      };
     }
 
     return { x: particle.targetX, y: particle.targetY };
@@ -418,11 +439,11 @@ function getParticleOpacity(stage, reducedMotion, particle) {
   }
 
   if (stage === 'silhouette') {
-    return particle.targetKind === 'text' ? 0.08 : 1;
+    return particle.targetKind === 'text' ? 0.12 : 1;
   }
 
   if (stage === 'pencil') {
-    return particle.targetKind === 'text' ? 0.14 : 0.54;
+    return particle.targetKind === 'text' ? 0.24 : 0.54;
   }
 
   if (stage === 'textSilhouette') {
@@ -430,15 +451,15 @@ function getParticleOpacity(stage, reducedMotion, particle) {
   }
 
   if (stage === 'text') {
-    return particle.targetKind === 'text' ? 0.58 : 0.06;
+    return particle.targetKind === 'text' ? 0.72 : 0.06;
   }
 
   if (stage === 'caption') {
-    return particle.targetKind === 'text' ? 0.3 : 0.03;
+    return particle.targetKind === 'text' ? 0.34 : 0.03;
   }
 
   if (stage === 'shine') {
-    return particle.targetKind === 'text' ? 0.2 : 0.02;
+    return particle.targetKind === 'text' ? 0.18 : 0.02;
   }
 
   if (stage === 'settle') {
@@ -494,14 +515,18 @@ function getWordOpacity(stage, reducedMotion) {
   }
 
   if (stage === 'textSilhouette') {
-    return 0.18;
+    return 0.08;
   }
 
   if (stage === 'text') {
-    return 0.82;
+    return 0.64;
   }
 
-  if (stage === 'caption' || stage === 'shine') {
+  if (stage === 'caption') {
+    return 0.92;
+  }
+
+  if (stage === 'shine') {
     return 1;
   }
 
@@ -676,9 +701,35 @@ export default function ParticlePencilIntro({ visible, onDone }) {
       particles.map((particle) => {
         const position = getParticlePosition(particle, stage);
         const formed = FORMED_STAGES.has(stage);
-        const transitionDuration = stage === 'drift' ? 1680 : stage === 'gather' ? 1920 : stage === 'silhouette' ? 980 : 720;
+        const transitionDuration =
+          stage === 'drift'
+            ? 1780
+            : stage === 'gather'
+              ? 2050
+              : stage === 'silhouette'
+                ? 1180
+                : stage === 'pencil'
+                  ? 1080
+                  : stage === 'textSilhouette'
+                    ? 1380
+                    : stage === 'text'
+                      ? 1260
+                      : stage === 'caption'
+                        ? 960
+                        : 820;
         const isToken = particle.shape === 'mathToken' || particle.shape === 'studyToken' || particle.shape === 'keywordToken';
-        const silhouetteScale = particle.targetKind === 'text' ? 0.52 : 0.46;
+        const textScale =
+          stage === 'caption'
+            ? 0.24
+            : stage === 'shine'
+              ? 0.2
+              : stage === 'settle' || stage === 'exit'
+                ? 0.16
+                : stage === 'text'
+                  ? 0.3
+                  : 0.36;
+        const silhouetteScale = particle.targetKind === 'text' ? textScale : 0.46;
+        const formedDelay = particle.targetKind === 'text' && (stage === 'textSilhouette' || stage === 'text') ? `${particle.index % 24 * 5}ms` : `${particle.index % 18 * 10}ms`;
 
         return {
           backgroundColor: isToken ? 'transparent' : particle.color,
@@ -688,7 +739,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
           left: `${position.x}%`,
           opacity: getParticleOpacity(stage, reducedMotion, particle),
           top: `${position.y}%`,
-          transitionDelay: formed ? `${particle.index % 18 * 10}ms` : `${particle.index % 44 * 12}ms`,
+          transitionDelay: formed ? formedDelay : `${particle.index % 44 * 12}ms`,
           transitionDuration: `${transitionDuration}ms`,
           transform: [
             { translateX: -particle.width / 2 },
@@ -734,7 +785,7 @@ export default function ParticlePencilIntro({ visible, onDone }) {
           {
             transform: [
               { translateX: -wordWidth / 2 },
-              { translateY: WORD_STAGES.has(stage) ? 0 : 18 }
+              { translateY: WORD_STAGES.has(stage) ? 0 : 10 }
             ],
             width: wordWidth
           },
@@ -825,7 +876,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 999,
     transitionProperty: 'left, top, opacity, transform, width, height',
-    transitionTimingFunction: 'cubic-bezier(0.16, 0.9, 0.18, 1)',
+    transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)',
     shadowColor: '#73C9BD',
     shadowOpacity: 0.36,
     shadowRadius: 10
@@ -984,9 +1035,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingVertical: 10,
     opacity: 0,
-    transitionDuration: '520ms',
+    transitionDuration: '860ms',
     transitionProperty: 'opacity, transform',
-    transitionTimingFunction: 'ease-out'
+    transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)'
   },
   wordLockupVisible: {
     opacity: 1
@@ -999,9 +1050,10 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(31, 124, 196, 0.45)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 18,
-    transitionDuration: '520ms',
+    lineHeight: 64,
+    transitionDuration: '960ms',
     transitionProperty: 'opacity',
-    transitionTimingFunction: 'ease-out'
+    transitionTimingFunction: 'cubic-bezier(0.2, 0.78, 0.2, 1)'
   },
   wordCaption: {
     marginTop: 6,
@@ -1013,7 +1065,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(123, 199, 246, 0.35)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
-    transitionDuration: '640ms',
+    transitionDuration: '760ms',
     transitionProperty: 'opacity, transform',
     transitionTimingFunction: 'ease-out'
   },
