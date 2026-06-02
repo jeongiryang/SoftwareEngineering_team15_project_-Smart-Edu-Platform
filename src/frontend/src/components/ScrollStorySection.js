@@ -94,6 +94,18 @@ const serviceSections = [
     visual: 'plan'
   },
   {
+    id: 'focus',
+    keyword: 'FOCUS',
+    titleKey: 'landing.focus.title',
+    titleFallback: '집중 시간을 기록하고 흐름을 확인하세요',
+    descriptionKey: 'landing.focus.description',
+    descriptionFallback: '타이머로 학습 시간을 기록하고, 주간 통계와 집중 패턴으로 나만의 학습 리듬을 확인합니다.',
+    chipKey: 'landing.focus.chip',
+    chipFallback: 'FOCUS TIMER',
+    layout: 'reverse',
+    visual: 'focus'
+  },
+  {
     id: 'question',
     keyword: 'AI',
     titleKey: 'landing.story.ai.title',
@@ -372,6 +384,45 @@ function PlanMock({ t }) {
   );
 }
 
+function FocusMock({ t }) {
+  const weeklyBars = [
+    ['landing.focus.week.mon', '62%'],
+    ['landing.focus.week.tue', '48%'],
+    ['landing.focus.week.wed', '78%'],
+    ['landing.focus.week.thu', '56%'],
+    ['landing.focus.week.fri', '84%']
+  ];
+
+  return (
+    <View style={[styles.mockCard, styles.simpleMockCard, styles.focusMock]}>
+      <View style={styles.focusHeader}>
+        <View style={styles.focusTimerCircle}>
+          <Text style={styles.focusTimerValue}>{t('landing.focus.timerValue', '25:00')}</Text>
+          <Text style={styles.focusTimerLabel}>{t('landing.focus.timerLabel', '집중 타이머')}</Text>
+        </View>
+        <View style={styles.focusSummaryStack}>
+          <Text style={styles.focusSummaryLabel}>{t('landing.focus.todayLabel', '오늘 집중')}</Text>
+          <Text style={styles.focusSummaryValue}>{t('landing.focus.todayValue', '2시간 10분')}</Text>
+          <Text style={styles.focusStreakChip}>{t('landing.focus.streak', '이번 주 학습 5일 연속')}</Text>
+        </View>
+      </View>
+      <View style={styles.focusBarGroup}>
+        {weeklyBars.map(([labelKey, height]) => (
+          <View key={labelKey} style={styles.focusBarItem}>
+            <View style={styles.focusBarTrack}>
+              <View style={[styles.focusBarFill, { height }]} />
+            </View>
+            <Text style={styles.focusBarLabel}>{t(labelKey)}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={styles.focusSavedBox}>
+        <Text style={styles.focusSavedText}>{t('landing.focus.saved', '집중 기록 저장 완료')}</Text>
+      </View>
+    </View>
+  );
+}
+
 function ChatMock({ t }) {
   return (
     <View style={[styles.mockCard, styles.chatMock]}>
@@ -576,6 +627,7 @@ function TrustMock({ t }) {
 
 function SectionVisual({ type, t }) {
   if (type === 'plan') return <PlanMock t={t} />;
+  if (type === 'focus') return <FocusMock t={t} />;
   if (type === 'chat') return <ChatMock t={t} />;
   if (type === 'note') return <NoteMock t={t} />;
   if (type === 'report') return <ReportMock t={t} />;
@@ -1302,6 +1354,9 @@ const styles = StyleSheet.create({
   bgplan: {
     top: '50%'
   },
+  bgfocus: {
+    top: '50%'
+  },
   bgquestion: {
     top: '50%'
   },
@@ -1416,6 +1471,123 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '700'
+  },
+  focusMock: {
+    borderColor: '#CDEFE9',
+    borderWidth: 2,
+    backgroundColor: '#F8FFFD',
+    minHeight: 300
+  },
+  focusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+    flexWrap: 'wrap',
+    marginBottom: 24
+  },
+  focusTimerCircle: {
+    width: 136,
+    height: 136,
+    borderRadius: 68,
+    borderWidth: 12,
+    borderColor: '#73C9BD',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#173B63',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 }
+  },
+  focusTimerValue: {
+    color: '#173B63',
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '900'
+  },
+  focusTimerLabel: {
+    color: '#0F766E',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
+    marginTop: 6
+  },
+  focusSummaryStack: {
+    flex: 1,
+    minWidth: 170
+  },
+  focusSummaryLabel: {
+    color: '#64748B',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+    marginBottom: 6
+  },
+  focusSummaryValue: {
+    color: '#173B63',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '900',
+    marginBottom: 12
+  },
+  focusStreakChip: {
+    alignSelf: 'flex-start',
+    color: '#0F766E',
+    backgroundColor: '#E8FAF6',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
+    overflow: 'hidden'
+  },
+  focusBarGroup: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 10,
+    minHeight: 110,
+    marginBottom: 16
+  },
+  focusBarItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8
+  },
+  focusBarTrack: {
+    width: '100%',
+    maxWidth: 34,
+    height: 84,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+    overflow: 'hidden',
+    justifyContent: 'flex-end'
+  },
+  focusBarFill: {
+    width: '100%',
+    backgroundColor: '#73C9BD',
+    borderRadius: 999
+  },
+  focusBarLabel: {
+    color: '#64748B',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900'
+  },
+  focusSavedBox: {
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 118, 110, 0.16)',
+    padding: 14
+  },
+  focusSavedText: {
+    color: '#173B63',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
+    textAlign: 'center'
   },
   chatMock: {
     width: '100%',
