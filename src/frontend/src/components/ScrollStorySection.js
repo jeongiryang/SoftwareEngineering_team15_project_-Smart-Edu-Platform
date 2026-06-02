@@ -9,6 +9,7 @@ const DEMO_FINAL_PHASE = DEMO_PHASE_COUNT - 1;
 const DEMO_VISUAL_FINAL_PHASE = 4;
 const DEMO_PHASE_SEQUENCE = [0, 1, 2, 3, 4, 5, 5];
 const DEMO_PHASE_INTERVAL_MS = 850;
+const TRUST_STEP_INTERVAL_MS = 1980;
 
 const promoSlides = [
   {
@@ -833,8 +834,24 @@ function LanguageMock({ reducedMotion, t }) {
   );
 }
 
-function TrustMock({ demoPhase, reducedMotion, t }) {
-  const activeTrustIndex = Math.min(demoPhase, 2);
+function TrustMock({ reducedMotion, t }) {
+  const [trustIndex, setTrustIndex] = useState(0);
+  const activeTrustIndex = reducedMotion ? 0 : trustIndex;
+  const isTrustActive = (index) => reducedMotion || index === activeTrustIndex;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setTrustIndex(0);
+      return undefined;
+    }
+
+    setTrustIndex(0);
+    const timer = setInterval(() => {
+      setTrustIndex((current) => (current + 1) % 3);
+    }, TRUST_STEP_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [reducedMotion]);
 
   return (
     <View style={styles.trustCardsContainer}>
@@ -844,7 +861,7 @@ function TrustMock({ demoPhase, reducedMotion, t }) {
           <Text style={styles.trustCardTitle}>{t('landing.trust.item1', '비밀번호 bcrypt 해시화 완료')}</Text>
           <Text style={styles.trustCardDesc}>{t('landing.trust.description1', '회원가입 시 비밀번호를 bcrypt 해시로 저장하고 원문을 응답에 노출하지 않습니다.')}</Text>
         </View>
-        <Text style={[styles.trustCheck, isPhaseReached(0, demoPhase, reducedMotion) && styles.trustCheckActive]}>✓</Text>
+        <Text style={[styles.trustCheck, isTrustActive(0) && styles.trustCheckActive]}>✓</Text>
       </View>
       <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(1, activeTrustIndex, reducedMotion)]}>
         <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]}><Text style={styles.trustIcon}>Aa</Text></View>
@@ -852,7 +869,7 @@ function TrustMock({ demoPhase, reducedMotion, t }) {
           <Text style={styles.trustCardTitle}>{t('landing.trust.item2', '모션 민감 사용자를 위한 감소 설정 대응')}</Text>
           <Text style={styles.trustCardDesc}>{t('landing.trust.description2', '글자 크기, 고대비, 읽어주기 같은 접근성 흐름을 함께 고려합니다.')}</Text>
         </View>
-        <Text style={[styles.trustCheck, isPhaseReached(1, demoPhase, reducedMotion) && styles.trustCheckActive]}>✓</Text>
+        <Text style={[styles.trustCheck, isTrustActive(1) && styles.trustCheckActive]}>✓</Text>
       </View>
       <View style={[styles.mockCard, styles.trustCard, getCurrentStepStyle(2, activeTrustIndex, reducedMotion)]}>
         <View style={[styles.trustIconWrap, animatedStyle(styles.microTrustPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]}><Text style={styles.trustIcon}>API</Text></View>
@@ -860,7 +877,7 @@ function TrustMock({ demoPhase, reducedMotion, t }) {
           <Text style={styles.trustCardTitle}>{t('landing.trust.item3', '백엔드 API 변경 없이 현재 기능 흐름 재사용')}</Text>
           <Text style={styles.trustCardDesc}>{t('landing.trust.description3', '현재 API 흐름을 유지하면서 소개 화면과 기능 예시를 안정적으로 확장합니다.')}</Text>
         </View>
-        <Text style={[styles.trustCheck, isPhaseReached(2, demoPhase, reducedMotion) && styles.trustCheckActive]}>✓</Text>
+        <Text style={[styles.trustCheck, isTrustActive(2) && styles.trustCheckActive]}>✓</Text>
       </View>
     </View>
   );
