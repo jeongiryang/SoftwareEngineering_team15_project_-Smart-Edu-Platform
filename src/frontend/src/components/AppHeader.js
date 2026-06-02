@@ -489,8 +489,14 @@ function HeaderProfileMenu({ activeScreen, displayName, onLogout, onNavigate, tr
 function SettingsIcon() {
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.settingsIcon}>
-      <View style={styles.settingsIconRing} />
-      <View style={styles.settingsIconCore} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothTop]} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothBottom]} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothLeft]} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothRight]} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothDiagonalA]} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothDiagonalB]} />
+      <View style={styles.settingsGearRing} />
+      <View style={styles.settingsGearCore} />
     </View>
   );
 }
@@ -838,25 +844,57 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   settingsIcon: {
-    width: 18,
-    height: 18,
+    width: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative'
   },
-  settingsIconRing: {
-    width: 17,
-    height: 17,
+  settingsGearRing: {
+    width: 14,
+    height: 14,
     borderRadius: 999,
-    borderWidth: 2,
-    borderColor: colors.blueDeep
+    borderWidth: 2.2,
+    borderColor: colors.blueDeep,
+    backgroundColor: colors.surfaceWarm
   },
-  settingsIconCore: {
+  settingsGearCore: {
     position: 'absolute',
-    width: 5,
-    height: 5,
+    width: 4,
+    height: 4,
     borderRadius: 999,
     backgroundColor: colors.blueDeep
+  },
+  settingsGearTooth: {
+    position: 'absolute',
+    width: 3,
+    height: 6,
+    borderRadius: 2,
+    backgroundColor: colors.blueDeep
+  },
+  settingsGearToothTop: {
+    top: 0
+  },
+  settingsGearToothBottom: {
+    bottom: 0
+  },
+  settingsGearToothLeft: {
+    left: 0,
+    transform: [{ rotate: '90deg' }]
+  },
+  settingsGearToothRight: {
+    right: 0,
+    transform: [{ rotate: '90deg' }]
+  },
+  settingsGearToothDiagonalA: {
+    top: 2,
+    right: 2,
+    transform: [{ rotate: '45deg' }]
+  },
+  settingsGearToothDiagonalB: {
+    bottom: 2,
+    left: 2,
+    transform: [{ rotate: '45deg' }]
   },
   languageDropdown: {
     position: 'relative',

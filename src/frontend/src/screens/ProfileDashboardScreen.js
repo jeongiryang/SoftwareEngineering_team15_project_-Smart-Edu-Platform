@@ -299,6 +299,11 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
     newPassword: '',
     confirmPassword: ''
   });
+  const [passwordTouched, setPasswordTouched] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false
+  });
   const [accountSection, setAccountSection] = useState('nickname');
   const [withdrawalForm, setWithdrawalForm] = useState({
     currentPassword: '',
@@ -307,6 +312,17 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
   const { translateText } = useLanguage();
   const requestedProfileTab = normalizeProfileTab(routeParams.tab || routeParams.section);
   const [activeProfileTab, setActiveProfileTab] = useState(requestedProfileTab);
+
+  function handlePasswordFieldChange(field) {
+    return (value) => {
+      setPasswordTouched((current) => ({ ...current, [field]: true }));
+      setPasswordForm((current) => ({ ...current, [field]: value }));
+    };
+  }
+
+  function localizeFeedback(feedback) {
+    return feedback ? { ...feedback, message: translateText(feedback.message) } : null;
+  }
 
   useEffect(() => {
     setActiveProfileTab(requestedProfileTab);
@@ -446,6 +462,11 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
+      });
+      setPasswordTouched({
+        currentPassword: false,
+        newPassword: false,
+        confirmPassword: false
       });
       setAccountMessage('비밀번호를 변경했습니다. 다음 로그인부터 새 비밀번호를 사용하세요.');
     } catch (submitError) {
@@ -968,32 +989,38 @@ export default function ProfileDashboardScreen({ onAccountDeleted, onNavigate, o
                   <Text style={styles.formLabel}>비밀번호 변경</Text>
                   <Text style={styles.formHelper}>현재 비밀번호로 본인 확인을 한 뒤 새 비밀번호를 저장합니다. 비밀번호는 화면에 표시하지 않습니다.</Text>
                   <AccessibleTextInput
-                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
+                    onChangeText={handlePasswordFieldChange('currentPassword')}
                     placeholder="현재 비밀번호"
                     placeholderTextColor={colors.muted}
                     secureTextEntry
                     style={styles.textInput}
                     value={passwordForm.currentPassword}
                   />
-                  <FieldFeedback {...getCurrentPasswordFeedback(passwordForm.currentPassword)} />
+                  {passwordTouched.currentPassword ? (
+                    <FieldFeedback {...localizeFeedback(getCurrentPasswordFeedback(passwordForm.currentPassword))} />
+                  ) : null}
                   <AccessibleTextInput
-                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))}
+                    onChangeText={handlePasswordFieldChange('newPassword')}
                     placeholder="새 비밀번호"
                     placeholderTextColor={colors.muted}
                     secureTextEntry
                     style={styles.textInput}
                     value={passwordForm.newPassword}
                   />
-                  <FieldFeedback {...getNewPasswordFeedback(passwordForm.newPassword)} />
+                  {passwordTouched.newPassword ? (
+                    <FieldFeedback {...localizeFeedback(getNewPasswordFeedback(passwordForm.newPassword))} />
+                  ) : null}
                   <AccessibleTextInput
-                    onChangeText={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))}
+                    onChangeText={handlePasswordFieldChange('confirmPassword')}
                     placeholder="새 비밀번호 확인"
                     placeholderTextColor={colors.muted}
                     secureTextEntry
                     style={styles.textInput}
                     value={passwordForm.confirmPassword}
                   />
-                  <FieldFeedback {...getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword)} />
+                  {passwordTouched.confirmPassword ? (
+                    <FieldFeedback {...localizeFeedback(getConfirmPasswordFeedback(passwordForm.newPassword, passwordForm.confirmPassword))} />
+                  ) : null}
                   <Pressable
                     accessibilityRole="button"
                     disabled={changingPassword}

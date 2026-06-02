@@ -1234,10 +1234,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                         >
                           <Text style={styles.moreButtonText}>
                             {showAllActiveQuests
-                              ? translateText('진행 중 퀘스트 숨기기')
-                              : dashboardCopy(currentLanguage, 'moreActiveQuests', {
-                                count: formatNumber(activeQuests.length - 3, currentLanguage)
-                              })}
+                              ? dashboardCopy(currentLanguage, 'rewardDetailsHide')
+                              : dashboardCopy(currentLanguage, 'rewardDetailsShow')}
                           </Text>
                         </Pressable>
                       ) : null}
