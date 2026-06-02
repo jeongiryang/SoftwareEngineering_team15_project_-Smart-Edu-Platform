@@ -263,6 +263,10 @@ function getCurrentOrCompleteStyle(index, demoPhase, reducedMotion) {
   ];
 }
 
+function getAiThinkingStyle(demoPhase, reducedMotion) {
+  return reducedMotion || demoPhase === 1 || demoPhase === 2 ? styles.demoStepActive : styles.demoStepWaiting;
+}
+
 function getBarHeightForPhase(targetHeight, index, demoPhase, reducedMotion) {
   if (reducedMotion) {
     return targetHeight;
@@ -521,29 +525,29 @@ function FocusMock({ demoPhase, reducedMotion, t }) {
 function ChatMock({ demoPhase, reducedMotion, t }) {
   return (
     <View style={[styles.mockCard, styles.chatMock]}>
-      <View style={[styles.chatUserBubble, animatedStyle(styles.microBubbleLift, reducedMotion), getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>
+      <View style={[styles.chatUserBubble, getCurrentOrCompleteStyle(0, demoPhase, reducedMotion)]}>
         <Text style={styles.chatUserText}>{t('landing.story.ai.previewItem1', '이 개념을 한 문단으로 요약해줘')}</Text>
       </View>
-      <View style={[styles.aiWaitRow, getCurrentStepStyle(1, demoPhase, reducedMotion)]}>
+      <View style={[styles.aiWaitRow, getAiThinkingStyle(demoPhase, reducedMotion)]}>
         <Text style={styles.aiWaitText}>AI가 질문을 읽는 중</Text>
       </View>
-      <View style={[styles.typingDotsRow, getCurrentStepStyle(2, demoPhase, reducedMotion)]}>
+      <View style={[styles.typingDotsRow, getAiThinkingStyle(demoPhase, reducedMotion)]}>
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion)]} />
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion)]} />
         <View style={[styles.typingDot, animatedStyle(styles.microDotPulse, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion)]} />
       </View>
-      <View style={[styles.chatAiBubble, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getCurrentOrCompleteStyle(3, demoPhase, reducedMotion)]}>
+      <View style={[styles.chatAiBubble, getCurrentOrCompleteStyle(3, demoPhase, reducedMotion)]}>
         <Text style={styles.chatAiText}>막히는 부분을 질문하면 요약과 복습 힌트로 이어집니다.</Text>
       </View>
-      <View style={[styles.chatUserBubble, styles.chatUserBubbleFollowup, animatedStyle(styles.microBubbleLift, reducedMotion), getStepStyle(4, demoPhase, reducedMotion)]}>
+      <View style={[styles.chatUserBubble, styles.chatUserBubbleFollowup, getStepStyle(4, demoPhase, reducedMotion)]}>
         <Text style={styles.chatUserText}>예시도 같이 보여줘</Text>
       </View>
-      <View style={[styles.chatAiBubble, styles.chatAiBubbleFollowup, animatedStyle(styles.microBubbleLift, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), getStepStyle(5, demoPhase, reducedMotion)]}>
+      <View style={[styles.chatAiBubble, styles.chatAiBubbleFollowup, getStepStyle(5, demoPhase, reducedMotion)]}>
         <Text style={styles.chatAiText}>복습 질문으로 이어가면 요약, 다시 보기, 예시 보기 순서로 정리됩니다.</Text>
         <View style={styles.chatActions}>
-          <View style={[styles.chatBtn, animatedStyle(styles.microChipHighlight, reducedMotion), demoPhase >= 3 && styles.demoChipActive]}><Text style={styles.chatBtnText}>요약하기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnMuted, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay1, reducedMotion), demoPhase >= 5 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
-          <View style={[styles.chatBtn, styles.chatBtnCream, animatedStyle(styles.microChipHighlight, reducedMotion), animatedStyle(styles.microDelay2, reducedMotion), demoPhase >= 5 && styles.demoChipActive]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
+          <View style={styles.chatBtn}><Text style={styles.chatBtnText}>요약하기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnMuted]}><Text style={[styles.chatBtnText, styles.chatBtnMutedText]}>다시 보기</Text></View>
+          <View style={[styles.chatBtn, styles.chatBtnCream]}><Text style={[styles.chatBtnText, styles.chatBtnCreamText]}>예시 보기</Text></View>
         </View>
       </View>
     </View>
@@ -759,20 +763,35 @@ function RewardMock({ demoPhase, reducedMotion, t }) {
   );
 }
 
-function LanguageMock({ demoPhase, reducedMotion, t }) {
+function LanguageMock({ reducedMotion, t }) {
+  const [languageIndex, setLanguageIndex] = useState(0);
   const rows = [
     t('landing.language.previewKo', '한국어 기본'),
-    t('landing.language.previewEn', 'English Beta'),
     t('landing.language.previewJa', '日本語 Beta'),
+    t('landing.language.previewEn', 'English Beta'),
     t('landing.language.previewZh', '中文 Beta')
   ];
-  const languagePhase = Math.min(reducedMotion ? rows.length - 1 : demoPhase, rows.length - 1);
   const sampleSentences = [
     '오늘 학습 기록을 정리했어요.',
-    'Today’s study log is ready.',
     '今日の学習記録を整理しました。',
+    'Today’s study log is ready.',
     '今天的学习记录已整理。'
   ];
+  const selectedLanguageIndex = reducedMotion ? 0 : languageIndex;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setLanguageIndex(0);
+      return undefined;
+    }
+
+    setLanguageIndex(0);
+    const timer = setInterval(() => {
+      setLanguageIndex((current) => (current + 1) % rows.length);
+    }, 1500);
+
+    return () => clearInterval(timer);
+  }, [reducedMotion, rows.length]);
 
   return (
     <View style={[styles.mockCard, styles.simpleMockCard, styles.languageMock]}>
@@ -786,8 +805,8 @@ function LanguageMock({ demoPhase, reducedMotion, t }) {
             key={item}
             style={[
               styles.languageRow,
-              getCurrentStepStyle(index, languagePhase, reducedMotion),
-              index === languagePhase && styles.languageRowSelected
+              getCurrentStepStyle(index, selectedLanguageIndex, reducedMotion),
+              index === selectedLanguageIndex && styles.languageRowSelected
             ]}
           >
             <View style={[styles.languageDot, index === 0 && styles.languageDotPrimary]} />
@@ -796,7 +815,7 @@ function LanguageMock({ demoPhase, reducedMotion, t }) {
         ))}
       </View>
       <View style={[styles.languageSampleBox, styles.demoPanelActive, styles.languageSampleBoxSynced]}>
-        <Text style={styles.languageSampleText}>{sampleSentences[languagePhase]}</Text>
+        <Text style={styles.languageSampleText}>{sampleSentences[selectedLanguageIndex]}</Text>
       </View>
       <Text style={styles.languageNote}>{t('landing.language.note', '정식 검수 전 1차 지원 언어로 가볍게 제공합니다.')}</Text>
     </View>
@@ -869,12 +888,13 @@ function ProjectGroundedCopySection({ demoPhase, reducedMotion, t }) {
 function ServiceSection({ demoPhase, reducedMotion, section, t }) {
   const reverse = section.layout === 'reverse';
   const center = section.layout === 'center';
+  const compactAiSection = section.id === 'question';
 
   return (
     <View style={styles.newSection}>
       <SectionKeyword label={section.keyword} style={styles[`bg${section.id}`]} />
-      <View style={[styles.newSectionInner, reverse && styles.newSectionInnerReverse, center && styles.newSectionInnerCenter]}>
-        <View style={[styles.newTextCol, center && styles.newTextColCenter]}>
+      <View style={[styles.newSectionInner, reverse && styles.newSectionInnerReverse, center && styles.newSectionInnerCenter, compactAiSection && styles.aiSectionInnerTight]}>
+        <View style={[styles.newTextCol, center && styles.newTextColCenter, compactAiSection && styles.aiTextColTight]}>
           <Text style={[styles.newSectionTitle, center && styles.textCenter]}>
             {section.titleKey ? t(section.titleKey, section.titleFallback) : section.titleFallback}
           </Text>
@@ -885,7 +905,7 @@ function ServiceSection({ demoPhase, reducedMotion, section, t }) {
             <Text style={styles.tagText}>{section.chipKey ? t(section.chipKey, section.chipFallback) : section.chipFallback}</Text>
           </View>
         </View>
-        <View style={[styles.newVisualCol, center && styles.newVisualColCenter]}>
+        <View style={[styles.newVisualCol, center && styles.newVisualColCenter, compactAiSection && styles.aiVisualColTight]}>
           <SectionVisual demoPhase={demoPhase} reducedMotion={reducedMotion} t={t} type={section.visual} />
         </View>
       </View>
@@ -1513,6 +1533,15 @@ const styles = StyleSheet.create({
   newVisualColCenter: {
     width: '100%',
     maxWidth: 600
+  },
+  aiSectionInnerTight: {
+    gap: 24
+  },
+  aiTextColTight: {
+    marginBottom: 8
+  },
+  aiVisualColTight: {
+    marginTop: -6
   },
   textCenter: {
     textAlign: 'center',
