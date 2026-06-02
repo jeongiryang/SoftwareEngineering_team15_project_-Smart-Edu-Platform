@@ -36,7 +36,7 @@ function getBrowserSessionStorage() {
   }
 }
 
-function shouldShowIntro() {
+export function shouldShowLandingIntro() {
   const storage = getBrowserSessionStorage();
 
   if (!storage) {
@@ -50,7 +50,7 @@ function shouldShowIntro() {
   }
 }
 
-function markIntroSeen() {
+export function markLandingIntroSeen() {
   const storage = getBrowserSessionStorage();
 
   if (storage) {
@@ -95,7 +95,7 @@ function GitHubMark() {
 export default function LandingScreen({ onNavigate }) {
   const { currentLanguage, t } = useLanguage();
   const [scrollY, setScrollY] = useState(0);
-  const [showIntro, setShowIntro] = useState(shouldShowIntro);
+  const [showIntro, setShowIntro] = useState(shouldShowLandingIntro);
   const [githubTooltipState, setGithubTooltipState] = useState({
     focused: false,
     hovered: false
@@ -113,7 +113,7 @@ export default function LandingScreen({ onNavigate }) {
   };
 
   const handleIntroDone = useCallback(() => {
-    markIntroSeen();
+    markLandingIntroSeen();
     setShowIntro(false);
   }, []);
 
@@ -121,16 +121,18 @@ export default function LandingScreen({ onNavigate }) {
     setShowIntro(true);
   }, []);
 
+  if (showIntro) {
+    return <ParticlePencilIntro visible onDone={handleIntroDone} />;
+  }
+
   return (
-    <>
-      <ParticlePencilIntro visible={showIntro} onDone={handleIntroDone} />
-      <ScrollView
-        dataSet={{ sagakI18nIgnore: 'true' }}
-        onScroll={handleLandingScroll}
-        scrollEventThrottle={80}
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
+    <ScrollView
+      dataSet={{ sagakI18nIgnore: 'true' }}
+      onScroll={handleLandingScroll}
+      scrollEventThrottle={80}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View
         style={[
           styles.hero,
@@ -244,8 +246,7 @@ export default function LandingScreen({ onNavigate }) {
           </Pressable>
         </View>
       </View>
-      </ScrollView>
-    </>
+    </ScrollView>
   );
 }
 
