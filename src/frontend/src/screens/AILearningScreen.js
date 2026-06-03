@@ -1826,7 +1826,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
         </Pressable>
       </View>
 
-      <View style={styles.audioBriefingCard}>
+      <View dataSet={{ sagakHelpTarget: 'ai-briefing' }} style={styles.audioBriefingCard}>
         <View style={styles.audioBriefingHeader}>
           <View style={styles.audioBriefingCopy}>
             <Text style={styles.audioBriefingEyebrow}>{aiCopy.audioBriefing.eyebrow}</Text>
@@ -1891,7 +1891,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       </View>
 
       {/* Navigation Tabs */}
-      <View style={styles.tabsRow}>
+      <View dataSet={{ sagakHelpTarget: 'ai-modes' }} style={styles.tabsRow}>
         <Pressable
           onPress={() => { setActiveTab('qna'); resetFeedback(); }}
           style={(state) => [styles.tabButton, activeTab === 'qna' && styles.tabButtonActive, ...interactiveStateStyles(state)]}
@@ -1942,7 +1942,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
       {loading ? <PanelSkeleton rows={3} /> : null}
 
       {/* Tab Panels */}
-      <View style={styles.panelBody}>
+      <View dataSet={{ sagakHelpTarget: 'ai-workspace' }} style={styles.panelBody}>
         {/* TAB 1: AI 학습 질의 */}
         {activeTab === 'qna' && (
           <View style={styles.aiChatShell}>

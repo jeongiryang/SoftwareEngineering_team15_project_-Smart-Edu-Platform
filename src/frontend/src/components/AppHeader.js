@@ -49,7 +49,7 @@ const authenticatedNavGroups = [
   }
 ];
 
-export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogout, onNavigate, user }) {
+export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogout, onNavigate, onOpenHelp, showHelp = false, user }) {
   const authenticated = Boolean(user);
   const hasAdminRole = user?.role === 'ADMIN';
   const [openMenu, setOpenMenu] = useState(null);
@@ -183,6 +183,20 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
         </View>
 
         <View style={styles.actions}>
+          {authenticated && showHelp ? (
+            <Pressable
+              accessibilityLabel={t('help.header.button', 'Help')}
+              accessibilityRole="button"
+              onPress={() => {
+                setOpenMenu(null);
+                onOpenHelp?.();
+              }}
+              style={(state) => [styles.iconButton, styles.helpButton, ...interactiveStateStyles(state)]}
+              title={t('help.header.button', 'Help')}
+            >
+              <Text style={styles.helpButtonText}>?</Text>
+            </Pressable>
+          ) : null}
           <HeaderSettingsMenu
             currentThemeLabel={currentThemeLabel}
             currentLanguage={currentLanguage}
@@ -1110,6 +1124,15 @@ const styles = StyleSheet.create({
   iconButtonActive: {
     borderColor: colors.mint,
     backgroundColor: colors.mintSoft
+  },
+  helpButton: {
+    borderColor: colors.mint,
+    backgroundColor: colors.mintSoft
+  },
+  helpButtonText: {
+    color: colors.blueDeep,
+    fontSize: 18,
+    fontWeight: '900'
   },
   profileMenuWrap: {
     position: 'relative',

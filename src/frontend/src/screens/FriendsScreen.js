@@ -461,7 +461,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
           {message ? <Text style={styles.successMessage}>{message}</Text> : null}
           {error ? <Text style={styles.errorMessage}>{error}</Text> : null}
 
-          <View style={[styles.sectionCard, shadows.card]}>
+          <View dataSet={{ sagakHelpTarget: 'friends-search' }} style={[styles.sectionCard, shadows.card]}>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>친구 검색</Text>
@@ -503,7 +503,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
             )}
           </View>
 
-          <View style={styles.twoColumnGrid}>
+          <View dataSet={{ sagakHelpTarget: 'friends-requests' }} style={styles.twoColumnGrid}>
             <View style={[styles.sectionCard, shadows.card]}>
               <Text style={styles.sectionTitle}>받은 요청</Text>
               <Text style={styles.sectionSubtitle}>친구 요청은 수신한 사용자만 수락하거나 거절할 수 있습니다.</Text>
@@ -535,7 +535,7 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
             </View>
           </View>
 
-          <View style={[styles.sectionCard, shadows.card]}>
+          <View dataSet={{ sagakHelpTarget: 'friends-list' }} style={[styles.sectionCard, shadows.card]}>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>친구 목록</Text>

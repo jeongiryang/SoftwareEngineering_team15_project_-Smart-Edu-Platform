@@ -649,7 +649,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
         </View>
       ) : null}
 
-      <View style={styles.section}>
+      <View dataSet={{ sagakHelpTarget: 'raid-bosses' }} style={styles.section}>
         <Text style={styles.sectionTitle}>{t('bossRaid.sections.selectBoss', '보스 선택')}</Text>
         <View style={styles.cardGrid}>
           {raids.map((raid) => {
@@ -802,7 +802,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
         </View>
       </View>
 
-      <View style={styles.section}>
+      <View dataSet={{ sagakHelpTarget: 'raid-parties' }} style={styles.section}>
         <Text style={styles.sectionTitle}>{t('bossRaid.sections.publicParties', '공개 모집 파티')}</Text>
         <View style={styles.partyList}>
           {publicParties.map((party) => {
@@ -886,7 +886,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       </View>
 
       {selectedParty ? (
-        <View style={styles.detailPanel}>
+        <View dataSet={{ sagakHelpTarget: 'raid-detail' }} style={styles.detailPanel}>
           <View style={styles.detailHeader}>
             <View>
               <Text style={styles.detailTitle} numberOfLines={2} ellipsizeMode="tail">{selectedParty.raid.name}</Text>

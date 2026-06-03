@@ -567,7 +567,7 @@ export default function PointShopScreen({ token, user }) {
 
   return (
     <ScrollView contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
-      <View style={[styles.heroPanel, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'shop-profile' }} style={[styles.heroPanel, shadows.card]}>
         <View style={styles.heroHeader}>
           <View style={styles.heroCopy}>
             <Text style={styles.heroEyebrow}>POINT SHOP</Text>
@@ -633,7 +633,7 @@ export default function PointShopScreen({ token, user }) {
         translateText={translateText}
       />
 
-      <View style={styles.sections}>
+      <View dataSet={{ sagakHelpTarget: 'shop-items' }} style={styles.sections}>
         {Object.entries(ITEM_SECTION_META).map(([type, meta]) => {
           const equippedItem = shop.equippedItems?.[EQUIPPED_ITEM_KEYS[type]] || null;
           const resetting = busyItemId === `unequip-${type}`;
@@ -684,7 +684,7 @@ export default function PointShopScreen({ token, user }) {
         })}
       </View>
 
-      <View style={[styles.sectionPanel, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'shop-history' }} style={[styles.sectionPanel, shadows.card]}>
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.sectionTitle}>🧾 {translateText('구매한 아이템')}</Text>
