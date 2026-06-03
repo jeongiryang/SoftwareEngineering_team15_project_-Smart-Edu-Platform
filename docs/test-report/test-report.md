@@ -291,7 +291,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(29 suites / 524 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(29 suites / 530 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트. `SUSPENDED`/`DEACTIVATED` 계정 login 403 차단과 기존 token 보호 API 401 차단 검증 포함 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
@@ -338,8 +338,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Community Report API test | `POST /api/community/posts/:postId/reports`, `POST /api/community/comments/:commentId/reports` | 통과 | `src/backend/tests/community-report.test.js`의 repository mock 기반 API 테스트. 미인증 401, invalid postId/commentId 400, 존재하지 않는 게시글/댓글 404, reason validation, 중복 신고 409, reported flag transaction 갱신, 다른 사용자 동일 대상 신고 허용, 민감정보 미노출 검증 포함 |
 | Community Report focused test | `npm --prefix src/backend test -- --runTestsByPath tests/community-report.test.js` | 통과 | 커뮤니티 사용자 신고 API 단일 테스트 기준 1 suite / 36 tests passed |
 | Documentation diff check | `git diff --check` | 통과 | API 명세와 테스트 보고서 최신화 작업 기준 whitespace 오류 없음 |
-| Dev seed guard test | 개발용 seed script production guard, 최신 demo seed 구성, AI 채팅/쪽지 demo seed 정의 확인 | 통과 | `src/backend/tests/seed-dev.test.js` |
-| Dev seed execution | `npm run seed:dev` | 통과 | production이 아닌 개발용 branch 기준 일반 사용자, 관리자 사용자, 기본 UserProfile seed 완료 |
+| Dev seed guard test | 개발용 seed script production guard, 최신 demo seed 구성, AI 채팅/쪽지/친구/보상/협동 데이터 정의 확인 | 통과 | `src/backend/tests/seed-dev.test.js` 기준 1 suite / 15 tests passed |
+| Dev seed execution | `npm run seed:dev` | 통과 | 사용자 승인 deployment/demo DB에 최신 seed 1회 적용 완료. 실제 DB URL, host, password, token, secret 원문 미기록 |
 | Prisma validate | `npm run validate:prisma` | 통과 | Prisma schema valid |
 | Frontend config | `npm run check:frontend` | 통과 | Expo public config 확인 |
 | Frontend web export | `npm run check:frontend:web` | 통과 | Expo Web export 성공 |
@@ -353,13 +353,13 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
-| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(29 suites / 524 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
-| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(29 suites / 524 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
+| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
-| Boss Raid API 검증 | 스터디 보스 레이드 MVP 및 초대 기반 참여 구조 검증 | 통과 | `npm test`(29 suites / 524 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 23 tests passed) 통과 |
-| Collaborative Quest API 검증 | 협동 퀘스트 실시간 진행률 및 사용자별 숨김/보관 정책 검증 | 통과 | `npm test`(29 suites / 524 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js`(1 suite / 21 tests passed) 통과 |
-| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(29 suites / 524 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 11 tests passed) 통과 |
+| Boss Raid API 검증 | 스터디 보스 레이드 MVP 및 초대 기반 참여 구조 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 23 tests passed) 통과 |
+| Collaborative Quest API 검증 | 협동 퀘스트 실시간 진행률 및 사용자별 숨김/보관 정책 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js`(1 suite / 21 tests passed) 통과 |
+| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 12 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -425,7 +425,7 @@ AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기�
 커뮤니티 사용자 신고 API 테스트는 repository mock 기반으로 실제 Express route, `authMiddleware`, service validation 흐름을 통과시키며 `/api/community/posts/:postId/reports`, `/api/community/comments/:commentId/reports` 신고 생성 기능을 확인함. 신고 사유 누락/공백/타입/500자 초과 validation, 지원하지 않는 field와 `reporterId`/`postId`/`commentId`/`status` 등 spoofing 차단, 같은 사용자의 같은 대상 중복 신고 409, 다른 사용자의 동일 대상 신고 허용, `BoardPost.reported`/`Comment.reported` 갱신, transaction 호출, 민감정보 미노출을 검증함.
 
 
-개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, 최신 demo seed 구성, AI 채팅방/메시지 seed 정의, 친구 간 쪽지 thread/read state seed 정의, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 이후 production이 아닌 개발용 branch 기준으로 `npm run seed:dev`를 실행하여 개발용 일반 사용자, 개발용 관리자 사용자, 기본 UserProfile seed가 완료됨을 확인함. 실행 결과에는 실제 DB URL, host, password, API key를 기록하지 않음.
+개발용 seed script 테스트는 실제 DB 쓰기 없이 seed 대상 사용자 구성, 최신 demo seed 구성, AI 채팅방/메시지 seed 정의, 친구 간 쪽지 thread/read state seed 정의, production 실행 방지 guard, 필수 환경 키 검증을 확인함. 최종 문서 정리 기준으로 사용자가 승인한 deployment/demo DB에 `npm run seed:dev`를 1회 실행하여 최신 demo seed 적용을 완료함. 실행 결과에는 실제 DB URL, host, password, token, secret, API key를 기록하지 않음.
 
 프론트엔드 인증 화면 연결은 LoginScreen/RegisterScreen/DashboardScreen과 frontend API service 기준으로 확인함. 로그인/회원가입 성공 시 token 저장, 앱 시작 시 `GET /api/auth/me` 현재 사용자 확인, 로그아웃 시 token 삭제 흐름을 반영함. 자동 화면 테스트는 아직 없으며, 이번 단계에서는 Expo config와 Web export 검증으로 빌드 가능성을 확인함. 실제 JWT token 원문은 기록하지 않음.
 
