@@ -534,7 +534,11 @@ describe('Collaborative Quest API', () => {
       expect.objectContaining({
         currentUserHidden: true,
         currentUserArchived: false,
-        hasJoined: true
+        hasJoined: true,
+        canContribute: false,
+        canClaim: false,
+        participantCount: 0,
+        participants: []
       })
     );
     expect(collaborativeQuestRepository.updateCollaborativeQuestParticipantVisibility).toHaveBeenCalledWith(
