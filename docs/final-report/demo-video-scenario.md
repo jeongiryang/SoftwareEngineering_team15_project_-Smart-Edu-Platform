@@ -101,3 +101,12 @@ Smart Edu Platform의 주요 학습 흐름을 짧은 영상 안에서 연결해 
 - 브라우저 캐시와 세션 상태 정리
 - 모바일 viewport 또는 반응형 화면 확인
 - 실패 시 설명할 fallback 화면 준비
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [설치 및 사용 가이드](../deployment/install-and-usage-guide.md)
+- [배포 smoke test](../deployment/vercel-smoke-test.md)

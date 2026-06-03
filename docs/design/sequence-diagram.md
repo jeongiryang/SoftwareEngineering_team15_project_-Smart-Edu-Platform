@@ -331,3 +331,14 @@ UC-12는 클라이언트에서 타이머를 실행하고, 학습 종료 시점�
 | `UC-17` | 정해진 복습 주기에 따른 푸시 알림 전송 | [UC17_ReviewNotification.png](../../screenshots/sequence-diagram/UC17_ReviewNotification.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
 | `UC-19` | 학습 노트 기반 AI 퀴즈 생성 | [UC19_GenerateQuiz.png](../../screenshots/sequence-diagram/UC19_GenerateQuiz.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
 | `UC-20` | 신고된 사용자 목록 조회 및 관리자 제재 처리 (정지 등) | [UC20_UserAccountAdmin.png](../../screenshots/sequence-diagram/UC20_UserAccountAdmin.png) | [sequence-diagrams.puml](plantuml/sequence-diagrams.puml) |
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [요구사항 문서](../requirements/requirements-document.md)
+- [API 명세](../api/api-spec.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [구현 계획](./implementation-plan.md)

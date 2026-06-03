@@ -152,3 +152,13 @@ Vercel 배포 후 Smart Edu Platform의 주요 화면과 API 연결이 정상 �
 - schema/migration pending이 있으면 배포 전 적용 여부를 별도 판단한다.
 - API base URL, CORS, WebSocket 문제가 있으면 배포 blocker로 처리한다.
 - 실제 외부 AI/OCR API가 연결되지 않은 기능은 발표와 문서에서 mock/fallback 범위를 명확히 설명한다.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [데모 영상 시나리오](../final-report/demo-video-scenario.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [API 명세](../api/api-spec.md)

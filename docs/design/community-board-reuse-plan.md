@@ -638,3 +638,14 @@ Smart Edu에 맞게 바꿔야 할 방향:
 다만 기존 코드는 Express 컨트롤러와 Prisma query가 직접 결합된 구조이고, 정적 HTML/CSS/Vanilla JS 기반 UI이므로 현재 Smart Edu Platform에 그대로 복사하면 안 됨. 현재 프로젝트의 `routes → controllers → services → repositories → Prisma Client / DB` 구조, `authMiddleware`, `req.user`, `AppError`, `validators`, `apiResponse` 기준으로 재설계해야 함.
 
 커뮤니티 기능은 API, DB, 프론트, 관리자 연동 범위가 넓기 때문에 단계별 PR로 나누는 것이 안전함. 다음 작업은 커뮤니티 DB 모델과 API 설계를 확정하는 별도 설계 Issue로 진행하는 것이 적절함.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [요구사항 문서](../requirements/requirements-document.md)
+- [API 명세](../api/api-spec.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [구현 계획](./implementation-plan.md)

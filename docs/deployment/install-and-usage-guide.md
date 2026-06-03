@@ -124,3 +124,13 @@ npm --prefix src/backend test -- --runTestsByPath tests/seed-dev.test.js
 - 테스트 로그나 PR 본문에 secret이 포함되지 않게 확인한다.
 - 배포 hook이나 Render/Vercel secret 값은 원문으로 출력하지 않는다.
 - seed 계정의 실제 비밀번호는 공개 문서에 남기지 않는다.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [데모 영상 시나리오](../final-report/demo-video-scenario.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [API 명세](../api/api-spec.md)

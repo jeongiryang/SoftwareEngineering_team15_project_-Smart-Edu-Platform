@@ -1104,3 +1104,14 @@
 잠재 사용자 인터뷰 결과는 기존 요구사항의 방향과 대체로 일치함.
 
 특히 사용자 그룹별 차이는 기능 우선순위와 화면 제공 방식에 영향을 주는 요소로 확인됨. 본 문서의 결과는 요구사항 문서의 사용자 요구사항, 기능 요구사항, 유스케이스 연결 근거를 보강하는 자료로 활용함.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [설계 문서](../design/design-document.md)
+- [API 명세](../api/api-spec.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [AI 활용 정책](../ai-agent-usage-policy.md)

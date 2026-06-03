@@ -115,3 +115,12 @@
 - 정이량: 최종 발표 전 작성
 - 황대겸: 최종 발표 전 작성
 - 박지환: 최종 발표 전 작성
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [설치 및 사용 가이드](../deployment/install-and-usage-guide.md)
+- [배포 smoke test](../deployment/vercel-smoke-test.md)
