@@ -177,6 +177,7 @@ function sanitizeContribution(contribution) {
 }
 
 function sanitizeQuest(quest, currentUserId = null) {
+  const visibleParticipants = (quest.participants || []).filter((participant) => !participant.hiddenAt);
   const participantIds = (quest.participants || []).map((participant) => participant.userId);
   const hasJoined = currentUserId ? participantIds.includes(currentUserId) : false;
   const hasClaimed = currentUserId
@@ -185,6 +186,8 @@ function sanitizeQuest(quest, currentUserId = null) {
   const currentParticipant = currentUserId
     ? (quest.participants || []).find((participant) => participant.userId === currentUserId)
     : null;
+  const currentUserHidden = Boolean(currentParticipant?.hiddenAt);
+  const currentUserArchived = Boolean(currentParticipant?.archivedAt);
   const progressRate = getProgressRate(quest);
   const isExpired = isExpiredQuest(quest);
 
@@ -206,20 +209,20 @@ function sanitizeQuest(quest, currentUserId = null) {
     createdAt: quest.createdAt,
     updatedAt: quest.updatedAt,
     creator: sanitizeUser(quest.createdBy),
-    participantCount: (quest.participants || []).length,
-    participants: (quest.participants || []).map(sanitizeParticipant),
+    participantCount: visibleParticipants.length,
+    participants: visibleParticipants.map(sanitizeParticipant),
     recentContributions: (quest.contributions || []).map(sanitizeContribution),
     currentUserContributionValue: currentParticipant?.contributionValue || 0,
-    currentUserHidden: Boolean(currentParticipant?.hiddenAt),
-    currentUserArchived: Boolean(currentParticipant?.archivedAt),
+    currentUserHidden,
+    currentUserArchived,
     currentUserHiddenAt: currentParticipant?.hiddenAt || null,
     currentUserArchivedAt: currentParticipant?.archivedAt || null,
     hasJoined,
     hasClaimed,
     isExpired,
     canJoin: quest.status === 'ACTIVE' && !isExpired && !hasJoined,
-    canContribute: quest.status === 'ACTIVE' && !isExpired && hasJoined,
-    canClaim: quest.status === 'COMPLETED' && hasJoined && !hasClaimed
+    canContribute: quest.status === 'ACTIVE' && !isExpired && hasJoined && !currentUserHidden,
+    canClaim: quest.status === 'COMPLETED' && hasJoined && !currentUserHidden && !hasClaimed
   };
 }
 

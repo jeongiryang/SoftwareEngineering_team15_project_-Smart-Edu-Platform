@@ -232,7 +232,13 @@ const UI_LABELS = {
     archiveConfirmTitle: '완료된 협동 퀘스트를 보관할까요?',
     archiveConfirmDescription: '보관은 내 목록에만 적용되며 진행률, 기여도, 보상 수령 기록은 유지됩니다.',
     restoreConfirmTitle: '협동 퀘스트를 목록으로 복원할까요?',
-    restoreConfirmDescription: '숨김 또는 보관 상태를 해제하고 다시 내 목록에 표시합니다.'
+    restoreConfirmDescription: '숨김 또는 보관 상태를 해제하고 다시 내 목록에 표시합니다.',
+    leaveQuest: '진행 중 퀘스트에서 나가기',
+    leftSuccess: '진행 중인 협동 퀘스트 참여를 중단했습니다.',
+    activeLeaveHint: '진행 중인 퀘스트에서 나가도 다른 참여자의 진행 상황은 유지됩니다.',
+    confirmLeaveAction: '나가기',
+    leaveConfirmTitle: '협동 퀘스트에서 나갈까요?',
+    leaveConfirmDescription: '진행 중인 협동 퀘스트 참여를 중단합니다. 기존 기여 기록은 보존되고, 다른 참여자의 진행 상황에는 영향을 주지 않습니다.'
   },
   en: {
     autoReward: 'Use suggested reward',
@@ -263,7 +269,13 @@ const UI_LABELS = {
     archiveConfirmTitle: 'Archive this completed collaborative quest?',
     archiveConfirmDescription: 'Archiving only affects your list. Progress, contributions, and reward claim records are preserved.',
     restoreConfirmTitle: 'Restore this collaborative quest to your list?',
-    restoreConfirmDescription: 'Hidden or archived status will be cleared so it appears in your list again.'
+    restoreConfirmDescription: 'Hidden or archived status will be cleared so it appears in your list again.',
+    leaveQuest: 'Leave active quest',
+    leftSuccess: 'You left the active collaborative quest.',
+    activeLeaveHint: 'Leaving an active quest keeps other participants, progress, and records intact.',
+    confirmLeaveAction: 'Leave',
+    leaveConfirmTitle: 'Leave this collaborative quest?',
+    leaveConfirmDescription: 'You will stop participating in this active collaborative quest. Your existing contribution record is preserved, and other participants keep their progress.'
   },
   ja: {
     autoReward: 'おすすめ報酬を適用',
@@ -294,7 +306,13 @@ const UI_LABELS = {
     archiveConfirmTitle: '完了した協同クエストを保管しますか？',
     archiveConfirmDescription: '保管は自分の一覧にだけ適用され、進行率、貢献度、報酬受け取り記録は保持されます。',
     restoreConfirmTitle: '協同クエストを一覧に戻しますか？',
-    restoreConfirmDescription: '非表示または保管状態を解除し、自分の一覧に再表示します。'
+    restoreConfirmDescription: '非表示または保管状態を解除し、自分の一覧に再表示します。',
+    leaveQuest: '進行中のクエストから退出',
+    leftSuccess: '進行中の協同クエストから退出しました。',
+    activeLeaveHint: '進行中のクエストから退出しても、他の参加者の進行状況は維持されます。',
+    confirmLeaveAction: '退出',
+    leaveConfirmTitle: '協同クエストから退出しますか？',
+    leaveConfirmDescription: '進行中の協同クエストへの参加を中止します。既存の貢献記録は保持され、他の参加者の進行状況には影響しません。'
   },
   zh: {
     autoReward: '使用推荐奖励',
@@ -325,7 +343,13 @@ const UI_LABELS = {
     archiveConfirmTitle: '要归档这个已完成的协作任务吗？',
     archiveConfirmDescription: '归档只影响你的列表，进度、贡献和奖励领取记录会保留。',
     restoreConfirmTitle: '要将这个协作任务恢复到列表吗？',
-    restoreConfirmDescription: '将取消隐藏或归档状态，并重新显示在你的列表中。'
+    restoreConfirmDescription: '将取消隐藏或归档状态，并重新显示在你的列表中。',
+    leaveQuest: '退出进行中的任务',
+    leftSuccess: '已退出进行中的协同任务。',
+    activeLeaveHint: '退出进行中的任务后，其他参与者的进度仍会保留。',
+    confirmLeaveAction: '退出',
+    leaveConfirmTitle: '要退出这个协同任务吗？',
+    leaveConfirmDescription: '你将停止参与这个进行中的协同任务。已有贡献记录会保留，其他参与者的进度不受影响。'
   }
 };
 
@@ -633,7 +657,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
         action === 'ARCHIVE'
           ? uiText('archivedSuccess')
           : action === 'HIDE'
-            ? uiText('hiddenSuccess')
+            ? uiText('leftSuccess')
             : uiText('restoredSuccess')
       );
     } catch (visibilityError) {
@@ -674,9 +698,9 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
     }
 
     return {
-      title: uiText('hideConfirmTitle'),
-      description: uiText('hideConfirmDescription'),
-      confirmLabel: uiText('confirmHideAction'),
+      title: uiText('leaveConfirmTitle'),
+      description: uiText('leaveConfirmDescription'),
+      confirmLabel: uiText('confirmLeaveAction'),
       destructive: true
     };
   }
@@ -908,7 +932,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                   <Text style={styles.muted}>
                     {displayQuest.status === 'COMPLETED' || displayQuest.status === 'EXPIRED'
                       ? uiText('archiveHint')
-                      : uiText('activeHideHint')}
+                      : uiText('activeLeaveHint')}
                   </Text>
                   <View style={styles.visibilityActions}>
                     {displayQuest.currentUserArchived || displayQuest.currentUserHidden ? (
@@ -948,7 +972,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                           ...interactiveStateStyles(state, { disabled: actionLoading })
                         ]}
                       >
-                        <Text style={styles.secondaryButtonText}>{uiText('hideQuest')}</Text>
+                        <Text style={styles.secondaryButtonText}>{uiText('leaveQuest')}</Text>
                       </Pressable>
                     )}
                   </View>

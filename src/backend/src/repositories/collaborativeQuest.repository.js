@@ -147,7 +147,7 @@ async function addCollaborativeQuestContribution({ questId, userId, amount, memo
       return { type: 'NOT_FOUND' };
     }
 
-    if (!quest.participants.some((participant) => participant.userId === userId)) {
+    if (!quest.participants.some((participant) => participant.userId === userId && !participant.hiddenAt)) {
       return { type: 'NOT_PARTICIPANT' };
     }
 
@@ -233,7 +233,7 @@ async function claimCollaborativeQuestReward({ questId, userId }) {
       return { type: 'NOT_FOUND' };
     }
 
-    if (!quest.participants.some((participant) => participant.userId === userId)) {
+    if (!quest.participants.some((participant) => participant.userId === userId && !participant.hiddenAt)) {
       return { type: 'NOT_PARTICIPANT' };
     }
 
