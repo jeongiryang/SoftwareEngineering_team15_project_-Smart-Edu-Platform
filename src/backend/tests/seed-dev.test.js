@@ -6,7 +6,11 @@ const {
   DEV_SHOP_PURCHASES,
   DEV_SEED_USERS,
   assertSafeSeedEnvironment,
-  looksLikeProductionUrl
+  looksLikeProductionUrl,
+  seedAccessibility,
+  seedCollaborativeQuests,
+  seedRewards,
+  seedSystemSettings
 } = require('../scripts/seed-dev');
 
 const fs = require('fs');
@@ -67,6 +71,13 @@ describe('development seed script', () => {
     expect(seedRewardsSection).toContain("const teamUser01 = usersByLoginId['team_user_01'];");
     expect(seedRewardsSection).toContain("const teamUser02 = usersByLoginId['team_user_02'];");
     expect(seedRewardsSection).toContain("const teamUser03 = usersByLoginId['team_user_03'];");
+  });
+
+  it('exports latest seed helpers used by the full development seed flow', () => {
+    expect(seedRewards).toEqual(expect.any(Function));
+    expect(seedCollaborativeQuests).toEqual(expect.any(Function));
+    expect(seedSystemSettings).toEqual(expect.any(Function));
+    expect(seedAccessibility).toEqual(expect.any(Function));
   });
 
   it('defines default shop seed items for profile customization', () => {
@@ -153,6 +164,54 @@ describe('development seed script', () => {
         })
       ])
     );
+  });
+
+  it('defines collaborative quest visibility seed states without schema changes', () => {
+    const seedScript = fs.readFileSync(path.join(__dirname, '../scripts/seed-dev.js'), 'utf8');
+    const collaborativeQuestSection = seedScript.match(
+      /async function seedCollaborativeQuests\(prisma, usersByLoginId\) \{[\s\S]*?\nasync function seedSystemSettings/
+    )?.[0];
+
+    expect(collaborativeQuestSection).toEqual(expect.any(String));
+    expect(collaborativeQuestSection).toContain('hiddenAt: daysFromNow(0, 16, 30)');
+    expect(collaborativeQuestSection).toContain('archivedAt: daysFromNow(0, 9, 0)');
+    expect(collaborativeQuestSection).toContain('hiddenAt: daysFromNow(-2, 9, 0)');
+    expect(collaborativeQuestSection).toContain('archivedAt: daysFromNow(-1, 9, 0)');
+    expect(collaborativeQuestSection).not.toContain('deleteMany');
+  });
+
+  it('keeps cleanup order safe for latest seed data domains', () => {
+    const seedScript = fs.readFileSync(path.join(__dirname, '../scripts/seed-dev.js'), 'utf8');
+
+    expect(seedScript.indexOf('await prisma.directMessageReadState.deleteMany')).toBeLessThan(
+      seedScript.indexOf('await prisma.directMessage.deleteMany')
+    );
+    expect(seedScript.indexOf('await prisma.directMessage.deleteMany')).toBeLessThan(
+      seedScript.indexOf('await prisma.directMessageThread.deleteMany')
+    );
+    expect(seedScript.indexOf('await prisma.bossRaidRewardClaim.deleteMany')).toBeLessThan(
+      seedScript.indexOf('await prisma.bossRaidContribution.deleteMany')
+    );
+    expect(seedScript.indexOf('await prisma.bossRaidContribution.deleteMany')).toBeLessThan(
+      seedScript.indexOf('await prisma.bossRaidPartyMember.deleteMany')
+    );
+    expect(seedScript.indexOf('await prisma.collaborativeQuestRewardClaim.deleteMany')).toBeLessThan(
+      seedScript.indexOf('await prisma.collaborativeQuestContribution.deleteMany')
+    );
+    expect(seedScript.indexOf('await prisma.collaborativeQuestContribution.deleteMany')).toBeLessThan(
+      seedScript.indexOf('await prisma.collaborativeQuestParticipant.deleteMany')
+    );
+  });
+
+  it('keeps maintenance mode disabled in development seed', () => {
+    const seedScript = fs.readFileSync(path.join(__dirname, '../scripts/seed-dev.js'), 'utf8');
+    const systemSettingsSection = seedScript.match(
+      /async function seedSystemSettings\(prisma\) \{[\s\S]*?\nasync function seedAccessibility/
+    )?.[0];
+
+    expect(systemSettingsSection).toEqual(expect.any(String));
+    expect(systemSettingsSection).toContain('enabled: false');
+    expect(systemSettingsSection).not.toContain('enabled: true');
   });
 
   it('requires database environment keys before running seed', () => {
