@@ -1693,7 +1693,15 @@ const KEY_TRANSLATIONS = {
     'bossRaid.invites.manageTitle': '파티 초대 관리',
     'bossRaid.invites.manageDescription': '비공개 파티는 초대받은 사용자나 참여 코드를 가진 사용자만 참가할 수 있습니다.',
     'bossRaid.invites.loginIdPlaceholder': '초대할 loginId',
-    'bossRaid.invites.emptySent': '아직 보낸 초대가 없습니다.'
+    'bossRaid.invites.emptySent': '아직 보낸 초대가 없습니다.',
+    'bossRaid.detail.close': '닫기',
+    'bossRaid.visibility.localHideHint': '완료 항목은 브라우저별로 숨길 수 있습니다.',
+    'bossRaid.visibility.hideCompletedButton': '완료 레이드 숨기기',
+    'bossRaid.visibility.hiddenSuccess': '완료된 레이드를 내 목록에서 숨겼습니다.',
+    'bossRaid.visibility.cancel': '취소',
+    'bossRaid.visibility.confirmHide': '숨기기',
+    'bossRaid.visibility.confirmTitle': '완료된 보스 레이드를 숨길까요?',
+    'bossRaid.visibility.confirmDescription': '이 작업은 서버 데이터를 삭제하지 않고 이 브라우저의 내 목록에서만 완료된 레이드를 숨깁니다. 보상, 기여도, 처치 기록은 유지됩니다.'
   },
   en: {
     'landing.hero.pill': 'Personalized learning management platform',
@@ -2133,7 +2141,15 @@ const KEY_TRANSLATIONS = {
     'bossRaid.invites.manageTitle': 'Party invite management',
     'bossRaid.invites.manageDescription': 'Private parties can be joined only by invited users or users with the join code.',
     'bossRaid.invites.loginIdPlaceholder': 'Invitee loginId',
-    'bossRaid.invites.emptySent': 'No invites sent yet.'
+    'bossRaid.invites.emptySent': 'No invites sent yet.',
+    'bossRaid.detail.close': 'Close',
+    'bossRaid.visibility.localHideHint': 'Completed items can be hidden per browser.',
+    'bossRaid.visibility.hideCompletedButton': 'Hide completed raid',
+    'bossRaid.visibility.hiddenSuccess': 'Completed raid hidden from your list.',
+    'bossRaid.visibility.cancel': 'Cancel',
+    'bossRaid.visibility.confirmHide': 'Hide',
+    'bossRaid.visibility.confirmTitle': 'Hide this completed boss raid?',
+    'bossRaid.visibility.confirmDescription': 'This does not delete server data. It only hides the completed raid from your list in this browser. Rewards, contributions, and clear records are preserved.'
   },
   ja: {
     'landing.hero.pill': 'パーソナライズ学習管理プラットフォーム',
@@ -2573,7 +2589,15 @@ const KEY_TRANSLATIONS = {
     'bossRaid.invites.manageTitle': 'パーティー招待管理',
     'bossRaid.invites.manageDescription': '非公開パーティーは、招待されたユーザーまたは参加コードを持つユーザーだけが参加できます。',
     'bossRaid.invites.loginIdPlaceholder': '招待するloginId',
-    'bossRaid.invites.emptySent': '送信済みの招待はまだありません。'
+    'bossRaid.invites.emptySent': '送信済みの招待はまだありません。',
+    'bossRaid.detail.close': '閉じる',
+    'bossRaid.visibility.localHideHint': '完了項目はブラウザごとに非表示にできます。',
+    'bossRaid.visibility.hideCompletedButton': '完了レイドを隠す',
+    'bossRaid.visibility.hiddenSuccess': '完了したレイドを自分の一覧から隠しました。',
+    'bossRaid.visibility.cancel': 'キャンセル',
+    'bossRaid.visibility.confirmHide': '隠す',
+    'bossRaid.visibility.confirmTitle': '完了したボスレイドを隠しますか？',
+    'bossRaid.visibility.confirmDescription': 'サーバーデータは削除されません。このブラウザの自分の一覧から完了レイドだけを隠します。報酬、貢献度、討伐記録は保持されます。'
   },
   zh: {
     'landing.hero.pill': '个性化学习管理平台',
@@ -3013,7 +3037,15 @@ const KEY_TRANSLATIONS = {
     'bossRaid.invites.manageTitle': '队伍邀请管理',
     'bossRaid.invites.manageDescription': '非公开队伍只有受邀用户或持有参与代码的用户可以加入。',
     'bossRaid.invites.loginIdPlaceholder': '要邀请的 loginId',
-    'bossRaid.invites.emptySent': '还没有发送邀请。'
+    'bossRaid.invites.emptySent': '还没有发送邀请。',
+    'bossRaid.detail.close': '关闭',
+    'bossRaid.visibility.localHideHint': '已完成项目可按浏览器隐藏。',
+    'bossRaid.visibility.hideCompletedButton': '隐藏已完成 Raid',
+    'bossRaid.visibility.hiddenSuccess': '已从你的列表隐藏已完成 Raid。',
+    'bossRaid.visibility.cancel': '取消',
+    'bossRaid.visibility.confirmHide': '隐藏',
+    'bossRaid.visibility.confirmTitle': '要隐藏这个已完成的 Boss Raid 吗？',
+    'bossRaid.visibility.confirmDescription': '此操作不会删除服务器数据，只会在当前浏览器中从你的列表隐藏已完成 Raid。奖励、贡献和通关记录会保留。'
   }
 };
 
