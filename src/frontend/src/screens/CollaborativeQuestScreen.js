@@ -16,6 +16,7 @@ import {
   joinCollaborativeQuest,
   updateCollaborativeQuestVisibility
 } from '../services/api';
+import ConfirmModal from '../components/ConfirmModal';
 import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, radii, shadows } from '../styles/theme';
@@ -211,7 +212,7 @@ const UI_LABELS = {
     minutesPreset: '{value}분',
     recommendedContribution: '추천 기여 {value}',
     rewardHint: '목표 수치 기준 추천 보상: {value}P',
-    hideQuest: '내 목록에서 숨기기',
+    hideQuest: '내 목록에서 나가기',
     archiveQuest: '보관하기',
     restoreQuest: '목록으로 복원',
     hiddenBadge: '숨김',
@@ -220,8 +221,18 @@ const UI_LABELS = {
     archivedSuccess: '협동 퀘스트를 보관했습니다.',
     restoredSuccess: '협동 퀘스트를 목록으로 복원했습니다.',
     visibilityHint: '숨김/보관은 내 목록에만 적용되며 다른 참여자의 진행률과 보상에는 영향을 주지 않습니다.',
-    activeHideHint: '진행 중 퀘스트는 삭제하지 않고 내 목록에서만 숨길 수 있습니다.',
-    archiveHint: '완료 또는 종료된 퀘스트는 보관함으로 옮길 수 있습니다.'
+    activeHideHint: '진행 중 퀘스트는 삭제하지 않고 내 목록에서만 나갈 수 있습니다.',
+    archiveHint: '완료 또는 종료된 퀘스트는 보관함으로 옮길 수 있습니다.',
+    cancelAction: '취소',
+    confirmHideAction: '나가기',
+    confirmArchiveAction: '보관하기',
+    confirmRestoreAction: '복원하기',
+    hideConfirmTitle: '협동 퀘스트를 내 목록에서 숨길까요?',
+    hideConfirmDescription: '진행 중 퀘스트는 삭제하지 않고 내 목록에서만 숨깁니다. 이미 쌓은 기여도와 보상 기록은 유지됩니다.',
+    archiveConfirmTitle: '완료된 협동 퀘스트를 보관할까요?',
+    archiveConfirmDescription: '보관은 내 목록에만 적용되며 진행률, 기여도, 보상 수령 기록은 유지됩니다.',
+    restoreConfirmTitle: '협동 퀘스트를 목록으로 복원할까요?',
+    restoreConfirmDescription: '숨김 또는 보관 상태를 해제하고 다시 내 목록에 표시합니다.'
   },
   en: {
     autoReward: 'Use suggested reward',
@@ -232,7 +243,7 @@ const UI_LABELS = {
     minutesPreset: '{value} min',
     recommendedContribution: 'Suggested contribution {value}',
     rewardHint: 'Suggested reward from goal: {value} pts',
-    hideQuest: 'Hide from my list',
+    hideQuest: 'Leave my list',
     archiveQuest: 'Archive',
     restoreQuest: 'Restore to list',
     hiddenBadge: 'Hidden',
@@ -241,8 +252,18 @@ const UI_LABELS = {
     archivedSuccess: 'Collaborative quest archived.',
     restoredSuccess: 'Collaborative quest restored to your list.',
     visibilityHint: 'Hide/archive only affects your list and does not affect other participants, progress, or rewards.',
-    activeHideHint: 'Active quests are not deleted; they can only be hidden from your list.',
-    archiveHint: 'Completed or closed quests can be moved to the archive.'
+    activeHideHint: 'Active quests are not deleted; they only leave your list.',
+    archiveHint: 'Completed or closed quests can be moved to the archive.',
+    cancelAction: 'Cancel',
+    confirmHideAction: 'Leave',
+    confirmArchiveAction: 'Archive',
+    confirmRestoreAction: 'Restore',
+    hideConfirmTitle: 'Hide this collaborative quest from your list?',
+    hideConfirmDescription: 'The active quest is not deleted. It only leaves your list, while your contribution and reward records stay intact.',
+    archiveConfirmTitle: 'Archive this completed collaborative quest?',
+    archiveConfirmDescription: 'Archiving only affects your list. Progress, contributions, and reward claim records are preserved.',
+    restoreConfirmTitle: 'Restore this collaborative quest to your list?',
+    restoreConfirmDescription: 'Hidden or archived status will be cleared so it appears in your list again.'
   },
   ja: {
     autoReward: 'おすすめ報酬を適用',
@@ -253,7 +274,7 @@ const UI_LABELS = {
     minutesPreset: '{value}分',
     recommendedContribution: 'おすすめ貢献 {value}',
     rewardHint: '目標基準のおすすめ報酬: {value} pt',
-    hideQuest: '自分の一覧から隠す',
+    hideQuest: '自分の一覧から退出',
     archiveQuest: '保管する',
     restoreQuest: '一覧に戻す',
     hiddenBadge: '非表示',
@@ -262,8 +283,18 @@ const UI_LABELS = {
     archivedSuccess: '協同クエストを保管しました。',
     restoredSuccess: '協同クエストを一覧に戻しました。',
     visibilityHint: '非表示・保管は自分の一覧にだけ適用され、他の参加者の進行率や報酬には影響しません。',
-    activeHideHint: '進行中のクエストは削除せず、自分の一覧からのみ隠せます。',
-    archiveHint: '完了または終了したクエストは保管できます。'
+    activeHideHint: '進行中のクエストは削除せず、自分の一覧からのみ退出できます。',
+    archiveHint: '完了または終了したクエストは保管できます。',
+    cancelAction: 'キャンセル',
+    confirmHideAction: '退出',
+    confirmArchiveAction: '保管する',
+    confirmRestoreAction: '復元する',
+    hideConfirmTitle: 'この協同クエストを自分の一覧から隠しますか？',
+    hideConfirmDescription: '進行中のクエストは削除されません。自分の一覧からだけ外れ、貢献度と報酬記録は保持されます。',
+    archiveConfirmTitle: '完了した協同クエストを保管しますか？',
+    archiveConfirmDescription: '保管は自分の一覧にだけ適用され、進行率、貢献度、報酬受け取り記録は保持されます。',
+    restoreConfirmTitle: '協同クエストを一覧に戻しますか？',
+    restoreConfirmDescription: '非表示または保管状態を解除し、自分の一覧に再表示します。'
   },
   zh: {
     autoReward: '使用推荐奖励',
@@ -274,7 +305,7 @@ const UI_LABELS = {
     minutesPreset: '{value}分钟',
     recommendedContribution: '推荐贡献 {value}',
     rewardHint: '按目标推荐奖励：{value} 点',
-    hideQuest: '从我的列表隐藏',
+    hideQuest: '从我的列表退出',
     archiveQuest: '归档',
     restoreQuest: '恢复到列表',
     hiddenBadge: '已隐藏',
@@ -283,8 +314,18 @@ const UI_LABELS = {
     archivedSuccess: '协作任务已归档。',
     restoredSuccess: '协作任务已恢复到列表。',
     visibilityHint: '隐藏/归档只影响你的列表，不影响其他参与者、进度或奖励。',
-    activeHideHint: '进行中的任务不会删除，只能从你的列表隐藏。',
-    archiveHint: '已完成或已结束的任务可以移入归档。'
+    activeHideHint: '进行中的任务不会删除，只会从你的列表退出。',
+    archiveHint: '已完成或已结束的任务可以移入归档。',
+    cancelAction: '取消',
+    confirmHideAction: '退出',
+    confirmArchiveAction: '归档',
+    confirmRestoreAction: '恢复',
+    hideConfirmTitle: '要从你的列表隐藏这个协作任务吗？',
+    hideConfirmDescription: '进行中的任务不会被删除，只会从你的列表移除；已有贡献和奖励记录会保留。',
+    archiveConfirmTitle: '要归档这个已完成的协作任务吗？',
+    archiveConfirmDescription: '归档只影响你的列表，进度、贡献和奖励领取记录会保留。',
+    restoreConfirmTitle: '要将这个协作任务恢复到列表吗？',
+    restoreConfirmDescription: '将取消隐藏或归档状态，并重新显示在你的列表中。'
   }
 };
 
@@ -347,6 +388,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [showJoinedOnly, setShowJoinedOnly] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [pendingVisibilityAction, setPendingVisibilityAction] = useState(null);
 
   const selectedSummary = useMemo(
     () => quests.find((quest) => quest.id === selectedQuestId) || quests[0] || null,
@@ -601,10 +643,62 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
     }
   }
 
+  function openVisibilityConfirm(quest, action) {
+    setPendingVisibilityAction({
+      action,
+      questId: quest.id
+    });
+  }
+
+  function closeVisibilityConfirm() {
+    setPendingVisibilityAction(null);
+  }
+
+  function getVisibilityConfirmCopy(action) {
+    if (action === 'ARCHIVE') {
+      return {
+        title: uiText('archiveConfirmTitle'),
+        description: uiText('archiveConfirmDescription'),
+        confirmLabel: uiText('confirmArchiveAction'),
+        destructive: true
+      };
+    }
+
+    if (action === 'RESTORE') {
+      return {
+        title: uiText('restoreConfirmTitle'),
+        description: uiText('restoreConfirmDescription'),
+        confirmLabel: uiText('confirmRestoreAction'),
+        destructive: false
+      };
+    }
+
+    return {
+      title: uiText('hideConfirmTitle'),
+      description: uiText('hideConfirmDescription'),
+      confirmLabel: uiText('confirmHideAction'),
+      destructive: true
+    };
+  }
+
+  async function handleConfirmVisibilityAction() {
+    if (!pendingVisibilityAction) {
+      return;
+    }
+
+    const { action, questId } = pendingVisibilityAction;
+    setPendingVisibilityAction(null);
+    await handleVisibilityAction(questId, action);
+  }
+
   const displayQuest = selectedQuest || selectedSummary;
   const progressPercent = Math.round(Number(displayQuest?.progressPercent || 0));
+  const visibilityConfirmCopy = pendingVisibilityAction
+    ? getVisibilityConfirmCopy(pendingVisibilityAction.action)
+    : null;
 
   return (
+    <>
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.hero}>
         <View>
@@ -821,7 +915,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                       <Pressable
                         accessibilityRole="button"
                         disabled={actionLoading}
-                        onPress={() => handleVisibilityAction(displayQuest.id, 'RESTORE')}
+                        onPress={() => openVisibilityConfirm(displayQuest, 'RESTORE')}
                         style={(state) => [
                           styles.secondaryButton,
                           actionLoading && styles.disabledButton,
@@ -834,7 +928,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                       <Pressable
                         accessibilityRole="button"
                         disabled={actionLoading}
-                        onPress={() => handleVisibilityAction(displayQuest.id, 'ARCHIVE')}
+                        onPress={() => openVisibilityConfirm(displayQuest, 'ARCHIVE')}
                         style={(state) => [
                           styles.secondaryButton,
                           actionLoading && styles.disabledButton,
@@ -847,7 +941,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                       <Pressable
                         accessibilityRole="button"
                         disabled={actionLoading}
-                        onPress={() => handleVisibilityAction(displayQuest.id, 'HIDE')}
+                        onPress={() => openVisibilityConfirm(displayQuest, 'HIDE')}
                         style={(state) => [
                           styles.secondaryButton,
                           actionLoading && styles.disabledButton,
@@ -1010,6 +1104,18 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
         </View>
       </View>
     </ScrollView>
+    <ConfirmModal
+      cancelLabel={uiText('cancelAction')}
+      confirmDisabled={actionLoading}
+      confirmLabel={visibilityConfirmCopy?.confirmLabel}
+      description={visibilityConfirmCopy?.description}
+      destructive={visibilityConfirmCopy?.destructive}
+      onCancel={closeVisibilityConfirm}
+      onConfirm={handleConfirmVisibilityAction}
+      title={visibilityConfirmCopy?.title}
+      visible={Boolean(pendingVisibilityAction)}
+    />
+    </>
   );
 }
 

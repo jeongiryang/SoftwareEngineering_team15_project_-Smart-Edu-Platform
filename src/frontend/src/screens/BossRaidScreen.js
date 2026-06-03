@@ -24,9 +24,12 @@ import {
   joinPublicBossRaidParty,
   joinBossRaidParty
 } from '../services/api';
+import ConfirmModal from '../components/ConfirmModal';
 import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, radii, shadows } from '../styles/theme';
+
+const HIDDEN_BOSS_RAID_PARTIES_STORAGE_KEY = 'sagaksagakHiddenBossRaidPartiesV1';
 
 function formatNumber(value, locale = 'ko-KR') {
   return Intl.NumberFormat(locale).format(Number(value) || 0);
@@ -53,6 +56,48 @@ function getProgressRate(totalDamage, maxHp) {
   }
 
   return Math.min(totalDamage / maxHp, 1);
+}
+
+function getBossRaidStorageKey(userId) {
+  return `${HIDDEN_BOSS_RAID_PARTIES_STORAGE_KEY}:${userId || 'guest'}`;
+}
+
+function readHiddenBossRaidPartyIds(userId) {
+  try {
+    if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
+      return [];
+    }
+
+    const rawValue = globalThis.localStorage.getItem(getBossRaidStorageKey(userId));
+    const parsedValue = rawValue ? JSON.parse(rawValue) : [];
+
+    return Array.isArray(parsedValue) ? parsedValue.map((item) => String(item)) : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function writeHiddenBossRaidPartyIds(userId, partyIds) {
+  try {
+    if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
+      return;
+    }
+
+    globalThis.localStorage.setItem(
+      getBossRaidStorageKey(userId),
+      JSON.stringify([...new Set(partyIds.map((partyId) => String(partyId)))])
+    );
+  } catch (_error) {
+    void _error;
+  }
+}
+
+function isCompletedBossRaidParty(party) {
+  return party?.status === 'CLEARED' || party?.status === 'CLOSED';
+}
+
+function isHiddenBossRaidParty(party, hiddenPartyIds) {
+  return isCompletedBossRaidParty(party) && hiddenPartyIds.includes(String(party.id));
 }
 
 function BossImage({ imageUrl, name }) {
@@ -123,11 +168,23 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [realtimeMessage, setRealtimeMessage] = useState('');
+  const [hiddenCompletedPartyIds, setHiddenCompletedPartyIds] = useState(() => (
+    readHiddenBossRaidPartyIds(user?.id)
+  ));
+  const [pendingBossRaidAction, setPendingBossRaidAction] = useState(null);
 
   const selectedRaid = useMemo(
     () => raids.find((raid) => raid.id === selectedRaidId) || raids[0] || null,
     [raids, selectedRaidId]
   );
+  const visibleParties = useMemo(
+    () => parties.filter((party) => !isHiddenBossRaidParty(party, hiddenCompletedPartyIds)),
+    [hiddenCompletedPartyIds, parties]
+  );
+
+  useEffect(() => {
+    setHiddenCompletedPartyIds(readHiddenBossRaidPartyIds(user?.id));
+  }, [user?.id]);
 
   useEffect(() => {
     let active = true;
@@ -154,7 +211,17 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
         setMyInvites(inviteResponse.invites || []);
 
         setSelectedRaidId((currentRaidId) => currentRaidId || raidResponse.raids?.[0]?.id || null);
-        setSelectedPartyId((currentPartyId) => currentPartyId || partyResponse.parties?.[0]?.id || null);
+        const nextParties = partyResponse.parties || [];
+        const nextVisibleParties = nextParties.filter((party) => (
+          !isHiddenBossRaidParty(party, hiddenCompletedPartyIds)
+        ));
+        setSelectedPartyId((currentPartyId) => {
+          if (currentPartyId && nextVisibleParties.some((party) => party.id === currentPartyId)) {
+            return currentPartyId;
+          }
+
+          return null;
+        });
       } catch (loadError) {
         if (active) {
           setError(loadError.message || t('bossRaid.errors.load', '보스 레이드 정보를 불러오지 못했습니다.'));
@@ -171,7 +238,23 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     return () => {
       active = false;
     };
-  }, [t, token]);
+  }, [hiddenCompletedPartyIds, t, token]);
+
+  useEffect(() => {
+    if (!selectedPartyId) {
+      return;
+    }
+
+    const hiddenSelectedParty = parties.some((party) => (
+      party.id === selectedPartyId && isHiddenBossRaidParty(party, hiddenCompletedPartyIds)
+    ));
+
+    if (hiddenSelectedParty) {
+      setSelectedPartyId(null);
+      setSelectedParty(null);
+      setPartyInvites([]);
+    }
+  }, [hiddenCompletedPartyIds, parties, selectedPartyId]);
 
   useEffect(() => {
     let active = true;
@@ -275,15 +358,58 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     setPublicParties(publicPartyResponse.parties || []);
     setMyInvites(inviteResponse.invites || []);
 
-    if (!nextParties.length) {
+    const nextVisibleParties = nextParties.filter((party) => (
+      !isHiddenBossRaidParty(party, hiddenCompletedPartyIds)
+    ));
+
+    if (!nextVisibleParties.length || nextSelectedPartyId === null) {
       setSelectedPartyId(null);
       setSelectedParty(null);
       return;
     }
 
-    const stillExists = nextParties.some((party) => party.id === nextSelectedPartyId);
-    const resolvedPartyId = stillExists ? nextSelectedPartyId : nextParties[0].id;
+    const stillExists = nextVisibleParties.some((party) => party.id === nextSelectedPartyId);
+    const resolvedPartyId = stillExists ? nextSelectedPartyId : nextVisibleParties[0].id;
     setSelectedPartyId(resolvedPartyId);
+  }
+
+  function handleSelectParty(partyId) {
+    setPartyInvites([]);
+    setSelectedParty(null);
+    setSelectedPartyId((currentPartyId) => (
+      currentPartyId === partyId ? null : partyId
+    ));
+  }
+
+  function openHideCompletedPartyConfirm(party) {
+    setPendingBossRaidAction({
+      party,
+      type: 'HIDE_COMPLETED_PARTY'
+    });
+  }
+
+  function closeBossRaidConfirm() {
+    setPendingBossRaidAction(null);
+  }
+
+  function handleConfirmBossRaidAction() {
+    if (pendingBossRaidAction?.type !== 'HIDE_COMPLETED_PARTY') {
+      return;
+    }
+
+    const partyId = pendingBossRaidAction.party.id;
+    const nextHiddenPartyIds = [...hiddenCompletedPartyIds, String(partyId)];
+    setHiddenCompletedPartyIds(nextHiddenPartyIds);
+    writeHiddenBossRaidPartyIds(user?.id, nextHiddenPartyIds);
+
+    if (selectedPartyId === partyId) {
+      setSelectedPartyId(null);
+      setSelectedParty(null);
+      setPartyInvites([]);
+    }
+
+    setMessage(t('bossRaid.visibility.hiddenSuccess', '완료된 레이드를 내 목록에서 숨겼습니다.'));
+    setPendingBossRaidAction(null);
   }
 
   async function handleCreateParty() {
@@ -477,6 +603,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     : 0;
 
   return (
+    <>
     <ScrollView contentContainerStyle={styles.screen} style={styles.scroll}>
       <View style={styles.heroPanel}>
         <View style={styles.heroCopy}>
@@ -501,7 +628,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
           <SummaryCard
             description={t('bossRaid.summary.partyDescription', '내가 참가한 파티 수')}
             label={t('bossRaid.summary.partyLabel', '내 파티')}
-            value={interpolate(t('bossRaid.units.count', '{count}개'), { count: formatNumber(parties.length, locale) })}
+            value={interpolate(t('bossRaid.units.count', '{count}개'), { count: formatNumber(visibleParties.length, locale) })}
           />
         </View>
       </View>
@@ -720,16 +847,13 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('bossRaid.sections.myParties', '내 파티')}</Text>
         <View style={styles.partyList}>
-          {parties.map((party) => {
+          {visibleParties.map((party) => {
             const active = party.id === selectedPartyId;
 
             return (
               <Pressable
                 key={party.id}
-                onPress={() => {
-                  setSelectedParty(null);
-                  setSelectedPartyId(party.id);
-                }}
+                onPress={() => handleSelectParty(party.id)}
                 style={({ pressed }) => [
                   styles.partyChip,
                   active && styles.partyChipActive,
@@ -742,10 +866,15 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                 <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]}>
                   {party.raid.name} · {party.inviteMode === 'PRIVATE' ? '초대 코드' : '공개 모집'} · {party.joinCode}
                 </Text>
+                {isCompletedBossRaidParty(party) ? (
+                  <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]}>
+                    {t('bossRaid.visibility.localHideHint', '완료 항목은 브라우저별로 숨길 수 있습니다.')}
+                  </Text>
+                ) : null}
               </Pressable>
             );
           })}
-          {!loading && parties.length === 0 ? (
+          {!loading && visibleParties.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateTitle}>{t('bossRaid.empty.title', '아직 참가한 파티가 없어요.')}</Text>
               <Text style={styles.emptyStateDescription}>
@@ -768,7 +897,16 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                 })}
               </Text>
             </View>
-            <RaidStatusChip status={selectedParty.status} t={t} />
+            <View style={styles.detailHeaderActions}>
+              <RaidStatusChip status={selectedParty.status} t={t} />
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => handleSelectParty(selectedParty.id)}
+                style={(state) => [styles.smallOutlineButton, ...interactiveStateStyles(state)]}
+              >
+                <Text style={styles.smallOutlineButtonText}>{t('bossRaid.detail.close', '닫기')}</Text>
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.progressPanel}>
@@ -931,10 +1069,40 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                   : t('bossRaid.reward.lockedButton', '처치 후 수령 가능')}
               </Text>
             </Pressable>
+            {isCompletedBossRaidParty(selectedParty) ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={actionLoading}
+                onPress={() => openHideCompletedPartyConfirm(selectedParty)}
+                style={({ pressed }) => [
+                  styles.dangerOutlineButton,
+                  actionLoading && styles.disabledButton,
+                  pressed && !actionLoading && styles.secondaryButtonPressed
+                ]}
+              >
+                <Text style={styles.dangerOutlineButtonText}>
+                  {t('bossRaid.visibility.hideCompletedButton', '완료 레이드 숨기기')}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       ) : null}
     </ScrollView>
+    <ConfirmModal
+      cancelLabel={t('bossRaid.visibility.cancel', '취소')}
+      confirmLabel={t('bossRaid.visibility.confirmHide', '숨기기')}
+      description={t(
+        'bossRaid.visibility.confirmDescription',
+        '이 작업은 서버 데이터를 삭제하지 않고 이 브라우저의 내 목록에서만 완료된 레이드를 숨깁니다. 보상, 기여도, 처치 기록은 유지됩니다.'
+      )}
+      destructive
+      onCancel={closeBossRaidConfirm}
+      onConfirm={handleConfirmBossRaidAction}
+      title={t('bossRaid.visibility.confirmTitle', '완료된 보스 레이드를 숨길까요?')}
+      visible={Boolean(pendingBossRaidAction)}
+    />
+    </>
   );
 }
 
@@ -1397,6 +1565,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 16
+  },
+  detailHeaderActions: {
+    alignItems: 'flex-end',
+    gap: 8
+  },
+  smallOutlineButton: {
+    minHeight: 34,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12
+  },
+  smallOutlineButtonText: {
+    color: colors.blueDeep,
+    fontSize: 13,
+    fontWeight: '800'
   },
   detailTitle: {
     color: colors.ink,
