@@ -17,6 +17,7 @@ import AccessibleTextInput from '../components/AccessibleTextInput';
 import ConfirmModal from '../components/ConfirmModal';
 import ReadableText from '../components/ReadableText';
 import { useAccessibility, voiceOptions } from '../contexts/AccessibilityContext';
+import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles, radii, shadows } from '../styles/theme';
 
 const defaultPreference = {
@@ -239,6 +240,7 @@ function getCalendarCells(monthValue) {
 }
 
 export default function AccessibilityScreen({ onNavigate, token, user }) {
+  const { t } = useLanguage();
   const {
     preference: globalPreference,
     previewingVoiceType,
@@ -553,10 +555,13 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
             <View style={[styles.magnifierCard, magnifierMode && styles.magnifierCardActive]}>
               <View style={styles.magnifierCopy}>
                 <Text style={[styles.magnifierTitle, scaledStyles]}>
-                  돋보기 모드
+                  {t('accessibility.magnifier.title', '돋보기 모드')}
                 </Text>
                 <Text style={styles.helperText}>
-                  고령자와 저시력 사용자를 위해 화면 전체 글자와 UI를 최소 1.35x로 확대합니다.
+                  {t(
+                    'accessibility.magnifier.description',
+                    '웹 데스크톱에서 돋보기 버튼으로 마우스 주변 화면을 확대해서 볼 수 있습니다.'
+                  )}
                 </Text>
               </View>
               <Pressable
@@ -570,7 +575,9 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 accessibilityState={{ checked: magnifierMode }}
               >
                 <Text style={[styles.scaleButtonText, magnifierMode && styles.activeButtonText]}>
-                  {magnifierMode ? '켜짐' : '켜기'}
+                  {magnifierMode
+                    ? t('accessibility.magnifier.enabled', '켜짐')
+                    : t('accessibility.magnifier.enable', '켜기')}
                 </Text>
               </Pressable>
             </View>
