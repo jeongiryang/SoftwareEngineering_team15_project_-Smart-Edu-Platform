@@ -1,5 +1,6 @@
 const mockUsers = [];
 const mockFriendships = [];
+const mockBroadcastRealtimeEventToUsers = jest.fn(() => ({ clientCount: 0 }));
 let mockNextUserId = 1;
 let mockNextFriendshipId = 1;
 
@@ -134,6 +135,11 @@ jest.mock('../src/repositories/friend.repository', () => ({
   })
 }));
 
+jest.mock('../src/realtime/websocket.server', () => ({
+  broadcastRealtimeEventToUsers: (...args) => mockBroadcastRealtimeEventToUsers(...args),
+  getOnlineUserIds: jest.fn(() => [])
+}));
+
 const request = require('supertest');
 const app = require('../src/app');
 const { createAuthHeader, createUserPayload } = require('./helpers/auth.helper');
@@ -167,6 +173,7 @@ beforeEach(() => {
   mockNextUserId = 1;
   mockNextFriendshipId = 1;
   jest.clearAllMocks();
+  mockBroadcastRealtimeEventToUsers.mockClear();
 });
 
 describe('Friend API', () => {
@@ -234,6 +241,16 @@ describe('Friend API', () => {
         status: 'PENDING',
         direction: 'SENT',
         user: expect.objectContaining({ id: addressee.user.id })
+      })
+    );
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenLastCalledWith(
+      [requester.user.id, addressee.user.id],
+      'friends.request.updated',
+      expect.objectContaining({
+        action: 'REQUEST_SENT',
+        requesterId: requester.user.id,
+        addresseeId: addressee.user.id,
+        status: 'PENDING'
       })
     );
 
@@ -326,6 +343,16 @@ describe('Friend API', () => {
 
     expect(acceptResponse.status).toBe(200);
     expect(acceptResponse.body.request.status).toBe('ACCEPTED');
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenLastCalledWith(
+      [requester.user.id, addressee.user.id],
+      'friends.request.updated',
+      expect.objectContaining({
+        action: 'REQUEST_ACCEPTED',
+        actorId: addressee.user.id,
+        friendshipId: createResponse.body.request.id,
+        status: 'ACCEPTED'
+      })
+    );
 
     const friendsResponse = await request(app)
       .get('/api/friends')
@@ -358,6 +385,34 @@ describe('Friend API', () => {
       .send({ action: 'ACCEPT' });
 
     expect(response.status).toBe(403);
+  });
+
+  it('broadcasts a realtime update when a friend request is rejected', async () => {
+    const requester = await registerTestUser();
+    const addressee = await registerTestUser();
+
+    const createResponse = await request(app)
+      .post('/api/friends/requests')
+      .set(createAuthHeader(requester.token))
+      .send({ userId: addressee.user.id });
+
+    const rejectResponse = await request(app)
+      .patch(`/api/friends/requests/${createResponse.body.request.id}`)
+      .set(createAuthHeader(addressee.token))
+      .send({ action: 'REJECT' });
+
+    expect(rejectResponse.status).toBe(200);
+    expect(rejectResponse.body.request.status).toBe('REJECTED');
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenLastCalledWith(
+      [requester.user.id, addressee.user.id],
+      'friends.request.updated',
+      expect.objectContaining({
+        action: 'REQUEST_REJECTED',
+        actorId: addressee.user.id,
+        friendshipId: createResponse.body.request.id,
+        status: 'REJECTED'
+      })
+    );
   });
 
   it('rejects reprocessing an already accepted request', async () => {
@@ -451,6 +506,15 @@ describe('Friend API', () => {
       .set(createAuthHeader(requester.token));
 
     expect(deleteResponse.status).toBe(200);
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenLastCalledWith(
+      [requester.user.id, addressee.user.id],
+      'friends.request.updated',
+      expect.objectContaining({
+        action: 'FRIEND_REMOVED',
+        actorId: requester.user.id,
+        status: 'ACCEPTED'
+      })
+    );
     expect(mockUsers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: requester.user.id }),

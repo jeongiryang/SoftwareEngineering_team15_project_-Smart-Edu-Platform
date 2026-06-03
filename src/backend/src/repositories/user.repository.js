@@ -12,6 +12,23 @@ function findUserById(id) {
   });
 }
 
+function findLatestUserStatusAction(userId) {
+  return prisma.adminAction.findFirst({
+    where: {
+      targetType: 'USER',
+      targetId: userId,
+      actionType: 'SUSPEND_USER'
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    select: {
+      reason: true,
+      createdAt: true
+    }
+  });
+}
+
 function findUserWithProfileById(id) {
   return prisma.user.findUnique({
     where: { id },
@@ -180,6 +197,7 @@ async function getUserActivityStats(userId) {
 module.exports = {
   createUser,
   deactivateUser,
+  findLatestUserStatusAction,
   findPublicProfileById,
   findUserByLoginId,
   findUserById,

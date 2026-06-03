@@ -16,9 +16,13 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   const targetUserId = parsePositiveInteger(userId, 'userId');
 
   const result = await adminService.setUserStatus(adminId, targetUserId, status, reason);
+  const statusReason = result.action?.reason || '';
+
   broadcastRealtimeEventToUsers([targetUserId], 'account.status.updated', {
     status: result.user.status,
     reason: 'ADMIN_STATUS_CHANGE',
+    statusReason,
+    restrictionReason: statusReason,
     changedAt: new Date().toISOString(),
     message: `Account status changed to ${result.user.status}`
   });

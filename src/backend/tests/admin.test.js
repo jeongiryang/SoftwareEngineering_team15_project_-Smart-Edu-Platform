@@ -404,6 +404,8 @@ describe('Admin APIs', () => {
         expect.objectContaining({
           status: 'SUSPENDED',
           reason: 'ADMIN_STATUS_CHANGE',
+          statusReason: '부적절한 발언',
+          restrictionReason: '부적절한 발언',
           message: 'Account status changed to SUSPENDED',
           changedAt: expect.any(String)
         })

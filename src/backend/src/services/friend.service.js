@@ -11,6 +11,7 @@ const {
   updateFriendship
 } = require('../repositories/friend.repository');
 const { findUserById } = require('../repositories/user.repository');
+const { broadcastRealtimeEventToUsers } = require('../realtime/websocket.server');
 const { conflictError, forbiddenError, notFoundError, validationError } = require('../utils/errors');
 const { normalizeString, parsePositiveInteger, requireFields } = require('../utils/validators');
 
@@ -131,6 +132,30 @@ function summarizeFriendship(friendship, userId) {
   };
 }
 
+function broadcastFriendshipRealtimeUpdate(friendship, action, actorId) {
+  if (!friendship) {
+    return;
+  }
+
+  const requesterId = Number(friendship.requesterId);
+  const addresseeId = Number(friendship.addresseeId);
+  const participantIds = [requesterId, addresseeId].filter((id) => Number.isInteger(id) && id > 0);
+
+  if (!participantIds.length) {
+    return;
+  }
+
+  broadcastRealtimeEventToUsers(participantIds, 'friends.request.updated', {
+    action,
+    actorId,
+    friendshipId: friendship.id,
+    requesterId,
+    addresseeId,
+    status: friendship.status,
+    updatedAt: friendship.updatedAt || new Date().toISOString()
+  });
+}
+
 function validateSearchKeyword(keyword) {
   const normalizedKeyword = normalizeString(keyword);
 
@@ -240,10 +265,14 @@ async function sendFriendRequest(userId, payload) {
       status: 'PENDING'
     });
 
+    broadcastFriendshipRealtimeUpdate(request, 'REQUEST_SENT', userId);
+
     return summarizeFriendship(request, userId);
   }
 
   const request = await createFriendRequest(userId, targetUserId);
+
+  broadcastFriendshipRealtimeUpdate(request, 'REQUEST_SENT', userId);
 
   return summarizeFriendship(request, userId);
 }
@@ -279,6 +308,12 @@ async function respondToFriendRequest(userId, requestId, payload) {
     status: nextStatus
   });
 
+  broadcastFriendshipRealtimeUpdate(
+    updatedFriendship,
+    nextStatus === 'ACCEPTED' ? 'REQUEST_ACCEPTED' : 'REQUEST_REJECTED',
+    userId
+  );
+
   return summarizeFriendship(updatedFriendship, userId);
 }
 
@@ -291,6 +326,8 @@ async function removeFriend(userId, friendId) {
   }
 
   const deletedFriendship = await deleteFriendship(friendship.id);
+
+  broadcastFriendshipRealtimeUpdate(deletedFriendship, 'FRIEND_REMOVED', userId);
 
   return summarizeFriendship(deletedFriendship, userId);
 }

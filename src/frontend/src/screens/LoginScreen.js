@@ -78,7 +78,15 @@ export default function LoginScreen({ onAuthenticated, onNavigate }) {
 
       onAuthenticated(result);
     } catch (error) {
-      setErrorMessage(error.message || t('login.errorFallback', '로그인에 실패함'));
+      const restrictionReason = typeof error.details?.accountRestriction?.reason === 'string'
+        ? error.details.accountRestriction.reason.trim()
+        : '';
+
+      if (restrictionReason) {
+        setErrorMessage(`${t('account.restricted.badge', 'Account access restricted')} · ${t('account.restricted.reasonLabel', 'Restriction reason')}: ${restrictionReason}`);
+      } else {
+        setErrorMessage(error.message || t('login.errorFallback', '로그인에 실패함'));
+      }
     } finally {
       setLoading(false);
     }

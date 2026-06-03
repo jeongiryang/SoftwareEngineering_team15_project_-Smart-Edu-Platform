@@ -1,4 +1,5 @@
 const mockUsers = [];
+const mockStatusActions = [];
 let mockNextUserId = 1;
 
 jest.mock('../src/repositories/user.repository', () => ({
@@ -18,7 +19,10 @@ jest.mock('../src/repositories/user.repository', () => ({
     return user;
   }),
   findUserByLoginId: jest.fn(async (loginId) => mockUsers.find((user) => user.loginId === loginId) || null),
-  findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null)
+  findUserById: jest.fn(async (id) => mockUsers.find((user) => user.id === Number(id)) || null),
+  findLatestUserStatusAction: jest.fn(async (userId) =>
+    [...mockStatusActions].reverse().find((action) => action.targetId === Number(userId)) || null
+  )
 }));
 
 const request = require('supertest');
@@ -41,9 +45,19 @@ async function registerTestUser(overrides = {}) {
 
 beforeEach(() => {
   mockUsers.length = 0;
+  mockStatusActions.length = 0;
   mockNextUserId = 1;
   jest.clearAllMocks();
 });
+
+function addStatusAction(userId, status, reason = '관리자 입력 사유') {
+  mockStatusActions.push({
+    targetId: Number(userId),
+    status,
+    reason,
+    createdAt: new Date('2026-06-03T01:00:00.000Z')
+  });
+}
 
 describe('POST /api/auth/register', () => {
   it('registers a user and returns a token without passwordHash', async () => {
@@ -130,6 +144,7 @@ describe('POST /api/auth/login', () => {
   it.each(['SUSPENDED', 'DEACTIVATED'])('rejects login for a %s account', async (status) => {
     const { payload } = await registerTestUser();
     mockUsers[0].status = status;
+    addStatusAction(mockUsers[0].id, status, '정책 위반');
 
     const response = await request(app)
       .post('/api/auth/login')
@@ -140,6 +155,11 @@ describe('POST /api/auth/login', () => {
 
     expect(response.status).toBe(403);
     expect(response.body.token).toBeUndefined();
+    expect(response.body.details.accountRestriction).toEqual({
+      status,
+      reason: '정책 위반',
+      changedAt: '2026-06-03T01:00:00.000Z'
+    });
     expect(JSON.stringify(response.body)).not.toContain('passwordHash');
   });
 });
@@ -163,16 +183,23 @@ describe('GET /api/auth/me', () => {
     expect(response.body.user.loginId).toBe(payload.loginId);
   });
 
-  it.each(['SUSPENDED', 'DEACTIVATED'])('rejects an existing token after the account becomes %s', async (status) => {
+  it.each(['SUSPENDED', 'DEACTIVATED'])('returns restricted account details after the account becomes %s', async (status) => {
     const { response: registerResponse } = await registerTestUser();
     mockUsers[0].status = status;
+    addStatusAction(mockUsers[0].id, status, '관리자 제한 사유');
 
     const response = await request(app)
       .get('/api/auth/me')
       .set(createAuthHeader(registerResponse.body.token));
 
-    expect(response.status).toBe(401);
-    expect(response.body.user).toBeUndefined();
+    expect(response.status).toBe(200);
+    expectSafeUser(response.body.user);
+    expect(response.body.user.status).toBe(status);
+    expect(response.body.user.accountRestriction).toEqual({
+      status,
+      reason: '관리자 제한 사유',
+      changedAt: '2026-06-03T01:00:00.000Z'
+    });
     expect(JSON.stringify(response.body)).not.toContain('passwordHash');
   });
 });
