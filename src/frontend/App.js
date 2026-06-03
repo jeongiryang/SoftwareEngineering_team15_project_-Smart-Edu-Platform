@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import AppHeader from './src/components/AppHeader';
 import ConfirmModal from './src/components/ConfirmModal';
+import MagnifierOverlay from './src/components/MagnifierOverlay';
 import ParticlePencilIntro from './src/components/ParticlePencilIntro';
 import RealtimeNotice from './src/components/RealtimeNotice';
 import { PanelSkeleton } from './src/components/Skeleton';
@@ -93,6 +94,17 @@ function readStoredMagnifierMode() {
   } catch (error) {
     return false;
   }
+}
+
+function canUseMagnifierOverlay() {
+  const windowRef = globalThis.window;
+  const documentRef = globalThis.document;
+
+  if (!windowRef?.matchMedia || !documentRef?.body) {
+    return false;
+  }
+
+  return windowRef.matchMedia('(pointer: fine)').matches;
 }
 
 function canUseBrowserHistory() {
@@ -846,10 +858,13 @@ function AppChrome({
 }) {
   const { preference, speakText } = useAccessibility();
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
-  const { currentLanguage, translateText } = useLanguage();
+  const { currentLanguage, t, translateText } = useLanguage();
   const [readTextError, setReadTextError] = useState('');
   const [magnifierMode, setMagnifierMode] = useState(readStoredMagnifierMode);
+  const [magnifierActive, setMagnifierActive] = useState(false);
+  const [magnifierSupported, setMagnifierSupported] = useState(canUseMagnifierOverlay);
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
+  const showMagnifierButton = Boolean(user && magnifierMode && magnifierSupported);
 
   useWebTextLocalization(currentLanguage, translateText);
 
@@ -881,6 +896,43 @@ function AppChrome({
       windowRef.removeEventListener('storage', handleMagnifierModeChange);
     };
   }, []);
+
+  useEffect(() => {
+    const windowRef = globalThis.window;
+
+    if (!windowRef?.matchMedia) {
+      setMagnifierSupported(false);
+      return undefined;
+    }
+
+    const pointerMedia = windowRef.matchMedia('(pointer: fine)');
+    const updateSupport = () => {
+      setMagnifierSupported(canUseMagnifierOverlay());
+    };
+
+    updateSupport();
+    if (pointerMedia.addEventListener) {
+      pointerMedia.addEventListener('change', updateSupport);
+    } else {
+      pointerMedia.addListener?.(updateSupport);
+    }
+    windowRef.addEventListener('resize', updateSupport);
+
+    return () => {
+      if (pointerMedia.removeEventListener) {
+        pointerMedia.removeEventListener('change', updateSupport);
+      } else {
+        pointerMedia.removeListener?.(updateSupport);
+      }
+      windowRef.removeEventListener('resize', updateSupport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showMagnifierButton) {
+      setMagnifierActive(false);
+    }
+  }, [showMagnifierButton]);
 
   useEffect(() => {
     const documentRef = globalThis.document;
@@ -953,6 +1005,36 @@ function AppChrome({
         >
           <Text style={styles.readPageButtonText}>🔊 전체 읽기</Text>
         </Pressable>
+      ) : null}
+      {showMagnifierButton ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              magnifierActive
+                ? t('accessibility.magnifier.deactivateLabel', '돋보기 끄기')
+                : t('accessibility.magnifier.activateLabel', '돋보기 켜기')
+            }
+            accessibilityState={{ selected: magnifierActive }}
+            dataSet={{ sagakMagnifierIgnore: 'true' }}
+            onPress={() => setMagnifierActive((currentValue) => !currentValue)}
+            style={({ hovered, pressed }) => [
+              styles.magnifierButton,
+              preference.voiceOutputEnabled && styles.magnifierButtonAboveRead,
+              magnifierActive && styles.magnifierButtonActive,
+              hovered && styles.magnifierButtonHovered,
+              pressed && styles.magnifierButtonPressed
+            ]}
+          >
+            <Text style={[styles.magnifierButtonText, magnifierActive && styles.magnifierButtonTextActive]}>
+              🔍 {t('accessibility.magnifier.button', '돋보기')}
+            </Text>
+          </Pressable>
+          <MagnifierOverlay
+            active={magnifierActive}
+            label={t('accessibility.magnifier.overlayLabel', '화면 돋보기')}
+          />
+        </>
       ) : null}
       <ConfirmModal
         confirmLabel="확인"
@@ -1120,5 +1202,44 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontWeight: '900',
     fontSize: 16
+  },
+  magnifierButton: {
+    position: 'absolute',
+    right: 24,
+    bottom: 24,
+    zIndex: 42,
+    minHeight: 52,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20
+  },
+  magnifierButtonAboveRead: {
+    bottom: 88
+  },
+  magnifierButtonActive: {
+    backgroundColor: colors.mintSoft,
+    borderColor: colors.mintDeep
+  },
+  magnifierButtonHovered: {
+    transform: [{ translateY: -2 }]
+  },
+  magnifierButtonPressed: {
+    transform: [{ translateY: 1 }]
+  },
+  magnifierButtonText: {
+    color: colors.blueDeep,
+    fontSize: 16,
+    fontWeight: '900'
+  },
+  magnifierButtonTextActive: {
+    color: colors.mintDeep
   }
 });
