@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const DEFAULT_LENS_SIZE = 224;
+const DEFAULT_LENS_SIZE = 256;
 const DEFAULT_SCALE = 1.85;
 const LENS_MARGIN = 12;
 
@@ -21,6 +21,13 @@ function removeIgnoredNodes(root) {
   root.querySelectorAll?.('[data-sagak-magnifier-ignore="true"]').forEach((node) => {
     node.remove();
   });
+}
+
+function getElementZoom(windowRef, element) {
+  const rawZoom = windowRef.getComputedStyle?.(element)?.zoom;
+  const parsedZoom = Number.parseFloat(rawZoom);
+
+  return Number.isFinite(parsedZoom) && parsedZoom > 0 ? parsedZoom : 1;
 }
 
 function copyScrollPositions(source, clone) {
@@ -101,6 +108,7 @@ export default function MagnifierOverlay({
     let cloneRef = null;
     let pointerFrame = null;
     let refreshTimer = null;
+    let sourceZoom = 1;
     let lastPointer = {
       x: Math.round(windowRef.innerWidth / 2),
       y: Math.round(windowRef.innerHeight / 2)
@@ -108,17 +116,22 @@ export default function MagnifierOverlay({
 
     function refreshClone() {
       sourceRect = sourceRoot.getBoundingClientRect();
+      sourceZoom = getElementZoom(windowRef, sourceRoot);
+
+      const logicalWidth = sourceRect.width / sourceZoom;
+      const logicalHeight = sourceRect.height / sourceZoom;
 
       const nextClone = sourceRoot.cloneNode(true);
       nextClone.removeAttribute?.('id');
       nextClone.setAttribute?.('aria-hidden', 'true');
       nextClone.style.pointerEvents = 'none';
       nextClone.style.userSelect = 'none';
-      nextClone.style.width = `${sourceRect.width}px`;
-      nextClone.style.minHeight = `${Math.max(sourceRect.height, windowRef.innerHeight)}px`;
+      nextClone.style.width = `${logicalWidth}px`;
+      nextClone.style.minHeight = `${Math.max(logicalHeight, windowRef.innerHeight / sourceZoom)}px`;
       nextClone.style.margin = '0';
       nextClone.style.transformOrigin = '0 0';
       nextClone.style.willChange = 'transform';
+      nextClone.style.zoom = '1';
 
       copyScrollPositions(sourceRoot, nextClone);
       removeIgnoredNodes(nextClone);
@@ -135,8 +148,8 @@ export default function MagnifierOverlay({
       const maxTop = Math.max(LENS_MARGIN, windowRef.innerHeight - lensSize - LENS_MARGIN);
       const left = clamp(clientX - lensSize / 2, LENS_MARGIN, maxLeft);
       const top = clamp(clientY - lensSize / 2, LENS_MARGIN, maxTop);
-      const targetX = clientX - sourceRect.left;
-      const targetY = clientY - sourceRect.top;
+      const targetX = (clientX - sourceRect.left) / sourceZoom;
+      const targetY = (clientY - sourceRect.top) / sourceZoom;
       const translateX = lensSize / 2 - targetX * scale;
       const translateY = lensSize / 2 - targetY * scale;
 

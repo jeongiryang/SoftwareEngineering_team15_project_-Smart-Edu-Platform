@@ -89,6 +89,21 @@ function resolveProfileAppearance(shop, fallbackProfile = {}) {
   const hasShopProfile = Boolean(shop?.profile);
   const profile = hasShopProfile ? shop.profile : (fallbackProfile || {});
   const equippedItems = shop?.equippedItems || {};
+  const titleText =
+    profile?.titleText ||
+    profile?.equippedTitle?.name ||
+    profile?.activeTitle?.name ||
+    profile?.selectedTitle?.name ||
+    profile?.title?.name ||
+    equippedItems.title?.name ||
+    equippedItems.title?.label ||
+    shop?.equippedTitle?.name ||
+    fallbackProfile?.titleText ||
+    fallbackProfile?.equippedTitle?.name ||
+    fallbackProfile?.activeTitle?.name ||
+    fallbackProfile?.selectedTitle?.name ||
+    fallbackProfile?.title?.name ||
+    null;
 
   return {
     ...profile,
@@ -98,9 +113,7 @@ function resolveProfileAppearance(shop, fallbackProfile = {}) {
     profileBackgroundUrl: profile?.profileBackgroundUrl || (
       hasShopProfile ? equippedItems.profileBackground?.assetUrl || null : fallbackProfile?.profileBackgroundUrl || null
     ),
-    titleText: profile?.titleText || equippedItems.title?.name || (
-      !hasShopProfile ? fallbackProfile?.titleText || null : null
-    )
+    titleText
   };
 }
 

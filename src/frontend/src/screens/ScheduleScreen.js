@@ -1067,7 +1067,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 14,
-    alignItems: 'flex-start'
+    alignItems: 'stretch',
+    overflow: 'hidden'
   },
   actionRow: {
     flexDirection: 'row',

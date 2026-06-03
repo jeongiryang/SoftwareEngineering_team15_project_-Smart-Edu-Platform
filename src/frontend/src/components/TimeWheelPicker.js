@@ -330,6 +330,7 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
     minWidth: 0,
+    maxWidth: '100%',
     alignSelf: 'stretch'
   },
   header: {
@@ -370,7 +371,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    gap: 4
+    gap: 4,
+    minWidth: 0
   },
   currentValueLabel: {
     color: colors.muted,
@@ -404,10 +406,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    gap: 10
+    gap: 10,
+    flexWrap: 'wrap'
   },
   preciseInputBox: {
-    width: 72,
+    flexBasis: 72,
+    maxWidth: 84,
+    minWidth: 64,
     gap: 6
   },
   preciseInputLabel: {
@@ -455,17 +460,21 @@ const styles = StyleSheet.create({
   dualWheel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10
+    gap: 8,
+    minWidth: 0,
+    maxWidth: '100%'
   },
   separator: {
+    flexShrink: 0,
     color: colors.ink,
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: '600',
     marginTop: 18
   },
   column: {
     flex: 1,
-    gap: 8
+    gap: 8,
+    minWidth: 0
   },
   columnLabel: {
     color: colors.muted,
@@ -510,11 +519,11 @@ const styles = StyleSheet.create({
   },
   timeText: {
     color: colors.line,
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '300'
   },
   selectedTimeText: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: '800'
   },
   selectedTimeTextBlue: {

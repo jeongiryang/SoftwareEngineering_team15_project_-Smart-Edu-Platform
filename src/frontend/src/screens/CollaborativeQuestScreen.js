@@ -844,7 +844,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                     ]}
                   >
                     <View style={styles.questCardHeader}>
-                      <Text style={styles.questCardTitle}>{quest.title}</Text>
+                      <Text style={styles.questCardTitle} numberOfLines={2} ellipsizeMode="tail">{quest.title}</Text>
                       <View style={styles.statusStack}>
                         {quest.currentUserArchived ? (
                           <StatusChip label={uiText('archivedBadge')} status="EXPIRED" />
@@ -897,8 +897,8 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
             <>
               <View style={styles.detailHeader}>
                 <View>
-                  <Text style={styles.detailTitle}>{displayQuest.title}</Text>
-                  <Text style={styles.detailDescription}>{displayQuest.description}</Text>
+                  <Text style={styles.detailTitle} numberOfLines={2} ellipsizeMode="tail">{displayQuest.title}</Text>
+                  <Text style={styles.detailDescription} numberOfLines={3} ellipsizeMode="tail">{displayQuest.description}</Text>
                 </View>
                 <StatusChip label={statusLabel(displayQuest.status, copy)} status={displayQuest.status} />
               </View>
@@ -1057,7 +1057,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                     <View key={`${displayQuest.id}-${participant.userId}`} style={styles.listRow}>
                       <ProfileAvatar appearance={participant.appearance} name={participant.name || participant.loginId} size="sm" />
                       <View style={styles.rowCopy}>
-                        <Text style={styles.rowName}>{participant.name || participant.loginId}</Text>
+                        <Text style={styles.rowName} numberOfLines={1} ellipsizeMode="tail">{participant.name || participant.loginId}</Text>
                         {participant.appearance?.titleText ? (
                           <ProfileTitleChip animated title={participant.appearance.titleText} translateText={translateText} />
                         ) : null}
@@ -1075,14 +1075,14 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
                       <View key={item.id || `${item.userId}-${item.createdAt}`} style={styles.listRow}>
                         <ProfileAvatar appearance={item.appearance} name={item.name || item.loginId} size="sm" />
                         <View style={styles.rowCopy}>
-                          <Text style={styles.rowName}>
+                          <Text style={styles.rowName} numberOfLines={2} ellipsizeMode="tail">
                             {copy('contributionLine', {
                               name: item.name || item.loginId,
                               amount: formatNumber(item.amount, locale)
                             })}
                           </Text>
                         </View>
-                        <Text style={styles.rowMeta}>{item.memo}</Text>
+                        <Text style={styles.rowMeta} numberOfLines={2} ellipsizeMode="tail">{item.memo}</Text>
                       </View>
                     ))
                   ) : (
@@ -1409,21 +1409,27 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 16,
     fontWeight: '900',
-    flexShrink: 1
+    flexShrink: 1,
+    minWidth: 0,
+    lineHeight: 21
   },
   questCardMeta: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '700'
+    fontWeight: '700',
+    flexShrink: 1,
+    minWidth: 0
   },
   cardActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8
   },
   detailHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12
@@ -1431,7 +1437,8 @@ const styles = StyleSheet.create({
   detailTitle: {
     color: colors.ink,
     fontSize: 22,
-    fontWeight: '900'
+    fontWeight: '900',
+    lineHeight: 28
   },
   detailDescription: {
     color: colors.muted,
@@ -1516,12 +1523,16 @@ const styles = StyleSheet.create({
   rowName: {
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '800'
+    fontWeight: '800',
+    minWidth: 0,
+    flexShrink: 1
   },
   rowMeta: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '600'
+    fontWeight: '600',
+    flexShrink: 1,
+    maxWidth: '38%'
   },
   statusChip: {
     minHeight: 26,
