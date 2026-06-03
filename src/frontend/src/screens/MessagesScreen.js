@@ -478,7 +478,7 @@ export default function MessagesScreen({ onMessagesChanged, onNavigate, realtime
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <View style={styles.layout}>
-        <View style={styles.threadPanel}>
+        <View dataSet={{ sagakHelpTarget: 'messages-threads' }} style={styles.threadPanel}>
           <Text style={styles.sectionTitle}>{t('messages.threadList', '대화 목록')}</Text>
           {threads.length ? (
             <View style={styles.threadList}>
@@ -528,7 +528,7 @@ export default function MessagesScreen({ onMessagesChanged, onNavigate, realtime
 
           <Text style={styles.sectionTitle}>{t('messages.startWithFriend', '친구와 대화 시작')}</Text>
           {availableFriends.length ? (
-            <View style={styles.friendList}>
+            <View dataSet={{ sagakHelpTarget: 'messages-compose' }} style={styles.friendList}>
               {availableFriends.map((friend) => (
                 <Pressable
                   accessibilityRole="button"
@@ -548,7 +548,7 @@ export default function MessagesScreen({ onMessagesChanged, onNavigate, realtime
           )}
         </View>
 
-        <View style={styles.conversationPanel}>
+        <View dataSet={{ sagakHelpTarget: 'messages-conversation' }} style={styles.conversationPanel}>
           {selectedThread ? (
             <>
               <Pressable

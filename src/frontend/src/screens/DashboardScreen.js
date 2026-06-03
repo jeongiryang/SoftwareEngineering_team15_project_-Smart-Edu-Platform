@@ -783,7 +783,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   function renderPlanningPreview() {
     if (planningLoading) {
       return (
-        <View style={[styles.planningPanel, shadows.card]}>
+        <View dataSet={{ sagakHelpTarget: 'dashboard-planning' }} style={[styles.planningPanel, shadows.card]}>
           <View style={styles.planningHeader}>
             <View>
               <Text style={styles.planningEyebrow}>TODAY PREVIEW</Text>
@@ -807,7 +807,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
     }
 
     return (
-      <View style={[styles.planningPanel, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'dashboard-planning' }} style={[styles.planningPanel, shadows.card]}>
         <View style={styles.planningHeader}>
           <View>
             <Text style={styles.planningEyebrow}>TODAY PREVIEW</Text>
@@ -908,7 +908,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
+        <View dataSet={{ sagakHelpTarget: 'dashboard-summary' }} style={styles.hero}>
           <View style={styles.heroCopy}>
             <Text style={styles.eyebrow}>MY LEARNING SPACE</Text>
             <Text accessibilityLabel={`${heroNameLine} ${heroIntro} ${heroWritingPhrase}`} style={styles.title}>
@@ -1071,7 +1071,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
         {renderPlanningPreview()}
 
-        <View style={[styles.rewardPanel, shadows.card]}>
+        <View dataSet={{ sagakHelpTarget: 'dashboard-quests' }} style={[styles.rewardPanel, shadows.card]}>
           <View style={styles.rewardHeader}>
             <View>
               <Text style={styles.rewardTitle}>{translateText('보상 현황')}</Text>
@@ -1152,7 +1152,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
               {showRewardDetails ? (
               <View style={styles.rewardContentGrid}>
-                <View style={styles.questColumn}>
+                <View dataSet={{ sagakHelpTarget: 'dashboard-quests' }} style={styles.questColumn}>
                   <View style={styles.subsectionHeader}>
                     <Text style={styles.subsectionTitle}>{translateText('진행 중인 퀘스트')}</Text>
                     <Text style={styles.subsectionMeta}>{dashboardCopy(currentLanguage, 'count', { count: formatNumber(activeQuests.length, currentLanguage) })}</Text>

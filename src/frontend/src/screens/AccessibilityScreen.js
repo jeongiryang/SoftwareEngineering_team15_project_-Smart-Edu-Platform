@@ -524,7 +524,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
         </View>
       ) : (
         <>
-          <View style={[styles.panel, friendlyStyle]}>
+          <View dataSet={{ sagakHelpTarget: 'accessibility-display' }} style={[styles.panel, friendlyStyle]}>
             <Text style={[styles.sectionTitle, scaledStyles]}>
               {isKidMode ? kidTexts.section1Title : '화면 보기 설정'}
             </Text>
@@ -552,7 +552,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
                 </Pressable>
               ))}
             </View>
-            <View style={[styles.magnifierCard, magnifierMode && styles.magnifierCardActive]}>
+            <View dataSet={{ sagakHelpTarget: 'accessibility-magnifier' }} style={[styles.magnifierCard, magnifierMode && styles.magnifierCardActive]}>
               <View style={styles.magnifierCopy}>
                 <Text style={[styles.magnifierTitle, scaledStyles]}>
                   {t('accessibility.magnifier.title', '돋보기 모드')}
@@ -603,7 +603,7 @@ export default function AccessibilityScreen({ onNavigate, token, user }) {
             />
           </View>
 
-          <View style={[styles.panel, friendlyStyle]}>
+          <View dataSet={{ sagakHelpTarget: 'accessibility-reading' }} style={[styles.panel, friendlyStyle]}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, scaledStyles]}>
                 {isKidMode ? kidTexts.section2Title : '읽어주기 목소리 선택'}

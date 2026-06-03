@@ -721,7 +721,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
 
       <View style={styles.layout}>
         <View style={styles.leftColumn}>
-          <View style={styles.panel}>
+          <View dataSet={{ sagakHelpTarget: 'coop-create' }} style={styles.panel}>
             <Text style={styles.panelTitle}>{copy('createTitle')}</Text>
             <View style={styles.formGrid}>
               <LabeledInput
@@ -779,7 +779,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
             </Pressable>
           </View>
 
-          <View style={styles.panel}>
+          <View dataSet={{ sagakHelpTarget: 'coop-list' }} style={styles.panel}>
             <Text style={styles.panelTitle}>{copy('listTitle')}</Text>
             {loading ? <Text style={styles.muted}>{copy('loading')}</Text> : null}
             {!loading && quests.length === 0 ? <Text style={styles.muted}>{copy('empty')}</Text> : null}
@@ -892,7 +892,7 @@ export default function CollaborativeQuestScreen({ realtimeEvent, token }) {
           </View>
         </View>
 
-        <View style={styles.detailPanel}>
+        <View dataSet={{ sagakHelpTarget: 'coop-detail' }} style={styles.detailPanel}>
           {displayQuest ? (
             <>
               <View style={styles.detailHeader}>

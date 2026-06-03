@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import AppHeader from './src/components/AppHeader';
 import ConfirmModal from './src/components/ConfirmModal';
+import HelpTourModal from './src/components/HelpTourModal';
 import MagnifierOverlay from './src/components/MagnifierOverlay';
 import ParticlePencilIntro from './src/components/ParticlePencilIntro';
 import RealtimeNotice from './src/components/RealtimeNotice';
@@ -32,6 +33,7 @@ import { createRealtimeClient } from './src/services/realtime';
 import { AccessibilityProvider, useAccessibility } from './src/contexts/AccessibilityContext';
 import { ThemeProvider, useThemeMode } from './src/contexts/ThemeContext';
 import { LanguageProvider, useLanguage, useWebTextLocalization } from './src/i18n';
+import { getHelpTourSteps } from './src/helpTourSteps';
 
 const screens = {
   home: LandingScreen,
@@ -863,12 +865,28 @@ function AppChrome({
   const [magnifierMode, setMagnifierMode] = useState(readStoredMagnifierMode);
   const [magnifierActive, setMagnifierActive] = useState(false);
   const [magnifierSupported, setMagnifierSupported] = useState(canUseMagnifierOverlay);
+  const [helpTourVisible, setHelpTourVisible] = useState(false);
+  const [helpTourIndex, setHelpTourIndex] = useState(0);
   const previousScreenNameRef = useRef(activeScreenName);
   const stopSpeechRef = useRef(stopSpeech);
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
   const screenReadingId = `screen-${activeScreenName}`;
   const isReadingCurrentPage = Boolean(reading?.active && reading?.id === screenReadingId);
   const showMagnifierButton = Boolean(user && magnifierMode && magnifierSupported);
+  const helpTourSteps = useMemo(
+    () => (user ? getHelpTourSteps(activeScreenName, t) : []),
+    [activeScreenName, t, user]
+  );
+  const helpTourAvailable = helpTourSteps.length > 0;
+  const helpTourLabels = useMemo(() => ({
+    close: t('help.controls.close', 'Close'),
+    eyebrow: t('help.controls.eyebrow', 'Screen guide'),
+    finish: t('help.controls.finish', 'Done'),
+    next: t('help.controls.next', 'Next'),
+    previous: t('help.controls.previous', 'Previous'),
+    skip: t('help.controls.skip', 'Skip'),
+    stepCounter: t('help.controls.stepCounter', '{current} / {total}')
+  }), [t]);
 
   useWebTextLocalization(currentLanguage, translateText);
 
@@ -955,8 +973,17 @@ function AppChrome({
       stopSpeech();
     }
 
+    setHelpTourVisible(false);
+    setHelpTourIndex(0);
     previousScreenNameRef.current = activeScreenName;
   }, [activeScreenName, reading?.active, stopSpeech]);
+
+  useEffect(() => {
+    if (!helpTourAvailable) {
+      setHelpTourVisible(false);
+      setHelpTourIndex(0);
+    }
+  }, [helpTourAvailable]);
 
   useEffect(() => {
     const documentRef = globalThis.document;
@@ -1007,6 +1034,33 @@ function AppChrome({
     }
   }, [isReadingCurrentPage, reading?.active, screenReadingId, speakText, stopSpeech]);
 
+  function openHelpTour() {
+    if (!helpTourAvailable) {
+      return;
+    }
+
+    setHelpTourIndex(0);
+    setHelpTourVisible(true);
+  }
+
+  function closeHelpTour() {
+    setHelpTourVisible(false);
+    setHelpTourIndex(0);
+  }
+
+  function showNextHelpStep() {
+    if (helpTourIndex >= helpTourSteps.length - 1) {
+      closeHelpTour();
+      return;
+    }
+
+    setHelpTourIndex((currentIndex) => Math.min(currentIndex + 1, helpTourSteps.length - 1));
+  }
+
+  function showPreviousHelpStep() {
+    setHelpTourIndex((currentIndex) => Math.max(currentIndex - 1, 0));
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
@@ -1019,10 +1073,21 @@ function AppChrome({
           messageUnreadCount={messageUnreadCount}
           onLogout={setShowLogoutModal ? () => setShowLogoutModal(true) : undefined}
           onNavigate={navigateTo}
+          onOpenHelp={openHelpTour}
+          showHelp={helpTourAvailable}
           user={user}
         />
       ) : null}
       {children}
+      <HelpTourModal
+        currentIndex={helpTourIndex}
+        labels={helpTourLabels}
+        onClose={closeHelpTour}
+        onNext={showNextHelpStep}
+        onPrevious={showPreviousHelpStep}
+        steps={helpTourSteps}
+        visible={helpTourVisible}
+      />
       <RealtimeNotice notice={adminNotice} onClose={onCloseAdminNotice} />
       {user && preference.voiceOutputEnabled ? (
         <Pressable

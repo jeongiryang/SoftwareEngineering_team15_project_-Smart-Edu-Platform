@@ -521,7 +521,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
 
       <TaskSummary tasks={tasks} />
 
-      <View style={[styles.panel, styles.ddayPanel, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'taskboard-dday' }} style={[styles.panel, styles.ddayPanel, shadows.card]}>
         <View style={styles.ddayHeader}>
           <View style={styles.ddayHeaderCopy}>
             <Text style={styles.panelEyebrow}>D-DAY PLANNER</Text>
@@ -658,7 +658,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
         </View>
       </View>
 
-      <View style={[styles.panel, styles.formPanel, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'taskboard-editor' }} style={[styles.panel, styles.formPanel, shadows.card]}>
         <Text style={styles.panelEyebrow}>{editingTaskId ? 'EDIT MODE' : 'NEW TASK'}</Text>
         <Text style={styles.panelTitle}>{editingTaskId ? '태스크 수정' : '새 태스크 만들기'}</Text>
 
@@ -796,6 +796,7 @@ export default function TaskBoardScreen({ onNavigate, token }) {
         </View>
       ) : (
         <ScrollView
+          dataSet={{ sagakHelpTarget: 'taskboard-board' }}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.boardContent}

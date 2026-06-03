@@ -506,7 +506,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
       <ScheduleSummary schedules={schedules} translateText={translateText} />
 
       <View style={styles.twoColumn}>
-        <View style={[styles.panel, styles.formPanel, shadows.card]}>
+        <View dataSet={{ sagakHelpTarget: 'schedule-editor' }} style={[styles.panel, styles.formPanel, shadows.card]}>
           <Text style={styles.panelEyebrow}>{editingScheduleId ? 'EDIT MODE' : 'NEW ENTRY'}</Text>
           <Text style={styles.panelTitle}>{editingScheduleId ? '일정 수정' : '새 일정 만들기'}</Text>
           <View style={styles.formStepStrip}>
@@ -645,7 +645,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
         </View>
 
         <View style={styles.sideColumn}>
-          <View style={[styles.panel, styles.listPanel, shadows.card]}>
+          <View dataSet={{ sagakHelpTarget: 'schedule-list' }} style={[styles.panel, styles.listPanel, shadows.card]}>
             <Text style={styles.panelEyebrow}>SAVED SCHEDULES</Text>
             <Text style={styles.panelTitle}>일정 목록</Text>
             <Text style={styles.listDescription}>저장된 일정을 시간순으로 확인하고 바로 수정할 수 있습니다.</Text>
@@ -709,7 +709,7 @@ export default function ScheduleScreen({ onNavigate, token }) {
             )}
           </View>
 
-          <View style={[styles.panel, styles.reminderPanel, shadows.card]}>
+          <View dataSet={{ sagakHelpTarget: 'schedule-reminder' }} style={[styles.panel, styles.reminderPanel, shadows.card]}>
             <Text style={styles.panelEyebrow}>REVIEW REMINDER</Text>
             <Text style={styles.panelTitle}>복습 알림 만들기</Text>
             <Text style={styles.reminderDescription}>

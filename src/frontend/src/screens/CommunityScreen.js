@@ -1073,7 +1073,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
       </View>
 
       <View style={styles.boardLayout}>
-        <View style={styles.boardMainPane}>
+        <View dataSet={{ sagakHelpTarget: 'community-list' }} style={styles.boardMainPane}>
           {activeTab === 'posts' ? renderPostFilters() : renderBookmarkFilters()}
           {loading ? renderListSkeleton(activeTab === 'bookmarks') : activeTab === 'posts' ? renderPostList() : renderBookmarkList()}
           {renderPagination(currentPageInfo, currentPage, setCurrentPage)}
@@ -1202,6 +1202,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           />
           <View
             accessibilityViewIsModal
+            dataSet={{ sagakHelpTarget: 'community-detail' }}
             style={[styles.detailOverlayPanel, shadows.card]}
             onStartShouldSetResponder={() => true}
           >
@@ -1633,7 +1634,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           {post.isBookmarked ? <Text style={styles.savedBadge}>{translateText('저장됨')}</Text> : null}
         </View>
         {renderEngagement(post)}
-        <View style={styles.cardActions}>
+        <View dataSet={{ sagakHelpTarget: 'community-actions' }} style={styles.cardActions}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${post.title} ${translateText('상세 보기')}`}
@@ -1720,7 +1721,7 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         {renderEngagement(selectedPost)}
         <View style={styles.detailActionPanel}>
           <Text style={styles.actionPanelTitle}>{translateText('반응과 저장')}</Text>
-          <View style={styles.cardActions}>
+          <View dataSet={{ sagakHelpTarget: 'community-actions' }} style={styles.cardActions}>
           {renderReactionButton({
             active: selectedPost.myReaction === 'LIKE',
             count: selectedPost.likeCount,
