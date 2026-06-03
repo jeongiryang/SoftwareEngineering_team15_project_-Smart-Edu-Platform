@@ -206,6 +206,7 @@ Response 예시:
 | `friends.presence.snapshot` | `{ "onlineFriendIds": [2, 3] }` | 인증된 사용자에게 현재 온라인 상태인 친구 ID 목록을 전달 |
 | `friends.presence.updated` | `{ "userId": 2, "online": true, "updatedAt": "..." }` | 친구가 온라인/오프라인 상태로 바뀌었을 때 해당 친구 관계 사용자에게만 전달 |
 | `friends.presence.auth_failed` | `{ "reason": "invalid_token" }` | WebSocket presence 인증 실패 시 전달. token 원문은 반환하지 않음 |
+| `friends.request.updated` | `{ "action": "REQUEST_ACCEPTED", "actorId": 1, "friendshipId": 10, "requesterId": 1, "addresseeId": 2, "status": "ACCEPTED", "updatedAt": "..." }` | 친구 요청 생성/수락/거절/삭제 등 친구 관계 상태가 변경될 때 요청자와 대상자에게 전달 |
 | `directMessage.created` | `{ "thread": { "id": 1, "friend": { "id": 2, "name": "학습 친구", "loginId": "study_peer" }, "unreadCount": 1 }, "message": { "id": 10, "threadId": 1, "senderId": 2, "content": "오늘 복습할까요?", "createdAt": "..." } }` | 친구 간 쪽지 작성 성공 후 thread 참여자에게만 전달 |
 | `directMessage.read` | `{ "threadId": 1, "userId": 1, "lastReadAt": "...", "thread": { ... } }` | 사용자가 쪽지 thread를 읽음 처리했을 때 thread 참여자에게만 전달 |
 | `directMessage.typing` | `{ "threadId": 1, "userId": 2, "isTyping": true, "updatedAt": "..." }` | 인증된 WebSocket 사용자가 참여 중인 쪽지 thread에서 작성 중 상태를 보낼 때 thread 참여자에게만 전달 |
@@ -225,7 +226,7 @@ WebSocket URL 기준:
 - WebSocket은 서버 broadcast 수신을 기본으로 사용하고, 클라이언트 발행 메시지는 `presence.authenticate`/`presence.refresh`와 `directMessage.typing`만 제한적으로 처리함.
 - 클라이언트가 임의 관리자 이벤트를 보낼 수 없도록 관리자 공지나 점검 상태 변경 메시지는 클라이언트 입력으로 처리하지 않음.
 - WebSocket 연결 실패 시 기존 `GET /api/system/status` 기반 HTTP fallback을 유지함.
-- 친구 접속 상태는 친구 관계가 있는 사용자에게만 표시하며, 정확한 위치나 상세 활동 내역은 전달하지 않음.
+- 친구 요청과 접속 상태는 친구 관계 또는 요청 관계가 있는 사용자에게만 전달하며, 정확한 위치나 상세 활동 내역은 전달하지 않음.
 - 보스 레이드 진행률 event는 해당 파티 멤버에게만 전달하며, 보상 지급은 기존 HTTP API transaction과 중복 수령 방지 로직을 그대로 사용함.
 - Vercel은 WebSocket 서버를 실행하지 않고, 브라우저가 Render backend의 `/ws` endpoint에 직접 연결함.
 - 서버 발행 WebSocket payload에는 DB URL, secret, token, `passwordHash` 등 민감정보를 포함하지 않음.
@@ -1631,7 +1632,7 @@ Response 예시:
 
 ## 8. 개발용 seed 데이터
 
-개발용 seed script는 로컬 개발과 테스트 편의를 위한 기본 사용자 데이터를 생성하거나 갱신함.
+개발용 seed script는 로컬 개발과 demo 검증 편의를 위한 기본 사용자 데이터를 생성하거나 갱신함.
 
 실행 명령:
 
@@ -1649,6 +1650,7 @@ npm run seed:dev
 주의:
 
 - seed 계정의 실제 비밀번호는 문서에 작성하지 않음.
+- production DB로 판단되는 환경에서는 실행하지 않으며, demo/deployment DB에는 사용자의 명시적 승인과 민감정보 미출력 기준을 확인한 뒤 1회 실행함.
 - DB에는 plain password를 저장하지 않고 bcrypt 기반 `passwordHash`를 저장함.
 - production DB에서 실행 금지.
 - 개인 dev branch 또는 `dev-main`처럼 개발용 branch에서만 실행함.
@@ -4426,7 +4428,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, AI Chat Room, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 29 suites / 499 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, AI Chat Room, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 29 suites / 530 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |
@@ -4466,6 +4468,7 @@ Request Body:
 | 2026-05-24 | AI 학습 지원 API(§9.2) 구현 완료 반영, 기본 모델 `gemini-2.5-flash`, Schedule/Task API와 동일한 표 양식으로 정리 |
 | 2026-05-25 | 학습 노트 API(§9.1) 구현 완료 내역 반영 |
 | 2026-05-25 | 관리자 화면 연결과 AI 학습 지원 화면 연결 상태 반영, AI API 한국어 응답/fallback/API key 관리 기준 보강 |
+| 2026-06-04 | 친구 요청 실시간 이벤트, 협동 퀘스트 visibility, seed 실행 정책, 최신 테스트 기준 반영 |
 | 2026-05-26 | PR #81 merge 이후 학습 노트 CRUD API 검증 결과와 docs 기준 기능 구현 상태 재점검 결과 반영 |
 | 2026-05-26 | 커뮤니티 게시글 CRUD API(§9.4) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-26 | 커뮤니티 댓글 API(§9.4.6~§9.4.9) 구현 완료 내역과 테스트 결과 반영 |
