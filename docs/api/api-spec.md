@@ -4480,3 +4480,13 @@ Request Body:
 | 2026-05-29 | 커뮤니티 게시글 작성자 검색, 좋아요/조회수/댓글순 정렬, 조회수 응답 및 상세 조회 증가 정책 반영 |
 | 2026-05-28 | 관리자 커뮤니티 신고 조회/처리 API(§9.5.4~§9.5.5) 구현 완료 내역과 테스트 결과 반영 |
 | 2026-05-29 | 친구 추가 및 친구 목록 API(§6.5) 구현 완료 내역과 테스트 결과 반영 |
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [설치 및 사용 가이드](../deployment/install-and-usage-guide.md)
+- [배포 smoke test](../deployment/vercel-smoke-test.md)

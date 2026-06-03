@@ -137,3 +137,14 @@
 - 커뮤니티 기능은 게시글과 댓글을 분리하고, 관리자 기능은 신고된 게시글과 댓글을 관리하는 방식으로 표현하였다.
 - 학습 시간 기록과 통계는 `FocusSession`을 원천 데이터로 사용하고, `durationMs`를 화면 표시와 통계 계산 시 분/시간 단위로 변환하는 구조로 설계하였다.
 - 확장성을 고려하여 사용자 유형, 태스크 상태, 게시판 카테고리, 알림 유형 등은 열거형으로 분리하였다.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [요구사항 문서](../requirements/requirements-document.md)
+- [API 명세](../api/api-spec.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [구현 계획](./implementation-plan.md)

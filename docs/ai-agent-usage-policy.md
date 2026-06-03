@@ -361,3 +361,13 @@ merge 전 확인:
 - 백업은 로컬 사본, 압축본, 별도 브랜치 등 팀원이 관리 가능한 방식으로 수행할 수 있음.
 - 백업 파일에는 `.env`, 실제 DB URL, API key, JWT secret, token 원문 등 민감정보를 포함하지 않음.
 - 잘못된 변경이 발생하면 추가 push를 중단하고 현재 상태와 실행한 명령을 공유한 뒤 복구 방향을 정함.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](./README.md)
+- [최종보고서](./final-report/final-report-draft.md)
+- [테스트 보고서](./test-report/test-report.md)
+- [발표자료 구성안](./final-report/presentation-outline.md)
+- [회의록 부록](./README.md#7-회의록-부록)

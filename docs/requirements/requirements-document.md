@@ -419,3 +419,14 @@ Smart Edu Platform의 주요 액터와 시스템 기능 간의 관계는 다음 
 - 유스케이스 다이어그램
   - [유스케이스 다이어그램 이미지](../../screenshots/usecase-diagram.png)
   - [유스케이스 다이어그램 PlantUML 원본](./usecase-diagram.puml)
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [설계 문서](../design/design-document.md)
+- [API 명세](../api/api-spec.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [AI 활용 정책](../ai-agent-usage-policy.md)

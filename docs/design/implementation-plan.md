@@ -459,3 +459,14 @@ Prisma schema는 PostgreSQL 기준으로 작성한다. 테이블명은 snake_cas
 본 문서는 2단계 구현 전 API 목록과 ERD 초안을 정리한 문서이다. MVP는 인증, 일정/태스크, 노트/AI 일부 기능, 집중/통계, 게시판, 관리자 기본 기능을 중심으로 구성한다.
 
 구현 단계에서는 PostgreSQL, Prisma, Express, React Native + Expo를 기준으로 프로젝트를 초기화하고, 기능별 브랜치와 PR을 통해 단계적으로 구현한다. 테스트는 Jest와 Supertest를 사용하여 API 중심으로 먼저 구축하고, 결과는 `docs/test-report/`에 누적한다.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [요구사항 문서](../requirements/requirements-document.md)
+- [API 명세](../api/api-spec.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [구현 계획](./implementation-plan.md)

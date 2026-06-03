@@ -550,3 +550,14 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 2단계 구현에서는 본 설계 문서를 바탕으로 React Native + Expo, Node.js + Express, PostgreSQL, Prisma, JWT + bcrypt, REST API, Jest + Supertest 기준으로 프론트엔드, 백엔드, DBMS, API 구조를 구체화한다.
 
 본 문서는 1단계 설계 산출물의 제출용 통합 문서이자, 2단계 구현과 테스트 보고서 작성의 기준 자료로 활용된다.
+
+---
+
+## 관련 산출물
+
+- [문서 부록 인덱스](../README.md)
+- [최종보고서](../final-report/final-report-draft.md)
+- [요구사항 문서](../requirements/requirements-document.md)
+- [API 명세](../api/api-spec.md)
+- [테스트 보고서](../test-report/test-report.md)
+- [구현 계획](./implementation-plan.md)
