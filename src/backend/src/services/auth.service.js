@@ -1,11 +1,36 @@
-const { createUser, findUserByLoginId, findUserById } = require('../repositories/user.repository');
+const {
+  createUser,
+  findLatestUserStatusAction,
+  findUserByLoginId,
+  findUserById
+} = require('../repositories/user.repository');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { signToken } = require('../utils/jwt');
 const { conflictError, forbiddenError, notFoundError, unauthorizedError } = require('../utils/errors');
 const { normalizeLoginId, normalizeString, requireFields, validateLoginId, validatePassword } = require('../utils/validators');
 
-function sanitizeUser(user) {
+function buildAccountRestriction(user, action) {
+  if (!user || user.status === 'ACTIVE') {
+    return null;
+  }
+
   return {
+    status: user.status,
+    reason: action?.reason || null,
+    changedAt: action?.createdAt || user.updatedAt || null
+  };
+}
+
+async function getLatestUserStatusAction(userId) {
+  if (typeof findLatestUserStatusAction !== 'function') {
+    return null;
+  }
+
+  return findLatestUserStatusAction(userId);
+}
+
+function sanitizeUser(user, accountAction = null) {
+  const sanitizedUser = {
     id: user.id,
     loginId: user.loginId,
     name: user.name,
@@ -14,6 +39,14 @@ function sanitizeUser(user) {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };
+
+  const accountRestriction = buildAccountRestriction(user, accountAction);
+
+  if (accountRestriction) {
+    sanitizedUser.accountRestriction = accountRestriction;
+  }
+
+  return sanitizedUser;
 }
 
 function validateRegisterInput({ loginId, password, name }) {
@@ -76,7 +109,10 @@ async function loginUser({ loginId, password }) {
   }
 
   if (user.status !== 'ACTIVE') {
-    throw forbiddenError('Account is not active');
+    const accountAction = await getLatestUserStatusAction(user.id);
+    throw forbiddenError('Account is not active', {
+      accountRestriction: buildAccountRestriction(user, accountAction)
+    });
   }
 
   return {
@@ -92,7 +128,9 @@ async function getCurrentUser(userId) {
     throw notFoundError('User not found');
   }
 
-  return sanitizeUser(user);
+  const accountAction = user.status === 'ACTIVE' ? null : await getLatestUserStatusAction(user.id);
+
+  return sanitizeUser(user, accountAction);
 }
 
 module.exports = {

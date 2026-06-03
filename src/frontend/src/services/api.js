@@ -35,6 +35,7 @@ export async function request(path, options = {}) {
     const error = new Error(data.message || `API request failed: ${response.status}`);
     error.status = response.status;
     error.code = data.code;
+    error.details = data.details;
     throw error;
   }
 

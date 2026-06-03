@@ -175,7 +175,22 @@ export default function FriendsScreen({ onNavigate, realtimeEvent, token }) {
         return nextIds;
       });
     }
-  }, [realtimeEvent]);
+
+    if (realtimeEvent.type === 'friends.request.updated') {
+      loadFriends();
+
+      const keyword = searchKeyword.trim();
+      if (token && keyword.length >= 2) {
+        searchUsers(token, keyword)
+          .then((result) => {
+            setSearchResults(Array.isArray(result?.users) ? result.users : []);
+          })
+          .catch(() => {
+            // The request/friend lists are the source of truth; search refresh is best-effort.
+          });
+      }
+    }
+  }, [loadFriends, realtimeEvent, searchKeyword, token]);
 
   async function handleSearch() {
     if (!token || searching) {

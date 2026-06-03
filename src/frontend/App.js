@@ -282,6 +282,28 @@ function formatRestrictedChangedAt(value) {
   return date.toLocaleString();
 }
 
+function normalizeRestrictionReason(reason) {
+  const normalizedReason = typeof reason === 'string' ? reason.trim() : '';
+
+  if (!normalizedReason || normalizedReason === 'ADMIN_STATUS_CHANGE' || normalizedReason === 'USER_WITHDRAWAL') {
+    return '';
+  }
+
+  return normalizedReason;
+}
+
+function getAccountRestrictionFromUser(user) {
+  if (!user || !isRestrictedAccountStatus(user.status)) {
+    return null;
+  }
+
+  return {
+    status: user.accountRestriction?.status || user.status,
+    reason: normalizeRestrictionReason(user.accountRestriction?.reason),
+    changedAt: user.accountRestriction?.changedAt || user.updatedAt || null
+  };
+}
+
 function getStorage() {
   try {
     return globalThis.localStorage || null;
@@ -450,14 +472,31 @@ function AppRoot() {
 
     if (event.type === 'account.status.updated' && event.payload?.status) {
       const nextStatus = event.payload.status;
+      const statusReason = normalizeRestrictionReason(
+        event.payload.statusReason || event.payload.restrictionReason || event.payload.reason
+      );
+      const changedAt = event.payload.changedAt || event.sentAt || new Date().toISOString();
+
       setUser((currentUser) => (
-        currentUser ? { ...currentUser, status: nextStatus } : currentUser
+        currentUser
+          ? {
+            ...currentUser,
+            status: nextStatus,
+            accountRestriction: isRestrictedAccountStatus(nextStatus)
+              ? {
+                status: nextStatus,
+                reason: statusReason || null,
+                changedAt
+              }
+              : null
+          }
+          : currentUser
       ));
       setAccountStatusEvent({
         status: nextStatus,
-        reason: event.payload.reason || '',
+        reason: statusReason,
         message: event.payload.message || '',
-        changedAt: event.payload.changedAt || event.sentAt || new Date().toISOString()
+        changedAt
       });
 
       if (isRestrictedAccountStatus(nextStatus)) {
@@ -518,6 +557,7 @@ function AppRoot() {
 
         setToken(storedToken);
         setUser(result.user);
+        setAccountStatusEvent(getAccountRestrictionFromUser(result.user));
         const requestedScreen = readScreenFromLocation();
         const nextScreen = authScreens.includes(requestedScreen) ? requestedScreen : 'dashboard';
         setCurrentScreen(nextScreen);
@@ -702,6 +742,7 @@ function AccountRestrictedScreen({ event, onLogin, onLogout, status }) {
   const { palette } = useThemeMode();
   const { t } = useLanguage();
   const changedAt = formatRestrictedChangedAt(event?.changedAt);
+  const restrictionReason = normalizeRestrictionReason(event?.reason);
   const normalizedStatus = status === 'DEACTIVATED' ? 'DEACTIVATED' : 'SUSPENDED';
 
   return (
@@ -741,6 +782,16 @@ function AccountRestrictedScreen({ event, onLogin, onLogout, status }) {
           <Text style={[styles.accountRestrictedMeta, { color: palette.muted }]}>
             {t('account.restricted.changedAt', 'Changed at')}: {changedAt}
           </Text>
+        ) : null}
+        {restrictionReason ? (
+          <View style={[styles.accountRestrictedReasonBox, { backgroundColor: palette.surfaceWarm, borderColor: palette.line }]}>
+            <Text style={[styles.accountRestrictedReasonLabel, { color: palette.warning }]}>
+              {t('account.restricted.reasonLabel', 'Restriction reason')}
+            </Text>
+            <Text style={[styles.accountRestrictedReasonText, { color: palette.ink }]}>
+              {restrictionReason}
+            </Text>
+          </View>
         ) : null}
         <View style={styles.accountRestrictedActions}>
           <Pressable
@@ -983,6 +1034,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '700'
+  },
+  accountRestrictedReasonBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    gap: 6
+  },
+  accountRestrictedReasonLabel: {
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  accountRestrictedReasonText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800'
   },
   accountRestrictedActions: {
     flexDirection: 'row',

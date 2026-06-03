@@ -816,6 +816,7 @@ const UI_TRANSLATIONS = {
     'account.restricted.message.SUSPENDED': '관리자에 의해 서비스 이용이 일시 제한되었습니다. 제한이 해제되면 이 화면이 자동으로 사라집니다.',
     'account.restricted.message.DEACTIVATED': '탈퇴 또는 비활성 처리된 계정입니다. 다시 이용하려면 관리자에게 상태 확인을 요청해 주세요.',
     'account.restricted.changedAt': '변경 시각',
+    'account.restricted.reasonLabel': '제한 사유',
     'account.restricted.login': '로그인 화면으로 이동',
     'account.restricted.logout': '로그아웃',
     'account.restricted.help': '예상하지 못한 제한이라면 관리자에게 계정 상태 확인을 요청해 주세요.'
@@ -871,6 +872,7 @@ const UI_TRANSLATIONS = {
     'account.restricted.message.SUSPENDED': 'An administrator has temporarily restricted service access. This screen will disappear when the restriction is lifted.',
     'account.restricted.message.DEACTIVATED': 'This account has been withdrawn or deactivated. Ask an administrator to review the account status before using the service again.',
     'account.restricted.changedAt': 'Changed at',
+    'account.restricted.reasonLabel': 'Restriction reason',
     'account.restricted.login': 'Go to login',
     'account.restricted.logout': 'Log out',
     'account.restricted.help': 'If this looks unexpected, ask an administrator to review the account status.'
@@ -891,6 +893,7 @@ const UI_TRANSLATIONS = {
     'account.restricted.message.SUSPENDED': '管理者によりサービス利用が一時的に制限されています。制限が解除されるとこの画面は自動で消えます。',
     'account.restricted.message.DEACTIVATED': '退会または無効化されたアカウントです。再利用するには管理者に状態確認を依頼してください。',
     'account.restricted.changedAt': '変更時刻',
+    'account.restricted.reasonLabel': '制限理由',
     'account.restricted.login': 'ログイン画面へ移動',
     'account.restricted.logout': 'ログアウト',
     'account.restricted.help': '心当たりがない場合は、管理者にアカウント状態の確認を依頼してください。'
@@ -911,6 +914,7 @@ const UI_TRANSLATIONS = {
     'account.restricted.message.SUSPENDED': '管理员已暂时限制该账号使用服务。限制解除后，此页面会自动消失。',
     'account.restricted.message.DEACTIVATED': '该账号已注销或停用。如需继续使用，请联系管理员确认账号状态。',
     'account.restricted.changedAt': '变更时间',
+    'account.restricted.reasonLabel': '限制原因',
     'account.restricted.login': '前往登录页面',
     'account.restricted.logout': '退出登录',
     'account.restricted.help': '如果这不是预期状态，请联系管理员确认账号状态。'

@@ -17,8 +17,8 @@ function unauthorizedError(message = 'Authentication is required') {
   return new AppError(message, 401, 'UNAUTHORIZED');
 }
 
-function forbiddenError(message = 'Permission is required') {
-  return new AppError(message, 403, 'FORBIDDEN');
+function forbiddenError(message = 'Permission is required', details = undefined) {
+  return new AppError(message, 403, 'FORBIDDEN', details);
 }
 
 function notFoundError(message = 'Resource not found') {
