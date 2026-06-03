@@ -856,14 +856,18 @@ function AppChrome({
   showLogoutModal,
   user
 }) {
-  const { preference, speakText } = useAccessibility();
+  const { preference, reading, speakText, stopSpeech } = useAccessibility();
   const { effectiveMode, palette, setHighContrastActive } = useThemeMode();
   const { currentLanguage, t, translateText } = useLanguage();
   const [readTextError, setReadTextError] = useState('');
   const [magnifierMode, setMagnifierMode] = useState(readStoredMagnifierMode);
   const [magnifierActive, setMagnifierActive] = useState(false);
   const [magnifierSupported, setMagnifierSupported] = useState(canUseMagnifierOverlay);
+  const previousScreenNameRef = useRef(activeScreenName);
+  const stopSpeechRef = useRef(stopSpeech);
   const isDarkSurface = effectiveMode === 'dark' || effectiveMode === 'highContrast';
+  const screenReadingId = `screen-${activeScreenName}`;
+  const isReadingCurrentPage = Boolean(reading?.active && reading?.id === screenReadingId);
   const showMagnifierButton = Boolean(user && magnifierMode && magnifierSupported);
 
   useWebTextLocalization(currentLanguage, translateText);
@@ -935,6 +939,26 @@ function AppChrome({
   }, [showMagnifierButton]);
 
   useEffect(() => {
+    stopSpeechRef.current = stopSpeech;
+  }, [stopSpeech]);
+
+  useEffect(() => () => {
+    stopSpeechRef.current?.();
+  }, []);
+
+  useEffect(() => {
+    if (previousScreenNameRef.current === activeScreenName) {
+      return;
+    }
+
+    if (reading?.active) {
+      stopSpeech();
+    }
+
+    previousScreenNameRef.current = activeScreenName;
+  }, [activeScreenName, reading?.active, stopSpeech]);
+
+  useEffect(() => {
     const documentRef = globalThis.document;
 
     if (!documentRef || !user || !preference.voiceOutputEnabled) {
@@ -961,6 +985,14 @@ function AppChrome({
   }, [preference.voiceOutputEnabled, speakText, user]);
 
   const handleReadCurrentPage = useCallback(async () => {
+    if (reading?.active) {
+      stopSpeech();
+
+      if (isReadingCurrentPage) {
+        return;
+      }
+    }
+
     const screenText = getCurrentScreenText();
 
     if (!screenText) {
@@ -968,12 +1000,12 @@ function AppChrome({
       return;
     }
 
-    const started = await speakText(screenText, { readingId: `screen-${activeScreenName}` });
+    const started = await speakText(screenText, { readingId: screenReadingId });
 
     if (!started) {
       setReadTextError('읽어주기를 시작하지 못했습니다. Chrome 사이트 소리 권한과 기기 볼륨을 확인해 주세요.');
     }
-  }, [activeScreenName, speakText]);
+  }, [isReadingCurrentPage, reading?.active, screenReadingId, speakText, stopSpeech]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -995,15 +1027,25 @@ function AppChrome({
       {user && preference.voiceOutputEnabled ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="현재 화면 전체 읽기"
+          accessibilityLabel={
+            isReadingCurrentPage
+              ? t('accessibility.readAll.stopLabel', '전체 읽기 중지')
+              : t('accessibility.readAll.startLabel', '현재 화면 전체 읽기')
+          }
+          accessibilityState={{ selected: isReadingCurrentPage }}
           onPress={handleReadCurrentPage}
           style={({ hovered, pressed }) => [
             styles.readPageButton,
+            isReadingCurrentPage && styles.readPageButtonActive,
             hovered && styles.readPageButtonHovered,
             pressed && styles.readPageButtonPressed
           ]}
         >
-          <Text style={styles.readPageButtonText}>🔊 전체 읽기</Text>
+          <Text style={styles.readPageButtonText}>
+            {isReadingCurrentPage
+              ? `🔇 ${t('accessibility.readAll.stop', '읽기 중지')}`
+              : `🔊 ${t('accessibility.readAll.start', '전체 읽기')}`}
+          </Text>
         </Pressable>
       ) : null}
       {showMagnifierButton ? (
@@ -1194,6 +1236,10 @@ const styles = StyleSheet.create({
   },
   readPageButtonHovered: {
     transform: [{ translateY: -2 }]
+  },
+  readPageButtonActive: {
+    backgroundColor: colors.danger,
+    borderColor: colors.danger
   },
   readPageButtonPressed: {
     transform: [{ translateY: 1 }]

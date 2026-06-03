@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -200,6 +200,14 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [realtimeNotification, setRealtimeNotification] = useState(null);
+  const [shareFeedback, setShareFeedback] = useState(null);
+  const shareFeedbackTimerRef = useRef(null);
+
+  useEffect(() => () => {
+    if (shareFeedbackTimerRef.current) {
+      clearTimeout(shareFeedbackTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'posts') {
@@ -734,7 +742,43 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
     }
   }
 
-  async function copyPostLink(post) {
+  function showShareFeedback(sourceId, type, message) {
+    if (shareFeedbackTimerRef.current) {
+      clearTimeout(shareFeedbackTimerRef.current);
+    }
+
+    setShareFeedback({
+      id: `${sourceId}-${Date.now()}`,
+      sourceId,
+      type,
+      message
+    });
+    shareFeedbackTimerRef.current = setTimeout(() => {
+      setShareFeedback(null);
+      shareFeedbackTimerRef.current = null;
+    }, 1800);
+  }
+
+  function renderShareFeedback(sourceId) {
+    if (shareFeedback?.sourceId !== sourceId) {
+      return null;
+    }
+
+    const isError = shareFeedback.type === 'error';
+
+    return (
+      <View
+        pointerEvents="none"
+        style={[styles.shareFeedbackPopup, isError && styles.shareFeedbackPopupError]}
+      >
+        <Text style={styles.shareFeedbackText} numberOfLines={2}>
+          {shareFeedback.message}
+        </Text>
+      </View>
+    );
+  }
+
+  async function copyPostLink(post, sourceId = 'community-share') {
     if (!post) {
       return;
     }
@@ -767,9 +811,9 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
         throw new Error('clipboard-unavailable');
       }
 
-      setSuccessMessage(translateText('게시글 링크를 복사했습니다.'));
+      showShareFeedback(sourceId, 'success', translateText('링크가 복사되었습니다.'));
     } catch (error) {
-      setErrorMessage(translateText('클립보드 복사에 실패했습니다. 브라우저 권한을 확인해 주세요.'));
+      showShareFeedback(sourceId, 'error', translateText('링크 복사에 실패했습니다.'));
     }
   }
 
@@ -1479,13 +1523,16 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
                   {formatDate(post.updatedAt, currentLanguage)}
                 </Text>
                 <View style={[styles.tableCell, styles.tableActionCell]}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => copyPostLink(post)}
-                    style={(state) => [styles.tableActionButton, ...interactiveStateStyles(state)]}
-                  >
-                    <Text style={styles.tableActionText} numberOfLines={1}>{translateText('공유')}</Text>
-                  </Pressable>
+                  <View style={styles.shareActionWrapper}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => copyPostLink(post, `table-${post.id}`)}
+                      style={(state) => [styles.tableActionButton, ...interactiveStateStyles(state)]}
+                    >
+                      <Text style={styles.tableActionText} numberOfLines={1}>{translateText('공유')}</Text>
+                    </Pressable>
+                    {renderShareFeedback(`table-${post.id}`)}
+                  </View>
                 </View>
               </View>
             ))}
@@ -1626,15 +1673,18 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
               {post.isBookmarked ? translateText('북마크됨') : translateText('북마크')}
             </Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${post.title} ${translateText('링크 공유')}`}
-            disabled={busy}
-            onPress={() => copyPostLink(post)}
-            style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
-          >
-            <Text style={styles.smallButtonText}>{translateText('공유')}</Text>
-          </Pressable>
+          <View style={styles.shareActionWrapper}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${post.title} ${translateText('링크 공유')}`}
+              disabled={busy}
+              onPress={() => copyPostLink(post, `card-${post.id}`)}
+              style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
+            >
+              <Text style={styles.smallButtonText}>{translateText('공유')}</Text>
+            </Pressable>
+            {renderShareFeedback(`card-${post.id}`)}
+          </View>
         </View>
       </View>
     );
@@ -1712,15 +1762,18 @@ export default function CommunityScreen({ onNavigate, realtimeEvent, token, user
           >
             <Text style={styles.warningButtonText}>{translateText('게시글 신고')}</Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={translateText('게시글 링크 공유')}
-            disabled={busy}
-            onPress={() => copyPostLink(selectedPost)}
-            style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
-          >
-            <Text style={styles.smallButtonText}>{translateText('공유')}</Text>
-          </Pressable>
+          <View style={styles.shareActionWrapper}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={translateText('게시글 링크 공유')}
+              disabled={busy}
+              onPress={() => copyPostLink(selectedPost, `detail-${selectedPost.id}`)}
+              style={({ pressed }) => [styles.smallButton, pressed && styles.buttonPressed]}
+            >
+              <Text style={styles.smallButtonText}>{translateText('공유')}</Text>
+            </Pressable>
+            {renderShareFeedback(`detail-${selectedPost.id}`)}
+          </View>
           </View>
         </View>
         {ownPost ? (
@@ -2612,6 +2665,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8
+  },
+  shareActionWrapper: {
+    position: 'relative',
+    alignSelf: 'flex-start'
+  },
+  shareFeedbackPopup: {
+    position: 'absolute',
+    right: 0,
+    bottom: '100%',
+    minWidth: 148,
+    maxWidth: 220,
+    marginBottom: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.mint,
+    backgroundColor: colors.blueDeep,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    zIndex: 30,
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16
+  },
+  shareFeedbackPopupError: {
+    borderColor: colors.danger,
+    backgroundColor: colors.danger
+  },
+  shareFeedbackText: {
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 16
   },
   ownerActions: {
     flexDirection: 'row',

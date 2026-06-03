@@ -495,6 +495,8 @@ function SettingsIcon() {
       <View style={[styles.settingsGearTooth, styles.settingsGearToothRight]} />
       <View style={[styles.settingsGearTooth, styles.settingsGearToothDiagonalA]} />
       <View style={[styles.settingsGearTooth, styles.settingsGearToothDiagonalB]} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothDiagonalC]} />
+      <View style={[styles.settingsGearTooth, styles.settingsGearToothDiagonalD]} />
       <View style={styles.settingsGearRing} />
       <View style={styles.settingsGearCore} />
     </View>
@@ -844,31 +846,31 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   settingsIcon: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative'
   },
   settingsGearRing: {
-    width: 14,
-    height: 14,
+    width: 17,
+    height: 17,
     borderRadius: 999,
-    borderWidth: 2.2,
+    borderWidth: 3,
     borderColor: colors.blueDeep,
-    backgroundColor: colors.surfaceWarm
+    backgroundColor: colors.surface
   },
   settingsGearCore: {
     position: 'absolute',
-    width: 4,
-    height: 4,
+    width: 6,
+    height: 6,
     borderRadius: 999,
-    backgroundColor: colors.blueDeep
+    backgroundColor: colors.mintDeep
   },
   settingsGearTooth: {
     position: 'absolute',
-    width: 3,
-    height: 6,
+    width: 4,
+    height: 8,
     borderRadius: 2,
     backgroundColor: colors.blueDeep
   },
@@ -888,13 +890,23 @@ const styles = StyleSheet.create({
   },
   settingsGearToothDiagonalA: {
     top: 2,
-    right: 2,
+    right: 3,
     transform: [{ rotate: '45deg' }]
   },
   settingsGearToothDiagonalB: {
     bottom: 2,
-    left: 2,
+    left: 3,
     transform: [{ rotate: '45deg' }]
+  },
+  settingsGearToothDiagonalC: {
+    top: 2,
+    left: 3,
+    transform: [{ rotate: '-45deg' }]
+  },
+  settingsGearToothDiagonalD: {
+    bottom: 2,
+    right: 3,
+    transform: [{ rotate: '-45deg' }]
   },
   languageDropdown: {
     position: 'relative',

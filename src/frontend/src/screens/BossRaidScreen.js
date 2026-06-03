@@ -690,8 +690,8 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
             {myInvites.map((invite) => (
               <View key={invite.id} style={styles.inviteCard}>
                 <View style={styles.publicPartyCopy}>
-                  <Text style={styles.partyChipTitle}>{invite.party?.name}</Text>
-                  <Text style={styles.partyChipMeta}>
+                  <Text style={styles.partyChipTitle} numberOfLines={2} ellipsizeMode="tail">{invite.party?.name}</Text>
+                  <Text style={styles.partyChipMeta} numberOfLines={1} ellipsizeMode="tail">
                     {invite.party?.raid?.name} · {invite.inviter?.name || invite.inviter?.loginId}
                   </Text>
                 </View>
@@ -811,8 +811,8 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
             return (
               <View key={`public-${party.id}`} style={styles.publicPartyCard}>
                 <View style={styles.publicPartyCopy}>
-                  <Text style={styles.partyChipTitle}>{party.name}</Text>
-                  <Text style={styles.partyChipMeta}>
+                  <Text style={styles.partyChipTitle} numberOfLines={2} ellipsizeMode="tail">{party.name}</Text>
+                  <Text style={styles.partyChipMeta} numberOfLines={1} ellipsizeMode="tail">
                     {party.raid.name} · {party.totalMembers || party.members?.length || 0}명 · 공개 모집
                   </Text>
                 </View>
@@ -860,14 +860,14 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                   pressed && styles.partyChipPressed
                 ]}
               >
-                <Text style={[styles.partyChipTitle, active && styles.partyChipTitleActive]}>
+                <Text style={[styles.partyChipTitle, active && styles.partyChipTitleActive]} numberOfLines={2} ellipsizeMode="tail">
                   {party.name}
                 </Text>
-                <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]}>
+                <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]} numberOfLines={1} ellipsizeMode="tail">
                   {party.raid.name} · {party.inviteMode === 'PRIVATE' ? '초대 코드' : '공개 모집'} · {party.joinCode}
                 </Text>
                 {isCompletedBossRaidParty(party) ? (
-                  <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]}>
+                  <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]} numberOfLines={2} ellipsizeMode="tail">
                     {t('bossRaid.visibility.localHideHint', '완료 항목은 브라우저별로 숨길 수 있습니다.')}
                   </Text>
                 ) : null}
@@ -889,8 +889,8 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
         <View style={styles.detailPanel}>
           <View style={styles.detailHeader}>
             <View>
-              <Text style={styles.detailTitle}>{selectedParty.raid.name}</Text>
-              <Text style={styles.detailSubtitle}>
+              <Text style={styles.detailTitle} numberOfLines={2} ellipsizeMode="tail">{selectedParty.raid.name}</Text>
+              <Text style={styles.detailSubtitle} numberOfLines={2} ellipsizeMode="tail">
                 {interpolate(t('bossRaid.detail.subtitle', '{name} · 참여 코드 {code}'), {
                   name: selectedParty.name,
                   code: selectedParty.joinCode
@@ -941,7 +941,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                 <View key={member.userId} style={styles.memberRow}>
                   <ProfileAvatar appearance={member.appearance} name={member.name} size="sm" />
                   <View style={styles.memberCopy}>
-                    <Text style={styles.memberName}>{member.name}</Text>
+                    <Text style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">{member.name}</Text>
                     {member.appearance?.titleText ? (
                       <ProfileTitleChip animated title={member.appearance.titleText} translateText={translateText} />
                     ) : null}
@@ -961,15 +961,15 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                 <View key={contribution.userId} style={styles.contributionRow}>
                   <ProfileAvatar appearance={contribution.appearance} name={contribution.userName} size="sm" />
                   <View style={styles.memberCopy}>
-                    <Text style={styles.memberName}>{contribution.userName}</Text>
-                    <Text style={styles.contributionMeta}>
+                    <Text style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">{contribution.userName}</Text>
+                    <Text style={styles.contributionMeta} numberOfLines={1} ellipsizeMode="tail">
                       {interpolate(t('bossRaid.detail.contributionMeta', '집중 {minutes}분 · 완료 {tasks}개'), {
                         minutes: formatNumber(contribution.focusMinutes, locale),
                         tasks: formatNumber(contribution.completedTaskCount, locale)
                       })}
                     </Text>
                   </View>
-                  <Text style={styles.contributionDamage}>{formatNumber(contribution.totalDamage, locale)} DMG</Text>
+                  <Text style={styles.contributionDamage} numberOfLines={1}>{formatNumber(contribution.totalDamage, locale)} DMG</Text>
                 </View>
               ))}
             </View>
@@ -1438,6 +1438,7 @@ const styles = StyleSheet.create({
   publicPartyCopy: {
     flex: 1,
     minWidth: 220,
+    maxWidth: '100%',
     gap: 4
   },
   inviteCard: {
@@ -1523,7 +1524,10 @@ const styles = StyleSheet.create({
   partyChipTitle: {
     color: colors.ink,
     fontSize: 16,
-    fontWeight: '800'
+    fontWeight: '800',
+    minWidth: 0,
+    flexShrink: 1,
+    lineHeight: 21
   },
   partyChipTitleActive: {
     color: colors.mintDeep
@@ -1531,7 +1535,9 @@ const styles = StyleSheet.create({
   partyChipMeta: {
     color: colors.muted,
     fontSize: 13,
-    fontWeight: '700'
+    fontWeight: '700',
+    minWidth: 0,
+    flexShrink: 1
   },
   emptyState: {
     borderRadius: radii.panel,
@@ -1562,6 +1568,7 @@ const styles = StyleSheet.create({
   },
   detailHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 16
@@ -1588,7 +1595,8 @@ const styles = StyleSheet.create({
   detailTitle: {
     color: colors.ink,
     fontSize: 30,
-    fontWeight: '900'
+    fontWeight: '900',
+    lineHeight: 36
   },
   detailSubtitle: {
     color: colors.muted,
@@ -1670,7 +1678,9 @@ const styles = StyleSheet.create({
   memberName: {
     color: colors.ink,
     fontSize: 15,
-    fontWeight: '800'
+    fontWeight: '800',
+    minWidth: 0,
+    flexShrink: 1
   },
   memberJoinedAt: {
     color: colors.muted,
@@ -1679,6 +1689,7 @@ const styles = StyleSheet.create({
   },
   contributionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 12,
     alignItems: 'center'
@@ -1692,7 +1703,8 @@ const styles = StyleSheet.create({
   contributionDamage: {
     color: colors.blueDeep,
     fontSize: 15,
-    fontWeight: '900'
+    fontWeight: '900',
+    flexShrink: 0
   },
   rewardPanel: {
     borderRadius: radii.card,

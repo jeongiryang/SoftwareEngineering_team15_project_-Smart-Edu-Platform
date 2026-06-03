@@ -1176,13 +1176,15 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                       <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
                         <View style={styles.questHeader}>
                           <View style={styles.questCopy}>
-                            <Text style={styles.questTitle}>{localizeDisplayText(quest.title, translateText)}</Text>
-                            <Text style={styles.questDescription}>
+                            <Text style={styles.questTitle} numberOfLines={2} ellipsizeMode="tail">
+                              {localizeDisplayText(quest.title, translateText)}
+                            </Text>
+                            <Text style={styles.questDescription} numberOfLines={2} ellipsizeMode="tail">
                               {localizeDisplayText(quest.description, translateText, '설명 없이 등록된 퀘스트입니다.')}
                             </Text>
                           </View>
                           <View style={styles.questStatusChip}>
-                            <Text style={styles.questStatusText}>{getQuestStatusText(quest.status, translateText)}</Text>
+                            <Text style={styles.questStatusText} numberOfLines={1}>{getQuestStatusText(quest.status, translateText)}</Text>
                           </View>
                         </View>
 
@@ -1197,8 +1199,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                         <View style={styles.questFooter}>
                           <View>
-                              <Text style={styles.questProgress}>{getQuestProgressLabel(quest, currentLanguage)}</Text>
-                              <Text style={styles.questReward}>{translateText('보상')} {formatNumber(quest.rewardPoints, currentLanguage)}P</Text>
+                              <Text style={styles.questProgress} numberOfLines={1}>{getQuestProgressLabel(quest, currentLanguage)}</Text>
+                              <Text style={styles.questReward} numberOfLines={1}>{translateText('보상')} {formatNumber(quest.rewardPoints, currentLanguage)}P</Text>
                             </View>
 
                           {quest.status === 'ACHIEVED' ? (
@@ -1263,13 +1265,15 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                             <View key={quest.id} style={[styles.questCard, getQuestTone(quest.status)]}>
                               <View style={styles.questHeader}>
                                 <View style={styles.questCopy}>
-                                  <Text style={styles.questTitle}>{localizeDisplayText(quest.title, translateText)}</Text>
-                                  <Text style={styles.questDescription}>
+                                  <Text style={styles.questTitle} numberOfLines={2} ellipsizeMode="tail">
+                                    {localizeDisplayText(quest.title, translateText)}
+                                  </Text>
+                                  <Text style={styles.questDescription} numberOfLines={2} ellipsizeMode="tail">
                                     {localizeDisplayText(quest.description, translateText, '설명 없이 등록된 퀘스트입니다.')}
                                   </Text>
                                 </View>
                                 <View style={styles.questStatusChip}>
-                                  <Text style={styles.questStatusText}>{getQuestStatusText(quest.status, translateText)}</Text>
+                                  <Text style={styles.questStatusText} numberOfLines={1}>{getQuestStatusText(quest.status, translateText)}</Text>
                                 </View>
                               </View>
 
@@ -1284,8 +1288,8 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
 
                               <View style={styles.questFooter}>
                                 <View>
-                                  <Text style={styles.questProgress}>{getQuestProgressLabel(quest, currentLanguage)}</Text>
-                                  <Text style={styles.questReward}>{translateText('보상')} {formatNumber(quest.rewardPoints, currentLanguage)}P</Text>
+                                  <Text style={styles.questProgress} numberOfLines={1}>{getQuestProgressLabel(quest, currentLanguage)}</Text>
+                                  <Text style={styles.questReward} numberOfLines={1}>{translateText('보상')} {formatNumber(quest.rewardPoints, currentLanguage)}P</Text>
                                 </View>
 
                                 <View style={styles.questTag}>
@@ -2233,13 +2237,15 @@ const styles = StyleSheet.create({
   },
   questHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 12
   },
   questCopy: {
     flex: 1,
-    gap: 6
+    gap: 6,
+    minWidth: 0
   },
   questTitle: {
     color: colors.ink,
@@ -2255,7 +2261,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.surface,
     paddingHorizontal: 10,
-    paddingVertical: 7
+    paddingVertical: 7,
+    flexShrink: 0,
+    maxWidth: '100%'
   },
   questStatusText: {
     color: colors.blueDeep,
@@ -2276,6 +2284,7 @@ const styles = StyleSheet.create({
   },
   questFooter: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12
