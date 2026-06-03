@@ -3941,14 +3941,38 @@ async function seedCollaborativeQuests(prisma, usersByLoginId) {
     data: [
       { questId: activeQuest.id, userId: questUser.id, contributionValue: 35, joinedAt: daysFromNow(-1, 9, 5) },
       { questId: activeQuest.id, userId: teamUser01.id, contributionValue: 20, joinedAt: daysFromNow(-1, 10, 0) },
-      { questId: activeQuest.id, userId: friendUser.id, contributionValue: 10, joinedAt: daysFromNow(0, 14, 0) },
+      {
+        questId: activeQuest.id,
+        userId: friendUser.id,
+        contributionValue: 10,
+        hiddenAt: daysFromNow(0, 16, 30),
+        joinedAt: daysFromNow(0, 14, 0)
+      },
       { questId: nearlyDoneQuest.id, userId: raidUser.id, contributionValue: 55, joinedAt: daysFromNow(-2, 10, 5) },
       { questId: nearlyDoneQuest.id, userId: teamUser02.id, contributionValue: 40, joinedAt: daysFromNow(-1, 18, 0) },
       { questId: completedQuest.id, userId: mainUser.id, contributionValue: 60, joinedAt: daysFromNow(-7, 9, 10) },
       { questId: completedQuest.id, userId: communityUser.id, contributionValue: 35, joinedAt: daysFromNow(-6, 12, 0) },
-      { questId: completedQuest.id, userId: questUser.id, contributionValue: 25, joinedAt: daysFromNow(-5, 20, 0) },
-      { questId: expiredQuest.id, userId: friendUser.id, contributionValue: 12, joinedAt: daysFromNow(-10, 9, 30) },
-      { questId: expiredQuest.id, userId: teamUser03.id, contributionValue: 8, joinedAt: daysFromNow(-9, 18, 0) }
+      {
+        questId: completedQuest.id,
+        userId: questUser.id,
+        contributionValue: 25,
+        archivedAt: daysFromNow(0, 9, 0),
+        joinedAt: daysFromNow(-5, 20, 0)
+      },
+      {
+        questId: expiredQuest.id,
+        userId: friendUser.id,
+        contributionValue: 12,
+        hiddenAt: daysFromNow(-2, 9, 0),
+        joinedAt: daysFromNow(-10, 9, 30)
+      },
+      {
+        questId: expiredQuest.id,
+        userId: teamUser03.id,
+        contributionValue: 8,
+        archivedAt: daysFromNow(-1, 9, 0),
+        joinedAt: daysFromNow(-9, 18, 0)
+      }
     ]
   });
 
@@ -4384,8 +4408,12 @@ module.exports = {
   assertSafeSeedEnvironment,
   looksLikeProductionUrl,
   seedAIChatRooms,
+  seedAccessibility,
+  seedCollaborativeQuests,
   seedDevelopmentData,
   seedDirectMessages,
+  seedRewards,
+  seedSystemSettings,
   seedPointShop,
   seedBossRaids,
   upsertSeedUser
