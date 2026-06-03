@@ -367,6 +367,7 @@ merge 전 확인:
 ## 관련 산출물
 
 - [문서 부록 인덱스](./README.md)
+- [개발 및 협업 작업 규칙](./development-workflow-rules.md)
 - [최종보고서](./final-report/final-report-draft.md)
 - [테스트 보고서](./test-report/test-report.md)
 - [발표자료 구성안](./final-report/presentation-outline.md)

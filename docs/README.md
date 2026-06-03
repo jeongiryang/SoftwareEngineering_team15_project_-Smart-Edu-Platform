@@ -45,6 +45,7 @@
 - [API 명세](./api/api-spec.md): REST API, WebSocket, seed, 구현 범위, 검증 명령 정리
 - [테스트 보고서](./test-report/test-report.md): 유닛/통합 테스트 목록, 최신 Jest 결과, 버그 로그, AI 보조 테스트 설계 기록
 - [AI 활용 정책](./ai-agent-usage-policy.md): AI agent 사용 범위, 금지 작업, 민감정보 처리 기준
+- [개발 및 협업 작업 규칙](./development-workflow-rules.md): 이전 README에 포함되어 있던 branch, commit, PR, review, merge, seed/migration 주의사항 보존 문서
 
 ## 7. 회의록 부록
 

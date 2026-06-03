@@ -128,6 +128,7 @@ AI 질의, 추천, 요약, 오답 분석, AI 대화방 기능을 구현했다. �
 - [설치 및 사용 가이드](../deployment/install-and-usage-guide.md)
 - [배포 smoke test](../deployment/vercel-smoke-test.md)
 - [AI 활용 정책](../ai-agent-usage-policy.md)
+- [개발 및 협업 작업 규칙](../development-workflow-rules.md)
 - [회의록 부록](../README.md#7-회의록-부록)
 
 ---
