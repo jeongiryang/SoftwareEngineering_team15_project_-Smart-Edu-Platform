@@ -42,6 +42,30 @@ export async function request(path, options = {}) {
   return data;
 }
 
+export async function multipartRequest(path, { token, formData, method = 'POST' }) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: formData
+  });
+
+  const data = await parseResponse(response);
+
+  if (!response.ok) {
+    const error = new Error(data.message || `API request failed: ${response.status}`);
+    error.status = response.status;
+    error.code = data.code;
+    error.details = data.details;
+    throw error;
+  }
+
+  return data;
+}
+
 function buildQueryString(params = {}) {
   const pairs = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
@@ -855,6 +879,26 @@ export function analyzeWrongAnswer(token, { problem, userAnswer, noteId, allowTr
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({ problem, userAnswer, noteId, allowTruncate })
+  });
+}
+
+export function reviewAIImageAttachment(token, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return multipartRequest('/ai/attachments/image-review', {
+    token,
+    formData
+  });
+}
+
+export function analyzeAIStudyMaterialAttachment(token, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return multipartRequest('/ai/attachments/study-material', {
+    token,
+    formData
   });
 }
 

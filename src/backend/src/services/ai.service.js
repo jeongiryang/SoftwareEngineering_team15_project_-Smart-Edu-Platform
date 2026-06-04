@@ -23,6 +23,20 @@ const MAX_WRONG_ANSWER_LENGTH = 1000;
 const MAX_SUMMARY_LENGTH = 3000;
 const MAX_CHAT_TITLE_LENGTH = 60;
 const MAX_CHAT_ANSWER_LENGTH = 4000;
+const MAX_ATTACHMENT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_ATTACHMENT_PDF_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENT_TEXT_LENGTH = 3000;
+const MIN_ATTACHMENT_TEXT_LENGTH = 20;
+const IMAGE_ATTACHMENT_TYPES = new Map([
+  ['image/png', ['png']],
+  ['image/jpeg', ['jpg', 'jpeg']],
+  ['image/webp', ['webp']],
+  ['image/gif', ['gif']]
+]);
+const STUDY_MATERIAL_TYPES = new Map([
+  ...IMAGE_ATTACHMENT_TYPES,
+  ['application/pdf', ['pdf']]
+]);
 const AI_CHAT_MESSAGE_SOURCES = new Set(['AI_QNA', 'MOCK_QNA', 'IMAGE_INSIGHT']);
 
 const rateLimitMap = new Map();
@@ -138,6 +152,318 @@ function getFallbackWrongAnswerAnalysis(problem, userAnswer) {
       userAnswer ? `Submitted answer: ${userAnswer}` : 'No submitted answer was provided.',
       'Compare the expected concept with each solution step and retry with a shorter example.'
     ].join(' ')
+  };
+}
+
+function sanitizeFileName(name = 'attachment') {
+  return String(name || 'attachment')
+    .replace(/[\\/\r\n\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 120) || 'attachment';
+}
+
+function getFileExtension(name = '') {
+  const match = String(name).toLowerCase().match(/\.([a-z0-9]+)$/);
+  return match ? match[1] : '';
+}
+
+function getAllowedExtensions(mimeType, allowedTypes) {
+  return allowedTypes.get(String(mimeType || '').toLowerCase()) || [];
+}
+
+function buildAttachmentFileSummary(file) {
+  return {
+    name: sanitizeFileName(file.originalname),
+    type: file.mimetype || 'application/octet-stream',
+    size: file.size
+  };
+}
+
+function validateAttachmentFile(file, { allowedTypes, maxSizeBytes }) {
+  if (!file || !Buffer.isBuffer(file.buffer)) {
+    throw validationError('Attachment file is required', { field: 'file' });
+  }
+
+  if (file.size > maxSizeBytes) {
+    throw validationError('Uploaded file exceeds the allowed size', {
+      field: 'file',
+      maxSizeBytes
+    });
+  }
+
+  const mimeType = String(file.mimetype || '').toLowerCase();
+  const extension = getFileExtension(file.originalname);
+  const allowedExtensions = getAllowedExtensions(mimeType, allowedTypes);
+
+  if (!allowedExtensions.length || !allowedExtensions.includes(extension)) {
+    throw validationError('Unsupported attachment file type', {
+      field: 'file',
+      allowedTypes: Array.from(allowedTypes.keys())
+    });
+  }
+
+  return {
+    file: buildAttachmentFileSummary(file),
+    mimeType,
+    extension,
+    isImage: IMAGE_ATTACHMENT_TYPES.has(mimeType),
+    isPdf: mimeType === 'application/pdf'
+  };
+}
+
+function parsePngMetadata(buffer) {
+  const signature = '89504e470d0a1a0a';
+  if (buffer.length < 24 || buffer.subarray(0, 8).toString('hex') !== signature) {
+    return null;
+  }
+
+  return {
+    format: 'png',
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20)
+  };
+}
+
+function parseGifMetadata(buffer) {
+  const header = buffer.subarray(0, 6).toString('ascii');
+  if (buffer.length < 10 || (header !== 'GIF87a' && header !== 'GIF89a')) {
+    return null;
+  }
+
+  return {
+    format: 'gif',
+    width: buffer.readUInt16LE(6),
+    height: buffer.readUInt16LE(8)
+  };
+}
+
+function parseJpegMetadata(buffer) {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+    return null;
+  }
+
+  let offset = 2;
+  while (offset < buffer.length - 9) {
+    if (buffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+
+    const marker = buffer[offset + 1];
+    const length = buffer.readUInt16BE(offset + 2);
+
+    if (length < 2) {
+      break;
+    }
+
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+      return {
+        format: 'jpeg',
+        width: buffer.readUInt16BE(offset + 7),
+        height: buffer.readUInt16BE(offset + 5)
+      };
+    }
+
+    offset += 2 + length;
+  }
+
+  return null;
+}
+
+function parseWebpMetadata(buffer) {
+  if (
+    buffer.length < 30
+    || buffer.subarray(0, 4).toString('ascii') !== 'RIFF'
+    || buffer.subarray(8, 12).toString('ascii') !== 'WEBP'
+  ) {
+    return null;
+  }
+
+  const chunkType = buffer.subarray(12, 16).toString('ascii');
+
+  if (chunkType === 'VP8X' && buffer.length >= 30) {
+    return {
+      format: 'webp',
+      width: buffer.readUIntLE(24, 3) + 1,
+      height: buffer.readUIntLE(27, 3) + 1
+    };
+  }
+
+  if (chunkType === 'VP8 ' && buffer.length >= 30) {
+    return {
+      format: 'webp',
+      width: buffer.readUInt16LE(26) & 0x3fff,
+      height: buffer.readUInt16LE(28) & 0x3fff
+    };
+  }
+
+  if (chunkType === 'VP8L' && buffer.length >= 25) {
+    const bits = buffer.readUInt32LE(21);
+    return {
+      format: 'webp',
+      width: (bits & 0x3fff) + 1,
+      height: ((bits >> 14) & 0x3fff) + 1
+    };
+  }
+
+  return {
+    format: 'webp',
+    width: null,
+    height: null
+  };
+}
+
+function parseImageMetadata(buffer) {
+  return parsePngMetadata(buffer)
+    || parseJpegMetadata(buffer)
+    || parseGifMetadata(buffer)
+    || parseWebpMetadata(buffer)
+    || {
+      format: 'unknown',
+      width: null,
+      height: null
+    };
+}
+
+function decodePdfLiteral(literal) {
+  return literal
+    .slice(1, -1)
+    .replace(/\\([nrtbf()\\])/g, (match, code) => {
+      const map = {
+        n: '\n',
+        r: '\r',
+        t: '\t',
+        b: '\b',
+        f: '\f',
+        '(': '(',
+        ')': ')',
+        '\\': '\\'
+      };
+      return map[code] || code;
+    })
+    .replace(/\\([0-7]{1,3})/g, (match, octal) => String.fromCharCode(parseInt(octal, 8)));
+}
+
+function decodePdfHexString(hex) {
+  const cleanHex = hex.replace(/\s+/g, '');
+  if (!cleanHex) {
+    return '';
+  }
+
+  if (cleanHex.toUpperCase().startsWith('FEFF')) {
+    const bytes = Buffer.from(cleanHex.slice(4), 'hex');
+    const chars = [];
+    for (let index = 0; index < bytes.length - 1; index += 2) {
+      chars.push(String.fromCharCode(bytes.readUInt16BE(index)));
+    }
+    return chars.join('');
+  }
+
+  return Buffer.from(cleanHex, 'hex').toString('utf8');
+}
+
+function normalizeExtractedText(text) {
+  return String(text || '')
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractTextFromPdfBuffer(buffer) {
+  const raw = buffer.toString('latin1');
+  if (!raw.startsWith('%PDF')) {
+    throw validationError('PDF file is not valid', { field: 'file' });
+  }
+
+  const fragments = [];
+  const literalMatches = raw.match(/\((?:\\.|[^\\)])*\)\s*(?:Tj|'|")/g) || [];
+  for (const match of literalMatches) {
+    const literal = match.match(/\((?:\\.|[^\\)])*\)/)?.[0];
+    if (literal) {
+      fragments.push(decodePdfLiteral(literal));
+    }
+  }
+
+  const arrayMatches = raw.match(/\[(?:\s*(?:\((?:\\.|[^\\)])*\)|-?\d+)\s*)+\]\s*TJ/g) || [];
+  for (const match of arrayMatches) {
+    const literalMatchesInArray = match.match(/\((?:\\.|[^\\)])*\)/g) || [];
+    fragments.push(literalMatchesInArray.map(decodePdfLiteral).join(''));
+  }
+
+  const hexMatches = raw.match(/<([0-9a-fA-F\s]{6,})>\s*(?:Tj|'|")/g) || [];
+  for (const match of hexMatches) {
+    const hex = match.match(/<([0-9a-fA-F\s]{6,})>/)?.[1];
+    if (hex) {
+      fragments.push(decodePdfHexString(hex));
+    }
+  }
+
+  return normalizeExtractedText(fragments.join(' '));
+}
+
+function toPreview(text, maxLength = 600) {
+  const normalized = normalizeExtractedText(text);
+  return normalized.length > maxLength ? `${normalized.substring(0, maxLength)}...` : normalized;
+}
+
+function buildFallbackStudyDraft(text) {
+  const preview = toPreview(text, 240);
+  const keywords = Array.from(new Set(
+    normalizeExtractedText(text)
+      .split(/\s+/)
+      .map((word) => word.replace(/[^\p{L}\p{N}_-]/gu, ''))
+      .filter((word) => word.length >= 3)
+      .slice(0, 8)
+  )).slice(0, 5);
+
+  return {
+    summary: [
+      'Extracted text was organized with a safe fallback draft.',
+      `Key material preview: ${preview}`,
+      'Review the generated draft and adjust details before saving study notes.'
+    ],
+    notes: [
+      `Main material: ${preview}`,
+      'Mark unfamiliar terms and compare them with your textbook or class note.',
+      'Create a short review block after reading the extracted material.'
+    ],
+    quiz: [
+      {
+        question: 'What is the main topic of this material?',
+        answer: keywords[0] || 'Check the extracted text preview and identify the core concept.'
+      },
+      {
+        question: 'Which keyword should be reviewed first?',
+        answer: keywords[1] || 'Choose the most repeated term from the extracted text.'
+      },
+      {
+        question: 'What should you verify before using this draft?',
+        answer: 'Confirm that the extracted text is accurate and does not contain sensitive information.'
+      }
+    ],
+    keywords: keywords.length ? keywords : ['review', 'summary', 'quiz']
+  };
+}
+
+function sanitizeStudyDraft(draft, fallbackText) {
+  const fallback = buildFallbackStudyDraft(fallbackText);
+  return {
+    summary: Array.isArray(draft?.summary) && draft.summary.length
+      ? draft.summary.slice(0, 5).map((line) => String(line).trim()).filter(Boolean)
+      : fallback.summary,
+    notes: Array.isArray(draft?.notes) && draft.notes.length
+      ? draft.notes.slice(0, 6).map((line) => String(line).trim()).filter(Boolean)
+      : fallback.notes,
+    quiz: Array.isArray(draft?.quiz) && draft.quiz.length
+      ? draft.quiz.slice(0, 5).map((item) => ({
+        question: String(item?.question || '').trim(),
+        answer: String(item?.answer || '').trim()
+      })).filter((item) => item.question && item.answer)
+      : fallback.quiz,
+    keywords: Array.isArray(draft?.keywords) && draft.keywords.length
+      ? draft.keywords.slice(0, 8).map((item) => String(item).trim()).filter(Boolean)
+      : fallback.keywords
   };
 }
 
@@ -420,6 +746,145 @@ async function deleteUserAIChatRoom(userId, rawRoomId) {
   };
 }
 
+async function reviewImageAttachment(userId, file) {
+  const validation = validateAttachmentFile(file, {
+    allowedTypes: IMAGE_ATTACHMENT_TYPES,
+    maxSizeBytes: MAX_ATTACHMENT_IMAGE_SIZE_BYTES
+  });
+  const image = parseImageMetadata(file.buffer);
+
+  return {
+    file: validation.file,
+    image,
+    retention: {
+      stored: false,
+      policy: 'memory-only'
+    },
+    textExtraction: {
+      status: 'unsupported',
+      length: 0,
+      extractedTextPreview: ''
+    },
+    warnings: [
+      'Image file was validated and inspected in memory. Server-side OCR is not available for images in this release.',
+      'Use a clear text-based PDF when automatic note and quiz generation is required.'
+    ]
+  };
+}
+
+async function buildStudyDraftFromText(userId, text) {
+  const truncatedText = text.length > MAX_ATTACHMENT_TEXT_LENGTH
+    ? text.substring(0, MAX_ATTACHMENT_TEXT_LENGTH)
+    : text;
+  const isTruncated = text.length > MAX_ATTACHMENT_TEXT_LENGTH;
+
+  checkRateLimit(userId);
+
+  const { value: draft, providerFallback } = await useProviderOrFallback(
+    'study-material-attachment',
+    async () => {
+      const rawText = await callGeminiAPI(
+        [
+          '[중요] 반드시 한국어로만 작성하시오. 영어 사용 금지.',
+          'Create a JSON study draft from the extracted learning material.',
+          'Schema: {"summary":["string"],"notes":["string"],"quiz":[{"question":"string","answer":"string"}],"keywords":["string"]}',
+          'Return 3 summary bullets, 3-5 note bullets, 3-5 quiz items, and 3-8 keywords.',
+          'Every value MUST be written in Korean only.',
+          `Material: ${truncatedText}`
+        ].join('\n'),
+        true
+      );
+      return sanitizeStudyDraft(parseJsonObject(rawText), truncatedText);
+    },
+    () => buildFallbackStudyDraft(truncatedText)
+  );
+
+  return {
+    ...draft,
+    isTruncated,
+    originalTextLength: text.length,
+    maxTextLength: MAX_ATTACHMENT_TEXT_LENGTH,
+    providerFallback
+  };
+}
+
+async function analyzeStudyMaterialAttachment(userId, file) {
+  const validation = validateAttachmentFile(file, {
+    allowedTypes: STUDY_MATERIAL_TYPES,
+    maxSizeBytes: MAX_ATTACHMENT_PDF_SIZE_BYTES
+  });
+  const warnings = [];
+  let image = null;
+  let extractedText = '';
+  let extractionStatus = 'not_found';
+
+  if (validation.isImage && file.size > MAX_ATTACHMENT_IMAGE_SIZE_BYTES) {
+    throw validationError('Uploaded image exceeds the allowed size', {
+      field: 'file',
+      maxSizeBytes: MAX_ATTACHMENT_IMAGE_SIZE_BYTES
+    });
+  }
+
+  if (validation.isPdf) {
+    extractedText = extractTextFromPdfBuffer(file.buffer);
+    extractionStatus = extractedText ? 'extracted' : 'not_found';
+    if (!extractedText) {
+      warnings.push('Text could not be extracted from this PDF. Scanned PDFs require OCR and are not supported in this release.');
+    }
+  } else if (validation.isImage) {
+    image = parseImageMetadata(file.buffer);
+    extractionStatus = 'unsupported';
+    warnings.push('Image file was validated in memory, but server-side image OCR is not available in this release.');
+    warnings.push('Use a text-based PDF to generate notes and quizzes automatically.');
+  }
+
+  const baseResponse = {
+    file: validation.file,
+    image,
+    retention: {
+      stored: false,
+      policy: 'memory-only'
+    },
+    textExtraction: {
+      status: extractionStatus,
+      length: extractedText.length,
+      extractedTextPreview: toPreview(extractedText)
+    },
+    warnings
+  };
+
+  if (extractedText.length < MIN_ATTACHMENT_TEXT_LENGTH) {
+    return {
+      ...baseResponse,
+      generation: {
+        status: 'text_not_available',
+        summary: [],
+        notes: [],
+        quiz: [],
+        keywords: [],
+        providerFallback: null
+      }
+    };
+  }
+
+  const draft = await buildStudyDraftFromText(userId, extractedText);
+
+  return {
+    ...baseResponse,
+    generation: {
+      status: 'generated',
+      summary: draft.summary,
+      notes: draft.notes,
+      quiz: draft.quiz,
+      keywords: draft.keywords,
+      isTruncated: draft.isTruncated,
+      originalTextLength: draft.originalTextLength,
+      maxTextLength: draft.maxTextLength,
+      providerFallback: draft.providerFallback
+    }
+  };
+}
+
 async function askAIQuestion(userId, payload) {
   assertObjectPayload(payload);
 
@@ -583,8 +1048,10 @@ async function analyzeWrongAnswer(userId, payload) {
 }
 
 module.exports = {
+  analyzeStudyMaterialAttachment,
   askAIQuestion,
   generateAIRecommendation,
+  reviewImageAttachment,
   summarizeText,
   analyzeWrongAnswer,
   checkRateLimit,

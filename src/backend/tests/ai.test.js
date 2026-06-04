@@ -113,6 +113,25 @@ function createMockNote(userId, overrides = {}) {
   return note;
 }
 
+function createTinyPngBuffer(width = 2, height = 3) {
+  const buffer = Buffer.alloc(24);
+  Buffer.from('89504e470d0a1a0a', 'hex').copy(buffer, 0);
+  buffer.writeUInt32BE(width, 16);
+  buffer.writeUInt32BE(height, 20);
+  return buffer;
+}
+
+function createTextPdfBuffer(text = 'Software engineering design patterns require focused review and testing.') {
+  return Buffer.from(`%PDF-1.4
+1 0 obj
+<<>>
+stream
+BT (${text}) Tj ET
+endstream
+endobj
+%%EOF`, 'latin1');
+}
+
 describe('AI API integration tests', () => {
   let originalFetch;
   let originalApiKey;
@@ -545,6 +564,177 @@ describe('AI API integration tests', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.code).toBe('NOT_FOUND');
+    });
+  });
+
+  describe('POST /api/ai/attachments/image-review', () => {
+    it('requires authentication', async () => {
+      const response = await request(app)
+        .post('/api/ai/attachments/image-review')
+        .attach('file', createTinyPngBuffer(), {
+          filename: 'study.png',
+          contentType: 'image/png'
+        });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('rejects missing files', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .post('/api/ai/attachments/image-review')
+        .set(createAuthHeader(token))
+        .field('purpose', 'image-review');
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.message).not.toContain('AI_API_KEY');
+    });
+
+    it('rejects unsupported file types with extension and MIME validation', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .post('/api/ai/attachments/image-review')
+        .set(createAuthHeader(token))
+        .attach('file', Buffer.from('plain text'), {
+          filename: 'study.txt',
+          contentType: 'text/plain'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.details.allowedTypes).toContain('image/png');
+    });
+
+    it('rejects image files over the allowed size', async () => {
+      const { token } = await registerTestUser();
+      const oversizedImage = Buffer.alloc((5 * 1024 * 1024) + 1);
+
+      const response = await request(app)
+        .post('/api/ai/attachments/image-review')
+        .set(createAuthHeader(token))
+        .attach('file', oversizedImage, {
+          filename: 'large.png',
+          contentType: 'image/png'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(JSON.stringify(response.body)).not.toContain('large.png');
+    });
+
+    it('validates an image in memory and returns metadata without storing the file', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .post('/api/ai/attachments/image-review')
+        .set(createAuthHeader(token))
+        .attach('file', createTinyPngBuffer(16, 9), {
+          filename: 'study.png',
+          contentType: 'image/png'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.file).toEqual({
+        name: 'study.png',
+        type: 'image/png',
+        size: 24
+      });
+      expect(response.body.image).toMatchObject({
+        format: 'png',
+        width: 16,
+        height: 9
+      });
+      expect(response.body.retention).toEqual({
+        stored: false,
+        policy: 'memory-only'
+      });
+      expect(response.body.textExtraction.status).toBe('unsupported');
+      expect(response.body.warnings.join(' ')).toContain('OCR');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /api/ai/attachments/study-material', () => {
+    it('requires authentication', async () => {
+      const response = await request(app)
+        .post('/api/ai/attachments/study-material')
+        .attach('file', createTextPdfBuffer(), {
+          filename: 'notes.pdf',
+          contentType: 'application/pdf'
+        });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('extracts text from a text-based PDF and returns fallback study drafts when provider is unavailable', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .post('/api/ai/attachments/study-material')
+        .set(createAuthHeader(token))
+        .attach('file', createTextPdfBuffer('Design patterns help teams reuse proven solutions during software engineering study sessions.'), {
+          filename: 'notes.pdf',
+          contentType: 'application/pdf'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.retention.stored).toBe(false);
+      expect(response.body.textExtraction.status).toBe('extracted');
+      expect(response.body.textExtraction.extractedTextPreview).toContain('Design patterns');
+      expect(response.body.generation.status).toBe('generated');
+      expect(response.body.generation.summary.length).toBeGreaterThan(0);
+      expect(response.body.generation.notes.length).toBeGreaterThan(0);
+      expect(response.body.generation.quiz.length).toBeGreaterThan(0);
+      expect(response.body.generation.providerFallback.type).toBe('provider');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it('returns text-not-available status for image material without fake OCR output', async () => {
+      const { token } = await registerTestUser();
+
+      const response = await request(app)
+        .post('/api/ai/attachments/study-material')
+        .set(createAuthHeader(token))
+        .attach('file', createTinyPngBuffer(), {
+          filename: 'scan.png',
+          contentType: 'image/png'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.textExtraction.status).toBe('unsupported');
+      expect(response.body.textExtraction.extractedTextPreview).toBe('');
+      expect(response.body.generation.status).toBe('text_not_available');
+      expect(response.body.generation.summary).toEqual([]);
+      expect(response.body.warnings.join(' ')).toContain('OCR');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it('uses quota fallback metadata without exposing raw provider body', async () => {
+      const { token } = await registerTestUser();
+      const rawProviderBody = 'raw provider quota diagnostic with private details';
+      process.env.AI_API_KEY = 'mock-provider-key';
+      globalThis.fetch = jest.fn(async () => ({
+        ok: false,
+        status: 429,
+        text: async () => rawProviderBody
+      }));
+
+      const response = await request(app)
+        .post('/api/ai/attachments/study-material')
+        .set(createAuthHeader(token))
+        .attach('file', createTextPdfBuffer('Database normalization and access control should be reviewed before the final exam.'), {
+          filename: 'quota.pdf',
+          contentType: 'application/pdf'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.generation.status).toBe('generated');
+      expect(response.body.generation.providerFallback.type).toBe('quota');
+      expect(JSON.stringify(response.body)).not.toContain(rawProviderBody);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('status=429'));
     });
   });
 

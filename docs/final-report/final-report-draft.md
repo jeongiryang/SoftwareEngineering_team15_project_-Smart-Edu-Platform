@@ -26,7 +26,7 @@
 
 프로젝트는 1단계 요구사항 분석과 설계, 2단계 구현 및 테스트, 3단계 배포 자료와 최종 보고서 작성 순서로 진행되었다. 요구사항 분석 단계에서는 사용자 등록/로그인, 학습 일정 관리, 노트 및 퀴즈 생성/관리, AI 기반 학습 추천, 데이터 시각화, 보안 및 프라이버시 고려를 핵심 기능으로 정리했다. 설계 단계에서는 frontend, backend, database, AI system, WebSocket, external calendar system의 역할을 나누고 REST API와 실시간 이벤트 흐름을 설계했다.
 
-구현 단계에서는 Expo/React Native Web 기반 프론트엔드, Node.js/Express 기반 백엔드, Prisma 기반 관계형 데이터 접근 구조를 사용했다. 인증, 대시보드, 일정/칸반, 집중 시간과 통계, AI 학습 보조, 커뮤니티, 친구/쪽지, 포인트 상점, 협동 퀘스트, 보스 레이드, 접근성, 관리자/점검 모드까지 주요 화면과 API를 구현했다. 최신 확인 기준 백엔드 Jest/Supertest 테스트는 `29 suites / 539 tests` 통과 상태이며, backend Jest coverage는 statements 68.63%, branches 60.70%, functions 68.27%, lines 68.72%로 측정했다.
+구현 단계에서는 Expo/React Native Web 기반 프론트엔드, Node.js/Express 기반 백엔드, Prisma 기반 관계형 데이터 접근 구조를 사용했다. 인증, 대시보드, 일정/칸반, 집중 시간과 통계, AI 학습 보조, 커뮤니티, 친구/쪽지, 포인트 상점, 협동 퀘스트, 보스 레이드, 접근성, 관리자/점검 모드까지 주요 화면과 API를 구현했다. 최신 확인 기준 백엔드 Jest/Supertest 테스트는 `29 suites / 548 tests` 통과 상태이며, backend Jest coverage는 statements 68.63%, branches 60.70%, functions 68.27%, lines 68.72%로 측정했다.
 
 AI는 요구사항 정리, 테스트 케이스 후보 도출, 코드 리팩터링 검토, 문서 구조화, PR 검토 보조에 활용했다. 다만 AI 결과는 자동으로 신뢰하지 않고 팀원이 검토한 뒤 반영했다. 외부 AI API는 비용과 quota 제한이 있으므로 자동 테스트에서는 mock/fallback 중심으로 검증했고, 실제 외부 AI 연동은 제한된 환경에서 확인하는 범위로 다뤘다. 프로젝트의 한계로는 무료 AI API 한도, frontend E2E와 정량 coverage 보강 필요, 실사용 운영 모니터링 보강 필요가 있다.
 
@@ -297,6 +297,8 @@ Schedule/Task API는 사용자별 데이터 접근 제한을 검증한다. 다�
 
 AI 학습 기능은 사용자가 질문을 입력하면 AI 응답 또는 fallback 응답을 보여 주고, 학습 노트와 연결된 추천, 요약, 오답 분석을 제공한다. API는 noteId 소유권, 입력 validation, provider 실패, quota 제한, fallback 흐름을 처리한다.
 
+첨부 검토 도구는 이미지와 PDF 파일을 실제 파일 선택, 형식/용량 검증, 서버 memory upload 처리 흐름으로 연결했다. 이미지 첨부는 파일을 영구 저장하지 않고 형식, 크기, 이미지 메타데이터를 1차 검토하며, 서버 OCR/Vision 분석이 지원되지 않는 경우에는 지원 범위를 명확히 안내한다. OCR/PDF 노트·퀴즈 생성은 텍스트 기반 PDF에서 추출 가능한 학습 텍스트를 읽고, 충분한 텍스트가 있을 때 요약, 학습 노트 초안, 복습 퀴즈, 키워드를 생성한다. 스캔 PDF나 이미지 OCR처럼 안정적으로 텍스트를 추출할 수 없는 경우에는 가짜 결과를 만들지 않고 더 선명한 이미지 또는 텍스트 기반 PDF를 사용하도록 안내한다.
+
 자동 테스트는 실제 외부 AI API를 호출하지 않는다. 비용과 quota 제한이 있고, key 노출 위험이 있으므로 provider mock과 fallback을 사용해 기능 흐름을 검증한다. 따라서 본 프로젝트의 AI 기능은 실제 외부 상용 AI 서비스와 동일한 품질을 보장한다고 표현하지 않는다. 현재 단계에서는 학습 흐름 안에서 AI 보조 기능을 사용할 수 있는 구조와 fallback 안정성을 구현한 것으로 정리한다.
 
 ### 7.7 커뮤니티
@@ -399,7 +401,7 @@ AI는 최신 main 상태를 자동으로 완벽히 이해하지 못한다. 따�
 
 | 항목 | 결과 |
 |---|---|
-| Jest/Supertest 전체 테스트 | `29 suites / 539 tests` 통과 |
+| Jest/Supertest 전체 테스트 | `29 suites / 548 tests` 통과 |
 | Prisma validate | 통과 기준으로 운영 |
 | Prisma Client generate | 통과 기준으로 운영 |
 | Frontend config check | 통과 기준으로 운영 |
@@ -560,11 +562,11 @@ seed는 DB write 작업이므로 실행 전 DB target을 안전하게 분류해�
 
 ### 13.1 무료 AI API 한도
 
-AI 학습 기능은 외부 AI provider를 사용할 수 있지만, 무료 quota와 API key 관리 문제가 있다. 자동 테스트는 실제 외부 API를 호출하지 않고 mock/fallback 중심으로 수행한다. 따라서 AI 기능의 품질은 실제 운영 환경에서 추가 검증이 필요하다.
+AI 학습 기능은 외부 AI provider를 사용할 수 있지만, 무료 quota와 API key 관리 문제가 있다. 자동 테스트는 실제 외부 API를 호출하지 않고 mock/fallback 중심으로 수행한다. 첨부 검토 도구도 파일 검증, 이미지 메타데이터 검토, 텍스트 기반 PDF 추출, fallback 응답은 검증했지만, 이미지 OCR과 스캔 PDF OCR은 현재 안정 지원 범위에 포함하지 않는다. 따라서 AI 기능의 품질과 OCR 확장성은 실제 운영 환경에서 추가 검증이 필요하다.
 
 ### 13.2 coverage 정량 측정 범위 제한
 
-Jest/Supertest 테스트는 `29 suites / 539 tests` 통과 기준으로 정리되어 있으며, backend Jest coverage는 statements 68.63%, branches 60.70%, functions 68.27%, lines 68.72%로 측정했다. 다만 이 수치는 backend 테스트에 한정된다. frontend 화면/컴포넌트 coverage와 E2E coverage는 아직 정량 측정하지 않았고, 현재는 Expo config와 Web export 검증을 통해 빌드 가능성을 확인한다.
+Jest/Supertest 테스트는 `29 suites / 548 tests` 통과 기준으로 정리되어 있으며, backend Jest coverage는 statements 68.63%, branches 60.70%, functions 68.27%, lines 68.72%로 측정했다. 다만 이 수치는 backend 테스트에 한정된다. frontend 화면/컴포넌트 coverage와 E2E coverage는 아직 정량 측정하지 않았고, 현재는 Expo config와 Web export 검증을 통해 빌드 가능성을 확인한다.
 
 ### 13.3 보스 레이드 visibility와 탈퇴 정책
 
@@ -645,7 +647,7 @@ backend Jest coverage는 text summary 기준으로 측정했다. 향후에는 fr
 
 사각사각 Smart Edu Platform은 개인화 학습 관리 앱이라는 주제 아래 요구사항 분석, 설계, 구현, 테스트, 배포 자료 정리까지 단계적으로 진행한 프로젝트이다. 핵심 요구사항인 사용자 등록/로그인, 학습 일정 관리, 노트 및 AI 학습 보조, 데이터 시각화, 보안/프라이버시 고려를 중심으로 구현했고, 커뮤니티, 친구/쪽지, 포인트 상점, 협동 퀘스트, 보스 레이드, 접근성, 관리자 기능을 확장했다.
 
-프로젝트의 성과는 기능 구현 자체뿐 아니라, GitHub Issue/branch/PR 기반 협업, 일반 Merge commit 방식의 이력 관리, 테스트 보고서와 API 명세, 설치/사용 가이드, 배포 smoke test, AI 활용 정책을 함께 정리했다는 점이다. 최신 기준 backend 테스트는 `29 suites / 539 tests` 통과 상태이며, backend coverage 수치와 배포/demo DB migration 적용 상태까지 문서화해 제출 가능한 구조를 갖췄다.
+프로젝트의 성과는 기능 구현 자체뿐 아니라, GitHub Issue/branch/PR 기반 협업, 일반 Merge commit 방식의 이력 관리, 테스트 보고서와 API 명세, 설치/사용 가이드, 배포 smoke test, AI 활용 정책을 함께 정리했다는 점이다. 최신 기준 backend 테스트는 `29 suites / 548 tests` 통과 상태이며, backend coverage 수치와 배포/demo DB migration 적용 상태까지 문서화해 제출 가능한 구조를 갖췄다.
 
 동시에 한계도 명확하다. 외부 AI API quota, frontend 정량 coverage 미측정, DOM clone 기반 돋보기의 한계, 실사용 운영 모니터링 부족은 향후 보강이 필요하다. 이 한계를 숨기지 않고 후속 확장 방향으로 연결하는 것이 최종 제출물의 신뢰도를 높인다.
 

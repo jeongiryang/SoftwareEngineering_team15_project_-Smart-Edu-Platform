@@ -1,10 +1,12 @@
 const {
   addAIChatRoomMessage,
+  analyzeStudyMaterialAttachment,
   askAIQuestion,
   createUserAIChatRoom,
   deleteUserAIChatRoom,
   generateAIRecommendation,
   listAIChatRooms,
+  reviewImageAttachment,
   summarizeText,
   analyzeWrongAnswer,
   updateUserAIChatRoom
@@ -30,6 +32,16 @@ const summarizeController = asyncHandler(async (req, res) => {
 const analyzeWrongAnswerController = asyncHandler(async (req, res) => {
   const record = await analyzeWrongAnswer(req.user.id, req.body);
   sendCreated(res, { wrongAnswerNote: record });
+});
+
+const reviewImageAttachmentController = asyncHandler(async (req, res) => {
+  const result = await reviewImageAttachment(req.user.id, req.file);
+  sendSuccess(res, 200, result);
+});
+
+const analyzeStudyMaterialAttachmentController = asyncHandler(async (req, res) => {
+  const result = await analyzeStudyMaterialAttachment(req.user.id, req.file);
+  sendSuccess(res, 200, result);
 });
 
 const listChatRoomsController = asyncHandler(async (req, res) => {
@@ -63,7 +75,9 @@ module.exports = {
   createChatRoom: createChatRoomController,
   deleteChatRoom: deleteChatRoomController,
   getRecommendation: getRecommendationController,
+  reviewImageAttachment: reviewImageAttachmentController,
   listChatRooms: listChatRoomsController,
+  analyzeStudyMaterialAttachment: analyzeStudyMaterialAttachmentController,
   summarize: summarizeController,
   analyzeWrongAnswer: analyzeWrongAnswerController,
   updateChatRoom: updateChatRoomController
