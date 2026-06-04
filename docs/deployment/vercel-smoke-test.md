@@ -13,6 +13,12 @@ Vercel 배포 후 Smart Edu Platform의 주요 화면과 API 연결이 정상 �
 - migration 적용은 별도 승인된 배포 절차에서만 수행함
 - seed 데이터는 local/dev/demo/deployment-demo 환경에서만 실행하며, 공유 DB에는 명시적 승인 없이 실행하지 않음
 
+### 2.1 최근 DB migration 적용 기록
+
+2026년 06월 04일 기준 사용자가 현재 DB를 deployment/demo DB로 확인하고 migration 적용을 승인했다. 이에 따라 `20260604000000_add_boss_raid_participant_visibility` migration을 `prisma migrate deploy` 방식으로 확인했으며, deploy 결과 pending migration은 없었다. DB URL, host, DB 이름, password, token, secret 원문은 기록하지 않았다.
+
+보스 레이드 smoke test는 배포/demo DB 데이터를 임의로 변경하지 않기 위해 비파괴 Prisma 조회로 수행했다. `BossRaidPartyMember`의 `hiddenAt`, `archivedAt`, `leftAt` column select와 active member filter query가 column error 없이 성공했다. 실제 `leave`/`archive`/`restore` POST API는 참여자 상태를 변경하는 쓰기 요청이므로, 자동 smoke에서는 실행하지 않고 backend repository mock 기반 테스트로 정책을 검증한다.
+
 ## 3. 환경 변수 확인
 
 | 항목 | 확인 내용 |
