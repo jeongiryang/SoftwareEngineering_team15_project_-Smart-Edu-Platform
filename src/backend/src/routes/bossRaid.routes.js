@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   acceptBossRaidInvite,
+  archiveBossRaidParty,
   cancelBossRaidInvite,
   claimBossRaidReward,
   createBossRaidInvite,
@@ -12,8 +13,10 @@ const {
   getMyBossRaidParties,
   joinPublicBossRaidParty,
   joinBossRaidParty,
+  leaveBossRaidParty,
   listPublicBossRaidParties,
-  listBossRaids
+  listBossRaids,
+  restoreBossRaidParty
 } = require('../controllers/bossRaid.controller');
 const { authMiddleware } = require('../middleware/auth.middleware');
 
@@ -33,5 +36,8 @@ router.post('/parties/join', authMiddleware, joinBossRaidParty);
 router.post('/parties/:partyId/invites', authMiddleware, createBossRaidInvite);
 router.post('/parties/:partyId/join', authMiddleware, joinPublicBossRaidParty);
 router.post('/parties/:partyId/claim', authMiddleware, claimBossRaidReward);
+router.post('/parties/:partyId/leave', authMiddleware, leaveBossRaidParty);
+router.post('/parties/:partyId/archive', authMiddleware, archiveBossRaidParty);
+router.post('/parties/:partyId/restore', authMiddleware, restoreBossRaidParty);
 
 module.exports = router;

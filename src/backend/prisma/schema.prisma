@@ -817,15 +817,21 @@ model BossRaidParty {
 }
 
 model BossRaidPartyMember {
-  id       Int           @id @default(autoincrement())
-  partyId  Int           @map("party_id")
-  userId   Int           @map("user_id")
-  joinedAt DateTime      @default(now()) @map("joined_at")
-  party    BossRaidParty @relation(fields: [partyId], references: [id], onDelete: Cascade)
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         Int           @id @default(autoincrement())
+  partyId    Int           @map("party_id")
+  userId     Int           @map("user_id")
+  hiddenAt   DateTime?     @map("hidden_at")
+  archivedAt DateTime?     @map("archived_at")
+  leftAt     DateTime?     @map("left_at")
+  joinedAt   DateTime      @default(now()) @map("joined_at")
+  party      BossRaidParty @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([partyId, userId])
   @@index([userId])
+  @@index([userId, hiddenAt])
+  @@index([userId, archivedAt])
+  @@index([userId, leftAt])
   @@map("boss_raid_party_members")
 }
 

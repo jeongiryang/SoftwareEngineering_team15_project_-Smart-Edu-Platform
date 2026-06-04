@@ -369,8 +369,12 @@ export function getBossRaids(token) {
   });
 }
 
-export function getMyBossRaidParties(token) {
-  return request('/boss-raids/parties/me', {
+export function getMyBossRaidParties(token, options = {}) {
+  const query = buildQueryString({
+    includeHidden: options.includeHidden ? 'true' : undefined
+  });
+
+  return request(`/boss-raids/parties/me${query}`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -483,6 +487,36 @@ export function getBossRaidPartyDetail(token, partyId) {
 
 export function claimBossRaidReward(token, partyId) {
   return request(`/boss-raids/parties/${partyId}/claim`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function leaveBossRaidParty(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/leave`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function archiveBossRaidParty(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/archive`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({})
+  });
+}
+
+export function restoreBossRaidParty(token, partyId) {
+  return request(`/boss-raids/parties/${partyId}/restore`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`

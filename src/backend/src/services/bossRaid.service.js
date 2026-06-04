@@ -14,6 +14,10 @@ const DAMAGE_CALCULATION_CACHE_MS = 5 * 60 * 1000;
 const JOIN_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const DEFAULT_JOIN_CODE_LENGTH = 6;
 
+function parseBooleanFlag(value) {
+  return value === true || value === 'true' || value === '1' || value === 1;
+}
+
 function sanitizeBadge(badge) {
   if (!badge) {
     return null;
@@ -82,11 +86,22 @@ function sanitizeUserSummary(user) {
 }
 
 function sanitizeParty(party, currentUserId = null) {
+  const activeMembers = (party.members || []).filter((member) => !member.leftAt);
+  const activeMemberIds = new Set(activeMembers.map((member) => member.userId));
+  const currentMember = currentUserId
+    ? (party.members || []).find((member) => member.userId === currentUserId) || null
+    : null;
+  const currentUserArchived = Boolean(currentMember?.archivedAt);
+  const currentUserHidden = Boolean(currentMember?.hiddenAt);
+  const currentUserLeft = Boolean(currentMember?.leftAt);
   const remainingHp = Math.max(party.raid.maxHp - party.totalDamage, 0);
-  const totalMembers = party.members.length;
+  const totalMembers = activeMembers.length;
   const currentContribution = currentUserId
     ? party.contributions.find((contribution) => contribution.userId === currentUserId) || null
     : null;
+  const visibleContributions = (party.contributions || []).filter((contribution) => (
+    activeMemberIds.has(contribution.userId) || contribution.userId === currentUserId
+  ));
 
   return {
     id: party.id,
@@ -102,14 +117,36 @@ function sanitizeParty(party, currentUserId = null) {
     raid: sanitizeRaid(party.raid),
     owner: party.owner,
     totalMembers,
-    members: party.members.map((member) => ({
+    members: activeMembers.map((member) => ({
       userId: member.userId,
       name: member.user.name,
       appearance: sanitizeAppearance(member.user),
-      joinedAt: member.joinedAt
+      joinedAt: member.joinedAt,
+      hiddenAt: member.hiddenAt || null,
+      archivedAt: member.archivedAt || null,
+      leftAt: member.leftAt || null
     })),
-    contributions: party.contributions.map(sanitizeContribution),
-    currentUserContribution: currentContribution ? sanitizeContribution(currentContribution) : null
+    contributions: visibleContributions.map(sanitizeContribution),
+    currentUserContribution: currentContribution ? sanitizeContribution(currentContribution) : null,
+    currentUserMembership: currentMember
+      ? {
+          hiddenAt: currentMember.hiddenAt || null,
+          archivedAt: currentMember.archivedAt || null,
+          leftAt: currentMember.leftAt || null,
+          isActive: !currentMember.leftAt
+        }
+      : null,
+    currentUserHidden,
+    currentUserArchived,
+    currentUserLeft,
+    canArchive: Boolean(currentMember && !currentUserLeft && ['CLEARED', 'CLOSED'].includes(party.status)),
+    canRestore: Boolean(currentMember && !currentUserLeft && (currentUserHidden || currentUserArchived)),
+    canLeave: Boolean(
+      currentMember
+        && !currentUserLeft
+        && party.status === 'OPEN'
+        && !(party.ownerId === currentUserId && activeMembers.length > 1)
+    )
   };
 }
 
@@ -231,6 +268,30 @@ function ensureOwnerCanManageInvites(party, userId) {
   }
 }
 
+function getCurrentMember(party, userId) {
+  return (party.members || []).find((member) => member.userId === userId) || null;
+}
+
+function getActiveMembers(party) {
+  return (party.members || []).filter((member) => !member.leftAt);
+}
+
+function ensureCurrentActiveMember(party, userId) {
+  const currentMember = getCurrentMember(party, userId);
+
+  if (!currentMember || currentMember.leftAt) {
+    throw conflictError('You are not an active member of this boss raid party');
+  }
+
+  return currentMember;
+}
+
+function ensurePartyCanBeArchived(party) {
+  if (!['CLEARED', 'CLOSED'].includes(party.status)) {
+    throw conflictError('Only completed or closed boss raid parties can be archived');
+  }
+}
+
 function calculateContributionDamage(raid, metrics) {
   const focusDamage = metrics.focusMinutes * raid.focusMinuteDamage;
   const taskDamage = metrics.completedTaskCount * raid.taskCompletionDamage;
@@ -261,8 +322,9 @@ async function recalculatePartyProgressIfNeeded(party) {
   }
 
   const recalculatedContributions = [];
+  const activeMembers = getActiveMembers(party);
 
-  for (const member of party.members) {
+  for (const member of activeMembers) {
     const effectiveStart = new Date(
       Math.max(member.joinedAt.getTime(), party.raid.startsAt.getTime())
     );
@@ -276,7 +338,8 @@ async function recalculatePartyProgressIfNeeded(party) {
 
   const recalculatedParty = await bossRaidRepository.replaceBossRaidContributions(
     party.id,
-    recalculatedContributions
+    recalculatedContributions,
+    activeMembers.map((member) => member.userId)
   );
   const totalDamage = recalculatedContributions.reduce(
     (sum, contribution) => sum + contribution.totalDamage,
@@ -531,8 +594,10 @@ async function cancelBossRaidInvite(userId, inviteId) {
   return sanitizeInvite(updatedInvite, userId);
 }
 
-async function getMyBossRaidParties(userId) {
-  const parties = await bossRaidRepository.findUserBossRaidParties(userId);
+async function getMyBossRaidParties(userId, options = {}) {
+  const parties = await bossRaidRepository.findUserBossRaidParties(userId, {
+    includeHidden: parseBooleanFlag(options.includeHidden)
+  });
   const refreshedParties = [];
 
   for (const party of parties) {
@@ -550,11 +615,7 @@ async function getBossRaidPartyDetail(userId, partyId) {
     throw notFoundError('Boss raid party not found');
   }
 
-  const isMember = party.members.some((member) => member.userId === userId);
-
-  if (!isMember) {
-    throw conflictError('You are not a member of this boss raid party');
-  }
+  ensureCurrentActiveMember(party, userId);
 
   const refreshedParty = await recalculatePartyProgressIfNeeded(party);
 
@@ -569,11 +630,7 @@ async function claimBossRaidReward(userId, partyId) {
     throw notFoundError('Boss raid party not found');
   }
 
-  const isMember = party.members.some((member) => member.userId === userId);
-
-  if (!isMember) {
-    throw conflictError('You are not a member of this boss raid party');
-  }
+  ensureCurrentActiveMember(party, userId);
 
   const refreshedParty = await recalculatePartyProgressIfNeeded(party);
 
@@ -648,6 +705,99 @@ async function claimBossRaidReward(userId, partyId) {
   };
 }
 
+async function leaveBossRaidParty(userId, partyId) {
+  const id = parsePositiveInteger(partyId, 'partyId');
+  const party = await bossRaidRepository.findBossRaidPartyById(id);
+
+  if (!party) {
+    throw notFoundError('Boss raid party not found');
+  }
+
+  const currentMember = ensureCurrentActiveMember(party, userId);
+
+  if (party.status !== 'OPEN' || (party.raid.endsAt && party.raid.endsAt < new Date())) {
+    throw conflictError('Only open boss raid parties can be left');
+  }
+
+  const activeMembers = getActiveMembers(party);
+
+  if (party.ownerId === userId && activeMembers.length > 1) {
+    throw conflictError('Party owner cannot leave while other active members remain');
+  }
+
+  const now = new Date();
+  const updatedMember = await bossRaidRepository.updateBossRaidPartyMemberVisibility({
+    partyId: id,
+    userId: currentMember.userId,
+    hiddenAt: now,
+    archivedAt: null,
+    leftAt: now
+  });
+  let updatedParty = updatedMember.party;
+
+  if (party.ownerId === userId && activeMembers.length === 1) {
+    updatedParty = await bossRaidRepository.updateBossRaidPartyProgress(id, {
+      status: 'CLOSED',
+      lastCalculatedAt: now
+    });
+  }
+
+  return sanitizeParty(updatedParty, userId);
+}
+
+async function archiveBossRaidParty(userId, partyId) {
+  const id = parsePositiveInteger(partyId, 'partyId');
+  const party = await bossRaidRepository.findBossRaidPartyById(id);
+
+  if (!party) {
+    throw notFoundError('Boss raid party not found');
+  }
+
+  ensureCurrentActiveMember(party, userId);
+  const refreshedParty = await recalculatePartyProgressIfNeeded(party);
+  ensurePartyCanBeArchived(refreshedParty);
+
+  const now = new Date();
+  const updatedMember = await bossRaidRepository.updateBossRaidPartyMemberVisibility({
+    partyId: id,
+    userId,
+    hiddenAt: now,
+    archivedAt: now,
+    leftAt: null
+  });
+
+  return sanitizeParty(updatedMember.party, userId);
+}
+
+async function restoreBossRaidParty(userId, partyId) {
+  const id = parsePositiveInteger(partyId, 'partyId');
+  const party = await bossRaidRepository.findBossRaidPartyById(id);
+
+  if (!party) {
+    throw notFoundError('Boss raid party not found');
+  }
+
+  const currentMember = getCurrentMember(party, userId);
+
+  if (!currentMember) {
+    throw conflictError('You are not a member of this boss raid party');
+  }
+
+  if (currentMember.leftAt) {
+    throw conflictError('Left boss raid parties cannot be restored');
+  }
+
+  const updatedMember = await bossRaidRepository.updateBossRaidPartyMemberVisibility({
+    partyId: id,
+    userId,
+    hiddenAt: null,
+    archivedAt: null,
+    leftAt: null
+  });
+
+  return sanitizeParty(updatedMember.party, userId);
+}
+
 module.exports = {
   acceptBossRaidInvite,
   cancelBossRaidInvite,
@@ -661,8 +811,11 @@ module.exports = {
   getMyBossRaidInvites,
   getMyBossRaidParties,
   getPublicBossRaidParties,
+  archiveBossRaidParty,
   joinPublicBossRaidParty,
   joinBossRaidParty,
+  leaveBossRaidParty,
+  restoreBossRaidParty,
   sanitizeParty,
   sanitizeRaid
 };

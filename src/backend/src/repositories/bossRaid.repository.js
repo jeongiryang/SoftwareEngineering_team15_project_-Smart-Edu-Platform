@@ -98,12 +98,19 @@ function findBossRaidPartyByJoinCode(joinCode) {
   });
 }
 
-function findUserBossRaidParties(userId) {
+function findUserBossRaidParties(userId, { includeHidden = false } = {}) {
   return prisma.bossRaidParty.findMany({
     where: {
       members: {
         some: {
-          userId
+          userId,
+          leftAt: null,
+          ...(includeHidden
+            ? {}
+            : {
+                hiddenAt: null,
+                archivedAt: null
+              })
         }
       }
     },
@@ -121,7 +128,8 @@ function findUserBossRaidPartyForRaid(userId, raidId) {
       raidId,
       members: {
         some: {
-          userId
+          userId,
+          leftAt: null
         }
       }
     },
@@ -145,6 +153,11 @@ function findPublicBossRaidParties(raidId = null) {
           { endsAt: null },
           { endsAt: { gte: new Date() } }
         ]
+      },
+      members: {
+        some: {
+          leftAt: null
+        }
       }
     },
     include: PARTY_INCLUDE,
@@ -281,21 +294,42 @@ function acceptBossRaidInvite({ inviteId, partyId, userId }) {
       }
     });
 
-    return tx.bossRaidParty.update({
+    await tx.bossRaidPartyMember.upsert({
+      where: {
+        partyId_userId: {
+          partyId,
+          userId
+        }
+      },
+      update: {
+        hiddenAt: null,
+        archivedAt: null,
+        leftAt: null,
+        joinedAt: new Date()
+      },
+      create: {
+        partyId,
+        userId
+      }
+    });
+
+    await tx.bossRaidContribution.upsert({
+      where: {
+        partyId_userId: {
+          partyId,
+          userId
+        }
+      },
+      update: {},
+      create: {
+        partyId,
+        userId
+      }
+    });
+
+    return tx.bossRaidParty.findUnique({
       where: {
         id: partyId
-      },
-      data: {
-        members: {
-          create: {
-            userId
-          }
-        },
-        contributions: {
-          create: {
-            userId
-          }
-        }
       },
       include: PARTY_INCLUDE
     });
@@ -303,23 +337,46 @@ function acceptBossRaidInvite({ inviteId, partyId, userId }) {
 }
 
 function addBossRaidPartyMember(partyId, userId) {
-  return prisma.bossRaidParty.update({
-    where: {
-      id: partyId
-    },
-    data: {
-      members: {
-        create: {
+  return prisma.$transaction(async (tx) => {
+    await tx.bossRaidPartyMember.upsert({
+      where: {
+        partyId_userId: {
+          partyId,
           userId
         }
       },
-      contributions: {
-        create: {
+      update: {
+        hiddenAt: null,
+        archivedAt: null,
+        leftAt: null,
+        joinedAt: new Date()
+      },
+      create: {
+        partyId,
+        userId
+      }
+    });
+
+    await tx.bossRaidContribution.upsert({
+      where: {
+        partyId_userId: {
+          partyId,
           userId
         }
+      },
+      update: {},
+      create: {
+        partyId,
+        userId
       }
-    },
-    include: PARTY_INCLUDE
+    });
+
+    return tx.bossRaidParty.findUnique({
+      where: {
+        id: partyId
+      },
+      include: PARTY_INCLUDE
+    });
   });
 }
 
@@ -376,13 +433,24 @@ function updateBossRaidPartyProgress(partyId, data) {
   });
 }
 
-function replaceBossRaidContributions(partyId, contributions) {
+function replaceBossRaidContributions(partyId, contributions, userIdsToReplace = null) {
   return prisma.$transaction(async (tx) => {
-    await tx.bossRaidContribution.deleteMany({
-      where: {
-        partyId
-      }
-    });
+    const replaceFilter = Array.isArray(userIdsToReplace)
+      ? {
+          partyId,
+          userId: {
+            in: userIdsToReplace
+          }
+        }
+      : {
+          partyId
+        };
+
+    if (!Array.isArray(userIdsToReplace) || userIdsToReplace.length > 0) {
+      await tx.bossRaidContribution.deleteMany({
+        where: replaceFilter
+      });
+    }
 
     if (contributions.length > 0) {
       await tx.bossRaidContribution.createMany({
@@ -399,6 +467,27 @@ function replaceBossRaidContributions(partyId, contributions) {
       },
       include: PARTY_INCLUDE
     });
+  });
+}
+
+function updateBossRaidPartyMemberVisibility({ partyId, userId, hiddenAt, archivedAt, leftAt }) {
+  return prisma.bossRaidPartyMember.update({
+    where: {
+      partyId_userId: {
+        partyId,
+        userId
+      }
+    },
+    data: {
+      hiddenAt,
+      archivedAt,
+      leftAt
+    },
+    include: {
+      party: {
+        include: PARTY_INCLUDE
+      }
+    }
   });
 }
 
@@ -518,6 +607,7 @@ module.exports = {
   findUserBossRaidPartyForRaid,
   getBossRaidMemberMetrics,
   replaceBossRaidContributions,
+  updateBossRaidPartyMemberVisibility,
   updateBossRaidInviteStatus,
   upsertBossRaidInvite,
   updateBossRaidPartyProgress

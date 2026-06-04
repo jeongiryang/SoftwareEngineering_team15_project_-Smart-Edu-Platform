@@ -77,19 +77,39 @@
 - PR review history: [pull requests](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pulls?q=is%3Apr)
 - Release/tag 정리는 전체 QA 이후 별도 작업으로 진행한다.
 
-## 9. 남은 로드맵과 참고 Issue
+## 9. 주요 PR
 
-아래 Issue는 최종 제출 문서에서 한계점 또는 향후 확장성으로 연결한다.
+| 구분 | PR | 내용 | 상태 |
+|---|---|---|---|
+| 소개페이지 | [#379](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/379) | 소개페이지 인트로 입자 연필 연출 개선 | merged |
+| 서비스 소개 | [#373](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/373) | 서비스 소개 카드 마이크로 애니메이션 및 다국어 문구 보강 | merged |
+| 커뮤니티 | [#385](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/385) | 커뮤니티 목록·상세 화면 구조 개선 | merged |
+| AI 학습 | [#387](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/387) | AI 추천 안정화 및 한도 메시지 처리 | merged |
+| 레이드/협동 | [#390](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/390) | 레이드·협동 퀘스트 삭제 및 중도 취소 UX 개선 | merged |
+| 협동 퀘스트 | [#400](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/400) | 협동 퀘스트 진행 중 나가기 흐름 정리 | merged |
+| 실시간/관리 | [#392](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/392) | 친구 요청 실시간 반영 및 정지 사유 표시 | merged |
+| 접근성 | [#394](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/394) | 접근성 돋보기 모드 추가 | merged |
+| 도움말/QA | [#398](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/398) | 핵심 화면 도움말 투어 모달 구현 | merged |
+| seed | [#402](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/402) | 최신 기능 체험용 seed 데이터 최신화 | merged |
+| 문서 | [#406](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/406) | 최종 제출 문서 부록화 및 상호 링크 정리 | merged |
+| 최종보고서 | [#410](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/410) | 최종 프로젝트 보고서 본문 확장 | merged |
 
-- [#389 보스 레이드 참여자별 숨김 및 중도 탈퇴 정책 설계](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389)
-- [#273 WebSocket 기반 실시간 기능 확장 로드맵](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/273)
-- [#201 Mock/local 기반 기능 실제 서비스화 로드맵](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/201)
-- [#172 UI/UX 및 후속 기능 단계별 적용 로드맵](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/172)
-- [#220 전체 화면 수동 탐색 QA 및 사용성 개선](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/220)
-- [#228 화면별 언어 전환 QA 및 다국어 문구 점검](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/228)
-- [#78 Windows 개발 환경 warning 및 Prisma Studio 사용 참고](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/78)
+## 10. 주요 Issue
 
-## 10. 문서 검증 기준
+| 구분 | Issue | 내용 | 상태 |
+|---|---|---|---|
+| 보스 레이드 정책 | [#389](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389) | 보스 레이드 참여자별 숨김 및 중도 탈퇴 정책 | 이번 PR에서 해결 |
+| 최종보고서 | [#409](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/409) | 최종 프로젝트 보고서 본문 확장 | closed |
+| 문서 부록화 | [#405](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/405) | 최종 제출 문서 부록화 및 상호 링크 정리 | closed |
+| seed | [#401](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/401) | 최신 기능 체험용 seed 데이터 최신화 | closed |
+| 협동 퀘스트 | [#399](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/399) | 협동 퀘스트 진행 중 나가기 흐름 정리 | closed |
+| 커뮤니티 | [#384](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/384) | 커뮤니티 목록·상세 화면 구조 개선 | closed |
+| AI 학습 | [#386](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/386) | AI 추천 안정화 및 한도 메시지 처리 | closed |
+| 접근성 | [#393](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/393) | 접근성 돋보기 모드 추가 | closed |
+| 도움말 | [#397](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/397) | 핵심 화면 도움말 투어 모달 구현 | closed |
+| 주요 화면 QA | [#395](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/395) | 주요 화면 QA 보정 및 접근성 버튼 개선 | closed |
+
+## 11. 문서 검증 기준
 
 - Markdown 상대 링크가 실제 파일을 가리키는지 확인한다.
 - 문서에는 실제 DB URL, host, password, token, API key, secret 원문을 포함하지 않는다.
