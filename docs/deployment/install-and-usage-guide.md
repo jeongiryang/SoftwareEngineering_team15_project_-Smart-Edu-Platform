@@ -62,6 +62,14 @@ npm --prefix src/backend run prisma:generate
 
 배포 전 schema 검증과 Prisma Client 생성을 확인한다. migration 적용은 별도 승인된 배포 절차에서만 수행한다.
 
+배포/demo DB에 migration을 적용할 때는 `prisma migrate dev`가 아니라 deploy 절차를 사용한다. backend package에 별도 deploy script가 없으면 backend 디렉터리 기준으로 다음 명령을 사용한다.
+
+```bash
+npx prisma migrate deploy
+```
+
+2026년 06월 04일 기준 사용자가 승인한 deployment/demo DB에 `20260604000000_add_boss_raid_participant_visibility` migration 적용 상태를 확인했다. 실행 결과 pending migration은 없었고, seed는 실행하지 않았다. DB URL, host, DB 이름, password, token, secret 원문은 문서에 기록하지 않는다.
+
 ## 8. Seed 실행
 
 개발/demo 데이터가 필요한 경우 아래 명령을 사용한다.

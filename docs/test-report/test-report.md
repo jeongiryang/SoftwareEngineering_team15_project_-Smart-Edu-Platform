@@ -61,7 +61,7 @@
 
 - 실제 수행한 테스트는 실행 명령과 결과를 함께 기록함.
 - 아직 구현되지 않은 기능의 테스트는 `예정` 또는 `후속 작성`으로 표시함.
-- 커버리지 수치는 실제 측정 전까지 작성하지 않음.
+- 커버리지 수치는 실제 측정한 결과만 기록하며, 측정 범위가 제한된 경우 그 범위를 함께 명시함.
 - 실제 DB 접속 정보, 환경변수 값, API key 등 비밀값은 문서에 기록하지 않음.
 - 테스트 도구는 현재 프로젝트 구조에 맞춰 Jest, Supertest, Prisma CLI, Expo CLI 중심으로 정리함.
 
@@ -87,7 +87,7 @@
 - 커뮤니티 프론트 화면 테스트
 - 프론트엔드 화면 단위 테스트
 - 관리자 화면과 AI 화면의 자동 UI 테스트
-- 정량 커버리지 측정 결과
+- frontend 정량 커버리지 측정 결과
 - 배포 환경 smoke test
 - 최종보고서, 발표자료, 데모 영상은 3단계 산출물로 별도 작성
 
@@ -100,7 +100,7 @@
 | 구분 | 현재 상태 | 남은 작업 |
 |---|---|---|
 | 1단계 요구사항/설계 | 완료 | 최종 제출 전 링크, 이미지, 문서 정합성 재검토 |
-| 2단계 구현/테스트 | 진행 중 | 미구현 기능 API/화면 구현, coverage 결과, 프론트 자동 테스트, 배포 전 smoke test |
+| 2단계 구현/테스트 | 진행 중 | 프론트 자동 테스트 보강, 배포 전 smoke test 반복 확인 |
 | 3단계 제출/발표 | 미착수 | 최종보고서, 배포 자료, 설치/사용 가이드, 5~10분 데모 영상, 발표자료, 데모 스크립트 |
 
 | 기능 | docs상 계획 여부 | 현재 상태 | 근거 | 후속 작업 |
@@ -173,7 +173,7 @@ DB 환경은 PostgreSQL, Neon, Prisma 기준임.
 | Prisma CLI | schema validate, generate, migration 검증 | 사용 중 |
 | Expo CLI | 프론트엔드 설정 및 Web export 검증 | 사용 중 |
 | PostgreSQL adapter | Prisma Client DB smoke test | 별도 검증 명령으로 사용 |
-| Coverage 도구 | 테스트 커버리지 측정 | 측정 예정 |
+| Coverage 도구 | 테스트 커버리지 측정 | backend Jest text-summary 기준 사용 중 |
 
 ### 2.5 CI 자동 검증 환경
 
@@ -277,6 +277,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-DB-001 | DB migration | Prisma migration | 초기 migration 적용 | `npx prisma migrate dev --name init` | migration 적용 및 schema sync | 통과 |
 | TC-DB-002 | DB migration | 조원별 개인 branch | 각자 개인 Neon branch에 migration 적용 | `npx prisma migrate dev` | 개인 branch schema sync | 확인 예정 |
 | TC-DB-003 | DB smoke test | Prisma Client | PostgreSQL adapter 기반 최소 DB query 확인 | `npm run test:db` | `SELECT 1` 정상 응답 | 조건부 실행 |
+| TC-DB-004 | DB migration deploy | user-approved deployment/demo DB | 보스 레이드 참여자 visibility migration deploy 확인 | `npx prisma migrate deploy` | pending migration 없음 또는 적용 완료, raw DB 정보 미출력 | 통과 |
+| TC-DB-005 | DB smoke test | BossRaidPartyMember visibility columns | `hiddenAt`/`archivedAt`/`leftAt` select와 active member filter query 확인 | Prisma Client 비파괴 조회 | column not found 없이 조회 성공 | 통과 |
 
 ---
 
@@ -291,7 +293,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(29 suites / 530 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(29 suites / 539 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트. `SUSPENDED`/`DEACTIVATED` 계정 login 403 차단과 기존 token 보호 API 401 차단 검증 포함 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
@@ -312,8 +314,8 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward focused test | `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js` | 통과 | 보상 API 단일 테스트 기준 1 suite / 6 tests passed |
 | Point Shop API test | `GET /api/shop/items`, `GET /api/shop/me`, `POST /api/shop/items/:itemId/purchase`, `POST /api/shop/items/:itemId/equip`, `POST /api/shop/unequip` | 통과 | `src/backend/tests/shop.test.js`의 repository mock 기반 API 테스트. 미인증 401, 상점 목록, 구매/중복 구매/포인트 부족, 구매 전 적용 차단, 적용/해제, 민감정보 미노출 검증 포함 |
 | Point Shop focused test | `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js` | 통과 | 포인트 상점 API 단일 테스트 기준 1 suite / 9 tests passed |
-| Boss Raid API test | `GET /api/boss-raids`, `GET /api/boss-raids/invites/me`, `GET /api/boss-raids/parties/public`, `GET /api/boss-raids/parties/me`, `GET /api/boss-raids/parties/:partyId/invites`, `POST /api/boss-raids/parties`, `POST /api/boss-raids/parties/join`, `POST /api/boss-raids/parties/:partyId/join`, `POST /api/boss-raids/parties/:partyId/invites`, `POST /api/boss-raids/invites/:inviteId/accept`, `POST /api/boss-raids/invites/:inviteId/decline`, `POST /api/boss-raids/invites/:inviteId/cancel`, `GET /api/boss-raids/parties/:partyId`, `POST /api/boss-raids/parties/:partyId/claim` | 통과 | `src/backend/tests/boss-raid.test.js`의 repository mock 기반 API 테스트. 미인증 401, 보스 목록, 공개 모집 파티 조회/참여, 비공개 파티 공개 참여 차단, 파티 생성/참가, 초대 목록/생성/수락/거절/취소, 파티 상세, 파티 멤버 대상 WebSocket 진행률/완료 event payload, 보상 1회 수령 검증 포함 |
-| Boss Raid focused test | `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 통과 | 스터디 보스 레이드 API 단일 테스트 기준 1 suite / 23 tests passed |
+| Boss Raid API test | `GET /api/boss-raids`, `GET /api/boss-raids/invites/me`, `GET /api/boss-raids/parties/public`, `GET /api/boss-raids/parties/me`, `GET /api/boss-raids/parties/:partyId/invites`, `POST /api/boss-raids/parties`, `POST /api/boss-raids/parties/join`, `POST /api/boss-raids/parties/:partyId/join`, `POST /api/boss-raids/parties/:partyId/invites`, `POST /api/boss-raids/invites/:inviteId/accept`, `POST /api/boss-raids/invites/:inviteId/decline`, `POST /api/boss-raids/invites/:inviteId/cancel`, `GET /api/boss-raids/parties/:partyId`, `POST /api/boss-raids/parties/:partyId/leave`, `POST /api/boss-raids/parties/:partyId/archive`, `POST /api/boss-raids/parties/:partyId/restore`, `POST /api/boss-raids/parties/:partyId/claim` | 통과 | `src/backend/tests/boss-raid.test.js`의 repository mock 기반 API 테스트. 미인증 401, 보스 목록, 공개 모집 파티 조회/참여, 비공개 파티 공개 참여 차단, 파티 생성/참가, 초대 목록/생성/수락/거절/취소, 파티 상세, 숨김 목록 조회, active member count, 일반 참여자 나가기, 파티장 나가기 제한, 완료 레이드 보관/복원, 비참여자 보관 차단, 보상 1회 수령 검증 포함 |
+| Boss Raid focused test | `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js` | 통과 | 스터디 보스 레이드 API 단일 테스트 기준 1 suite / 32 tests passed |
 | Collaborative Quest API test | `GET/POST /api/collaborative-quests`, `GET /api/collaborative-quests/:questId`, `POST /api/collaborative-quests/:questId/join`, `POST /api/collaborative-quests/:questId/contributions`, `POST /api/collaborative-quests/:questId/claim`, `PATCH /api/collaborative-quests/:questId/visibility` | 통과 | `src/backend/tests/collaborative-quest.test.js`의 repository mock 기반 API 테스트. 미인증 401, 목록/생성/추천 보상 자동 계산, 참여/중복 참여, 만료 퀘스트 참여 차단, 기여도 추가, 완료 event, 미참여자 기여 차단, 보상 1회 수령, 중복 claim 차단, 사용자별 숨김/보관/복원, 미참여자 visibility 차단 검증 포함 |
 | Collaborative Quest focused test | `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js` | 통과 | 협동 퀘스트 API 단일 테스트 기준 1 suite / 21 tests passed |
 | Direct Message API test | `GET/POST /api/messages/threads`, `GET /api/messages/threads/:threadId`, `POST /api/messages/threads/:threadId/messages`, `POST /api/messages/threads/:threadId/read` | 통과 | `src/backend/tests/direct-message.test.js`의 repository mock 기반 API 테스트. 미인증 401, thread 목록/생성, non-friend 차단, 메시지 전송 후 `directMessage.created` broadcast, thread 참여자 권한, 읽음 처리 후 `directMessage.read` broadcast, typing recipient 권한, 빈 본문 validation, 민감정보 미노출 검증 포함 |
@@ -353,13 +355,13 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
-| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
-| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
+| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
-| Boss Raid API 검증 | 스터디 보스 레이드 MVP 및 초대 기반 참여 구조 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 23 tests passed) 통과 |
-| Collaborative Quest API 검증 | 협동 퀘스트 실시간 진행률 및 사용자별 숨김/보관 정책 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js`(1 suite / 21 tests passed) 통과 |
-| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(29 suites / 530 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 12 tests passed) 통과 |
+| Boss Raid API 검증 | 스터디 보스 레이드 참여자별 숨김/보관/나가기 정책 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 32 tests passed) 통과 |
+| Collaborative Quest API 검증 | 협동 퀘스트 실시간 진행률 및 사용자별 숨김/보관 정책 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js`(1 suite / 21 tests passed) 통과 |
+| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 12 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -439,17 +441,20 @@ Network 탭의 Authorization Bearer token은 로그인된 API 요청 특성상 D
 
 ## 6. 커버리지 결과
 
-현재 상태는 coverage 정량 측정 전임.
+2026년 06월 04일 기준 backend Jest coverage를 text summary 방식으로 측정함. coverage 산출물은 Git에 커밋하지 않으며, 문서에는 수치만 기록함.
 
-유닛/통합 테스트가 기능별로 추가된 뒤 Jest coverage 설정 또는 `npm test -- --coverage` 방식으로 측정할 예정임.
+실행 명령:
 
-| 구분 | 도구 | 측정 항목 | 현재 결과 | 비고 |
-|---|---|---|---|---|
-| Backend | Jest | Statements / Branches / Functions / Lines | 측정 예정 | 기능 테스트 추가 후 측정 |
-| API Integration | Jest + Supertest | API 흐름별 통합 테스트 통과율 | 측정 예정 | 현재 구현 API 기준으로 측정하고, 랭킹/챌린지와 후속 프론트 연동 시 확장 |
-| Frontend | 추후 결정 | 화면/컴포넌트 테스트 | 측정 예정 | 구현 범위 확정 후 결정 |
+```bash
+npm --prefix src/backend test -- --coverage --coverageReporters=text-summary
+```
 
-커버리지 수치는 실제 측정 전까지 작성하지 않음.
+| 구분 | 도구 | Statements | Branches | Functions | Lines | 비고 |
+|---|---|---:|---:|---:|---:|---|
+| Backend | Jest | 68.63% | 60.70% | 68.27% | 68.72% | repository/provider mock 기반 backend 테스트 전체 측정 |
+| Frontend | Expo config/export | 정량 미측정 | 정량 미측정 | 정량 미측정 | 정량 미측정 | 화면/컴포넌트 coverage 도구는 별도 도입하지 않았고 `npm run check:frontend`, `npm run check:frontend:web`로 빌드 가능성 검증 |
+
+coverage 측정 대상은 backend Jest 테스트에 한정됨. frontend는 현재 정량 coverage가 없으므로 과장하지 않고 정적 설정 확인과 Web export 검증 결과로 품질 근거를 분리해 기록함.
 
 ---
 

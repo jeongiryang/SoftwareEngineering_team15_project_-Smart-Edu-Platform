@@ -26,9 +26,9 @@
 
 프로젝트는 1단계 요구사항 분석과 설계, 2단계 구현 및 테스트, 3단계 배포 자료와 최종 보고서 작성 순서로 진행되었다. 요구사항 분석 단계에서는 사용자 등록/로그인, 학습 일정 관리, 노트 및 퀴즈 생성/관리, AI 기반 학습 추천, 데이터 시각화, 보안 및 프라이버시 고려를 핵심 기능으로 정리했다. 설계 단계에서는 frontend, backend, database, AI system, WebSocket, external calendar system의 역할을 나누고 REST API와 실시간 이벤트 흐름을 설계했다.
 
-구현 단계에서는 Expo/React Native Web 기반 프론트엔드, Node.js/Express 기반 백엔드, Prisma 기반 관계형 데이터 접근 구조를 사용했다. 인증, 대시보드, 일정/칸반, 집중 시간과 통계, AI 학습 보조, 커뮤니티, 친구/쪽지, 포인트 상점, 협동 퀘스트, 보스 레이드, 접근성, 관리자/점검 모드까지 주요 화면과 API를 구현했다. 최신 확인 기준 백엔드 Jest/Supertest 테스트는 `29 suites / 530 tests` 통과 상태이며, 정량 coverage 측정은 아직 미측정 상태로 남아 있다.
+구현 단계에서는 Expo/React Native Web 기반 프론트엔드, Node.js/Express 기반 백엔드, Prisma 기반 관계형 데이터 접근 구조를 사용했다. 인증, 대시보드, 일정/칸반, 집중 시간과 통계, AI 학습 보조, 커뮤니티, 친구/쪽지, 포인트 상점, 협동 퀘스트, 보스 레이드, 접근성, 관리자/점검 모드까지 주요 화면과 API를 구현했다. 최신 확인 기준 백엔드 Jest/Supertest 테스트는 `29 suites / 539 tests` 통과 상태이며, backend Jest coverage는 statements 68.63%, branches 60.70%, functions 68.27%, lines 68.72%로 측정했다.
 
-AI는 요구사항 정리, 테스트 케이스 후보 도출, 코드 리팩터링 검토, 문서 구조화, PR 검토 보조에 활용했다. 다만 AI 결과는 자동으로 신뢰하지 않고 팀원이 검토한 뒤 반영했다. 외부 AI API는 비용과 quota 제한이 있으므로 자동 테스트에서는 mock/fallback 중심으로 검증했고, 실제 외부 AI 연동은 제한된 환경에서 확인하는 범위로 다뤘다. 프로젝트의 한계로는 무료 AI API 한도, frontend E2E와 coverage 보강 필요, 보스 레이드 참여자별 서버 저장형 숨김/진행 중 탈퇴 정책의 후속 설계 필요가 있다.
+AI는 요구사항 정리, 테스트 케이스 후보 도출, 코드 리팩터링 검토, 문서 구조화, PR 검토 보조에 활용했다. 다만 AI 결과는 자동으로 신뢰하지 않고 팀원이 검토한 뒤 반영했다. 외부 AI API는 비용과 quota 제한이 있으므로 자동 테스트에서는 mock/fallback 중심으로 검증했고, 실제 외부 AI 연동은 제한된 환경에서 확인하는 범위로 다뤘다. 프로젝트의 한계로는 무료 AI API 한도, frontend E2E와 정량 coverage 보강 필요, 실사용 운영 모니터링 보강 필요가 있다.
 
 ---
 
@@ -321,7 +321,7 @@ AI 학습 기능은 사용자가 질문을 입력하면 AI 응답 또는 fallbac
 
 보스 레이드는 여러 사용자가 집중 시간과 완료 태스크를 통해 보스 HP를 줄이는 협동형 학습 기능이다. 파티 생성, 공개 모집, 참여 코드, 초대, 상세 조회, 진행률, 보상 수령 흐름을 제공한다. 진행률 변경과 완료 상태는 WebSocket 이벤트로 파티 멤버에게 전달된다.
 
-다만 보스 레이드 참여자별 서버 저장형 숨김과 진행 중 탈퇴 정책은 아직 후속 설계가 필요한 영역이다. 보상/기여도 보존, 파티장/참여자 권한, 완료/진행 중 상태별 정책이 복잡하므로 후속 Issue [#389](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389)로 분리했다.
+보스 레이드는 참여자별 서버 저장형 숨김/보관/복원과 진행 중 나가기 정책까지 확장했다. `BossRaidParticipant`에는 `hiddenAt`, `archivedAt`, `leftAt` 상태가 추가되었고, 일반 참여자는 진행 중 파티에서 나갈 수 있으며 파티장은 다른 active member가 남아 있으면 나갈 수 없도록 제한했다. 기존 기여도와 보상 claim 기록은 삭제하지 않고 보존하며, 완료/종료 파티는 사용자별 보관과 복원이 가능하다. 이 정책은 Issue [#389](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389)와 PR #411에서 구현되었고, `20260604000000_add_boss_raid_participant_visibility` migration은 user-approved deployment/demo DB 기준 `prisma migrate deploy`로 적용 상태를 확인했다.
 
 ### 7.11 협동 퀘스트
 
@@ -399,14 +399,15 @@ AI는 최신 main 상태를 자동으로 완벽히 이해하지 못한다. 따�
 
 | 항목 | 결과 |
 |---|---|
-| Jest/Supertest 전체 테스트 | `29 suites / 530 tests` 통과 |
+| Jest/Supertest 전체 테스트 | `29 suites / 539 tests` 통과 |
 | Prisma validate | 통과 기준으로 운영 |
 | Prisma Client generate | 통과 기준으로 운영 |
 | Frontend config check | 통과 기준으로 운영 |
 | Expo Web export | 통과 기준으로 운영 |
-| Coverage 정량 측정 | 미측정 |
+| Backend coverage 정량 측정 | Statements 68.63%, Branches 60.70%, Functions 68.27%, Lines 68.72% |
+| Frontend coverage 정량 측정 | 미측정. Expo config/export 중심 검증 |
 
-정량 coverage는 아직 측정하지 않았다. 따라서 본 보고서에서는 coverage 수치를 과장하지 않고, 테스트 보고서의 “커버리지 결과” 섹션에도 미측정 상태로 기록한다.
+정량 coverage는 backend Jest 기준으로 측정했다. frontend는 별도 화면/컴포넌트 coverage 도구를 도입하지 않았으므로 수치를 작성하지 않고, `npm run check:frontend`와 `npm run check:frontend:web`를 통한 설정 확인 및 Web export 검증으로 분리해 기록한다.
 
 ### 9.3 검증 명령
 
@@ -547,7 +548,7 @@ AI 기능은 외부 provider quota와 key 상태에 따라 실패할 수 있다.
 
 ### 12.8 협동 퀘스트 hiddenAt 기반 진행 중 나가기 처리
 
-협동 퀘스트는 퀘스트 자체를 hard delete하지 않고 참여자별 `hiddenAt`/`archivedAt` 상태로 목록 표시를 제어했다. 이 방식은 보상, 기여도, 참여 기록을 보존하면서 사용자별 목록 정리를 가능하게 한다. 보스 레이드에는 참여자별 visibility 필드가 없어 같은 방식의 서버 저장형 숨김/탈퇴를 무리하게 구현하지 않고 후속 Issue #389로 분리했다.
+협동 퀘스트는 퀘스트 자체를 hard delete하지 않고 참여자별 `hiddenAt`/`archivedAt` 상태로 목록 표시를 제어했다. 이 방식은 보상, 기여도, 참여 기록을 보존하면서 사용자별 목록 정리를 가능하게 한다. 보스 레이드도 PR #411에서 참여자별 `hiddenAt`/`archivedAt`/`leftAt` 상태를 추가해 서버 저장형 숨김/보관/복원과 진행 중 나가기 정책을 구현했다. 완료/종료 파티는 보관/복원이 가능하고, 진행 중 파티는 일반 참여자 나가기를 허용하되 파티장 탈퇴는 다른 active member가 남아 있으면 제한한다.
 
 ### 12.9 seed 적용 시 DB target 안전 분류
 
@@ -561,13 +562,13 @@ seed는 DB write 작업이므로 실행 전 DB target을 안전하게 분류해�
 
 AI 학습 기능은 외부 AI provider를 사용할 수 있지만, 무료 quota와 API key 관리 문제가 있다. 자동 테스트는 실제 외부 API를 호출하지 않고 mock/fallback 중심으로 수행한다. 따라서 AI 기능의 품질은 실제 운영 환경에서 추가 검증이 필요하다.
 
-### 13.2 coverage 정량 측정 미측정
+### 13.2 coverage 정량 측정 범위 제한
 
-Jest/Supertest 테스트는 `29 suites / 530 tests` 통과 기준으로 정리되어 있으나, 정량 coverage는 아직 측정하지 않았다. 현재 보고서와 테스트 보고서 모두 coverage를 미측정 상태로 표시한다. 향후 Jest coverage 설정 또는 별도 coverage 도구를 도입해 statements, branches, functions, lines 기준 수치를 기록해야 한다.
+Jest/Supertest 테스트는 `29 suites / 539 tests` 통과 기준으로 정리되어 있으며, backend Jest coverage는 statements 68.63%, branches 60.70%, functions 68.27%, lines 68.72%로 측정했다. 다만 이 수치는 backend 테스트에 한정된다. frontend 화면/컴포넌트 coverage와 E2E coverage는 아직 정량 측정하지 않았고, 현재는 Expo config와 Web export 검증을 통해 빌드 가능성을 확인한다.
 
 ### 13.3 보스 레이드 visibility와 탈퇴 정책
 
-보스 레이드 참여자별 서버 저장형 숨김과 진행 중 탈퇴는 보상/기여도 보존, 파티장 권한, 공개 모집 상태, 완료 상태, 중복 보상 방지와 연결된다. 현재 schema에는 협동 퀘스트처럼 참여자별 visibility 필드가 없으므로 무리한 구현을 피했다. 이 정책은 후속 Issue [#389](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389)로 분리되어 있다.
+보스 레이드 참여자별 서버 저장형 숨김과 진행 중 탈퇴는 보상/기여도 보존, 파티장 권한, 공개 모집 상태, 완료 상태, 중복 보상 방지와 연결된다. PR #411에서는 참여자 row를 삭제하지 않고 `hiddenAt`, `archivedAt`, `leftAt` 상태로 사용자별 표시와 참여 상태를 제어하는 방식으로 구현했다. 이번 migration 적용 확인에서는 user-approved deployment/demo DB 기준 `20260604000000_add_boss_raid_participant_visibility` migration이 pending 없이 반영된 상태임을 확인했고, 비파괴 Prisma 조회로 새 column query가 오류 없이 동작함을 확인했다.
 
 ### 13.4 DOM clone 기반 돋보기 한계
 
@@ -585,9 +586,9 @@ frontend 반응형, 다크모드, 고대비, large text, WebSocket 연결, 배�
 
 ## 14. 향후 확장성
 
-### 14.1 보스 레이드 정책 설계
+### 14.1 보스 레이드 운영 정책 고도화
 
-후속 Issue #389를 기준으로 보스 레이드 참여자별 숨김, 중도 탈퇴, 파티장 권한, 보상/기여도 보존 정책을 설계할 수 있다. schema 변경이 필요할 가능성이 있으므로, 단순 frontend 숨김이 아니라 서버 저장형 정책을 별도 PR로 검토해야 한다.
+보스 레이드 참여자별 숨김, 중도 탈퇴, 파티장 권한, 보상/기여도 보존 정책은 PR #411에서 서버 저장형 정책으로 반영했다. 향후에는 운영 데이터가 누적된 상황에서 파티장 위임, 대규모 파티의 진행률 재계산 성능, 보관 목록 UX, 복원 정책을 추가로 고도화할 수 있다.
 
 ### 14.2 WebSocket 기능 확장
 
@@ -611,7 +612,7 @@ AI 기능은 장기 학습 이력, 과목별 약점, 오답 패턴, 반복 질�
 
 ### 14.7 테스트 coverage 도입
 
-coverage 정량 측정은 아직 미측정이다. 향후 Jest coverage를 도입하고, backend service/controller/repository 기준 coverage를 수치화할 수 있다. frontend 화면 테스트와 E2E 테스트도 Playwright 또는 React Native Testing Library 기반으로 검토할 수 있다.
+backend Jest coverage는 text summary 기준으로 측정했다. 향후에는 frontend 화면 테스트와 E2E 테스트를 Playwright 또는 React Native Testing Library 기반으로 검토하고, backend coverage도 service/controller/repository별 사각지대를 줄이는 방향으로 보강할 수 있다.
 
 ### 14.8 운영 모니터링
 
@@ -644,9 +645,9 @@ coverage 정량 측정은 아직 미측정이다. 향후 Jest coverage를 도입
 
 사각사각 Smart Edu Platform은 개인화 학습 관리 앱이라는 주제 아래 요구사항 분석, 설계, 구현, 테스트, 배포 자료 정리까지 단계적으로 진행한 프로젝트이다. 핵심 요구사항인 사용자 등록/로그인, 학습 일정 관리, 노트 및 AI 학습 보조, 데이터 시각화, 보안/프라이버시 고려를 중심으로 구현했고, 커뮤니티, 친구/쪽지, 포인트 상점, 협동 퀘스트, 보스 레이드, 접근성, 관리자 기능을 확장했다.
 
-프로젝트의 성과는 기능 구현 자체뿐 아니라, GitHub Issue/branch/PR 기반 협업, 일반 Merge commit 방식의 이력 관리, 테스트 보고서와 API 명세, 설치/사용 가이드, 배포 smoke test, AI 활용 정책을 함께 정리했다는 점이다. 최신 기준 backend 테스트는 `29 suites / 530 tests` 통과 상태이며, 문서와 검증 명령을 통해 제출 가능한 구조를 갖췄다.
+프로젝트의 성과는 기능 구현 자체뿐 아니라, GitHub Issue/branch/PR 기반 협업, 일반 Merge commit 방식의 이력 관리, 테스트 보고서와 API 명세, 설치/사용 가이드, 배포 smoke test, AI 활용 정책을 함께 정리했다는 점이다. 최신 기준 backend 테스트는 `29 suites / 539 tests` 통과 상태이며, backend coverage 수치와 배포/demo DB migration 적용 상태까지 문서화해 제출 가능한 구조를 갖췄다.
 
-동시에 한계도 명확하다. 외부 AI API quota, coverage 미측정, 보스 레이드 참여자별 서버 저장형 visibility 정책, DOM clone 기반 돋보기의 한계, 실사용 운영 모니터링 부족은 향후 보강이 필요하다. 이 한계를 숨기지 않고 후속 Issue와 확장 방향으로 연결하는 것이 최종 제출물의 신뢰도를 높인다.
+동시에 한계도 명확하다. 외부 AI API quota, frontend 정량 coverage 미측정, DOM clone 기반 돋보기의 한계, 실사용 운영 모니터링 부족은 향후 보강이 필요하다. 이 한계를 숨기지 않고 후속 확장 방향으로 연결하는 것이 최종 제출물의 신뢰도를 높인다.
 
 최종적으로 본 프로젝트는 요구사항에서 배포까지 이어지는 소프트웨어공학 과정을 실제 GitHub 협업과 구현 검증으로 경험한 결과물이다. 사각사각은 학습자가 흩어진 학습 흐름을 하나의 기록으로 정리하고, AI와 커뮤니티, 보상, 접근성을 통해 지속 가능한 학습 경험을 제공하는 플랫폼으로 확장될 수 있다.
 
