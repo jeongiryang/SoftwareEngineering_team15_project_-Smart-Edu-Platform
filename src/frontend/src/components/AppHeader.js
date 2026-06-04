@@ -1,10 +1,47 @@
-import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useLanguage } from '../i18n';
 import { colors, interactions, interactiveStateStyles } from '../styles/theme';
 
 const icon = require('../assets/sagaksagak-app-icon.png');
+
+function getPrefersReducedMotion() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function usePrefersReducedMotion() {
+  const [reducedMotion, setReducedMotion] = useState(getPrefersReducedMotion);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = (event) => setReducedMotion(event.matches);
+
+    setReducedMotion(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+
+    if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+
+    return undefined;
+  }, []);
+
+  return reducedMotion;
+}
 
 function formatUnreadBadge(count) {
   const numericCount = Math.max(Number(count) || 0, 0);
@@ -53,6 +90,7 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
   const authenticated = Boolean(user);
   const hasAdminRole = user?.role === 'ADMIN';
   const [openMenu, setOpenMenu] = useState(null);
+  const reducedMotion = usePrefersReducedMotion();
   const { effectiveMode, mode, setThemeMode } = useThemeMode();
   const {
     currentLanguage,
@@ -191,9 +229,21 @@ export default function AppHeader({ activeScreen, messageUnreadCount = 0, onLogo
                 setOpenMenu(null);
                 onOpenHelp?.();
               }}
-              style={(state) => [styles.iconButton, styles.helpButton, ...interactiveStateStyles(state)]}
+              style={(state) => [
+                styles.iconButton,
+                styles.helpButton,
+                (state.hovered || state.focused) && styles.helpButtonEmphasis,
+                ...interactiveStateStyles(state)
+              ]}
               title={t('help.header.button', 'Help')}
             >
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.helpButtonHalo,
+                  reducedMotion ? styles.helpButtonHaloStatic : styles.helpButtonHaloAnimated
+                ]}
+              />
               <Text style={styles.helpButtonText}>?</Text>
             </Pressable>
           ) : null}
@@ -742,7 +792,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mintSoft
   },
   settingsTriggerHover: {
-    backgroundColor: colors.surface
+    backgroundColor: colors.surface,
+    borderColor: colors.mint
   },
   settingsTooltip: {
     position: 'absolute',
@@ -860,65 +911,76 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   settingsIcon: {
-    width: 24,
-    height: 24,
+    width: 23,
+    height: 23,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative'
   },
   settingsGearRing: {
-    width: 17,
-    height: 17,
+    width: 16,
+    height: 16,
     borderRadius: 999,
-    borderWidth: 3,
-    borderColor: colors.blueDeep,
-    backgroundColor: colors.surface
+    borderWidth: 2,
+    borderColor: colors.blue,
+    backgroundColor: colors.surfaceWarm,
+    zIndex: 2
   },
   settingsGearCore: {
     position: 'absolute',
     width: 6,
     height: 6,
     borderRadius: 999,
-    backgroundColor: colors.mintDeep
+    borderWidth: 1,
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.surface,
+    zIndex: 3
   },
   settingsGearTooth: {
     position: 'absolute',
     width: 4,
-    height: 8,
+    height: 7,
     borderRadius: 2,
-    backgroundColor: colors.blueDeep
+    borderWidth: 1,
+    borderColor: colors.surfaceWarm,
+    backgroundColor: colors.blue,
+    zIndex: 1
   },
   settingsGearToothTop: {
-    top: 0
+    top: 0,
+    left: 9.5
   },
   settingsGearToothBottom: {
-    bottom: 0
+    bottom: 0,
+    left: 9.5
   },
   settingsGearToothLeft: {
     left: 0,
+    top: 8,
     transform: [{ rotate: '90deg' }]
   },
   settingsGearToothRight: {
     right: 0,
+    top: 8,
     transform: [{ rotate: '90deg' }]
   },
   settingsGearToothDiagonalA: {
-    top: 2,
+    top: 2.5,
     right: 3,
     transform: [{ rotate: '45deg' }]
   },
   settingsGearToothDiagonalB: {
-    bottom: 2,
+    bottom: 2.5,
     left: 3,
     transform: [{ rotate: '45deg' }]
   },
   settingsGearToothDiagonalC: {
-    top: 2,
+    top: 2.5,
     left: 3,
     transform: [{ rotate: '-45deg' }]
   },
   settingsGearToothDiagonalD: {
-    bottom: 2,
+    bottom: 2.5,
     right: 3,
     transform: [{ rotate: '-45deg' }]
   },
@@ -1127,7 +1189,42 @@ const styles = StyleSheet.create({
   },
   helpButton: {
     borderColor: colors.mint,
-    backgroundColor: colors.mintSoft
+    backgroundColor: colors.mintSoft,
+    overflow: 'visible',
+    position: 'relative'
+  },
+  helpButtonEmphasis: {
+    borderColor: colors.mintDeep,
+    backgroundColor: colors.surfaceWarm
+  },
+  helpButtonHalo: {
+    position: 'absolute',
+    left: -5,
+    top: -5,
+    width: 50,
+    height: 50,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.mint,
+    backgroundColor: 'transparent'
+  },
+  helpButtonHaloAnimated: {
+    opacity: 0,
+    animationDuration: '5.2s',
+    animationIterationCount: 'infinite',
+    animationKeyframes: [
+      {
+        '0%': { opacity: 0, transform: 'scale(1)' },
+        '8%': { opacity: 0.35, transform: 'scale(1.02)' },
+        '24%': { opacity: 0, transform: 'scale(1.25)' },
+        '100%': { opacity: 0, transform: 'scale(1.25)' }
+      }
+    ],
+    animationTimingFunction: 'ease-out'
+  },
+  helpButtonHaloStatic: {
+    opacity: 0.26,
+    transform: [{ scale: 1.04 }]
   },
   helpButtonText: {
     color: colors.blueDeep,
