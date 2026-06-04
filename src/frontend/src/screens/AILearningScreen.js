@@ -140,16 +140,16 @@ const AI_LOCALIZED_COPY = {
     imageAttached: '이미지 파일을 선택했어요. 분석 요청 시 서버에서 임시 검토한 뒤 보관하지 않습니다.',
     imageHelp: (size) => `PNG, JPG, WEBP, GIF 이미지를 ${size} 이하로 첨부할 수 있어요.`,
     pdfPreview: '텍스트 기반 PDF는 텍스트 추출을 시도합니다. 스캔 PDF는 추출되지 않을 수 있어요.',
-    reviewImageAttached: '검토용 이미지 파일을 선택했어요. 이미지 OCR은 현재 지원 범위가 제한됩니다.',
-    reviewHelp: (size) => `이미지 또는 PDF를 ${size} 이하로 선택할 수 있어요.`,
+    reviewImageAttached: '이미지 파일을 선택했어요. 이번 버전에서는 형식·용량·메타데이터만 검토합니다.',
+    reviewHelp: (size) => `이미지 또는 텍스트 기반 PDF를 ${size} 이하로 선택할 수 있어요.`,
     pdfSource: 'PDF 자료',
     imageSource: '이미지 자료',
     fallbackFile: '학습 자료',
-    noteTitle: (source) => `${source} 학습 노트`,
+    noteTitle: (source) => `${source} 학습 노트 초안`,
     reviewSummary: (fileName) => [
       `${fileName}에서 추출 가능한 학습 내용을 기준으로 정리한 초안입니다.`,
-      '핵심 개념을 2~3개 문장으로 압축하고, 복습할 질문을 함께 제안하는 방향을 검토합니다.',
-      '실제 노트/퀴즈 저장은 파일 처리 정책과 비용 검토 후 후속 범위에서 결정합니다.'
+      '핵심 개념을 2~3개 문장으로 압축하고, 복습할 질문을 함께 제안합니다.',
+      '생성된 내용은 화면에서 확인하는 초안이며, 파일은 서버에 보관하지 않습니다.'
     ],
     reviewQuizzes: [
       {
@@ -158,17 +158,17 @@ const AI_LOCALIZED_COPY = {
       },
       {
         question: '자동 퀴즈 생성 전 사용자가 확인해야 할 점은 무엇인가요?',
-        answer: '개인정보가 포함되지 않았는지 확인하고, 데모 결과가 실제 분석이 아님을 구분합니다.'
+        answer: '개인정보가 포함되지 않았는지 확인하고, 추출된 텍스트와 생성 초안을 직접 검토합니다.'
       },
       {
-        question: '후속 구현에서 필요한 기술 검토 항목은 무엇인가요?',
-        answer: '추출 텍스트 정확도, 민감정보 포함 여부, 생성 초안의 저장 여부입니다.'
+        question: '생성된 노트와 퀴즈는 어떻게 활용하면 좋나요?',
+        answer: '핵심 개념을 빠르게 훑은 뒤, 복습 퀴즈를 풀며 부족한 단원을 다시 확인합니다.'
       }
     ],
     mockAnswer: (question) => [
-      `데모 응답입니다. 질문의 핵심은 "${question.slice(0, 80)}${question.length > 80 ? '...' : ''}"로 확인됩니다.`,
+      `예시 응답입니다. 질문의 핵심은 "${question.slice(0, 80)}${question.length > 80 ? '...' : ''}"로 확인됩니다.`,
       '먼저 개념을 한 문장으로 정리하고, 교재 예제 1개를 풀어 본 뒤, 헷갈린 부분만 다시 질문해 보세요.',
-      '실제 외부 AI 호출이 아닌 발표/데모 안정성을 위한 Mock 응답입니다.'
+      '연습 모드에서는 실제 요청 대신 안전한 예시 응답으로 학습 흐름을 확인합니다.'
     ].join(' '),
     recommendation: {
       recommendedSubject: '오늘의 복습 루틴',
@@ -187,20 +187,20 @@ const AI_LOCALIZED_COPY = {
       noData: '기록 없음'
     },
     summary: (preview) => [
-      '- 데모 요약입니다. 본문에서 핵심 개념과 연결 단어를 먼저 분리합니다.',
+      '- 연습 요약입니다. 본문에서 핵심 개념과 연결 단어를 먼저 분리합니다.',
       '- 예시나 문제 풀이가 있다면 개념 적용 순서를 따로 표시합니다.',
       `- 다시 볼 부분: ${preview}`
     ].join('\n'),
     weakCalculation: 'calculation mistake',
     weakConcept: 'concept misunderstanding',
     wrongAnalysis: (problem, userAnswer) => [
-      '데모 분석입니다. 실제 외부 AI 호출 없이 오답 점검 흐름만 확인합니다.',
+      '연습 분석입니다. 오답 점검 흐름을 따라 문제 핵심과 풀이 과정을 정리합니다.',
       `문제 핵심: ${problem.slice(0, 80)}${problem.length > 80 ? '...' : ''}`,
       userAnswer ? `작성한 답: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '작성한 답이 없어 풀이 과정 중심으로 점검합니다.',
       '정답을 바로 외우기보다 왜 그 선택을 했는지 한 단계만 다시 적어 보세요.'
     ].join(' '),
     audioBriefing: {
-      eyebrow: '브라우저 음성 데모',
+      eyebrow: '브라우저 음성 안내',
       title: '오늘의 오디오 브리핑',
       description: '현재 AI 학습 화면의 기록을 짧게 정리해 접근성 목소리 설정으로 읽어줍니다.',
       play: '브리핑 듣기',
@@ -212,7 +212,7 @@ const AI_LOCALIZED_COPY = {
       voiceLabel: (voice) => `접근성 목소리 설정: ${voice}`,
       actionLabel: '오늘의 AI 학습 오디오 브리핑 재생 또는 정지',
       lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
-        mockMode ? 'AI Mock 모드가 켜져 있어 외부 AI 호출 없이 데모 응답으로 학습 흐름을 확인 중입니다.' : 'AI 학습 API 흐름을 사용할 준비가 되어 있습니다. 민감정보는 질문에 포함하지 않는 것이 원칙입니다.',
+        mockMode ? 'AI 연습 모드가 켜져 있어 예시 응답으로 학습 흐름을 확인 중입니다.' : 'AI 학습 API 흐름을 사용할 준비가 되어 있습니다. 민감정보는 질문에 포함하지 않는 것이 원칙입니다.',
         chatCount > 0 ? `최근 AI 대화 ${chatCount}개가 이 브리핑에 반영됩니다.` : '아직 AI 질문 기록이 없어 첫 질문부터 가볍게 시작하면 좋습니다.',
         hasRecommendation ? '맞춤 학습 추천 결과가 있어 오늘의 복습 루틴을 바로 확인할 수 있습니다.' : '맞춤 추천을 한 번 실행하면 오늘의 복습 방향을 더 쉽게 잡을 수 있습니다.',
         hasSummary ? '문서 요약 결과가 준비되어 있어 핵심 개념을 다시 훑기 좋습니다.' : '긴 글 요약을 사용하면 자료의 핵심 개념을 빠르게 정리할 수 있습니다.',
@@ -221,32 +221,35 @@ const AI_LOCALIZED_COPY = {
       ]
     },
     errors: {
-      token: '로그인 정보가 만료되었을 수 있습니다. 다시 로그인하거나 Mock 모드로 데모 흐름을 확인해 주세요.',
-      quota: 'AI 사용 한도가 모두 소진되었거나 요청이 너무 많습니다. 잠시 후 다시 시도하거나 Mock 모드로 데모 흐름을 이어가세요.',
-      quotaFallback: 'AI 사용 한도 문제로 외부 AI 응답 대신 안전한 기본 응답을 표시했습니다. 잠시 후 다시 시도하거나 Mock 모드를 사용할 수 있습니다.',
-      provider: 'AI 제공자 설정이나 API key 상태를 확인해야 합니다. 현재 화면에서는 Mock 모드로 안전하게 시연할 수 있습니다.',
+      token: '로그인 정보가 만료되었을 수 있습니다. 다시 로그인하거나 연습 모드로 학습 흐름을 확인해 주세요.',
+      quota: 'AI 사용 한도가 모두 소진되었거나 요청이 너무 많습니다. 잠시 후 다시 시도하거나 연습 모드로 흐름을 이어가세요.',
+      quotaFallback: 'AI 사용 한도 문제로 안전한 기본 응답을 표시했습니다. 잠시 후 다시 시도하거나 연습 모드를 사용할 수 있습니다.',
+      provider: 'AI 제공자 설정이나 API key 상태를 확인해야 합니다. 현재 화면에서는 연습 모드로 흐름을 확인할 수 있습니다.',
       providerFallback: 'AI 제공자 연결이 불안정해 안전한 기본 응답을 표시했습니다. 실제 학습 흐름은 계속 확인할 수 있습니다.',
-      network: '네트워크 연결이 불안정해 AI 응답을 가져오지 못했습니다. 연결을 확인하거나 Mock 모드로 전환해 주세요.',
-      fallback: 'AI 응답을 불러오지 못했습니다. 민감정보를 포함하지 않았는지 확인하고, 필요하면 Mock 모드로 데모 흐름을 확인해 주세요.'
+      network: '네트워크 연결이 불안정해 AI 응답을 가져오지 못했습니다. 연결을 확인하거나 연습 모드로 전환해 주세요.',
+      fallback: 'AI 응답을 불러오지 못했습니다. 민감정보를 포함하지 않았는지 확인하고, 필요하면 연습 모드로 흐름을 확인해 주세요.'
     },
     imageInsightQuestion: (name) => `[이미지 첨부 검토] ${name}`,
     imageInsightAnswer: ({ format, dimensions, warnings }) => [
-      `이미지 파일을 임시 검토했습니다. 형식: ${format}, 크기: ${dimensions}.`,
-      '선택한 파일은 서버에 보관하지 않습니다.',
+      `이미지 파일을 임시로 검토했습니다. 형식과 크기는 정상입니다. 형식: ${format}, 크기: ${dimensions}.`,
+      '선택한 파일은 서버에 저장되지 않습니다.',
+      '이번 버전에서는 이미지 OCR과 AI Vision 분석을 지원하지 않습니다. 자동 노트·퀴즈 생성을 원하면 텍스트 기반 PDF를 사용해 주세요.',
       ...(warnings || [])
     ].join('\n'),
     imageInsightSuccess: '이미지 1차 검토 결과를 AI 대화방에 추가했습니다.',
     selectImageFirst: '먼저 이미지를 첨부해 주세요.',
-    selectReviewFileFirst: '먼저 이미지 또는 PDF 파일을 선택해 주세요.',
+    selectReviewFileFirst: '먼저 이미지 또는 텍스트 기반 PDF 파일을 선택해 주세요.',
     reviewResultSuccess: '첨부 파일 분석 결과를 생성했습니다.',
+    reviewFileRemoved: '첨부 파일을 제거했습니다.',
     reviewFileAttached: '검토용 파일을 선택했습니다. 분석 요청 시 서버에서 임시 처리한 뒤 보관하지 않습니다.',
-    imageReviewTitle: '이미지 첨부 1차 검토',
-    imageReviewDescription: (size) => `PNG, JPG, WEBP, GIF 파일을 최대 ${size}까지 선택해 파일 형식과 이미지 메타데이터를 검토할 수 있습니다.`,
-    materialReviewTitle: 'OCR/PDF 노트·퀴즈 생성',
-    materialReviewDescription: (size) => `이미지 또는 PDF를 최대 ${size}까지 선택해 텍스트 기반 PDF의 학습 내용을 추출하고 요약·노트·퀴즈 초안을 생성합니다.`,
+    imageReviewTitle: '이미지 파일 검토',
+    imageReviewResultTitle: '이미지 검토 결과',
+    imageReviewDescription: (size) => `PNG, JPG, WEBP, GIF 파일을 최대 ${size}까지 선택해 형식, 용량, 이미지 메타데이터를 검토합니다. 이미지 OCR과 AI Vision 분석은 지원하지 않습니다.`,
+    materialReviewTitle: '텍스트 기반 PDF 노트·퀴즈 생성',
+    materialReviewDescription: (size) => `텍스트 기반 PDF를 최대 ${size}까지 선택해 학습 내용을 추출하고 요약·노트·퀴즈 초안을 생성합니다. 이미지는 OCR 없이 형식 검토만 지원합니다.`,
     attachmentPrivacyNotice: '민감정보가 포함된 학습 자료는 첨부하지 마세요. 선택한 파일은 분석 요청 처리에만 사용되며 별도 보관하지 않습니다.',
     imageStoredNotice: '분석 요청 시 파일 형식, 크기, 이미지 메타데이터를 서버에서 임시 검토합니다.',
-    reviewStoredNotice: '텍스트 기반 PDF는 텍스트 추출 후 요약·노트·퀴즈 초안을 생성합니다. 스캔 PDF와 이미지는 텍스트 추출이 제한될 수 있습니다.',
+    reviewStoredNotice: '텍스트 기반 PDF는 텍스트 추출 후 요약·노트·퀴즈 초안을 생성합니다. 스캔 PDF와 이미지는 OCR을 지원하지 않아 자동 생성에 사용할 수 없습니다.',
     analyzeImageButton: '이미지 검토 실행',
     analyzeMaterialButton: '노트·퀴즈 생성',
     removeAttachment: '첨부 제거',
@@ -257,34 +260,44 @@ const AI_LOCALIZED_COPY = {
     quizTitle: '복습 퀴즈',
     keywordsTitle: '주요 키워드',
     warningsTitle: '확인 필요',
-    noGeneratedResult: '텍스트를 추출하지 못했습니다. 더 선명한 이미지나 텍스트 기반 PDF를 사용해 주세요.',
+    noGeneratedResult: '텍스트를 추출하지 못했습니다. 자동 노트·퀴즈 생성을 원하면 텍스트 기반 PDF를 사용해 주세요.',
     unknownImageSize: '확인 불가',
     attachmentErrors: {
       tooLarge: '파일 용량이 허용 범위를 초과했습니다.',
       unsupported: '지원하지 않는 파일 형식입니다. 허용 형식과 확장자를 확인해 주세요.',
       failed: '첨부 파일을 분석하지 못했습니다. 파일을 다시 선택해 주세요.'
     },
-    mockQuestionSuccess: 'Mock 모드 응답을 추가했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.',
-    mockRecommendationSuccess: 'Mock 모드 추천을 표시했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.',
-    mockSummarySuccess: 'Mock 모드 요약을 표시했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.',
-    mockWrongAnswerSuccess: 'Mock 모드 오답 분석을 표시했습니다. 실제 외부 AI 호출은 수행하지 않았습니다.',
-    mockModeOn: 'AI Mock 모드를 켰습니다. 실제 외부 AI 호출 없이 데모 응답을 표시합니다.',
-    mockModeOff: 'AI Mock 모드를 껐습니다. 기존 AI 학습 API 흐름을 사용합니다.'
+    mockModeTitle: 'AI 연습 모드',
+    mockModeDescription: 'AI 사용 한도나 제공자 연결이 불안정할 때 안전한 예시 응답으로 화면 흐름을 확인합니다.',
+    mockModeActive: '연습 모드 사용 중',
+    mockModeEnable: '연습 모드 켜기',
+    mockQuestionSuccess: '연습 모드 응답을 추가했습니다.',
+    mockRecommendationSuccess: '연습 모드 추천을 표시했습니다.',
+    mockSummarySuccess: '연습 모드 요약을 표시했습니다.',
+    mockWrongAnswerSuccess: '연습 모드 오답 분석을 표시했습니다.',
+    mockModeOn: 'AI 연습 모드를 켰습니다. 안전한 예시 응답으로 흐름을 확인합니다.',
+    mockModeOff: 'AI 연습 모드를 껐습니다. 기존 AI 학습 API 흐름을 사용합니다.',
+    selectImageButton: '이미지 선택',
+    selectMaterialButton: '파일 선택',
+    selectMaterialFileAccessibilityLabel: '텍스트 기반 PDF 또는 이미지 파일 선택',
+    practiceBadgeRecommendation: '연습 추천',
+    practiceBadgeSummary: '연습 요약',
+    practiceBadgeWrongAnswer: '연습 분석'
   },
   en: {
     imageAttached: 'Image file selected. It will be processed temporarily on request and not retained.',
     imageHelp: (size) => `You can attach PNG, JPG, WEBP, or GIF images up to ${size}.`,
     pdfPreview: 'Text-based PDFs will be parsed when possible. Scanned PDFs may not provide extractable text.',
-    reviewImageAttached: 'Review image selected. Image OCR support is limited in this release.',
-    reviewHelp: (size) => `You can choose an image or PDF up to ${size}.`,
+    reviewImageAttached: 'Image file selected. This version checks only file type, size, and metadata.',
+    reviewHelp: (size) => `You can choose an image or text-based PDF up to ${size}.`,
     pdfSource: 'PDF material',
     imageSource: 'Image material',
     fallbackFile: 'study material',
-    noteTitle: (source) => `${source} demo note`,
+    noteTitle: (source) => `${source} study note draft`,
     reviewSummary: (fileName) => [
       `This is a draft organized from extractable learning content in ${fileName}.`,
-      'The demo compresses key ideas into two or three sentences and suggests review questions.',
-      'Saving real notes or quizzes will be decided later after file policy and cost review.'
+      'It compresses key ideas into two or three sentences and suggests review questions.',
+      'Generated content is a draft for on-screen review, and the file is not retained on the server.'
     ],
     reviewQuizzes: [
       {
@@ -293,17 +306,17 @@ const AI_LOCALIZED_COPY = {
       },
       {
         question: 'What should the user check before automatic quiz generation?',
-        answer: 'Check that no personal information is included and that the result is a demo, not real analysis.'
+        answer: 'Check that no personal information is included, then review the extracted text and generated draft yourself.'
       },
       {
-        question: 'What technical items need review for the follow-up implementation?',
-        answer: 'Extraction accuracy, sensitive information, and whether the generated draft should be saved.'
+        question: 'How should the generated notes and quizzes be used?',
+        answer: 'Review the core concepts quickly, then solve the review quiz to find units that need another pass.'
       }
     ],
     mockAnswer: (question) => [
-      `This is a demo response. The question appears to focus on "${question.slice(0, 80)}${question.length > 80 ? '...' : ''}".`,
+      `This is a practice response. The question appears to focus on "${question.slice(0, 80)}${question.length > 80 ? '...' : ''}".`,
       'First summarize the concept in one sentence, solve one textbook example, and then ask again only about the confusing part.',
-      'This is a mock response for demo stability, not an external AI call.'
+      'Practice mode uses a safe sample response to confirm the learning flow.'
     ].join(' '),
     recommendation: {
       recommendedSubject: 'Today’s review routine',
@@ -322,20 +335,20 @@ const AI_LOCALIZED_COPY = {
       noData: 'No records'
     },
     summary: (preview) => [
-      '- This is a demo summary. It first separates key concepts and linking words from the text.',
+      '- This is a practice summary. It first separates key concepts and linking words from the text.',
       '- If there is an example or solution, it marks the order for applying the concept.',
       `- Review again: ${preview}`
     ].join('\n'),
     weakCalculation: 'calculation mistake',
     weakConcept: 'concept misunderstanding',
     wrongAnalysis: (problem, userAnswer) => [
-      'This is a demo analysis. It only shows the wrong-answer review flow without external AI calls.',
+      'This is a practice analysis. It follows the wrong-answer review flow and organizes the problem focus and solving process.',
       `Problem focus: ${problem.slice(0, 80)}${problem.length > 80 ? '...' : ''}`,
       userAnswer ? `Your answer: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : 'No answer was entered, so the review focuses on the solving process.',
       'Before memorizing the correct answer, write one step explaining why you chose that answer.'
     ].join(' '),
     audioBriefing: {
-      eyebrow: 'Browser voice demo',
+      eyebrow: 'Browser voice guide',
       title: "Today's audio briefing",
       description: 'Summarizes the current AI learning screen and reads it with your accessibility voice setting.',
       play: 'Play briefing',
@@ -347,7 +360,7 @@ const AI_LOCALIZED_COPY = {
       voiceLabel: (voice) => `Accessibility voice setting: ${voice}`,
       actionLabel: "Play or stop today's AI learning audio briefing",
       lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
-        mockMode ? 'AI Mock mode is on, so the flow uses demo responses without external AI calls.' : 'The AI learning API flow is ready. Do not include sensitive information in prompts.',
+        mockMode ? 'AI practice mode is on, so the flow uses sample responses.' : 'The AI learning API flow is ready. Do not include sensitive information in prompts.',
         chatCount > 0 ? `${chatCount} recent AI chat item${chatCount === 1 ? '' : 's'} will be reflected in this briefing.` : 'There are no AI questions yet, so start with one small question.',
         hasRecommendation ? 'A personalized recommendation is ready for today’s review routine.' : 'Run a recommendation once to make today’s review direction clearer.',
         hasSummary ? 'A document summary is ready, so you can review the key ideas quickly.' : 'Use long-text summary to organize key ideas from your material.',
@@ -356,32 +369,35 @@ const AI_LOCALIZED_COPY = {
       ]
     },
     errors: {
-      token: 'Your login session may have expired. Log in again or use Mock mode to continue the demo flow.',
-      quota: 'The AI usage quota is exhausted or too many requests were sent. Try again later or use Mock mode for the demo flow.',
-      quotaFallback: 'The external AI quota was unavailable, so a safe fallback response is shown. Try again later or use Mock mode.',
-      provider: 'The AI provider or API key setting needs to be checked. You can safely demo this screen with Mock mode.',
+      token: 'Your login session may have expired. Log in again or use practice mode to review the flow.',
+      quota: 'The AI usage quota is exhausted or too many requests were sent. Try again later or use practice mode.',
+      quotaFallback: 'The AI quota was unavailable, so a safe fallback response is shown. Try again later or use practice mode.',
+      provider: 'The AI provider or API key setting needs to be checked. You can review the flow with practice mode.',
       providerFallback: 'The AI provider connection was unavailable, so a safe fallback response is shown while the learning flow remains usable.',
-      network: 'The network connection is unstable, so the AI response could not be loaded. Check the connection or switch to Mock mode.',
-      fallback: 'Could not load the AI response. Check that no sensitive information is included, or use Mock mode for the demo flow.'
+      network: 'The network connection is unstable, so the AI response could not be loaded. Check the connection or switch to practice mode.',
+      fallback: 'Could not load the AI response. Check that no sensitive information is included, or use practice mode for the flow.'
     },
     imageInsightQuestion: (name) => `[Image attachment review] ${name}`,
     imageInsightAnswer: ({ format, dimensions, warnings }) => [
-      `The image file was reviewed temporarily. Format: ${format}, size: ${dimensions}.`,
-      'The selected file is not retained on the server.',
+      `The image file was reviewed temporarily. Type and size are valid. Format: ${format}, dimensions: ${dimensions}.`,
+      'The selected file is not stored on the server.',
+      'This version does not support image OCR or AI Vision analysis. Use a text-based PDF for automatic note and quiz drafts.',
       ...(warnings || [])
     ].join('\n'),
     imageInsightSuccess: 'Image first-review result was added to the AI chat room.',
     selectImageFirst: 'Attach an image first.',
-    selectReviewFileFirst: 'Choose an image or PDF file first.',
+    selectReviewFileFirst: 'Choose an image or text-based PDF file first.',
     reviewResultSuccess: 'Attachment analysis result generated.',
+    reviewFileRemoved: 'Attachment removed.',
     reviewFileAttached: 'Review file selected. It will be processed temporarily on request and not retained.',
-    imageReviewTitle: 'Image attachment first review',
-    imageReviewDescription: (size) => `Select a PNG, JPG, WEBP, or GIF image up to ${size} to validate the file and inspect image metadata.`,
-    materialReviewTitle: 'OCR/PDF note and quiz generation',
-    materialReviewDescription: (size) => `Select an image or PDF up to ${size} to extract text from text-based PDFs and draft summaries, notes, and quizzes.`,
+    imageReviewTitle: 'Image file review',
+    imageReviewResultTitle: 'Image review result',
+    imageReviewDescription: (size) => `Select a PNG, JPG, WEBP, or GIF image up to ${size} to validate file type, size, and image metadata. Image OCR and AI Vision analysis are not supported.`,
+    materialReviewTitle: 'Text-based PDF notes and quizzes',
+    materialReviewDescription: (size) => `Select a text-based PDF up to ${size} to extract learning content and draft summaries, notes, and quizzes. Images are supported only for non-OCR file review.`,
     attachmentPrivacyNotice: 'Do not attach materials that include sensitive information. Selected files are used only for the analysis request and are not stored.',
     imageStoredNotice: 'When requested, the server temporarily validates the file type, size, and image metadata.',
-    reviewStoredNotice: 'Text-based PDFs can be extracted and turned into draft summaries, notes, and quizzes. Scanned PDFs and images may have limited text extraction.',
+    reviewStoredNotice: 'Text-based PDFs can be extracted and turned into draft summaries, notes, and quizzes. Scanned PDFs and images do not support OCR, so they cannot be used for automatic generation.',
     analyzeImageButton: 'Run image review',
     analyzeMaterialButton: 'Generate notes and quiz',
     removeAttachment: 'Remove attachment',
@@ -392,34 +408,44 @@ const AI_LOCALIZED_COPY = {
     quizTitle: 'Review quiz',
     keywordsTitle: 'Keywords',
     warningsTitle: 'Needs review',
-    noGeneratedResult: 'Could not extract readable text. Try a clearer image or a text-based PDF.',
+    noGeneratedResult: 'Could not extract text. Use a text-based PDF for automatic note and quiz generation.',
     unknownImageSize: 'unknown',
     attachmentErrors: {
       tooLarge: 'The file exceeds the allowed size.',
       unsupported: 'This file type is not supported. Check the allowed formats and extension.',
       failed: 'Could not analyze the attachment. Select the file again.'
     },
-    mockQuestionSuccess: 'Mock mode response added. No external AI call was made.',
-    mockRecommendationSuccess: 'Mock mode recommendation shown. No external AI call was made.',
-    mockSummarySuccess: 'Mock mode summary shown. No external AI call was made.',
-    mockWrongAnswerSuccess: 'Mock mode wrong-answer analysis shown. No external AI call was made.',
-    mockModeOn: 'AI Mock mode is on. Demo responses will be shown without external AI calls.',
-    mockModeOff: 'AI Mock mode is off. The existing AI learning API flow will be used.'
+    mockModeTitle: 'AI practice mode',
+    mockModeDescription: 'When the AI quota or provider connection is unstable, use safe sample responses to review the screen flow.',
+    mockModeActive: 'Practice mode on',
+    mockModeEnable: 'Enable practice mode',
+    mockQuestionSuccess: 'Practice mode response added.',
+    mockRecommendationSuccess: 'Practice mode recommendation shown.',
+    mockSummarySuccess: 'Practice mode summary shown.',
+    mockWrongAnswerSuccess: 'Practice mode wrong-answer analysis shown.',
+    mockModeOn: 'AI practice mode is on. The flow will use safe sample responses.',
+    mockModeOff: 'AI practice mode is off. The existing AI learning API flow will be used.',
+    selectImageButton: 'Choose image',
+    selectMaterialButton: 'Choose file',
+    selectMaterialFileAccessibilityLabel: 'Choose a text-based PDF or image file',
+    practiceBadgeRecommendation: 'Practice recommendation',
+    practiceBadgeSummary: 'Practice summary',
+    practiceBadgeWrongAnswer: 'Practice analysis'
   },
   ja: {
     imageAttached: '画像ファイルを選択しました。分析時に一時処理され、保存されません。',
     imageHelp: (size) => `PNG、JPG、WEBP、GIF画像を${size}以下で添付できます。`,
     pdfPreview: 'テキストベースのPDFは抽出を試みます。スキャンPDFでは抽出できない場合があります。',
-    reviewImageAttached: '確認用画像ファイルを選択しました。画像OCRの対応範囲は限定されています。',
-    reviewHelp: (size) => `画像またはPDFを${size}以下で選択できます。`,
+    reviewImageAttached: '画像ファイルを選択しました。このバージョンでは形式・容量・メタデータのみ確認します。',
+    reviewHelp: (size) => `画像またはテキストベースPDFを${size}以下で選択できます。`,
     pdfSource: 'PDF資料',
     imageSource: '画像資料',
     fallbackFile: '学習資料',
-    noteTitle: (source) => `${source}デモノート`,
+    noteTitle: (source) => `${source}学習ノート案`,
     reviewSummary: (fileName) => [
       `${fileName}から抽出できる学習内容を基に整理した下書きです。`,
-      '重要な概念を2〜3文に圧縮し、復習用の質問も提案する方向を検討します。',
-      'ノート・クイズとして保存する前に内容の正確性を確認します。'
+      '重要な概念を2〜3文に圧縮し、復習用の質問も提案します。',
+      '生成内容は画面で確認する下書きであり、ファイルはサーバーに保存されません。'
     ],
     reviewQuizzes: [
       {
@@ -428,17 +454,17 @@ const AI_LOCALIZED_COPY = {
       },
       {
         question: '自動クイズ生成の前にユーザーが確認すべき点は何ですか？',
-        answer: '個人情報が含まれていないか、抽出結果が正確かを確認します。'
+        answer: '個人情報が含まれていないかを確認し、抽出テキストと生成下書きを自分で見直します。'
       },
       {
-        question: '後続実装で必要な技術検討項目は何ですか？',
-        answer: '抽出精度、機密情報の有無、生成下書きの保存可否です。'
+        question: '生成されたノートとクイズはどう使えばよいですか？',
+        answer: '重要概念をすばやく確認し、復習クイズで見直す単元を見つけます。'
       }
     ],
     mockAnswer: (question) => [
-      `デモ応答です。質問の要点は「${question.slice(0, 80)}${question.length > 80 ? '...' : ''}」として確認できます。`,
+      `練習応答です。質問の要点は「${question.slice(0, 80)}${question.length > 80 ? '...' : ''}」として確認できます。`,
       'まず概念を一文で整理し、教材の例題を1つ解いてから、迷った部分だけをもう一度質問してみましょう。',
-      'これは発表・デモ安定性のためのMock応答で、外部AI呼び出しではありません。'
+      '練習モードでは安全なサンプル応答で学習の流れを確認します。'
     ].join(' '),
     recommendation: {
       recommendedSubject: '今日の復習ルーティン',
@@ -457,20 +483,20 @@ const AI_LOCALIZED_COPY = {
       noData: '記録なし'
     },
     summary: (preview) => [
-      '- デモ要約です。本文から重要概念とつながり語を先に分けます。',
+      '- 練習要約です。本文から重要概念とつながり語を先に分けます。',
       '- 例や解法があれば、概念を適用する順序を別に示します。',
       `- もう一度見る部分: ${preview}`
     ].join('\n'),
     weakCalculation: '計算ミス',
     weakConcept: '概念理解のずれ',
     wrongAnalysis: (problem, userAnswer) => [
-      'デモ分析です。外部AI呼び出しなしで誤答確認の流れだけを表示します。',
+      '練習分析です。誤答確認の流れに沿って問題の要点と解き方を整理します。',
       `問題の要点: ${problem.slice(0, 80)}${problem.length > 80 ? '...' : ''}`,
       userAnswer ? `入力した答え: ${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '入力した答えがないため、解き方の流れを中心に確認します。',
       '正解を覚える前に、なぜその選択をしたのかを一段階だけ書き直してみましょう。'
     ].join(' '),
     audioBriefing: {
-      eyebrow: 'ブラウザ音声デモ',
+      eyebrow: 'ブラウザ音声ガイド',
       title: '今日のオーディオブリーフィング',
       description: '現在のAI学習画面の記録を短く整理し、アクセシビリティの音声設定で読み上げます。',
       play: 'ブリーフィングを聞く',
@@ -482,7 +508,7 @@ const AI_LOCALIZED_COPY = {
       voiceLabel: (voice) => `アクセシビリティ音声設定: ${voice}`,
       actionLabel: '今日のAI学習オーディオブリーフィングを再生または停止',
       lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
-        mockMode ? 'AI Mockモードがオンのため、外部AI呼び出しなしでデモ応答を使っています。' : 'AI学習APIフローを使う準備ができています。機密情報は質問に含めないことが原則です。',
+        mockMode ? 'AI練習モードがオンのため、サンプル応答で学習の流れを確認しています。' : 'AI学習APIフローを使う準備ができています。機密情報は質問に含めないことが原則です。',
         chatCount > 0 ? `最近のAI会話${chatCount}件をこのブリーフィングに反映します。` : 'まだAI質問の記録がないため、小さな質問から始めるとよいです。',
         hasRecommendation ? 'パーソナル推薦があり、今日の復習ルーティンを確認できます。' : '推薦を一度実行すると、今日の復習方向が見えやすくなります。',
         hasSummary ? '文書要約が準備されているため、重要概念をすばやく見直せます。' : '長文要約を使うと、資料の重要概念を整理できます。',
@@ -491,32 +517,35 @@ const AI_LOCALIZED_COPY = {
       ]
     },
     errors: {
-      token: 'ログイン情報の有効期限が切れた可能性があります。再ログインするか、Mockモードでデモの流れを確認してください。',
-      quota: 'AI利用上限に達したか、リクエストが多すぎます。しばらくしてから再試行するか、Mockモードでデモを続けてください。',
-      quotaFallback: '外部AIの利用上限により、安全な基本応答を表示しました。しばらくしてから再試行するか、Mockモードを使用できます。',
-      provider: 'AIプロバイダー設定またはAPI keyの状態確認が必要です。現在の画面はMockモードで安全にデモできます。',
+      token: 'ログイン情報の有効期限が切れた可能性があります。再ログインするか、練習モードで流れを確認してください。',
+      quota: 'AI利用上限に達したか、リクエストが多すぎます。しばらくしてから再試行するか、練習モードを使用してください。',
+      quotaFallback: 'AI利用上限の問題により、安全な基本応答を表示しました。しばらくしてから再試行するか、練習モードを使用できます。',
+      provider: 'AIプロバイダー設定またはAPI keyの状態確認が必要です。現在の画面は練習モードで流れを確認できます。',
       providerFallback: 'AIプロバイダー接続が利用できないため、安全な基本応答を表示しました。学習の流れはそのまま確認できます。',
-      network: 'ネットワーク接続が不安定でAI応答を取得できませんでした。接続を確認するかMockモードに切り替えてください。',
-      fallback: 'AI応答を読み込めませんでした。機密情報が含まれていないか確認し、必要ならMockモードでデモの流れを確認してください。'
+      network: 'ネットワーク接続が不安定でAI応答を取得できませんでした。接続を確認するか練習モードに切り替えてください。',
+      fallback: 'AI応答を読み込めませんでした。機密情報が含まれていないか確認し、必要なら練習モードで流れを確認してください。'
     },
     imageInsightQuestion: (name) => `[画像添付レビュー] ${name}`,
     imageInsightAnswer: ({ format, dimensions, warnings }) => [
-      `画像ファイルを一時的に確認しました。形式: ${format}、サイズ: ${dimensions}。`,
+      `画像ファイルを一時的に確認しました。形式とサイズは有効です。形式: ${format}、サイズ: ${dimensions}。`,
       '選択したファイルはサーバーに保存されません。',
+      'このバージョンでは画像OCRとAI Vision分析に対応していません。自動ノート・クイズ生成にはテキストベースPDFを使用してください。',
       ...(warnings || [])
     ].join('\n'),
     imageInsightSuccess: '画像の一次確認結果をAIチャットルームに追加しました。',
     selectImageFirst: '先に画像を添付してください。',
-    selectReviewFileFirst: '先に画像またはPDFファイルを選択してください。',
+    selectReviewFileFirst: '先に画像またはテキストベースPDFファイルを選択してください。',
     reviewResultSuccess: '添付ファイルの分析結果を生成しました。',
+    reviewFileRemoved: '添付ファイルを削除しました。',
     reviewFileAttached: '確認用ファイルを選択しました。分析時に一時処理され、保存されません。',
-    imageReviewTitle: '画像添付の一次確認',
-    imageReviewDescription: (size) => `PNG、JPG、WEBP、GIF画像を${size}以下で選択し、形式と画像メタデータを確認できます。`,
-    materialReviewTitle: 'OCR/PDFノート・クイズ生成',
-    materialReviewDescription: (size) => `画像またはPDFを${size}以下で選択し、テキストベースPDFから学習内容を抽出して要約・ノート・クイズ案を生成します。`,
+    imageReviewTitle: '画像ファイル確認',
+    imageReviewResultTitle: '画像確認結果',
+    imageReviewDescription: (size) => `PNG、JPG、WEBP、GIF画像を${size}以下で選択し、形式、容量、画像メタデータを確認します。画像OCRとAI Vision分析には対応していません。`,
+    materialReviewTitle: 'テキストベースPDFノート・クイズ生成',
+    materialReviewDescription: (size) => `テキストベースPDFを${size}以下で選択し、学習内容を抽出して要約・ノート・クイズ案を生成します。画像はOCRなしのファイル確認のみ対応します。`,
     attachmentPrivacyNotice: '機密情報を含む学習資料は添付しないでください。選択したファイルは分析リクエストの処理にのみ使われ、保存されません。',
     imageStoredNotice: '分析時にファイル形式、サイズ、画像メタデータをサーバーで一時確認します。',
-    reviewStoredNotice: 'テキストベースPDFは抽出後に要約・ノート・クイズ案を生成できます。スキャンPDFや画像では抽出が制限される場合があります。',
+    reviewStoredNotice: 'テキストベースPDFは抽出後に要約・ノート・クイズ案を生成できます。スキャンPDFや画像はOCR非対応のため自動生成には使用できません。',
     analyzeImageButton: '画像確認を実行',
     analyzeMaterialButton: 'ノート・クイズ生成',
     removeAttachment: '添付を削除',
@@ -527,34 +556,44 @@ const AI_LOCALIZED_COPY = {
     quizTitle: '復習クイズ',
     keywordsTitle: '主要キーワード',
     warningsTitle: '確認が必要',
-    noGeneratedResult: '読み取れるテキストを抽出できませんでした。より鮮明な画像またはテキストベースPDFを使用してください。',
+    noGeneratedResult: 'テキストを抽出できませんでした。自動ノート・クイズ生成にはテキストベースPDFを使用してください。',
     unknownImageSize: '確認不可',
     attachmentErrors: {
       tooLarge: 'ファイル容量が許容範囲を超えています。',
       unsupported: '対応していないファイル形式です。許可された形式と拡張子を確認してください。',
       failed: '添付ファイルを分析できませんでした。もう一度ファイルを選択してください。'
     },
-    mockQuestionSuccess: 'Mockモード応答を追加しました。外部AI呼び出しは行っていません。',
-    mockRecommendationSuccess: 'Mockモード推薦を表示しました。外部AI呼び出しは行っていません。',
-    mockSummarySuccess: 'Mockモード要約を表示しました。外部AI呼び出しは行っていません。',
-    mockWrongAnswerSuccess: 'Mockモード誤答分析を表示しました。外部AI呼び出しは行っていません。',
-    mockModeOn: 'AI Mockモードをオンにしました。外部AI呼び出しなしでデモ応答を表示します。',
-    mockModeOff: 'AI Mockモードをオフにしました。既存のAI学習APIフローを使用します。'
+    mockModeTitle: 'AI練習モード',
+    mockModeDescription: 'AI利用上限やプロバイダー接続が不安定なとき、安全なサンプル応答で画面の流れを確認します。',
+    mockModeActive: '練習モード使用中',
+    mockModeEnable: '練習モードをオン',
+    mockQuestionSuccess: '練習モード応答を追加しました。',
+    mockRecommendationSuccess: '練習モード推薦を表示しました。',
+    mockSummarySuccess: '練習モード要約を表示しました。',
+    mockWrongAnswerSuccess: '練習モード誤答分析を表示しました。',
+    mockModeOn: 'AI練習モードをオンにしました。安全なサンプル応答で流れを確認します。',
+    mockModeOff: 'AI練習モードをオフにしました。既存のAI学習APIフローを使用します。',
+    selectImageButton: '画像を選択',
+    selectMaterialButton: 'ファイルを選択',
+    selectMaterialFileAccessibilityLabel: 'テキストベースPDFまたは画像ファイルを選択',
+    practiceBadgeRecommendation: '練習推薦',
+    practiceBadgeSummary: '練習要約',
+    practiceBadgeWrongAnswer: '練習分析'
   },
   zh: {
     imageAttached: '已选择图片文件。分析请求时会临时处理，且不会保存。',
     imageHelp: (size) => `可以附加 ${size} 以下的 PNG、JPG、WEBP、GIF 图片。`,
     pdfPreview: '将尝试提取文本型 PDF。扫描版 PDF 可能无法提取文本。',
-    reviewImageAttached: '已选择评估用图片文件。本版本的图片 OCR 支持范围有限。',
-    reviewHelp: (size) => `可以选择 ${size} 以下的图片或 PDF。`,
+    reviewImageAttached: '已选择图片文件。本版本仅检查格式、大小和元数据。',
+    reviewHelp: (size) => `可以选择 ${size} 以下的图片或文本型 PDF。`,
     pdfSource: 'PDF 资料',
     imageSource: '图片资料',
     fallbackFile: '学习资料',
-    noteTitle: (source) => `${source}演示笔记`,
+    noteTitle: (source) => `${source}学习笔记草稿`,
     reviewSummary: (fileName) => [
       `这是根据 ${fileName} 中可提取的学习内容整理出的草稿。`,
-      '演示会把核心概念压缩成 2 到 3 句话，并一起提出复习问题。',
-      '保存为笔记或测验前需要确认内容准确性。'
+      '会把核心概念压缩成 2 到 3 句话，并一起提出复习问题。',
+      '生成内容是屏幕上确认用的草稿，文件不会保存在服务器上。'
     ],
     reviewQuizzes: [
       {
@@ -563,17 +602,17 @@ const AI_LOCALIZED_COPY = {
       },
       {
         question: '自动生成测验前，用户需要确认什么？',
-        answer: '确认不包含个人信息，并检查提取结果是否准确。'
+        answer: '确认不包含个人信息，并自行检查提取文本和生成草稿。'
       },
       {
-        question: '后续实现需要评估哪些技术项目？',
-        answer: '提取准确性、敏感信息以及生成草稿是否需要保存。'
+        question: '生成的笔记和测验应该如何使用？',
+        answer: '先快速查看核心概念，再通过复习测验找出需要重新学习的单元。'
       }
     ],
     mockAnswer: (question) => [
-      `这是演示回复。问题重点可理解为“${question.slice(0, 80)}${question.length > 80 ? '...' : ''}”。`,
+      `这是练习回复。问题重点可理解为“${question.slice(0, 80)}${question.length > 80 ? '...' : ''}”。`,
       '先用一句话整理概念，再做一道教材例题，最后只针对不清楚的部分继续提问。',
-      '这是为了演示稳定性准备的模拟回复，并不是外部 AI 调用。'
+      '练习模式会使用安全的示例回复来确认学习流程。'
     ].join(' '),
     recommendation: {
       recommendedSubject: '今日复习节奏',
@@ -592,20 +631,20 @@ const AI_LOCALIZED_COPY = {
       noData: '暂无记录'
     },
     summary: (preview) => [
-      '- 这是演示摘要。先从正文中分离核心概念和连接词。',
+      '- 这是练习摘要。先从正文中分离核心概念和连接词。',
       '- 如果有示例或解题过程，会另外标出概念应用顺序。',
       `- 需要再看的部分：${preview}`
     ].join('\n'),
     weakCalculation: '计算失误',
     weakConcept: '概念理解偏差',
     wrongAnalysis: (problem, userAnswer) => [
-      '这是演示分析。不会调用外部 AI，只用于确认错题检查流程。',
+      '这是练习分析。会沿着错题检查流程整理题目重点和解题过程。',
       `题目重点：${problem.slice(0, 80)}${problem.length > 80 ? '...' : ''}`,
       userAnswer ? `填写的答案：${userAnswer.slice(0, 80)}${userAnswer.length > 80 ? '...' : ''}` : '没有填写答案，因此会以解题过程为中心检查。',
       '不要急着背正确答案，先写下一步你为什么会这样选择。'
     ].join(' '),
     audioBriefing: {
-      eyebrow: '浏览器语音演示',
+      eyebrow: '浏览器语音指南',
       title: '今日音频简报',
       description: '把当前 AI 学习页面的记录简短整理，并用无障碍语音设置朗读。',
       play: '播放简报',
@@ -617,7 +656,7 @@ const AI_LOCALIZED_COPY = {
       voiceLabel: (voice) => `无障碍语音设置：${voice}`,
       actionLabel: '播放或停止今日 AI 学习音频简报',
       lines: ({ mockMode, chatCount, hasRecommendation, hasSummary, hasWrongAnalysis, hasReviewMock, hasImageInsight }) => [
-        mockMode ? 'AI Mock 模式已开启，因此会使用演示回复，不调用外部 AI。' : 'AI 学习 API 流程已准备就绪。请不要在问题中包含敏感信息。',
+        mockMode ? 'AI 练习模式已开启，因此会使用示例回复确认学习流程。' : 'AI 学习 API 流程已准备就绪。请不要在问题中包含敏感信息。',
         chatCount > 0 ? `最近 ${chatCount} 条 AI 对话会反映在这份简报中。` : '目前还没有 AI 提问记录，可以先从一个小问题开始。',
         hasRecommendation ? '已有个性化推荐，可以直接确认今日复习节奏。' : '执行一次推荐后，今日复习方向会更清楚。',
         hasSummary ? '已有文档摘要，可以快速回顾核心概念。' : '使用长文摘要可以快速整理资料中的核心概念。',
@@ -626,32 +665,35 @@ const AI_LOCALIZED_COPY = {
       ]
     },
     errors: {
-      token: '登录信息可能已过期。请重新登录，或使用 Mock 模式继续演示流程。',
-      quota: 'AI 使用额度已耗尽，或请求过于频繁。请稍后重试，或使用 Mock 模式继续演示流程。',
-      quotaFallback: '由于外部 AI 额度不可用，已显示安全的默认回复。请稍后重试，或使用 Mock 模式。',
-      provider: '需要检查 AI 服务提供方设置或 API key 状态。当前页面可使用 Mock 模式安全演示。',
+      token: '登录信息可能已过期。请重新登录，或使用练习模式确认流程。',
+      quota: 'AI 使用额度已耗尽，或请求过于频繁。请稍后重试，或使用练习模式。',
+      quotaFallback: '由于 AI 额度问题，已显示安全的默认回复。请稍后重试，或使用练习模式。',
+      provider: '需要检查 AI 服务提供方设置或 API key 状态。当前页面可使用练习模式确认流程。',
       providerFallback: 'AI 服务提供方连接不可用，因此显示安全的默认回复，学习流程仍可继续查看。',
-      network: '网络连接不稳定，无法获取 AI 回复。请检查连接或切换到 Mock 模式。',
-      fallback: '无法加载 AI 回复。请确认未包含敏感信息，必要时使用 Mock 模式查看演示流程。'
+      network: '网络连接不稳定，无法获取 AI 回复。请检查连接或切换到练习模式。',
+      fallback: '无法加载 AI 回复。请确认未包含敏感信息，必要时使用练习模式查看流程。'
     },
     imageInsightQuestion: (name) => `[图片附加评估] ${name}`,
     imageInsightAnswer: ({ format, dimensions, warnings }) => [
-      `已临时评估图片文件。格式：${format}，尺寸：${dimensions}。`,
+      `已临时检查图片文件。格式和大小有效。格式：${format}，尺寸：${dimensions}。`,
       '所选文件不会保存在服务器上。',
+      '本版本不支持图片 OCR 和 AI Vision 分析。如需自动生成笔记和测验，请使用文本型 PDF。',
       ...(warnings || [])
     ].join('\n'),
     imageInsightSuccess: '已将图片初步评估结果添加到 AI 对话房间。',
     selectImageFirst: '请先附加图片。',
-    selectReviewFileFirst: '请先选择图片或 PDF 文件。',
+    selectReviewFileFirst: '请先选择图片或文本型 PDF 文件。',
     reviewResultSuccess: '已生成附件分析结果。',
+    reviewFileRemoved: '已移除附件。',
     reviewFileAttached: '已选择评估用文件。分析请求时会临时处理，且不会保存。',
-    imageReviewTitle: '图片附件初步评估',
-    imageReviewDescription: (size) => `可选择 ${size} 以下的 PNG、JPG、WEBP 或 GIF 图片，检查文件格式和图片元数据。`,
-    materialReviewTitle: 'OCR/PDF 笔记与测验生成',
-    materialReviewDescription: (size) => `可选择 ${size} 以下的图片或 PDF，从文本型 PDF 提取学习内容，并生成摘要、笔记与测验草稿。`,
+    imageReviewTitle: '图片文件检查',
+    imageReviewResultTitle: '图片检查结果',
+    imageReviewDescription: (size) => `可选择 ${size} 以下的 PNG、JPG、WEBP 或 GIF 图片，检查格式、大小和图片元数据。不支持图片 OCR 和 AI Vision 分析。`,
+    materialReviewTitle: '文本型 PDF 笔记与测验生成',
+    materialReviewDescription: (size) => `可选择 ${size} 以下的文本型 PDF，提取学习内容并生成摘要、笔记与测验草稿。图片仅支持不含 OCR 的文件检查。`,
     attachmentPrivacyNotice: '请勿附加包含敏感信息的学习资料。所选文件仅用于本次分析请求处理，不会另行保存。',
     imageStoredNotice: '分析请求时，服务器会临时检查文件类型、大小和图片元数据。',
-    reviewStoredNotice: '文本型 PDF 可提取后生成摘要、笔记和测验草稿。扫描 PDF 和图片的文本提取可能受限。',
+    reviewStoredNotice: '文本型 PDF 可提取后生成摘要、笔记和测验草稿。扫描 PDF 和图片不支持 OCR，不能用于自动生成。',
     analyzeImageButton: '执行图片评估',
     analyzeMaterialButton: '生成笔记与测验',
     removeAttachment: '移除附件',
@@ -662,19 +704,29 @@ const AI_LOCALIZED_COPY = {
     quizTitle: '复习测验',
     keywordsTitle: '关键词',
     warningsTitle: '需要确认',
-    noGeneratedResult: '未能提取可读文本。请尝试更清晰的图片或文本型 PDF。',
+    noGeneratedResult: '未能提取文本。如需自动生成笔记和测验，请使用文本型 PDF。',
     unknownImageSize: '无法确认',
     attachmentErrors: {
       tooLarge: '文件大小超过允许范围。',
       unsupported: '不支持该文件类型。请确认允许的格式和扩展名。',
       failed: '无法分析附件。请重新选择文件。'
     },
-    mockQuestionSuccess: '已添加 Mock 模式回复。未调用外部 AI。',
-    mockRecommendationSuccess: '已显示 Mock 模式推荐。未调用外部 AI。',
-    mockSummarySuccess: '已显示 Mock 模式摘要。未调用外部 AI。',
-    mockWrongAnswerSuccess: '已显示 Mock 模式错题分析。未调用外部 AI。',
-    mockModeOn: '已开启 AI Mock 模式。将不调用外部 AI，而显示演示回复。',
-    mockModeOff: '已关闭 AI Mock 模式。将使用现有 AI 学习 API 流程。'
+    mockModeTitle: 'AI 练习模式',
+    mockModeDescription: '当 AI 额度或服务连接不稳定时，使用安全示例回复确认页面流程。',
+    mockModeActive: '练习模式使用中',
+    mockModeEnable: '开启练习模式',
+    mockQuestionSuccess: '已添加练习模式回复。',
+    mockRecommendationSuccess: '已显示练习模式推荐。',
+    mockSummarySuccess: '已显示练习模式摘要。',
+    mockWrongAnswerSuccess: '已显示练习模式错题分析。',
+    mockModeOn: '已开启 AI 练习模式。将使用安全示例回复确认流程。',
+    mockModeOff: '已关闭 AI 练习模式。将使用现有 AI 学习 API 流程。',
+    selectImageButton: '选择图片',
+    selectMaterialButton: '选择文件',
+    selectMaterialFileAccessibilityLabel: '选择文本型 PDF 或图片文件',
+    practiceBadgeRecommendation: '练习推荐',
+    practiceBadgeSummary: '练习摘要',
+    practiceBadgeWrongAnswer: '练习分析'
   }
 };
 
@@ -711,14 +763,14 @@ const AI_CHAT_LAYOUT_COPY = {
     readyPrompt: '질문 입력 준비',
     userLabel: '내 질문',
     aiLabel: 'AI 답변',
-    mockBadge: 'Mock 응답',
+    mockBadge: '연습 응답',
     truncateBadge: '자동 요약됨',
     composerTitle: '메시지 입력',
     composerPlaceholder: '공부하다가 모르는 개념이나 공식, 질문 사항을 입력하세요.',
     send: '전송',
     charCount: (current, max) => `${current} / ${max}자`,
     imageToolsTitle: '첨부·검토 도구',
-    imageToolsDescription: '이미지와 텍스트 기반 PDF를 임시 분석해 학습 요약·노트·퀴즈 생성을 도와줍니다.'
+    imageToolsDescription: '이미지는 형식·용량·메타데이터를 확인하고, 텍스트 기반 PDF는 요약·노트·퀴즈 초안 생성을 도와줍니다.'
   },
   en: {
     title: 'AI chat rooms',
@@ -752,14 +804,14 @@ const AI_CHAT_LAYOUT_COPY = {
     readyPrompt: 'Prepare a question',
     userLabel: 'My question',
     aiLabel: 'AI answer',
-    mockBadge: 'Mock response',
+    mockBadge: 'Practice response',
     truncateBadge: 'Auto summarized',
     composerTitle: 'Message input',
     composerPlaceholder: 'Enter a concept, formula, or question you are studying.',
     send: 'Send',
     charCount: (current, max) => `${current} / ${max} chars`,
     imageToolsTitle: 'Attachment and review tools',
-    imageToolsDescription: 'Temporarily analyze images and text-based PDFs to help draft summaries, notes, and quizzes.'
+    imageToolsDescription: 'Images are checked for type, size, and metadata, while text-based PDFs can produce summary, note, and quiz drafts.'
   },
   ja: {
     title: 'AIチャットルーム',
@@ -793,14 +845,14 @@ const AI_CHAT_LAYOUT_COPY = {
     readyPrompt: '質問を準備',
     userLabel: '自分の質問',
     aiLabel: 'AI回答',
-    mockBadge: 'Mock応答',
+    mockBadge: '練習応答',
     truncateBadge: '自動要約',
     composerTitle: 'メッセージ入力',
     composerPlaceholder: '学習中に分からない概念、公式、質問を入力してください。',
     send: '送信',
     charCount: (current, max) => `${current} / ${max}字`,
     imageToolsTitle: '添付・確認ツール',
-    imageToolsDescription: '画像とテキストベースPDFを一時分析し、要約・ノート・クイズ案の作成を支援します。'
+    imageToolsDescription: '画像は形式・容量・メタデータを確認し、テキストベースPDFは要約・ノート・クイズ案の作成を支援します。'
   },
   zh: {
     title: 'AI 对话房间',
@@ -834,14 +886,14 @@ const AI_CHAT_LAYOUT_COPY = {
     readyPrompt: '准备提问',
     userLabel: '我的问题',
     aiLabel: 'AI 回答',
-    mockBadge: 'Mock 回复',
+    mockBadge: '练习回复',
     truncateBadge: '自动摘要',
     composerTitle: '消息输入',
     composerPlaceholder: '输入学习中不清楚的概念、公式或问题。',
     send: '发送',
     charCount: (current, max) => `${current} / ${max} 字`,
     imageToolsTitle: '附件与检查工具',
-    imageToolsDescription: '临时分析图片和文本型 PDF，帮助生成摘要、笔记与测验草稿。'
+    imageToolsDescription: '图片会检查格式、大小和元数据；文本型 PDF 可生成摘要、笔记与测验草稿。'
   }
 };
 
@@ -1316,7 +1368,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
     setReviewUploadError('');
 
     if (showMessage) {
-      setSuccessMsg('OCR/PDF 검토용 첨부 파일을 제거했습니다.');
+      setSuccessMsg(getAILocalizedCopy(currentLanguage).reviewFileRemoved);
     }
   }
 
@@ -1989,9 +2041,9 @@ export default function AILearningScreen({ onNavigate, token, user }) {
 
       <View style={styles.mockModeCard}>
         <View style={styles.mockModeCopy}>
-          <Text style={styles.mockModeLabel}>AI Mock 모드</Text>
+          <Text style={styles.mockModeLabel}>{aiCopy.mockModeTitle}</Text>
           <Text style={styles.mockModeText}>
-            발표나 데모 중 AI token 만료, quota 초과, API key 누락이 발생하면 실제 외부 호출 없이 안전한 예시 응답으로 흐름을 확인합니다.
+            {aiCopy.mockModeDescription}
           </Text>
         </View>
         <Pressable
@@ -2011,7 +2063,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
           ]}
         >
           <Text style={[styles.mockToggleText, isMockMode && styles.mockToggleTextActive]}>
-            {isMockMode ? 'Mock 사용 중' : 'Mock 켜기'}
+            {isMockMode ? aiCopy.mockModeActive : aiCopy.mockModeEnable}
           </Text>
         </Pressable>
       </View>
@@ -2388,7 +2440,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                       onPress={openImagePicker}
                       style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
                     >
-                      <Text style={styles.imageAttachButtonText}>이미지 선택</Text>
+                      <Text style={styles.imageAttachButtonText}>{aiCopy.selectImageButton}</Text>
                     </Pressable>
                   </View>
 
@@ -2437,7 +2489,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                   {imageAnalysisResult ? (
                     <View style={styles.reviewResultCard}>
                       <View style={styles.resultHeaderRow}>
-                        <Text style={styles.summaryCardTitle}>{aiCopy.imageReviewTitle}</Text>
+                        <Text style={styles.summaryCardTitle}>{aiCopy.imageReviewResultTitle}</Text>
                         <Text style={styles.truncateBadge}>{aiCopy.analysisResultBadge}</Text>
                       </View>
                       <Text style={styles.reviewBullet}>
@@ -2457,11 +2509,11 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                     </View>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="OCR PDF 검토 파일 선택"
+                      accessibilityLabel={aiCopy.selectMaterialFileAccessibilityLabel}
                       onPress={openReviewFilePicker}
                       style={(state) => [styles.imageAttachButton, ...interactiveStateStyles(state)]}
                     >
-                      <Text style={styles.imageAttachButtonText}>파일 선택</Text>
+                      <Text style={styles.imageAttachButtonText}>{aiCopy.selectMaterialButton}</Text>
                     </Pressable>
                   </View>
 
@@ -2607,7 +2659,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
               <View style={styles.recommendCard}>
                 <View style={styles.resultHeaderRow}>
                   <Text style={styles.recommendLabel}>📚 AI 추천 학습 과목</Text>
-                  {recommendationResult.isMock && <Text style={styles.mockBadge}>Mock 추천</Text>}
+                  {recommendationResult.isMock && <Text style={styles.mockBadge}>{aiCopy.practiceBadgeRecommendation}</Text>}
                 </View>
                 <View style={styles.subjectBox}>
                   <Text style={styles.subjectText}>{recommendationResult.recommendedSubject}</Text>
@@ -2673,7 +2725,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 <View style={styles.summaryHeader}>
                   <Text style={styles.summaryCardTitle}>📋 AI 3줄 요약 결과</Text>
                   <View style={styles.badgeRow}>
-                    {summaryResult.isMock && <Text style={styles.mockBadge}>Mock 요약</Text>}
+                    {summaryResult.isMock && <Text style={styles.mockBadge}>{aiCopy.practiceBadgeSummary}</Text>}
                     {summaryResult.isTruncated && <Text style={styles.truncateBadge}>앞부분 요약됨 (3000자 초과)</Text>}
                   </View>
                 </View>
@@ -2748,7 +2800,7 @@ export default function AILearningScreen({ onNavigate, token, user }) {
                 <View style={styles.wrongHeaderRow}>
                   <Text style={styles.wrongLabel}>🎯 틀린 원인 분석 결과</Text>
                   <View style={styles.badgeRow}>
-                    {wrongAnalysisResult.isMock && <Text style={styles.mockBadge}>Mock 분석</Text>}
+                    {wrongAnalysisResult.isMock && <Text style={styles.mockBadge}>{aiCopy.practiceBadgeWrongAnswer}</Text>}
                     <View style={styles.weakBadge}>
                       <Text style={styles.weakBadgeText}>
                         {wrongAnalysisResult.weakType === 'calculation mistake' ? '연산 실수' : '개념 이해 부족'}

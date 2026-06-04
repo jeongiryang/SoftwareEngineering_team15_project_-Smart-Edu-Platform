@@ -986,7 +986,9 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
               >
                 <Text style={styles.motivationButtonText}>{motivationAction.label}</Text>
               </Pressable>
-              <Text style={styles.motivationNote}>웹 1차 구현이며 OS 잠금화면 개입은 하지 않습니다.</Text>
+              <Text style={styles.motivationNote}>
+                {translateText('브라우저 안에서만 표시되는 선택형 학습 자극입니다. 잠금화면을 바꾸거나 강제하지 않습니다.')}
+              </Text>
             </View>
           </View>
 
@@ -1062,7 +1064,7 @@ export default function DashboardScreen({ onLogout, onNavigate, token, user }) {
                     <Text style={styles.quizExplanation}>{translateText(quickQuiz.explanation)}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.quickQuizHint}>{translateText('데모형 빠른 복습 카드입니다. 잠금화면을 막거나 강제하지 않습니다.')}</Text>
+                  <Text style={styles.quickQuizHint}>{translateText('빠르게 확인하는 복습 카드입니다. 잠금화면을 막거나 강제하지 않습니다.')}</Text>
                 )}
               </>
             )}

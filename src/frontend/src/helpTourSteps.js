@@ -4,6 +4,18 @@ const HELP_TOUR_CONFIG = {
     ['dashboard-planning', 'help.dashboard.planning.title', 'help.dashboard.planning.description'],
     ['dashboard-quests', 'help.dashboard.quests.title', 'help.dashboard.quests.description']
   ],
+  statistics: [
+    ['statistics-overview', 'help.statistics.overview.title', 'help.statistics.overview.description'],
+    ['statistics-focus-link', 'help.statistics.focusLink.title', 'help.statistics.focusLink.description'],
+    ['statistics-pattern', 'help.statistics.pattern.title', 'help.statistics.pattern.description'],
+    ['statistics-charts', 'help.statistics.charts.title', 'help.statistics.charts.description']
+  ],
+  focusTimer: [
+    ['focus-timer-overview', 'help.focusTimer.overview.title', 'help.focusTimer.overview.description'],
+    ['focus-timer-mode', 'help.focusTimer.mode.title', 'help.focusTimer.mode.description'],
+    ['focus-timer-clock', 'help.focusTimer.clock.title', 'help.focusTimer.clock.description'],
+    ['focus-timer-actions', 'help.focusTimer.actions.title', 'help.focusTimer.actions.description']
+  ],
   aiLearning: [
     ['ai-briefing', 'help.ai.briefing.title', 'help.ai.briefing.description'],
     ['ai-modes', 'help.ai.modes.title', 'help.ai.modes.description'],

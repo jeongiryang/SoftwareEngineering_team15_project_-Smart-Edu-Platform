@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import AppHeader from './src/components/AppHeader';
 import ConfirmModal from './src/components/ConfirmModal';
 import HelpTourModal from './src/components/HelpTourModal';
@@ -60,6 +60,15 @@ const screens = {
 const TOKEN_STORAGE_KEY = 'smartEduAuthToken';
 const authScreens = ['dashboard', 'profile', 'statistics', 'focusTimer', 'friends', 'messages', 'admin', 'aiLearning', 'community', 'schedule', 'taskBoard', 'accessibility', 'pointShop', 'bossRaid', 'collaborativeQuest', 'publicProfile'];
 const restrictedAccountStatuses = ['SUSPENDED', 'DEACTIVATED'];
+const WEB_PENCIL_CURSOR_STYLE_ID = 'sagak-pencil-cursor-style';
+const WEB_PENCIL_CURSOR_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <path fill="#0F2F55" stroke="#F8E8C9" stroke-width="1.5" d="M4.1 27.4 7 19.8 23.7 3.9a3.2 3.2 0 0 1 4.5 4.6L11.3 24.7Z"/>
+  <path fill="#95DFC8" d="M9.1 18.8 22.4 5.6l4.1 4.1-13.4 13.1Z"/>
+  <path fill="#3BAF9B" d="m12.2 21.9 13.4-13.2 1.7 1.8-13.1 13.5Z"/>
+  <path fill="#F5C06D" d="m4.1 27.4 2.6-7.1 4.2 4.2Z"/>
+  <path fill="#2F6FC6" d="m4.1 27.4 1.1-3 1.9 1.9Z"/>
+</svg>`;
 
 const screenPaths = {
   home: '/',
@@ -231,6 +240,68 @@ function applyGlobalAccessibilityPreference(preference, user, magnifierMode = fa
   };
 }
 
+function applyGlobalPencilCursor() {
+  if (Platform.OS !== 'web') {
+    return () => {};
+  }
+
+  const documentRef = globalThis.document;
+
+  if (!documentRef?.head) {
+    return () => {};
+  }
+
+  const cursorDataUri = `url("data:image/svg+xml,${encodeURIComponent(WEB_PENCIL_CURSOR_SVG)}") 4 28, auto`;
+  let styleElement = documentRef.getElementById(WEB_PENCIL_CURSOR_STYLE_ID);
+  let createdStyle = false;
+
+  if (!styleElement) {
+    styleElement = documentRef.createElement('style');
+    styleElement.id = WEB_PENCIL_CURSOR_STYLE_ID;
+    styleElement.dataset.sagakPencilCursor = 'true';
+    documentRef.head.appendChild(styleElement);
+    createdStyle = true;
+  }
+
+  styleElement.textContent = `
+    html, body, #root, [data-sagak-pencil-cursor="true"] {
+      cursor: ${cursorDataUri};
+    }
+    body * {
+      cursor: inherit;
+    }
+    button,
+    [role="button"],
+    a,
+    label,
+    summary {
+      cursor: ${cursorDataUri};
+    }
+    input,
+    textarea,
+    select,
+    [contenteditable="true"],
+    [role="textbox"] {
+      cursor: text;
+    }
+    button:disabled,
+    [disabled],
+    [aria-disabled="true"] {
+      cursor: not-allowed;
+    }
+  `;
+
+  documentRef.body?.setAttribute('data-sagak-pencil-cursor', 'true');
+
+  return () => {
+    documentRef.body?.removeAttribute('data-sagak-pencil-cursor');
+
+    if (createdStyle && styleElement?.parentNode) {
+      styleElement.parentNode.removeChild(styleElement);
+    }
+  };
+}
+
 function getCurrentScreenText() {
   const documentRef = globalThis.document;
   const contentRoot = documentRef?.getElementById('sagak-screen-content');
@@ -374,6 +445,8 @@ function AppRoot() {
   const adminBypass = user?.role === 'ADMIN';
   const accountRestricted = Boolean(user && isRestrictedAccountStatus(user.status));
   const showMaintenanceScreen = maintenanceEnabled && !adminBypass && currentScreen !== 'login';
+
+  useEffect(() => applyGlobalPencilCursor(), []);
 
   const navigateTo = useCallback((screen, options = {}) => {
     const nextScreen = normalizeScreen(screen);
