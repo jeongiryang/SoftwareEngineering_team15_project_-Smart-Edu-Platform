@@ -1,4 +1,4 @@
-﻿# Smart Edu Platform API 명세서
+# Smart Edu Platform API 명세서
 
 ## 목차
 
@@ -4590,7 +4590,7 @@ Request Body:
 ## 관련 산출물
 
 - [문서 부록 인덱스](../README.md)
-- [최종보고서](../final-report/final-report-draft.md)
+- [최종보고서](../final-report/final-report.md)
 - [테스트 보고서](../test-report/test-report.md)
 - [설치 및 사용 가이드](../deployment/install-and-usage-guide.md)
 - [배포 smoke test](../deployment/vercel-smoke-test.md)

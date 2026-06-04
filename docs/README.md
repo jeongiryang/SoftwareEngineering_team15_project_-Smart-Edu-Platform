@@ -1,6 +1,6 @@
 # Smart Edu Platform 문서 부록 인덱스
 
-> 최종 제출 문서: [최종보고서 초안](./final-report/final-report-draft.md) · [발표자료 구성안](./final-report/presentation-outline.md) · [데모 영상 시나리오](./final-report/demo-video-scenario.md) · [설치 및 사용 가이드](./deployment/install-and-usage-guide.md)
+> 최종 제출 문서: [최종 프로젝트 보고서](./final-report/final-report.md) · [발표자료 구성안](./final-report/presentation-outline.md) · [데모 영상 시나리오](./final-report/demo-video-scenario.md) · [설치 및 사용 가이드](./deployment/install-and-usage-guide.md)
 
 ## 1. 목적
 
@@ -12,11 +12,11 @@
 |---|---|---|
 | Phase 1 | 요구사항 문서, AI simulation log, use case diagram, 설계 문서, UML/시퀀스 다이어그램 | [요구사항 문서](./requirements/requirements-document.md), [AI simulation log](./requirements/ai-simulation-log.md), [사용자 인터뷰 시뮬레이션](./requirements/ai-user-interview-simulation.md), [클라이언트 인터뷰 시뮬레이션](./requirements/ai-client-interview-simulation.md), [설계 문서](./design/design-document.md), [아키텍처 개요](./design/architecture-overview.md), [클래스 다이어그램](./design/class-diagram.md), [시퀀스 다이어그램](./design/sequence-diagram.md) |
 | Phase 2 | 테스트 보고서, 유닛/통합 테스트 목록, 버그 로그, AI 보조 테스트 설계, GitHub repository 업데이트, commit/PR history | [테스트 보고서](./test-report/test-report.md), [API 명세](./api/api-spec.md), [AI 활용 정책](./ai-agent-usage-policy.md), [GitHub Repository](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform), [Commit history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/commits/main), [Pull Request history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pulls?q=is%3Apr) |
-| Phase 3 | 최종 프로젝트 보고서, 배포 자료, 설치/사용 가이드, 데모 영상 시나리오, 발표자료 구성안 | [최종보고서 초안](./final-report/final-report-draft.md), [설치 및 사용 가이드](./deployment/install-and-usage-guide.md), [배포 smoke test](./deployment/vercel-smoke-test.md), [데모 영상 시나리오](./final-report/demo-video-scenario.md), [발표자료 구성안](./final-report/presentation-outline.md) |
+| Phase 3 | 최종 프로젝트 보고서, 배포 자료, 설치/사용 가이드, 데모 영상 시나리오, 발표자료 구성안 | [최종 프로젝트 보고서](./final-report/final-report.md), [설치 및 사용 가이드](./deployment/install-and-usage-guide.md), [배포 smoke test](./deployment/vercel-smoke-test.md), [데모 영상 시나리오](./final-report/demo-video-scenario.md), [발표자료 구성안](./final-report/presentation-outline.md) |
 
 ## 3. 최종보고서 부록
 
-- [최종보고서 초안](./final-report/final-report-draft.md): 전체 프로세스, 구현 기능, 테스트/배포, 한계와 확장성 정리
+- [최종 프로젝트 보고서](./final-report/final-report.md): 전체 프로세스, 구현 기능, 테스트/배포, 한계와 확장성 정리
 - [발표자료 구성안](./final-report/presentation-outline.md): 10~15슬라이드 발표 흐름과 팀 발표 구성
 - [데모 영상 시나리오](./final-report/demo-video-scenario.md): 5~10분 데모 촬영 순서와 대체 시나리오
 - [설치 및 사용 가이드](./deployment/install-and-usage-guide.md): 로컬 실행, Prisma 검증, seed, 테스트, smoke test 절차
