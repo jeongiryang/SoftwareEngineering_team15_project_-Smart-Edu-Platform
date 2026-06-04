@@ -1,4 +1,4 @@
-﻿# Smart Edu Platform 테스트 보고서
+# Smart Edu Platform 테스트 보고서
 
 ## 문서 정보
 
@@ -10,7 +10,7 @@
 | 서비스명 | 사각사각 |
 | 조원 | 정이량, 황대겸, 박지환 |
 | 작성일 | 2026년 05월 |
-| 제출 단계 | 2단계 테스트 보고서 초안 |
+| 제출 단계 | 2단계 테스트 보고서 |
 | 최종 분량 목표 | 5~10페이지 |
 
 ## 목차
@@ -49,7 +49,7 @@
 
 ### 1.1 문서 목적
 
-본 문서는 Smart Edu Platform의 2단계 구현 과정에서 수행한 테스트 결과를 누적하기 위한 테스트 보고서 초안임.
+본 문서는 Smart Edu Platform의 2단계 구현 과정과 최종 제출 전 QA에서 수행한 테스트 결과를 누적한 테스트 보고서임.
 
 교수님 안내 기준에 따라 최종 테스트 보고서에는 유닛 테스트 케이스 목록, 통합 테스트 케이스 목록, 커버리지 결과, 버그 로그, AI 생성/보조 테스트 스크립트 기록을 포함해야 함.
 
@@ -555,9 +555,9 @@ coverage 측정 대상은 backend Jest 테스트에 한정됨. frontend는 현�
 | 커뮤니티/게시판 | 게시글 CRUD API, 댓글 API, 반응 API, 북마크 API, 내 북마크 목록 API, 사용자 신고 API, 관리자 신고 처리 API 테스트 완료. 후속 프론트 화면 연동은 기능 구현 순서에 맞춰 추가 | 진행 중 |
 | 관리자 기능 | 사용자 제재, 계정 상태 변경 실시간 event, 게시글 관리, 챌린지 관리, 커뮤니티 신고 처리 API 테스트와 관리자 화면 수동 확인 완료 | 완료 |
 | 프론트엔드 | 인증 화면, 관리자 화면, AI 학습 지원 화면 API service 연동 및 Web export 검증 완료. 화면 자동 테스트와 일정/태스크 화면 연동은 후속 작성 | 진행 중 |
-| 2단계 품질 보강 | coverage 결과, 프론트 자동 테스트, E2E 또는 수동 시나리오 테스트, 배포 전 smoke test | 예정 |
-| 3단계 산출물 검증 | 최종보고서, 설치/사용 가이드, 데모 영상, 발표자료, 데모 스크립트 검토 | 예정 |
-| 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 | 예정 |
+| 2단계 품질 보강 | backend coverage text summary 측정, frontend check/export 검증, 배포 전 smoke test 문서화 완료. 프론트 화면 자동 테스트와 E2E 정량화는 후속 보강 범위 | 부분 완료 |
+| 3단계 산출물 검증 | 최종 프로젝트 보고서, 설치/사용 가이드, 데모 영상 시나리오, 발표자료 구성안 검토와 문서 링크 정리 완료 | 완료 |
+| 배포 후 smoke test | 배포 URL 접근, health check, 주요 화면 접근 확인 항목을 smoke test 문서로 정리 | 완료 |
 
 ---
 
@@ -612,7 +612,7 @@ coverage 측정 대상은 backend Jest 테스트에 한정됨. frontend는 현�
 ## 관련 산출물
 
 - [문서 부록 인덱스](../README.md)
-- [최종보고서](../final-report/final-report-draft.md)
+- [최종보고서](../final-report/final-report.md)
 - [API 명세](../api/api-spec.md)
 - [설치 및 사용 가이드](../deployment/install-and-usage-guide.md)
 - [AI 활용 정책](../ai-agent-usage-policy.md)

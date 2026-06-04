@@ -60,7 +60,7 @@ chore/folder-cleanup
 커밋 메시지는 작업 유형과 내용을 짧고 명확하게 적는다.
 
 ```text
-[docs] 최종보고서 초안 작성
+[docs] 최종 프로젝트 보고서 작성
 [feat] 로그인 화면 구현
 [fix] 회원가입 validation 문구 수정
 [test] 보스 레이드 탈퇴 정책 테스트 추가

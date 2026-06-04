@@ -138,7 +138,7 @@ npm --prefix src/backend test -- --runTestsByPath tests/seed-dev.test.js
 ## 관련 산출물
 
 - [문서 부록 인덱스](../README.md)
-- [최종보고서](../final-report/final-report-draft.md)
+- [최종보고서](../final-report/final-report.md)
 - [데모 영상 시나리오](../final-report/demo-video-scenario.md)
 - [테스트 보고서](../test-report/test-report.md)
 - [API 명세](../api/api-spec.md)

@@ -556,7 +556,7 @@ AI 도구는 초안 생성과 구조 정리에 활용하였고, 최종 다이어
 ## 관련 산출물
 
 - [문서 부록 인덱스](../README.md)
-- [최종보고서](../final-report/final-report-draft.md)
+- [최종보고서](../final-report/final-report.md)
 - [요구사항 문서](../requirements/requirements-document.md)
 - [API 명세](../api/api-spec.md)
 - [테스트 보고서](../test-report/test-report.md)

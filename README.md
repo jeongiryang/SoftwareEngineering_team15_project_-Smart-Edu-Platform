@@ -45,7 +45,7 @@
 | 구분 | 문서 | 설명 |
 |---|---|---|
 | 문서 인덱스 | [docs/README.md](./docs/README.md) | 요구사항, 설계, 테스트, API, 배포, 최종보고서 부록 연결 |
-| 최종보고서 | [docs/final-report/final-report-draft.md](./docs/final-report/final-report-draft.md) | 요구사항부터 배포까지 통합한 최종 프로젝트 보고서 초안 |
+| 최종보고서 | [docs/final-report/final-report.md](./docs/final-report/final-report.md) | 요구사항부터 배포까지 통합한 최종 프로젝트 보고서 |
 | 발표자료 | [docs/final-report/presentation-outline.md](./docs/final-report/presentation-outline.md) | 10~15슬라이드 발표 구성안 |
 | 데모 시나리오 | [docs/final-report/demo-video-scenario.md](./docs/final-report/demo-video-scenario.md) | 5~10분 데모 영상 흐름과 대체 시나리오 |
 | 설치/사용 | [docs/deployment/install-and-usage-guide.md](./docs/deployment/install-and-usage-guide.md) | 로컬 실행, 환경 변수, seed, 테스트, 배포 확인 절차 |
@@ -61,7 +61,7 @@
 |---|---|---|
 | Phase 1 | 요구사항 문서, AI simulation log, use case diagram, 설계 문서 | [요구사항 문서](./docs/requirements/requirements-document.md), [AI simulation log](./docs/requirements/ai-simulation-log.md), [설계 문서](./docs/design/design-document.md) |
 | Phase 2 | 테스트 보고서, GitHub repository, commit/PR history | [테스트 보고서](./docs/test-report/test-report.md), [Commit history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/commits/main), [PR history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pulls?q=is%3Apr) |
-| Phase 3 | 최종보고서, 배포 자료, 발표자료, 데모 시나리오 | [최종보고서](./docs/final-report/final-report-draft.md), [설치 및 사용 가이드](./docs/deployment/install-and-usage-guide.md), [발표자료 구성안](./docs/final-report/presentation-outline.md), [데모 영상 시나리오](./docs/final-report/demo-video-scenario.md) |
+| Phase 3 | 최종보고서, 배포 자료, 발표자료, 데모 시나리오 | [최종보고서](./docs/final-report/final-report.md), [설치 및 사용 가이드](./docs/deployment/install-and-usage-guide.md), [발표자료 구성안](./docs/final-report/presentation-outline.md), [데모 영상 시나리오](./docs/final-report/demo-video-scenario.md) |
 
 ## 주요 PR
 
