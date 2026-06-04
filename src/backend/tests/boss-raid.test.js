@@ -55,6 +55,9 @@ function mockBuildParty(overrides = {}) {
       {
         userId: 1,
         joinedAt: new Date('2026-05-29T00:30:00Z'),
+        hiddenAt: null,
+        archivedAt: null,
+        leftAt: null,
         user: {
           id: 1,
           name: 'Test User',
@@ -64,6 +67,9 @@ function mockBuildParty(overrides = {}) {
       {
         userId: 2,
         joinedAt: new Date('2026-05-29T00:35:00Z'),
+        hiddenAt: null,
+        archivedAt: null,
+        leftAt: null,
         user: {
           id: 2,
           name: 'Party Mate',
@@ -156,6 +162,9 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
         {
           userId,
           joinedAt: new Date('2026-05-29T00:50:00Z'),
+          hiddenAt: null,
+          archivedAt: null,
+          leftAt: null,
           user: {
             id: userId,
             name: 'Invitee User',
@@ -188,6 +197,9 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
         {
           userId,
           joinedAt: new Date('2026-05-29T00:40:00Z'),
+          hiddenAt: null,
+          archivedAt: null,
+          leftAt: null,
           user: {
             id: userId,
             name: 'Joined User',
@@ -278,6 +290,27 @@ jest.mock('../src/repositories/bossRaid.repository', () => ({
     completedTaskCount: 1
   })),
   replaceBossRaidContributions: jest.fn(async (partyId) => mockBuildParty({ id: partyId })),
+  updateBossRaidPartyMemberVisibility: jest.fn(async ({ partyId, userId, hiddenAt, archivedAt, leftAt }) => {
+    const party = mockBuildParty({
+      id: partyId,
+      members: mockBuildParty().members.map((member) => (
+        member.userId === userId
+          ? {
+              ...member,
+              hiddenAt,
+              archivedAt,
+              leftAt
+            }
+          : member
+      ))
+    });
+    const member = party.members.find((partyMember) => partyMember.userId === userId);
+
+    return {
+      ...member,
+      party
+    };
+  }),
   updateBossRaidInviteStatus: jest.fn(async (inviteId, status) =>
     mockBuildInvite({
       id: inviteId,
@@ -341,6 +374,9 @@ describe('Boss Raid API', () => {
     { method: 'get', path: '/api/boss-raids/parties/public' },
     { method: 'post', path: '/api/boss-raids/parties' },
     { method: 'post', path: '/api/boss-raids/parties/10/invites' },
+    { method: 'post', path: '/api/boss-raids/parties/10/leave' },
+    { method: 'post', path: '/api/boss-raids/parties/10/archive' },
+    { method: 'post', path: '/api/boss-raids/parties/10/restore' },
     { method: 'post', path: '/api/boss-raids/invites/20/accept' },
     { method: 'post', path: '/api/boss-raids/invites/20/decline' },
     { method: 'post', path: '/api/boss-raids/invites/20/cancel' }
@@ -648,6 +684,165 @@ describe('Boss Raid API', () => {
         })
       })
     );
+  });
+
+  it('passes includeHidden when listing archived boss raid parties', async () => {
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/boss-raids/parties/me?includeHidden=true')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(bossRaidRepository.findUserBossRaidParties).toHaveBeenCalledWith(1, {
+      includeHidden: true
+    });
+  });
+
+  it('excludes left members from the active boss raid detail count', async () => {
+    bossRaidRepository.findBossRaidPartyById.mockResolvedValueOnce(
+      mockBuildParty({
+        lastCalculatedAt: new Date(),
+        members: mockBuildParty().members.map((member) => (
+          member.userId === 2
+            ? { ...member, hiddenAt: new Date('2026-05-29T01:10:00Z'), leftAt: new Date('2026-05-29T01:10:00Z') }
+            : member
+        ))
+      })
+    );
+    const { token } = await registerTestUser();
+
+    const response = await request(app)
+      .get('/api/boss-raids/parties/10')
+      .set(createAuthHeader(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.party.totalMembers).toBe(1);
+    expect(response.body.party.members).toEqual([
+      expect.objectContaining({ userId: 1 })
+    ]);
+    expect(response.body.party.contributions).toEqual([
+      expect.objectContaining({ userId: 1 })
+    ]);
+  });
+
+  it('lets a non-owner leave an in-progress boss raid without deleting contribution records', async () => {
+    await registerTestUser({ loginId: 'owner_user' });
+    const { token } = await registerTestUser({ loginId: 'member_user' });
+
+    const response = await request(app)
+      .post('/api/boss-raids/parties/10/leave')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(200);
+    expect(bossRaidRepository.updateBossRaidPartyMemberVisibility).toHaveBeenCalledWith(
+      expect.objectContaining({
+        partyId: 10,
+        userId: 2,
+        hiddenAt: expect.any(Date),
+        archivedAt: null,
+        leftAt: expect.any(Date)
+      })
+    );
+    expect(bossRaidRepository.replaceBossRaidContributions).not.toHaveBeenCalled();
+    expect(mockBroadcastRealtimeEventToUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([1]),
+      'bossRaid.progress.updated',
+      expect.objectContaining({
+        party: expect.objectContaining({
+          id: 10,
+          participantCount: 1
+        })
+      })
+    );
+  });
+
+  it('prevents the owner from leaving while other active members remain', async () => {
+    const { token } = await registerTestUser({ loginId: 'owner_user' });
+
+    const response = await request(app)
+      .post('/api/boss-raids/parties/10/leave')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(409);
+    expect(bossRaidRepository.updateBossRaidPartyMemberVisibility).not.toHaveBeenCalled();
+  });
+
+  it('archives and restores a completed boss raid for the current participant', async () => {
+    bossRaidRepository.findBossRaidPartyById
+      .mockResolvedValueOnce(
+        mockBuildParty({
+          status: 'CLEARED',
+          totalDamage: 340,
+          remainingHp: 0,
+          clearedAt: new Date('2026-05-29T02:00:00Z')
+        })
+      )
+      .mockResolvedValueOnce(
+        mockBuildParty({
+          status: 'CLEARED',
+          totalDamage: 340,
+          remainingHp: 0,
+          clearedAt: new Date('2026-05-29T02:00:00Z'),
+          members: mockBuildParty().members.map((member) => (
+            member.userId === 1
+              ? {
+                  ...member,
+                  hiddenAt: new Date('2026-05-29T02:10:00Z'),
+                  archivedAt: new Date('2026-05-29T02:10:00Z')
+                }
+              : member
+          ))
+        })
+      );
+    const { token } = await registerTestUser();
+
+    const archiveResponse = await request(app)
+      .post('/api/boss-raids/parties/10/archive')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(archiveResponse.status).toBe(200);
+    expect(bossRaidRepository.updateBossRaidPartyMemberVisibility).toHaveBeenCalledWith(
+      expect.objectContaining({
+        partyId: 10,
+        userId: 1,
+        hiddenAt: expect.any(Date),
+        archivedAt: expect.any(Date),
+        leftAt: null
+      })
+    );
+
+    const restoreResponse = await request(app)
+      .post('/api/boss-raids/parties/10/restore')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(restoreResponse.status).toBe(200);
+    expect(bossRaidRepository.updateBossRaidPartyMemberVisibility).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        partyId: 10,
+        userId: 1,
+        hiddenAt: null,
+        archivedAt: null,
+        leftAt: null
+      })
+    );
+  });
+
+  it('rejects archive requests from non-participants', async () => {
+    await registerTestUser({ loginId: 'owner_user' });
+    await registerTestUser({ loginId: 'member_user' });
+    const { token } = await registerTestUser({ loginId: 'outsider_user' });
+
+    const response = await request(app)
+      .post('/api/boss-raids/parties/10/archive')
+      .set(createAuthHeader(token))
+      .send({});
+
+    expect(response.status).toBe(409);
   });
 
   it('claims a cleared boss raid reward once', async () => {

@@ -822,6 +822,27 @@ const UI_TRANSLATIONS = {
     'account.restricted.login': '로그인 화면으로 이동',
     'account.restricted.logout': '로그아웃',
     'account.restricted.help': '예상하지 못한 제한이라면 관리자에게 계정 상태 확인을 요청해 주세요.'
+    , 'bossRaid.visibility.serverHint': '완료 항목은 내 목록에서 보관할 수 있습니다.'
+    , 'bossRaid.visibility.showArchived': '보관 항목 보기'
+    , 'bossRaid.visibility.hideArchived': '보관 항목 숨기기'
+    , 'bossRaid.visibility.archivedBadge': '보관됨'
+    , 'bossRaid.visibility.archiveCompletedButton': '완료 레이드 보관'
+    , 'bossRaid.visibility.restoreButton': '보관 해제'
+    , 'bossRaid.visibility.leaveButton': '레이드 나가기'
+    , 'bossRaid.visibility.archivedSuccess': '완료된 레이드를 보관했습니다.'
+    , 'bossRaid.visibility.restoredSuccess': '보관된 레이드를 내 목록으로 복원했습니다.'
+    , 'bossRaid.visibility.leftSuccess': '레이드에서 나갔습니다. 기여도와 기록은 유지됩니다.'
+    , 'bossRaid.visibility.actionError': '보스 레이드 표시 상태를 변경하지 못했습니다.'
+    , 'bossRaid.visibility.confirmArchive': '보관'
+    , 'bossRaid.visibility.confirmRestore': '복원'
+    , 'bossRaid.visibility.confirmLeave': '나가기'
+    , 'bossRaid.visibility.confirmArchiveTitle': '완료된 보스 레이드를 보관할까요?'
+    , 'bossRaid.visibility.confirmRestoreTitle': '보관된 보스 레이드를 복원할까요?'
+    , 'bossRaid.visibility.confirmLeaveTitle': '이 보스 레이드에서 나갈까요?'
+    , 'bossRaid.visibility.confirmArchiveDescription': '서버 데이터를 삭제하지 않고 내 목록에서만 완료된 레이드를 보관합니다. 보상, 기여도, 처치 기록은 유지됩니다.'
+    , 'bossRaid.visibility.confirmRestoreDescription': '보관된 레이드를 내 목록으로 다시 표시합니다. 보상과 기여도 기록은 그대로 유지됩니다.'
+    , 'bossRaid.visibility.confirmLeaveDescription': '진행 중 레이드에서 나가면 내 활성 파티 목록과 기여 가능 상태에서 제외됩니다. 기존 기여도와 기록은 삭제되지 않습니다.'
+    , 'bossRaid.visibility.ownerLeaveBlocked': '파티장은 다른 참여자가 남아 있을 때 레이드를 나갈 수 없습니다.'
   },
   en: {
     'language.selectorLabel': 'Language',
@@ -878,6 +899,27 @@ const UI_TRANSLATIONS = {
     'account.restricted.login': 'Go to login',
     'account.restricted.logout': 'Log out',
     'account.restricted.help': 'If this looks unexpected, ask an administrator to review the account status.'
+    , 'bossRaid.visibility.serverHint': 'Completed raids can be archived from your list.'
+    , 'bossRaid.visibility.showArchived': 'Show archived'
+    , 'bossRaid.visibility.hideArchived': 'Hide archived'
+    , 'bossRaid.visibility.archivedBadge': 'Archived'
+    , 'bossRaid.visibility.archiveCompletedButton': 'Archive completed raid'
+    , 'bossRaid.visibility.restoreButton': 'Restore'
+    , 'bossRaid.visibility.leaveButton': 'Leave raid'
+    , 'bossRaid.visibility.archivedSuccess': 'Completed raid archived.'
+    , 'bossRaid.visibility.restoredSuccess': 'Archived raid restored to your list.'
+    , 'bossRaid.visibility.leftSuccess': 'You left the raid. Contributions and records are preserved.'
+    , 'bossRaid.visibility.actionError': 'Could not update the boss raid display state.'
+    , 'bossRaid.visibility.confirmArchive': 'Archive'
+    , 'bossRaid.visibility.confirmRestore': 'Restore'
+    , 'bossRaid.visibility.confirmLeave': 'Leave'
+    , 'bossRaid.visibility.confirmArchiveTitle': 'Archive this completed boss raid?'
+    , 'bossRaid.visibility.confirmRestoreTitle': 'Restore this archived boss raid?'
+    , 'bossRaid.visibility.confirmLeaveTitle': 'Leave this boss raid?'
+    , 'bossRaid.visibility.confirmArchiveDescription': 'This keeps server data intact and archives the completed raid only from your list. Rewards, contributions, and clear records are preserved.'
+    , 'bossRaid.visibility.confirmRestoreDescription': 'This shows the archived raid in your list again. Reward and contribution records are preserved.'
+    , 'bossRaid.visibility.confirmLeaveDescription': 'Leaving an in-progress raid removes you from active party lists and contribution eligibility. Existing contributions and records are not deleted.'
+    , 'bossRaid.visibility.ownerLeaveBlocked': 'The party owner cannot leave while other participants remain.'
   },
   ja: {
     'language.selectorLabel': '言語選択',
@@ -899,6 +941,27 @@ const UI_TRANSLATIONS = {
     'account.restricted.login': 'ログイン画面へ移動',
     'account.restricted.logout': 'ログアウト',
     'account.restricted.help': '心当たりがない場合は、管理者にアカウント状態の確認を依頼してください。'
+    , 'bossRaid.visibility.serverHint': '完了した項目は自分の一覧で保管できます。'
+    , 'bossRaid.visibility.showArchived': '保管項目を表示'
+    , 'bossRaid.visibility.hideArchived': '保管項目を隠す'
+    , 'bossRaid.visibility.archivedBadge': '保管済み'
+    , 'bossRaid.visibility.archiveCompletedButton': '完了レイドを保管'
+    , 'bossRaid.visibility.restoreButton': '保管解除'
+    , 'bossRaid.visibility.leaveButton': 'レイドから退出'
+    , 'bossRaid.visibility.archivedSuccess': '完了したレイドを保管しました。'
+    , 'bossRaid.visibility.restoredSuccess': '保管したレイドを自分の一覧に戻しました。'
+    , 'bossRaid.visibility.leftSuccess': 'レイドから退出しました。貢献度と記録は保持されます。'
+    , 'bossRaid.visibility.actionError': 'ボスレイドの表示状態を変更できませんでした。'
+    , 'bossRaid.visibility.confirmArchive': '保管'
+    , 'bossRaid.visibility.confirmRestore': '復元'
+    , 'bossRaid.visibility.confirmLeave': '退出'
+    , 'bossRaid.visibility.confirmArchiveTitle': '完了したボスレイドを保管しますか？'
+    , 'bossRaid.visibility.confirmRestoreTitle': '保管したボスレイドを復元しますか？'
+    , 'bossRaid.visibility.confirmLeaveTitle': 'このボスレイドから退出しますか？'
+    , 'bossRaid.visibility.confirmArchiveDescription': 'サーバーデータを削除せず、自分の一覧から完了レイドだけを保管します。報酬、貢献度、討伐記録は保持されます。'
+    , 'bossRaid.visibility.confirmRestoreDescription': '保管したレイドを自分の一覧に再表示します。報酬と貢献度の記録は保持されます。'
+    , 'bossRaid.visibility.confirmLeaveDescription': '進行中のレイドから退出すると、アクティブなパーティ一覧と貢献可能状態から外れます。既存の貢献度と記録は削除されません。'
+    , 'bossRaid.visibility.ownerLeaveBlocked': '他の参加者が残っている間、パーティオーナーはレイドから退出できません。'
   },
   zh: {
     'language.selectorLabel': '语言选择',
@@ -920,6 +983,27 @@ const UI_TRANSLATIONS = {
     'account.restricted.login': '前往登录页面',
     'account.restricted.logout': '退出登录',
     'account.restricted.help': '如果这不是预期状态，请联系管理员确认账号状态。'
+    , 'bossRaid.visibility.serverHint': '已完成项目可从我的列表中归档。'
+    , 'bossRaid.visibility.showArchived': '显示归档项'
+    , 'bossRaid.visibility.hideArchived': '隐藏归档项'
+    , 'bossRaid.visibility.archivedBadge': '已归档'
+    , 'bossRaid.visibility.archiveCompletedButton': '归档已完成 Raid'
+    , 'bossRaid.visibility.restoreButton': '取消归档'
+    , 'bossRaid.visibility.leaveButton': '退出 Raid'
+    , 'bossRaid.visibility.archivedSuccess': '已归档完成的 Raid。'
+    , 'bossRaid.visibility.restoredSuccess': '已将归档 Raid 恢复到你的列表。'
+    , 'bossRaid.visibility.leftSuccess': '已退出 Raid。贡献和记录会保留。'
+    , 'bossRaid.visibility.actionError': '无法更新 Boss Raid 显示状态。'
+    , 'bossRaid.visibility.confirmArchive': '归档'
+    , 'bossRaid.visibility.confirmRestore': '恢复'
+    , 'bossRaid.visibility.confirmLeave': '退出'
+    , 'bossRaid.visibility.confirmArchiveTitle': '要归档这个已完成的 Boss Raid 吗？'
+    , 'bossRaid.visibility.confirmRestoreTitle': '要恢复这个已归档的 Boss Raid 吗？'
+    , 'bossRaid.visibility.confirmLeaveTitle': '要退出这个 Boss Raid 吗？'
+    , 'bossRaid.visibility.confirmArchiveDescription': '不会删除服务器数据，只会从你的列表中归档已完成 Raid。奖励、贡献和通关记录会保留。'
+    , 'bossRaid.visibility.confirmRestoreDescription': '将已归档 Raid 重新显示在你的列表中。奖励和贡献记录会保留。'
+    , 'bossRaid.visibility.confirmLeaveDescription': '退出进行中的 Raid 后，你会从活跃队伍列表和可贡献状态中移除。已有贡献和记录不会删除。'
+    , 'bossRaid.visibility.ownerLeaveBlocked': '当还有其他参与者时，队伍所有者不能退出 Raid。'
   }
 };
 
@@ -1719,7 +1803,28 @@ const KEY_TRANSLATIONS = {
     'bossRaid.visibility.cancel': '취소',
     'bossRaid.visibility.confirmHide': '숨기기',
     'bossRaid.visibility.confirmTitle': '완료된 보스 레이드를 숨길까요?',
-    'bossRaid.visibility.confirmDescription': '이 작업은 서버 데이터를 삭제하지 않고 이 브라우저의 내 목록에서만 완료된 레이드를 숨깁니다. 보상, 기여도, 처치 기록은 유지됩니다.'
+    'bossRaid.visibility.confirmDescription': '이 작업은 서버 데이터를 삭제하지 않고 이 브라우저의 내 목록에서만 완료된 레이드를 숨깁니다. 보상, 기여도, 처치 기록은 유지됩니다.',
+    'bossRaid.visibility.serverHint': '완료 항목은 내 목록에서 보관할 수 있습니다.',
+    'bossRaid.visibility.showArchived': '보관 항목 보기',
+    'bossRaid.visibility.hideArchived': '보관 항목 숨기기',
+    'bossRaid.visibility.archivedBadge': '보관됨',
+    'bossRaid.visibility.archiveCompletedButton': '완료 레이드 보관',
+    'bossRaid.visibility.restoreButton': '보관 해제',
+    'bossRaid.visibility.leaveButton': '레이드 나가기',
+    'bossRaid.visibility.archivedSuccess': '완료된 레이드를 보관했습니다.',
+    'bossRaid.visibility.restoredSuccess': '보관된 레이드를 내 목록으로 복원했습니다.',
+    'bossRaid.visibility.leftSuccess': '레이드에서 나갔습니다. 기여도와 기록은 유지됩니다.',
+    'bossRaid.visibility.actionError': '보스 레이드 표시 상태를 변경하지 못했습니다.',
+    'bossRaid.visibility.confirmArchive': '보관',
+    'bossRaid.visibility.confirmRestore': '복원',
+    'bossRaid.visibility.confirmLeave': '나가기',
+    'bossRaid.visibility.confirmArchiveTitle': '완료된 보스 레이드를 보관할까요?',
+    'bossRaid.visibility.confirmRestoreTitle': '보관된 보스 레이드를 복원할까요?',
+    'bossRaid.visibility.confirmLeaveTitle': '이 보스 레이드에서 나갈까요?',
+    'bossRaid.visibility.confirmArchiveDescription': '서버 데이터를 삭제하지 않고 내 목록에서만 완료된 레이드를 보관합니다. 보상, 기여도, 처치 기록은 유지됩니다.',
+    'bossRaid.visibility.confirmRestoreDescription': '보관된 레이드를 내 목록으로 다시 표시합니다. 보상과 기여도 기록은 그대로 유지됩니다.',
+    'bossRaid.visibility.confirmLeaveDescription': '진행 중 레이드에서 나가면 내 활성 파티 목록과 기여 가능 상태에서 제외됩니다. 기존 기여도와 기록은 삭제되지 않습니다.',
+    'bossRaid.visibility.ownerLeaveBlocked': '파티장은 다른 참여자가 남아 있을 때 레이드를 나갈 수 없습니다.'
   },
   en: {
     'landing.hero.pill': 'Personalized learning management platform',
@@ -2179,7 +2284,28 @@ const KEY_TRANSLATIONS = {
     'bossRaid.visibility.cancel': 'Cancel',
     'bossRaid.visibility.confirmHide': 'Hide',
     'bossRaid.visibility.confirmTitle': 'Hide this completed boss raid?',
-    'bossRaid.visibility.confirmDescription': 'This does not delete server data. It only hides the completed raid from your list in this browser. Rewards, contributions, and clear records are preserved.'
+    'bossRaid.visibility.confirmDescription': 'This does not delete server data. It only hides the completed raid from your list in this browser. Rewards, contributions, and clear records are preserved.',
+    'bossRaid.visibility.serverHint': 'Completed raids can be archived from your list.',
+    'bossRaid.visibility.showArchived': 'Show archived',
+    'bossRaid.visibility.hideArchived': 'Hide archived',
+    'bossRaid.visibility.archivedBadge': 'Archived',
+    'bossRaid.visibility.archiveCompletedButton': 'Archive completed raid',
+    'bossRaid.visibility.restoreButton': 'Restore',
+    'bossRaid.visibility.leaveButton': 'Leave raid',
+    'bossRaid.visibility.archivedSuccess': 'Completed raid archived.',
+    'bossRaid.visibility.restoredSuccess': 'Archived raid restored to your list.',
+    'bossRaid.visibility.leftSuccess': 'You left the raid. Contributions and records are preserved.',
+    'bossRaid.visibility.actionError': 'Could not update the boss raid display state.',
+    'bossRaid.visibility.confirmArchive': 'Archive',
+    'bossRaid.visibility.confirmRestore': 'Restore',
+    'bossRaid.visibility.confirmLeave': 'Leave',
+    'bossRaid.visibility.confirmArchiveTitle': 'Archive this completed boss raid?',
+    'bossRaid.visibility.confirmRestoreTitle': 'Restore this archived boss raid?',
+    'bossRaid.visibility.confirmLeaveTitle': 'Leave this boss raid?',
+    'bossRaid.visibility.confirmArchiveDescription': 'This keeps server data intact and archives the completed raid only from your list. Rewards, contributions, and clear records are preserved.',
+    'bossRaid.visibility.confirmRestoreDescription': 'This shows the archived raid in your list again. Reward and contribution records are preserved.',
+    'bossRaid.visibility.confirmLeaveDescription': 'Leaving an in-progress raid removes you from active party lists and contribution eligibility. Existing contributions and records are not deleted.',
+    'bossRaid.visibility.ownerLeaveBlocked': 'The party owner cannot leave while other participants remain.'
   },
   ja: {
     'landing.hero.pill': 'パーソナライズ学習管理プラットフォーム',
@@ -2639,7 +2765,28 @@ const KEY_TRANSLATIONS = {
     'bossRaid.visibility.cancel': 'キャンセル',
     'bossRaid.visibility.confirmHide': '隠す',
     'bossRaid.visibility.confirmTitle': '完了したボスレイドを隠しますか？',
-    'bossRaid.visibility.confirmDescription': 'サーバーデータは削除されません。このブラウザの自分の一覧から完了レイドだけを隠します。報酬、貢献度、討伐記録は保持されます。'
+    'bossRaid.visibility.confirmDescription': 'サーバーデータは削除されません。このブラウザの自分の一覧から完了レイドだけを隠します。報酬、貢献度、討伐記録は保持されます。',
+    'bossRaid.visibility.serverHint': '完了した項目は自分の一覧で保管できます。',
+    'bossRaid.visibility.showArchived': '保管項目を表示',
+    'bossRaid.visibility.hideArchived': '保管項目を隠す',
+    'bossRaid.visibility.archivedBadge': '保管済み',
+    'bossRaid.visibility.archiveCompletedButton': '完了レイドを保管',
+    'bossRaid.visibility.restoreButton': '保管解除',
+    'bossRaid.visibility.leaveButton': 'レイドから退出',
+    'bossRaid.visibility.archivedSuccess': '完了したレイドを保管しました。',
+    'bossRaid.visibility.restoredSuccess': '保管したレイドを自分の一覧に戻しました。',
+    'bossRaid.visibility.leftSuccess': 'レイドから退出しました。貢献度と記録は保持されます。',
+    'bossRaid.visibility.actionError': 'ボスレイドの表示状態を変更できませんでした。',
+    'bossRaid.visibility.confirmArchive': '保管',
+    'bossRaid.visibility.confirmRestore': '復元',
+    'bossRaid.visibility.confirmLeave': '退出',
+    'bossRaid.visibility.confirmArchiveTitle': '完了したボスレイドを保管しますか？',
+    'bossRaid.visibility.confirmRestoreTitle': '保管したボスレイドを復元しますか？',
+    'bossRaid.visibility.confirmLeaveTitle': 'このボスレイドから退出しますか？',
+    'bossRaid.visibility.confirmArchiveDescription': 'サーバーデータを削除せず、自分の一覧から完了レイドだけを保管します。報酬、貢献度、討伐記録は保持されます。',
+    'bossRaid.visibility.confirmRestoreDescription': '保管したレイドを自分の一覧に再表示します。報酬と貢献度の記録は保持されます。',
+    'bossRaid.visibility.confirmLeaveDescription': '進行中のレイドから退出すると、アクティブなパーティ一覧と貢献可能状態から外れます。既存の貢献度と記録は削除されません。',
+    'bossRaid.visibility.ownerLeaveBlocked': '他の参加者が残っている間、パーティオーナーはレイドから退出できません。'
   },
   zh: {
     'landing.hero.pill': '个性化学习管理平台',
@@ -3099,7 +3246,28 @@ const KEY_TRANSLATIONS = {
     'bossRaid.visibility.cancel': '取消',
     'bossRaid.visibility.confirmHide': '隐藏',
     'bossRaid.visibility.confirmTitle': '要隐藏这个已完成的 Boss Raid 吗？',
-    'bossRaid.visibility.confirmDescription': '此操作不会删除服务器数据，只会在当前浏览器中从你的列表隐藏已完成 Raid。奖励、贡献和通关记录会保留。'
+    'bossRaid.visibility.confirmDescription': '此操作不会删除服务器数据，只会在当前浏览器中从你的列表隐藏已完成 Raid。奖励、贡献和通关记录会保留。',
+    'bossRaid.visibility.serverHint': '已完成项目可从我的列表中归档。',
+    'bossRaid.visibility.showArchived': '显示归档项',
+    'bossRaid.visibility.hideArchived': '隐藏归档项',
+    'bossRaid.visibility.archivedBadge': '已归档',
+    'bossRaid.visibility.archiveCompletedButton': '归档已完成 Raid',
+    'bossRaid.visibility.restoreButton': '取消归档',
+    'bossRaid.visibility.leaveButton': '退出 Raid',
+    'bossRaid.visibility.archivedSuccess': '已归档完成的 Raid。',
+    'bossRaid.visibility.restoredSuccess': '已将归档 Raid 恢复到你的列表。',
+    'bossRaid.visibility.leftSuccess': '已退出 Raid。贡献和记录会保留。',
+    'bossRaid.visibility.actionError': '无法更新 Boss Raid 显示状态。',
+    'bossRaid.visibility.confirmArchive': '归档',
+    'bossRaid.visibility.confirmRestore': '恢复',
+    'bossRaid.visibility.confirmLeave': '退出',
+    'bossRaid.visibility.confirmArchiveTitle': '要归档这个已完成的 Boss Raid 吗？',
+    'bossRaid.visibility.confirmRestoreTitle': '要恢复这个已归档的 Boss Raid 吗？',
+    'bossRaid.visibility.confirmLeaveTitle': '要退出这个 Boss Raid 吗？',
+    'bossRaid.visibility.confirmArchiveDescription': '不会删除服务器数据，只会从你的列表中归档已完成 Raid。奖励、贡献和通关记录会保留。',
+    'bossRaid.visibility.confirmRestoreDescription': '将已归档 Raid 重新显示在你的列表中。奖励和贡献记录会保留。',
+    'bossRaid.visibility.confirmLeaveDescription': '退出进行中的 Raid 后，你会从活跃队伍列表和可贡献状态中移除。已有贡献和记录不会删除。',
+    'bossRaid.visibility.ownerLeaveBlocked': '当还有其他参与者时，队伍所有者不能退出 Raid。'
   }
 };
 

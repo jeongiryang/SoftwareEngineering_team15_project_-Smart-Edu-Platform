@@ -65,7 +65,7 @@ const joinPublicBossRaidPartyController = asyncHandler(async (req, res) => {
 });
 
 const getMyBossRaidPartiesController = asyncHandler(async (req, res) => {
-  const parties = await bossRaidService.getMyBossRaidParties(req.user.id);
+  const parties = await bossRaidService.getMyBossRaidParties(req.user.id, req.query);
 
   sendSuccess(res, 200, { parties });
 });
@@ -124,8 +124,28 @@ const claimBossRaidRewardController = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, { reward });
 });
 
+const leaveBossRaidPartyController = asyncHandler(async (req, res) => {
+  const party = await bossRaidService.leaveBossRaidParty(req.user.id, req.params.partyId);
+
+  broadcastBossRaidPartyEvent('bossRaid.progress.updated', party);
+  sendSuccess(res, 200, { party });
+});
+
+const archiveBossRaidPartyController = asyncHandler(async (req, res) => {
+  const party = await bossRaidService.archiveBossRaidParty(req.user.id, req.params.partyId);
+
+  sendSuccess(res, 200, { party });
+});
+
+const restoreBossRaidPartyController = asyncHandler(async (req, res) => {
+  const party = await bossRaidService.restoreBossRaidParty(req.user.id, req.params.partyId);
+
+  sendSuccess(res, 200, { party });
+});
+
 module.exports = {
   acceptBossRaidInvite: acceptBossRaidInviteController,
+  archiveBossRaidParty: archiveBossRaidPartyController,
   cancelBossRaidInvite: cancelBossRaidInviteController,
   claimBossRaidReward: claimBossRaidRewardController,
   createBossRaidInvite: createBossRaidInviteController,
@@ -137,6 +157,8 @@ module.exports = {
   getMyBossRaidParties: getMyBossRaidPartiesController,
   joinPublicBossRaidParty: joinPublicBossRaidPartyController,
   joinBossRaidParty: joinBossRaidPartyController,
+  leaveBossRaidParty: leaveBossRaidPartyController,
   listPublicBossRaidParties: listPublicBossRaidPartiesController,
-  listBossRaids: listBossRaidsController
+  listBossRaids: listBossRaidsController,
+  restoreBossRaidParty: restoreBossRaidPartyController
 };

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {
   acceptBossRaidInvite,
+  archiveBossRaidParty,
   cancelBossRaidInvite,
   claimBossRaidReward,
   createBossRaidInvite,
@@ -22,14 +23,14 @@ import {
   getMyBossRaidParties,
   getPublicBossRaidParties,
   joinPublicBossRaidParty,
-  joinBossRaidParty
+  joinBossRaidParty,
+  leaveBossRaidParty,
+  restoreBossRaidParty
 } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { ProfileAvatar, ProfileTitleChip } from '../components/ProfileAppearance';
 import { languageIntlLocale, useLanguage } from '../i18n';
 import { colors, interactiveStateStyles, radii, shadows } from '../styles/theme';
-
-const HIDDEN_BOSS_RAID_PARTIES_STORAGE_KEY = 'sagaksagakHiddenBossRaidPartiesV1';
 
 function formatNumber(value, locale = 'ko-KR') {
   return Intl.NumberFormat(locale).format(Number(value) || 0);
@@ -58,46 +59,49 @@ function getProgressRate(totalDamage, maxHp) {
   return Math.min(totalDamage / maxHp, 1);
 }
 
-function getBossRaidStorageKey(userId) {
-  return `${HIDDEN_BOSS_RAID_PARTIES_STORAGE_KEY}:${userId || 'guest'}`;
-}
-
-function readHiddenBossRaidPartyIds(userId) {
-  try {
-    if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
-      return [];
-    }
-
-    const rawValue = globalThis.localStorage.getItem(getBossRaidStorageKey(userId));
-    const parsedValue = rawValue ? JSON.parse(rawValue) : [];
-
-    return Array.isArray(parsedValue) ? parsedValue.map((item) => String(item)) : [];
-  } catch (_error) {
-    return [];
-  }
-}
-
-function writeHiddenBossRaidPartyIds(userId, partyIds) {
-  try {
-    if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
-      return;
-    }
-
-    globalThis.localStorage.setItem(
-      getBossRaidStorageKey(userId),
-      JSON.stringify([...new Set(partyIds.map((partyId) => String(partyId)))])
-    );
-  } catch (_error) {
-    void _error;
-  }
-}
-
 function isCompletedBossRaidParty(party) {
   return party?.status === 'CLEARED' || party?.status === 'CLOSED';
 }
 
-function isHiddenBossRaidParty(party, hiddenPartyIds) {
-  return isCompletedBossRaidParty(party) && hiddenPartyIds.includes(String(party.id));
+function isArchivedBossRaidParty(party) {
+  return Boolean(party?.currentUserArchived || party?.currentUserHidden);
+}
+
+function canLeaveBossRaidParty(party) {
+  return Boolean(party?.canLeave && party?.status === 'OPEN');
+}
+
+function getBossRaidActionConfirmCopy(action, t) {
+  if (action?.type === 'LEAVE_PARTY') {
+    return {
+      confirmLabel: t('bossRaid.visibility.confirmLeave', '나가기'),
+      description: t(
+        'bossRaid.visibility.confirmLeaveDescription',
+        '진행 중 레이드에서 나가면 내 활성 파티 목록과 기여 가능 상태에서 제외됩니다. 기존 기여도와 기록은 삭제되지 않습니다.'
+      ),
+      title: t('bossRaid.visibility.confirmLeaveTitle', '이 보스 레이드에서 나갈까요?')
+    };
+  }
+
+  if (action?.type === 'RESTORE_PARTY') {
+    return {
+      confirmLabel: t('bossRaid.visibility.confirmRestore', '복원'),
+      description: t(
+        'bossRaid.visibility.confirmRestoreDescription',
+        '보관된 레이드를 내 목록으로 다시 표시합니다. 보상과 기여도 기록은 그대로 유지됩니다.'
+      ),
+      title: t('bossRaid.visibility.confirmRestoreTitle', '보관된 보스 레이드를 복원할까요?')
+    };
+  }
+
+  return {
+    confirmLabel: t('bossRaid.visibility.confirmArchive', '보관'),
+    description: t(
+      'bossRaid.visibility.confirmArchiveDescription',
+      '서버 데이터를 삭제하지 않고 내 목록에서만 완료된 레이드를 보관합니다. 보상, 기여도, 처치 기록은 유지됩니다.'
+    ),
+    title: t('bossRaid.visibility.confirmArchiveTitle', '완료된 보스 레이드를 보관할까요?')
+  };
 }
 
 function BossImage({ imageUrl, name }) {
@@ -168,23 +172,14 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [realtimeMessage, setRealtimeMessage] = useState('');
-  const [hiddenCompletedPartyIds, setHiddenCompletedPartyIds] = useState(() => (
-    readHiddenBossRaidPartyIds(user?.id)
-  ));
+  const [showArchivedParties, setShowArchivedParties] = useState(false);
   const [pendingBossRaidAction, setPendingBossRaidAction] = useState(null);
 
   const selectedRaid = useMemo(
     () => raids.find((raid) => raid.id === selectedRaidId) || raids[0] || null,
     [raids, selectedRaidId]
   );
-  const visibleParties = useMemo(
-    () => parties.filter((party) => !isHiddenBossRaidParty(party, hiddenCompletedPartyIds)),
-    [hiddenCompletedPartyIds, parties]
-  );
-
-  useEffect(() => {
-    setHiddenCompletedPartyIds(readHiddenBossRaidPartyIds(user?.id));
-  }, [user?.id]);
+  const bossRaidActionConfirmCopy = getBossRaidActionConfirmCopy(pendingBossRaidAction, t);
 
   useEffect(() => {
     let active = true;
@@ -196,7 +191,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       try {
         const [raidResponse, partyResponse, publicPartyResponse, inviteResponse] = await Promise.all([
           getBossRaids(token),
-          getMyBossRaidParties(token),
+          getMyBossRaidParties(token, { includeHidden: showArchivedParties }),
           getPublicBossRaidParties(token),
           getMyBossRaidInvites(token)
         ]);
@@ -212,11 +207,8 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
 
         setSelectedRaidId((currentRaidId) => currentRaidId || raidResponse.raids?.[0]?.id || null);
         const nextParties = partyResponse.parties || [];
-        const nextVisibleParties = nextParties.filter((party) => (
-          !isHiddenBossRaidParty(party, hiddenCompletedPartyIds)
-        ));
         setSelectedPartyId((currentPartyId) => {
-          if (currentPartyId && nextVisibleParties.some((party) => party.id === currentPartyId)) {
+          if (currentPartyId && nextParties.some((party) => party.id === currentPartyId)) {
             return currentPartyId;
           }
 
@@ -238,23 +230,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     return () => {
       active = false;
     };
-  }, [hiddenCompletedPartyIds, t, token]);
-
-  useEffect(() => {
-    if (!selectedPartyId) {
-      return;
-    }
-
-    const hiddenSelectedParty = parties.some((party) => (
-      party.id === selectedPartyId && isHiddenBossRaidParty(party, hiddenCompletedPartyIds)
-    ));
-
-    if (hiddenSelectedParty) {
-      setSelectedPartyId(null);
-      setSelectedParty(null);
-      setPartyInvites([]);
-    }
-  }, [hiddenCompletedPartyIds, parties, selectedPartyId]);
+  }, [showArchivedParties, t, token]);
 
   useEffect(() => {
     let active = true;
@@ -348,7 +324,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
 
   async function refreshParties(nextSelectedPartyId = selectedPartyId) {
     const [partyResponse, publicPartyResponse, inviteResponse] = await Promise.all([
-      getMyBossRaidParties(token),
+      getMyBossRaidParties(token, { includeHidden: showArchivedParties }),
       getPublicBossRaidParties(token),
       getMyBossRaidInvites(token)
     ]);
@@ -358,18 +334,14 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     setPublicParties(publicPartyResponse.parties || []);
     setMyInvites(inviteResponse.invites || []);
 
-    const nextVisibleParties = nextParties.filter((party) => (
-      !isHiddenBossRaidParty(party, hiddenCompletedPartyIds)
-    ));
-
-    if (!nextVisibleParties.length || nextSelectedPartyId === null) {
+    if (!nextParties.length || nextSelectedPartyId === null) {
       setSelectedPartyId(null);
       setSelectedParty(null);
       return;
     }
 
-    const stillExists = nextVisibleParties.some((party) => party.id === nextSelectedPartyId);
-    const resolvedPartyId = stillExists ? nextSelectedPartyId : nextVisibleParties[0].id;
+    const stillExists = nextParties.some((party) => party.id === nextSelectedPartyId);
+    const resolvedPartyId = stillExists ? nextSelectedPartyId : nextParties[0].id;
     setSelectedPartyId(resolvedPartyId);
   }
 
@@ -381,10 +353,10 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     ));
   }
 
-  function openHideCompletedPartyConfirm(party) {
+  function openBossRaidActionConfirm(party, type) {
     setPendingBossRaidAction({
       party,
-      type: 'HIDE_COMPLETED_PARTY'
+      type
     });
   }
 
@@ -392,24 +364,38 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
     setPendingBossRaidAction(null);
   }
 
-  function handleConfirmBossRaidAction() {
-    if (pendingBossRaidAction?.type !== 'HIDE_COMPLETED_PARTY') {
+  async function handleConfirmBossRaidServerAction() {
+    if (!pendingBossRaidAction) {
       return;
     }
 
-    const partyId = pendingBossRaidAction.party.id;
-    const nextHiddenPartyIds = [...hiddenCompletedPartyIds, String(partyId)];
-    setHiddenCompletedPartyIds(nextHiddenPartyIds);
-    writeHiddenBossRaidPartyIds(user?.id, nextHiddenPartyIds);
+    setActionLoading(true);
+    setError('');
+    setMessage('');
 
-    if (selectedPartyId === partyId) {
-      setSelectedPartyId(null);
-      setSelectedParty(null);
-      setPartyInvites([]);
+    try {
+      const partyId = pendingBossRaidAction.party.id;
+
+      if (pendingBossRaidAction.type === 'LEAVE_PARTY') {
+        await leaveBossRaidParty(token, partyId);
+        setMessage(t('bossRaid.visibility.leftSuccess', '레이드에서 나갔습니다. 기여도와 기록은 유지됩니다.'));
+        await refreshParties(null);
+      } else if (pendingBossRaidAction.type === 'ARCHIVE_PARTY') {
+        await archiveBossRaidParty(token, partyId);
+        setMessage(t('bossRaid.visibility.archivedSuccess', '완료된 레이드를 보관했습니다.'));
+        await refreshParties(showArchivedParties ? partyId : null);
+      } else if (pendingBossRaidAction.type === 'RESTORE_PARTY') {
+        await restoreBossRaidParty(token, partyId);
+        setMessage(t('bossRaid.visibility.restoredSuccess', '보관된 레이드를 내 목록으로 복원했습니다.'));
+        await refreshParties(partyId);
+      }
+
+      setPendingBossRaidAction(null);
+    } catch (actionError) {
+      setError(actionError.message || t('bossRaid.visibility.actionError', '보스 레이드 표시 상태를 변경하지 못했습니다.'));
+    } finally {
+      setActionLoading(false);
     }
-
-    setMessage(t('bossRaid.visibility.hiddenSuccess', '완료된 레이드를 내 목록에서 숨겼습니다.'));
-    setPendingBossRaidAction(null);
   }
 
   async function handleCreateParty() {
@@ -628,7 +614,7 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
           <SummaryCard
             description={t('bossRaid.summary.partyDescription', '내가 참가한 파티 수')}
             label={t('bossRaid.summary.partyLabel', '내 파티')}
-            value={interpolate(t('bossRaid.units.count', '{count}개'), { count: formatNumber(visibleParties.length, locale) })}
+            value={interpolate(t('bossRaid.units.count', '{count}개'), { count: formatNumber(parties.length, locale) })}
           />
         </View>
       </View>
@@ -847,7 +833,20 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('bossRaid.sections.myParties', '내 파티')}</Text>
         <View style={styles.partyList}>
-          {visibleParties.map((party) => {
+          <View style={styles.partyListToolbar}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setShowArchivedParties((current) => !current)}
+              style={(state) => [styles.smallOutlineButton, ...interactiveStateStyles(state)]}
+            >
+              <Text style={styles.smallOutlineButtonText}>
+                {showArchivedParties
+                  ? t('bossRaid.visibility.hideArchived', '보관 항목 숨기기')
+                  : t('bossRaid.visibility.showArchived', '보관 항목 보기')}
+              </Text>
+            </Pressable>
+          </View>
+          {parties.map((party) => {
             const active = party.id === selectedPartyId;
 
             return (
@@ -868,13 +867,15 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                 </Text>
                 {isCompletedBossRaidParty(party) ? (
                   <Text style={[styles.partyChipMeta, active && styles.partyChipTitleActive]} numberOfLines={2} ellipsizeMode="tail">
-                    {t('bossRaid.visibility.localHideHint', '완료 항목은 브라우저별로 숨길 수 있습니다.')}
+                    {isArchivedBossRaidParty(party)
+                      ? t('bossRaid.visibility.archivedBadge', '보관됨')
+                      : t('bossRaid.visibility.serverHint', '완료 항목은 내 목록에서 보관할 수 있습니다.')}
                   </Text>
                 ) : null}
               </Pressable>
             );
           })}
-          {!loading && visibleParties.length === 0 ? (
+          {!loading && parties.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateTitle}>{t('bossRaid.empty.title', '아직 참가한 파티가 없어요.')}</Text>
               <Text style={styles.emptyStateDescription}>
@@ -1073,7 +1074,10 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
               <Pressable
                 accessibilityRole="button"
                 disabled={actionLoading}
-                onPress={() => openHideCompletedPartyConfirm(selectedParty)}
+                onPress={() => openBossRaidActionConfirm(
+                  selectedParty,
+                  isArchivedBossRaidParty(selectedParty) ? 'RESTORE_PARTY' : 'ARCHIVE_PARTY'
+                )}
                 style={({ pressed }) => [
                   styles.dangerOutlineButton,
                   actionLoading && styles.disabledButton,
@@ -1081,25 +1085,48 @@ export default function BossRaidScreen({ realtimeEvent, token, user }) {
                 ]}
               >
                 <Text style={styles.dangerOutlineButtonText}>
-                  {t('bossRaid.visibility.hideCompletedButton', '완료 레이드 숨기기')}
+                  {isArchivedBossRaidParty(selectedParty)
+                    ? t('bossRaid.visibility.restoreButton', '보관 해제')
+                    : t('bossRaid.visibility.archiveCompletedButton', '완료 레이드 보관')}
                 </Text>
               </Pressable>
             ) : null}
+            {!isCompletedBossRaidParty(selectedParty) && canLeaveBossRaidParty(selectedParty) ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={actionLoading}
+                onPress={() => openBossRaidActionConfirm(selectedParty, 'LEAVE_PARTY')}
+                style={({ pressed }) => [
+                  styles.dangerOutlineButton,
+                  actionLoading && styles.disabledButton,
+                  pressed && !actionLoading && styles.secondaryButtonPressed
+                ]}
+              >
+                <Text style={styles.dangerOutlineButtonText}>
+                  {t('bossRaid.visibility.leaveButton', '레이드 나가기')}
+                </Text>
+              </Pressable>
+            ) : null}
+            {!isCompletedBossRaidParty(selectedParty)
+              && selectedParty.status === 'OPEN'
+              && !selectedParty.canLeave ? (
+                <Text style={styles.rewardDescription}>
+                  {t('bossRaid.visibility.ownerLeaveBlocked', '파티장은 다른 참여자가 남아 있을 때 레이드를 나갈 수 없습니다.')}
+                </Text>
+              ) : null}
           </View>
         </View>
       ) : null}
     </ScrollView>
     <ConfirmModal
       cancelLabel={t('bossRaid.visibility.cancel', '취소')}
-      confirmLabel={t('bossRaid.visibility.confirmHide', '숨기기')}
-      description={t(
-        'bossRaid.visibility.confirmDescription',
-        '이 작업은 서버 데이터를 삭제하지 않고 이 브라우저의 내 목록에서만 완료된 레이드를 숨깁니다. 보상, 기여도, 처치 기록은 유지됩니다.'
-      )}
+      confirmDisabled={actionLoading}
+      confirmLabel={bossRaidActionConfirmCopy.confirmLabel}
+      description={bossRaidActionConfirmCopy.description}
       destructive
       onCancel={closeBossRaidConfirm}
-      onConfirm={handleConfirmBossRaidAction}
-      title={t('bossRaid.visibility.confirmTitle', '완료된 보스 레이드를 숨길까요?')}
+      onConfirm={handleConfirmBossRaidServerAction}
+      title={bossRaidActionConfirmCopy.title}
       visible={Boolean(pendingBossRaidAction)}
     />
     </>
@@ -1421,6 +1448,11 @@ const styles = StyleSheet.create({
   },
   partyList: {
     gap: 12
+  },
+  partyListToolbar: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
   },
   publicPartyCard: {
     alignItems: 'center',
