@@ -1877,6 +1877,9 @@ Response (200 OK) 예시:
 - 자동 테스트는 mock/fallback 중심으로 수행하며 실제 외부 AI API를 호출하지 않음.
 - rate limit은 MVP용 in-memory 방식이며, production 수준 분산 rate limit은 후속 개선 범위임.
 - AI 질문/추천/요약/오답 분석 API는 기존 Prisma schema 기준으로 동작하며, AI 대화방 저장은 `AIChatRoom`, `AIChatMessage` 모델을 사용함.
+- 첨부 파일 검토 API는 `multipart/form-data` memory upload 방식으로 파일을 임시 처리하며, 업로드 파일을 DB나 파일 시스템에 영구 저장하지 않음.
+- 이미지 첨부는 파일 형식·용량·이미지 메타데이터 검토까지 지원하며, 서버 OCR이 필요한 이미지 텍스트 추출은 제한 범위로 안내함.
+- 텍스트 기반 PDF는 PDF 내부 텍스트 추출을 시도하고, 추출된 텍스트가 충분한 경우 요약·노트·퀴즈 초안을 생성함. 스캔 PDF는 추출 실패 안내로 처리함.
 - `noteId`를 받는 API는 현재 로그인 사용자 소유 학습 노트만 허용함.
 - invalid `noteId`는 `400 VALIDATION_ERROR`, 존재하지 않거나 다른 사용자 소유 `noteId`는 `404 NOT_FOUND`로 처리함.
 - 기본 provider prompt와 fallback 문구는 한국어 응답을 우선하도록 정리함.
@@ -2230,11 +2233,112 @@ Response 예시:
 }
 ```
 
-### 9.2.6 AI API 주요 에러
+### 9.2.6 AI 첨부 파일 검토 API
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현 완료 |
+| 인증 | 필요 |
+| 요청 형식 | `multipart/form-data` |
+| 파일 필드 | `file` |
+| 저장 정책 | memory upload 후 즉시 처리, DB/파일 시스템 영구 저장 없음 |
+| 공통 보안 | MIME type과 확장자 이중 검증, 파일 원문/추출 원문 로그 금지, raw provider error 미노출 |
+
+#### 9.2.6.1 이미지 첨부 1차 검토
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Endpoint | `/api/ai/attachments/image-review` |
+| 허용 형식 | `image/png`, `image/jpeg`, `image/webp`, `image/gif` |
+| 최대 용량 | 5MB |
+| 설명 | 이미지 파일을 검증하고 이미지 형식, 크기 등 메타데이터를 반환함. 서버 OCR/Vision 분석은 과장하지 않고 지원 제한 사항으로 안내함 |
+
+Response 예시:
+
+```json
+{
+  "file": {
+    "name": "study.png",
+    "type": "image/png",
+    "size": 204800
+  },
+  "image": {
+    "format": "png",
+    "width": 1280,
+    "height": 720
+  },
+  "retention": {
+    "stored": false,
+    "policy": "memory-only"
+  },
+  "textExtraction": {
+    "status": "unsupported",
+    "length": 0,
+    "extractedTextPreview": ""
+  },
+  "warnings": [
+    "Image file was validated and inspected in memory. Server-side OCR is not available for images in this release."
+  ]
+}
+```
+
+#### 9.2.6.2 OCR/PDF 노트·퀴즈 생성
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Endpoint | `/api/ai/attachments/study-material` |
+| 허용 형식 | 이미지(`PNG`, `JPG/JPEG`, `WEBP`, `GIF`) 또는 `application/pdf` |
+| 최대 용량 | PDF 10MB, 이미지 5MB(프론트 UI 기준), 서버 route 전체 10MB |
+| 설명 | 텍스트 기반 PDF에서 추출 가능한 학습 텍스트를 읽고, 충분한 텍스트가 있으면 요약·노트·퀴즈·키워드 초안을 생성함 |
+| Fallback | `AI_API_KEY` 미설정, provider 장애, quota 오류 시 기존 AI fallback 정책에 따라 기본 초안을 반환하고 `providerFallback`을 포함함 |
+
+Response 예시:
+
+```json
+{
+  "file": {
+    "name": "notes.pdf",
+    "type": "application/pdf",
+    "size": 102400
+  },
+  "image": null,
+  "retention": {
+    "stored": false,
+    "policy": "memory-only"
+  },
+  "textExtraction": {
+    "status": "extracted",
+    "length": 320,
+    "extractedTextPreview": "운영체제는 프로세스와 메모리를 관리..."
+  },
+  "generation": {
+    "status": "generated",
+    "summary": ["핵심 개념 요약 1", "핵심 개념 요약 2"],
+    "notes": ["학습 노트 초안 1", "학습 노트 초안 2"],
+    "quiz": [
+      {
+        "question": "운영체제가 관리하는 주요 자원은?",
+        "answer": "프로세스, 메모리, 파일 시스템 등"
+      }
+    ],
+    "keywords": ["운영체제", "프로세스", "메모리"],
+    "providerFallback": {
+      "type": "provider"
+    }
+  },
+  "warnings": []
+}
+```
+
+텍스트를 추출하지 못한 이미지 또는 스캔 PDF는 `generation.status = "text_not_available"`로 반환하고, 사용자에게 더 선명한 이미지나 텍스트 기반 PDF 사용을 안내함.
+
+### 9.2.7 AI API 주요 에러
 
 | Status | Code | 발생 조건 |
 |---|---|---|
-| `400` | `VALIDATION_ERROR` | 필수 값 누락, 글자 수 초과, 잘못된 데이터 구조 |
+| `400` | `VALIDATION_ERROR` | 필수 값 누락, 글자 수 초과, 잘못된 데이터 구조, 파일 미첨부, 파일 용량 초과, 지원하지 않는 파일 형식 |
 | `401` | `UNAUTHORIZED` | 인증 실패 및 토큰 유효하지 않음 |
 | `404` | `NOT_FOUND` | `noteId` 또는 AI 대화방이 존재하지 않거나 현재 사용자 소유가 아님 |
 | `429` | `TOO_MANY_REQUESTS` | 분당 호출 횟수 한도(5회) 초과 |
@@ -4428,7 +4532,7 @@ Request Body:
 
 | 명령 | 용도 | 비고 |
 |---|---|---|
-| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, AI Chat Room, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 29 suites / 530 tests passed |
+| `npm test` | Jest + Supertest 기반 백엔드 테스트 | Health, Auth, User/Profile, Schedule/Task, Admin, Admin Community Report, Admin Reward, System Maintenance, Realtime WebSocket helper, AI, AI Chat Room, Study Note, Focus/Statistics, Reward, Accessibility, Friend, Community Post, Community Comment, Community Reaction, Community Bookmark, Community Bookmark List, Community Report, Seed, Boss Raid, Collaborative Quest, Direct Message 포함. 최신 확인 기준 29 suites / 548 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/focus-statistics.test.js` | 집중 시간/통계 API 단일 테스트 | 실제 결과는 테스트 보고서에 기록 |
 | `npm --prefix src/backend test -- --runTestsByPath tests/note.test.js` | 학습 노트 API 단일 테스트 | 1 suite / 13 tests passed |
 | `npm --prefix src/backend test -- --runTestsByPath tests/community-post.test.js` | 커뮤니티 게시글 API 단일 테스트 | 1 suite / 50 tests passed |

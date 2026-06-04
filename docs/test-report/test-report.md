@@ -246,7 +246,7 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | TC-INT-007 | 보안 검증 | 인증 API 응답 | 회원가입, 로그인, 현재 사용자 조회 응답의 `passwordHash` 미노출 확인 | `npm test` | 응답에 비밀번호 해시가 포함되지 않음 | 통과 |
 | TC-INT-008 | API 통합 테스트 | 사용자/프로필 API | 현재 사용자 정보 조회, 계정 닉네임 수정, 비밀번호 변경, 회원 탈퇴 soft delete, 프로필 조회/수정, 미인증 접근 차단 검증 | `npm test` | 401/403/200 응답, 계정/프로필 수정 반영, 현재 비밀번호 확인, 탈퇴 후 token/login 차단, `passwordHash` 미노출 | 통과 |
 | TC-INT-003 | API 통합 테스트 | 일정/태스크 API | 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 다른 사용자 데이터 접근 차단 검증 | `npm test` | 401/200/201/404 응답 및 사용자별 데이터 접근 제한 | 통과 |
-| TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석, fallback, noteId 소유권, 400/401/404/429 예외 검증 | `npm test` | mock/fallback 중심으로 실제 외부 AI API 호출 없이 검증 | 통과 |
+| TC-INT-004 | API 통합 테스트 | AI 학습 지원 API | AI 질의, 추천, 요약, 오답 분석, 첨부 이미지 1차 검토, 텍스트 기반 PDF 추출·노트·퀴즈 생성, fallback, noteId 소유권, 파일 형식/용량, 400/401/404/429 예외 검증 | `npm test` | mock/fallback 및 in-memory fixture 중심으로 외부 AI API와 파일 영구 저장 없이 검증 | 통과 |
 | TC-INT-005 | API 통합 테스트 | 관리자 API | 사용자 제재, 신고 조회, 게시글/댓글/챌린지 조치와 401/403/400/404 예외 검증 | `npm test` | ADMIN만 접근 가능, 잘못된 id/존재하지 않는 대상 차단, 민감정보 미노출 | 통과 |
 | TC-INT-009 | API 통합 테스트 | 학습 노트 API | 노트 생성/목록/상세/수정/삭제, invalid noteId, 빈 수정 body, 필수값 누락, tags 타입, 타인 노트 접근 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 본인 소유 데이터 접근 제한 | 통과 |
 | TC-INT-010 | API 통합 테스트 | 커뮤니티 게시글 API | 게시글 목록/상세/작성/수정/삭제, pagination, category filter, title/content search, latest/oldest sort, 반응/북마크 count/status 응답, invalid postId, 빈 수정 body, 필수값 누락, 타인 게시글 수정/삭제 차단 검증 | `npm test` | 400/401/200/201/404 응답 및 작성자/현재 사용자 기준 데이터 변경 제한 | 통과 |
@@ -293,14 +293,14 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Health check | `GET /api/health` | 통과 | Issue #14 진행 코멘트 및 `health.test.js` |
 | Frontend install | frontend `npm install` | 통과 | Issue #14 진행 코멘트 기준 |
 | Frontend dev server | frontend `npm start` | 통과 | Issue #14 진행 코멘트 기준 |
-| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(29 suites / 539 tests passed) |
+| Backend test | `npm test` | 통과 | Jest + Supertest 전체 백엔드 테스트 통과(29 suites / 548 tests passed) |
 | Auth API test | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | 통과 | `src/backend/tests/auth.test.js`의 repository mock 기반 API 테스트. `SUSPENDED`/`DEACTIVATED` 계정 login 403 차단과 기존 token 보호 API 401 차단 검증 포함 |
 | API foundation test | 공통 response/error/validation/async/test helper | 통과 | `src/backend/tests/api-foundation.test.js` |
 | Error Middleware test | Prisma 런타임 오류 응답 masking | 통과 | `src/backend/tests/error-middleware.test.js`의 middleware 단위 테스트. Prisma table missing/initialization 오류 raw message masking, 일반 unknown error raw message 미노출, 기존 validation/notFound/conflict AppError 응답 유지 검증 포함 |
 | Error Middleware focused test | `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js` | 통과 | Prisma 런타임 오류 사용자 친화적 처리 단일 테스트 기준 1 suite / 6 tests passed |
 | User profile API test | `GET /api/users/me`, `GET /api/users/me/activity`, `GET /api/users/:userId/public-profile`, `PATCH /api/users/me`, `PATCH /api/users/me/password`, `DELETE /api/users/me`, `PATCH /api/users/me/profile` | 통과 | `src/backend/tests/user-profile.test.js`의 repository mock 기반 API 테스트. 계정 메타데이터, 공개 프로필 안전 응답, 커뮤니티 활동 통계, 계정 닉네임 수정, 현재 비밀번호 확인 후 비밀번호 변경, 회원 탈퇴 soft delete, 탈퇴 후 token/login 차단, unsupported field 차단, 민감정보 미노출 검증 포함 |
 | Schedule/Task API test | `GET/POST/PATCH/DELETE /api/schedules`, `GET/POST/PATCH/DELETE /api/tasks` | 통과 | `src/backend/tests/schedule-task.test.js`의 repository mock 기반 API 테스트 |
-| AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers`, `/api/ai/chat-rooms` | 통과 | `src/backend/tests/ai.test.js`, `src/backend/tests/ai-chat-room.test.js`의 repository mock 및 provider mock/fallback 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패 fallback, rate limit 429, 대화방 소유권/삭제/메시지 저장/이름 변경/상단 고정 검증 포함 |
+| AI API test | `POST /api/ai/questions`, `POST /api/ai/recommendations`, `POST /api/ai/summary`, `POST /api/ai/wrong-answers`, `/api/ai/chat-rooms`, `/api/ai/attachments/image-review`, `/api/ai/attachments/study-material` | 통과 | `src/backend/tests/ai.test.js`, `src/backend/tests/ai-chat-room.test.js`의 repository mock, provider mock/fallback, multipart memory upload fixture 기반 API 테스트. 미인증 401, invalid noteId 400, noteId 소유권 404, provider 실패·quota fallback, rate limit 429, 파일 미첨부/형식/용량 검증, 이미지 메타데이터 검토, 텍스트 기반 PDF 추출, 파일 영구 저장 없음, raw provider body 미노출, 대화방 소유권/삭제/메시지 저장/이름 변경/상단 고정 검증 포함 |
 | Admin API test | `GET /api/admin/users`, `PATCH /api/admin/users/:userId/status`, `GET /api/admin/reports`, `PATCH /api/admin/posts/:postId/moderation`, `PATCH /api/admin/comments/:commentId/moderation`, `PATCH /api/admin/challenges/:challengeId/moderation` | 통과 | `src/backend/tests/admin.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, invalid id 400, not found 404, 관리자 자기 자신 status 변경 차단, `passwordHash` 미노출 검증 포함 |
 | Admin Community Report API test | `GET /api/admin/community/reports`, `PATCH /api/admin/community/reports/:reportId` | 통과 | `src/backend/tests/admin-community-report.test.js`의 repository mock 기반 API 테스트. 미인증 401, 일반 USER 403, status/targetType/page/pageSize validation, 신고 기각/처리, 이미 처리된 신고 409, reported flag 동기화, 민감정보 미노출 검증 포함 |
 | Admin Community Report focused test | `npm --prefix src/backend test -- --runTestsByPath tests/admin-community-report.test.js` | 통과 | 관리자 커뮤니티 신고 처리 API 단일 테스트 기준 1 suite / 29 tests passed |
@@ -355,13 +355,13 @@ AI 보조 결과는 팀원이 직접 검토한 뒤 테스트 코드와 보고서
 | Reward API 검증 | 보상 모듈 API 구현 검증 | 통과 | `npm test`(18 suites / 345 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
 | Prisma error masking 검증 | Prisma 런타임 오류 사용자 친화적 처리 검증 | 통과 | `npm test`(19 suites / 351 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/error-middleware.test.js`(1 suite / 6 tests passed) 통과 |
 | Admin Reward API 검증 | 관리자 보상 배지/퀘스트 관리 API 검증 | 통과 | `npm test`(20 suites / 363 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/admin-reward.test.js`(1 suite / 12 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/reward.test.js`(1 suite / 6 tests passed) 통과 |
-| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
-| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
+| User/Profile account settings 검증 | 사용자 계정 설정, 회원 탈퇴 및 활동 통계 API 검증 | 통과 | `npm test`(29 suites / 548 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/user-profile.test.js`(1 suite / 29 tests passed) 통과 |
+| Voice/Accessibility API 검증 | 음성/접근성 모듈 API 검증 | 통과 | `npm test`(29 suites / 548 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/accessibility.test.js`(1 suite / 11 tests passed) 통과 |
 | Friend API 검증 | 친구 추가 및 친구 목록 API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/friend.test.js`(1 suite / 20 tests passed) 통과 |
 | Point Shop API 검증 | 포인트 상점 MVP API 검증 | 통과 | `npm test`(23 suites / 427 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/shop.test.js`(1 suite / 9 tests passed) 통과 |
-| Boss Raid API 검증 | 스터디 보스 레이드 참여자별 숨김/보관/나가기 정책 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 32 tests passed) 통과 |
-| Collaborative Quest API 검증 | 협동 퀘스트 실시간 진행률 및 사용자별 숨김/보관 정책 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js`(1 suite / 21 tests passed) 통과 |
-| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(29 suites / 539 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 12 tests passed) 통과 |
+| Boss Raid API 검증 | 스터디 보스 레이드 참여자별 숨김/보관/나가기 정책 검증 | 통과 | `npm test`(29 suites / 548 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/boss-raid.test.js`(1 suite / 32 tests passed) 통과 |
+| Collaborative Quest API 검증 | 협동 퀘스트 실시간 진행률 및 사용자별 숨김/보관 정책 검증 | 통과 | `npm test`(29 suites / 548 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/collaborative-quest.test.js`(1 suite / 21 tests passed) 통과 |
+| Direct Message API 검증 | 친구 간 쪽지 API 검증 | 통과 | `npm test`(29 suites / 548 tests passed), `npm --prefix src/backend test -- --runTestsByPath tests/direct-message.test.js`(1 suite / 12 tests passed) 통과 |
 | 전체 검증 | `npm run check` | 통과 | backend test, Prisma validate, frontend config/export 통합 확인 |
 | Prisma migration | `npx prisma migrate dev --name init` | 통과 | PR #41 기준 초기 migration 생성 |
 
@@ -402,7 +402,7 @@ Error middleware 테스트는 Prisma 런타임 오류가 사용자 응답에 raw
 
 학습 일정/칸반 태스크 API 테스트는 repository mock 기반으로 일정 CRUD, 태스크 CRUD, 태스크 상태 변경, 미인증 접근 차단, 다른 사용자 데이터 접근 차단, 잘못된 status 검증을 확인함. 프론트엔드 일정/칸반 화면 연동은 후속 작업으로 둠.
 
-AI 학습 지원 API 테스트는 repository mock과 provider mock/fallback 기반으로 AI 질의, 학습 추천, 텍스트 요약, 오답 분석 API를 확인함. `AI_API_KEY`가 없는 경우와 provider 실패 시 fallback 응답을 사용하며, 자동 테스트에서는 실제 외부 AI API를 호출하지 않음. `noteId`는 현재 로그인 사용자 소유 학습 노트만 허용하고, invalid noteId는 400, 존재하지 않거나 다른 사용자 소유 noteId는 404로 처리되는지 검증함.
+AI 학습 지원 API 테스트는 repository mock, provider mock/fallback, multipart memory upload fixture 기반으로 AI 질의, 학습 추천, 텍스트 요약, 오답 분석, 이미지 첨부 1차 검토, 텍스트 기반 PDF 학습자료 추출·노트·퀴즈 생성 API를 확인함. `AI_API_KEY`가 없는 경우와 provider 실패/한도 초과 시 fallback 응답을 사용하며, 자동 테스트에서는 실제 외부 AI API를 호출하지 않음. `noteId`는 현재 로그인 사용자 소유 학습 노트만 허용하고, invalid noteId는 400, 존재하지 않거나 다른 사용자 소유 noteId는 404로 처리되는지 검증함. 첨부 테스트는 파일 미첨부, 지원하지 않는 MIME/확장자, 용량 초과, 이미지 메타데이터 검토, 이미지 OCR 미지원 fallback, 텍스트 기반 PDF 추출, 파일 영구 저장 없음, raw provider body 미노출을 함께 검증함.
 
 관리자 API 테스트는 repository mock 기반으로 관리자 권한 및 일반 사용자 권한 접근 제한(401/403)을 확인하고, 사용자 상태 변경(제재), 신고 목록 및 처리 기록 조회, 게시글 삭제(HIDE action), 댓글 삭제, 챌린지 강제 종료 등의 관리자 조치 기능이 정상 수행되는지 검증함. 잘못된 id는 400, 존재하지 않는 대상은 404로 처리되는지와 관리자 자기 자신의 정지/비활성화 차단, `passwordHash` 등 민감정보 미노출도 함께 확인함.
 
