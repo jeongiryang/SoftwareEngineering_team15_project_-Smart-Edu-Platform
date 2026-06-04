@@ -378,7 +378,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.hero, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'focus-timer-overview' }} style={[styles.hero, shadows.card]}>
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>FOCUS TIMER</Text>
           <Text style={styles.title}>{translateText('집중 시간 기록')}</Text>
@@ -444,7 +444,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
           </Text>
         </View>
 
-        <View style={styles.focusModeRow}>
+        <View dataSet={{ sagakHelpTarget: 'focus-timer-mode' }} style={styles.focusModeRow}>
           {[
             { key: 'stopwatch', label: translateText('스톱워치') },
             { key: 'timer', label: translateText('타이머') }
@@ -534,7 +534,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
           </View>
         ) : null}
 
-        <View style={styles.focusClockPanel}>
+        <View dataSet={{ sagakHelpTarget: 'focus-timer-clock' }} style={styles.focusClockPanel}>
           <Text style={styles.focusClock}>{formatClock(displayFocusMs)}</Text>
           <Text style={styles.focusClockHint}>
             {focusTimerMode === 'timer'
@@ -562,7 +562,7 @@ export default function FocusTimerScreen({ onNavigate, token }) {
           ) : null}
         </View>
 
-        <View style={styles.focusTimerActions}>
+        <View dataSet={{ sagakHelpTarget: 'focus-timer-actions' }} style={styles.focusTimerActions}>
           {focusTimerStatus === 'idle' ? (
             <Pressable
               accessibilityRole="button"

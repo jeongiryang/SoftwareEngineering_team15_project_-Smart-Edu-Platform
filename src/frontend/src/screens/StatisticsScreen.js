@@ -448,7 +448,7 @@ export default function StatisticsScreen({ onNavigate, token }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.hero, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'statistics-overview' }} style={[styles.hero, shadows.card]}>
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>LEARNING STATISTICS</Text>
           <Text style={styles.title}>학습 통계 그래프</Text>
@@ -498,7 +498,7 @@ export default function StatisticsScreen({ onNavigate, token }) {
         </View>
       ) : null}
 
-      <View style={[styles.focusTimerCard, shadows.card]}>
+      <View dataSet={{ sagakHelpTarget: 'statistics-focus-link' }} style={[styles.focusTimerCard, shadows.card]}>
         <View style={styles.focusTimerHeader}>
           <View style={styles.focusTimerTitleGroup}>
             <Text style={styles.focusTimerEyebrow}>FOCUS TIMER</Text>
@@ -545,13 +545,13 @@ export default function StatisticsScreen({ onNavigate, token }) {
             <SummaryCard label="평균 세션" value={formatMinutes(averageMinutes)} helper={`태스크 ${monthSummary.taskCount || 0}개 기준`} />
           </View>
 
-          <View style={[styles.focusTypeCard, shadows.card]}>
+          <View dataSet={{ sagakHelpTarget: 'statistics-pattern' }} style={[styles.focusTypeCard, shadows.card]}>
             <View style={styles.focusTypeHeader}>
               <View style={styles.focusTypeTitleGroup}>
                 <Text style={styles.focusTypeEyebrow}>AI STYLE INSIGHT</Text>
                 <Text style={styles.focusTypeTitle}>집중력 유형 · {focusPrescription.type}</Text>
                 <Text style={styles.focusTypeSubtitle}>
-                  실제 외부 AI 호출 없이 통계 데이터를 기준으로 만든 데모 분석입니다.
+                  {translateText('집중 기록과 완료율을 기준으로 만든 규칙 기반 학습 패턴 안내입니다.')}
                 </Text>
               </View>
               <View style={[styles.focusTypeBadge, styles[`focusTypeBadge_${focusPrescription.tone}`]]}>
@@ -639,7 +639,7 @@ export default function StatisticsScreen({ onNavigate, token }) {
 
           {!hasAnyData ? <EmptyAction onPress={() => onNavigate('schedule')} /> : null}
 
-          <View style={styles.chartGrid}>
+          <View dataSet={{ sagakHelpTarget: 'statistics-charts' }} style={styles.chartGrid}>
             <View style={[styles.chartPanel, shadows.card]}>
               <View style={styles.panelHeader}>
                 <View>
