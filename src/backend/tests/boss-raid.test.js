@@ -24,7 +24,7 @@ function mockBuildRaid() {
     baseRewardPoints: 50,
     bonusRewardPoolPoints: 100,
     startsAt: new Date('2026-05-29T00:00:00Z'),
-    endsAt: new Date('2026-06-05T00:00:00Z'),
+    endsAt: new Date('2099-06-05T00:00:00Z'),
     isActive: true,
     badge: mockBossBadge
   };
