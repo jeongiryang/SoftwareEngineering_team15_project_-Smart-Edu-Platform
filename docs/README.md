@@ -69,6 +69,7 @@
 - [2026-05-29 회의록](./meeting-minutes/meeting-2026-05-29.md)
 - [2026-05-30 회의록](./meeting-minutes/meeting-2026-05-30.md)
 - [2026-06-01 회의록](./meeting-minutes/meeting-2026-06-01.md)
+- [2026-06-18 최종 발표 준비 회의록](./meeting-minutes/2026-06-18-final-presentation-prep.md)
 
 ## 8. 코드 리포지토리 제출 기준
 
