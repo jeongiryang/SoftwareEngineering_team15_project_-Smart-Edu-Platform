@@ -1,5 +1,13 @@
 # 사각사각 Smart Edu Platform
 
+## 최종 제출 링크
+
+| 항목 | 링크 |
+| --- | --- |
+| GitHub Repository | https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform.git |
+| 발표 영상 | https://www.youtube.com/watch?v=_CGbutTUGhk |
+| 배포 웹페이지 | https://sagaksagak-smart-edu.vercel.app/ |
+
 사각사각 Smart Edu Platform은 일정, 칸반, 노트, 퀴즈, AI 학습 보조, 집중 기록, 커뮤니티, 보상, 협동 학습을 한 흐름으로 묶은 개인화 학습 관리 플랫폼이다.
 
 이 README는 레포 첫 화면용 허브 문서이다. 긴 개발·협업 규칙은 [개발 및 협업 작업 규칙](./docs/development-workflow-rules.md)으로 이관해 관리한다.
