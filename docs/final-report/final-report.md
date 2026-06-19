@@ -1,5 +1,13 @@
 # 사각사각 Smart Edu Platform 최종 프로젝트 보고서
 
+## 최종 제출 링크
+
+| 항목 | 링크 |
+| --- | --- |
+| GitHub Repository | https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform.git |
+| 발표 영상 | https://www.youtube.com/watch?v=_CGbutTUGhk |
+| 배포 웹페이지 | https://sagaksagak-smart-edu.vercel.app/ |
+
 ## 표지
 
 | 항목 | 내용 |
@@ -16,7 +24,8 @@
 | 문서 인덱스 | [docs/README.md](../README.md) |
 | 배포 자료 | [설치 및 사용 가이드](../deployment/install-and-usage-guide.md), [배포 smoke test](../deployment/vercel-smoke-test.md) |
 | 발표 자료 | [발표자료 구성안](./presentation-outline.md), [발표 대본](./presentation-script.md), [데모 영상 시나리오](./demo-video-scenario.md) |
-| 발표 동영상 | 제출 시 비공개 YouTube 링크 첨부 |
+| 발표 동영상 | [YouTube 발표 영상](https://www.youtube.com/watch?v=_CGbutTUGhk) |
+| 배포 웹페이지 | [사각사각 Smart Edu Platform](https://sagaksagak-smart-edu.vercel.app/) |
 | 최신 Release | [GitHub Releases](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/releases/latest) |
 
 > 이 문서는 3단계 최종 제출용 보고서로, 요구사항, 설계, 구현, 테스트, 배포, AI 활용, 협업 운영, 한계와 확장 방향을 하나의 흐름으로 통합해 정리한다. 원문 요구사항과 설계 문서는 부록으로 연결하고, 본문은 제출용 요약과 해석 중심으로 작성한다.
