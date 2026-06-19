@@ -122,11 +122,15 @@ npm --prefix src/backend test -- --runTestsByPath tests/seed-dev.test.js
 
 상세 체크리스트는 [Vercel smoke test 문서](./vercel-smoke-test.md)를 참고한다.
 
-## 11. Demo 계정 안내
+## 11. 제출 및 배포 안내
+
+e캠퍼스 제출 설명란에는 배포 URL, GitHub Repository, 비공개 YouTube 발표 영상 링크를 함께 정리한다. Render 무료 플랜 특성상 백엔드 서버가 유휴 상태였다면 최초 접속 시 서버 로딩이 다소 오래 걸릴 수 있으므로, 제출 설명란에 이 점을 안내한다. 실제 DB URL, host, password, token, secret 원문은 제출물과 문서에 포함하지 않는다.
+
+## 12. Demo 계정 안내
 
 최신 seed에는 여러 demo 사용자 alias가 포함되어 있다. 문서에는 실제 비밀번호를 기록하지 않는다. 시연 전에는 팀 내부에서 승인된 방식으로 demo 계정 정보를 공유한다.
 
-## 12. 민감정보 관리
+## 13. 민감정보 관리
 
 - `.env`, DB URL, JWT secret, API key, token 원문을 문서에 작성하지 않는다.
 - 테스트 로그나 PR 본문에 secret이 포함되지 않게 확인한다.

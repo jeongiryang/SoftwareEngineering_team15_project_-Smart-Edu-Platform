@@ -15,6 +15,9 @@
 | Pull Request history | [pull requests](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pulls?q=is%3Apr) |
 | 문서 인덱스 | [docs/README.md](../README.md) |
 | 배포 자료 | [설치 및 사용 가이드](../deployment/install-and-usage-guide.md), [배포 smoke test](../deployment/vercel-smoke-test.md) |
+| 발표 자료 | [발표자료 구성안](./presentation-outline.md), [발표 대본](./presentation-script.md), [데모 영상 시나리오](./demo-video-scenario.md) |
+| 발표 동영상 | 제출 시 비공개 YouTube 링크 첨부 |
+| 최신 Release | [GitHub Releases](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/releases/latest) |
 
 > 이 문서는 3단계 최종 제출용 보고서로, 요구사항, 설계, 구현, 테스트, 배포, AI 활용, 협업 운영, 한계와 확장 방향을 하나의 흐름으로 통합해 정리한다. 원문 요구사항과 설계 문서는 부록으로 연결하고, 본문은 제출용 요약과 해석 중심으로 작성한다.
 
@@ -74,7 +77,7 @@ AI는 요구사항 정리, 테스트 케이스 후보 도출, 코드 리팩터�
 |---|---|---|
 | 1단계 | 요구사항 문서, AI simulation log, use case diagram, 설계 문서, UML/시퀀스 다이어그램 | 요구사항 분석과 설계 요약으로 통합하고 원문은 부록 링크로 연결 |
 | 2단계 | 구현 코드, 테스트 보고서, GitHub repository, PR/commit history | 핵심 기능 구현, 테스트 및 품질 보증, GitHub 운영 섹션으로 통합 |
-| 3단계 | 최종보고서, 배포 자료, 설치/사용 가이드, 데모 영상, 발표자료 | 배포 및 운영, 데모/발표 부록, 결론과 향후 확장성으로 정리 |
+| 3단계 | 최종보고서, 배포 자료, 설치/사용 가이드, 데모 영상, 발표자료, 발표 대본 | 배포 및 운영, 데모/발표 부록, 결론과 향후 확장성으로 정리 |
 
 ### 1.4 최종 구현 범위 요약
 
@@ -806,19 +809,24 @@ AI에게 단순히 “만들어 달라”라고 요청하는 것만으로는 원
 - [배포 smoke test](../deployment/vercel-smoke-test.md)
 - [데모 영상 시나리오](./demo-video-scenario.md)
 - [발표자료 구성안](./presentation-outline.md)
+- [발표 대본](./presentation-script.md)
+- 발표 동영상 링크: 제출 시 비공개 YouTube 링크 첨부
 
 ### 17.5 회의록
 
 - [문서 부록 인덱스의 회의록 목록](../README.md#7-회의록-부록)
 - [2026-06-01 회의록](../meeting-minutes/meeting-2026-06-01.md)
+- [2026-06-18 최종 발표 준비 회의록](../meeting-minutes/2026-06-18-final-presentation-prep.md)
 
 ### 17.6 GitHub 산출물
 
 - [GitHub Repository](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform)
 - [Commit history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/commits/main)
 - [Pull Request history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pulls?q=is%3Apr)
-- [Issue #389 보스 레이드 참여자별 숨김 및 중도 탈퇴 정책 설계](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389)
+- [GitHub Releases](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/releases/latest)
+- [PR #411 보스 레이드 참여자별 숨김 및 중도 탈퇴 정책 구현](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/411)
 
 ### 17.7 문서 인덱스
 
 - [docs/README.md](../README.md)
+- [screenshots manifest](../../screenshots/manifest.md)
