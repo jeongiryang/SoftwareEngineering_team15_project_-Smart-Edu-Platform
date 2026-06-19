@@ -1,6 +1,6 @@
 # Smart Edu Platform 문서 부록 인덱스
 
-> 최종 제출 문서: [최종 프로젝트 보고서](./final-report/final-report.md) · [발표자료 구성안](./final-report/presentation-outline.md) · [데모 영상 시나리오](./final-report/demo-video-scenario.md) · [설치 및 사용 가이드](./deployment/install-and-usage-guide.md)
+> 최종 제출 문서: [최종 프로젝트 보고서](./final-report/final-report.md) · [발표자료 구성안](./final-report/presentation-outline.md) · [발표 대본](./final-report/presentation-script.md) · [데모 영상 시나리오](./final-report/demo-video-scenario.md) · [설치 및 사용 가이드](./deployment/install-and-usage-guide.md)
 
 ## 1. 목적
 
@@ -12,12 +12,13 @@
 |---|---|---|
 | Phase 1 | 요구사항 문서, AI simulation log, use case diagram, 설계 문서, UML/시퀀스 다이어그램 | [요구사항 문서](./requirements/requirements-document.md), [AI simulation log](./requirements/ai-simulation-log.md), [사용자 인터뷰 시뮬레이션](./requirements/ai-user-interview-simulation.md), [클라이언트 인터뷰 시뮬레이션](./requirements/ai-client-interview-simulation.md), [설계 문서](./design/design-document.md), [아키텍처 개요](./design/architecture-overview.md), [클래스 다이어그램](./design/class-diagram.md), [시퀀스 다이어그램](./design/sequence-diagram.md) |
 | Phase 2 | 테스트 보고서, 유닛/통합 테스트 목록, 버그 로그, AI 보조 테스트 설계, GitHub repository 업데이트, commit/PR history | [테스트 보고서](./test-report/test-report.md), [API 명세](./api/api-spec.md), [AI 활용 정책](./ai-agent-usage-policy.md), [GitHub Repository](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform), [Commit history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/commits/main), [Pull Request history](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pulls?q=is%3Apr) |
-| Phase 3 | 최종 프로젝트 보고서, 배포 자료, 설치/사용 가이드, 데모 영상 시나리오, 발표자료 구성안 | [최종 프로젝트 보고서](./final-report/final-report.md), [설치 및 사용 가이드](./deployment/install-and-usage-guide.md), [배포 smoke test](./deployment/vercel-smoke-test.md), [데모 영상 시나리오](./final-report/demo-video-scenario.md), [발표자료 구성안](./final-report/presentation-outline.md) |
+| Phase 3 | 최종 프로젝트 보고서, 배포 자료, 설치/사용 가이드, 데모 영상 시나리오, 발표자료 구성안, 발표 대본, 발표 동영상 링크 | [최종 프로젝트 보고서](./final-report/final-report.md), [설치 및 사용 가이드](./deployment/install-and-usage-guide.md), [배포 smoke test](./deployment/vercel-smoke-test.md), [데모 영상 시나리오](./final-report/demo-video-scenario.md), [발표자료 구성안](./final-report/presentation-outline.md), [발표 대본](./final-report/presentation-script.md), 발표 동영상은 제출 시 비공개 YouTube 링크 첨부 |
 
 ## 3. 최종보고서 부록
 
 - [최종 프로젝트 보고서](./final-report/final-report.md): 전체 프로세스, 구현 기능, 테스트/배포, 한계와 확장성 정리
 - [발표자료 구성안](./final-report/presentation-outline.md): 10~15슬라이드 발표 흐름과 팀 발표 구성
+- [발표 대본](./final-report/presentation-script.md): 최종 발표 영상 녹화용 대본
 - [데모 영상 시나리오](./final-report/demo-video-scenario.md): 5~10분 데모 촬영 순서와 대체 시나리오
 - [설치 및 사용 가이드](./deployment/install-and-usage-guide.md): 로컬 실행, Prisma 검증, seed, 테스트, smoke test 절차
 - [배포 smoke test](./deployment/vercel-smoke-test.md): 배포 후 수동 확인 체크리스트
@@ -46,6 +47,7 @@
 - [테스트 보고서](./test-report/test-report.md): 유닛/통합 테스트 목록, 최신 Jest 결과, 버그 로그, AI 보조 테스트 설계 기록
 - [AI 활용 정책](./ai-agent-usage-policy.md): AI agent 사용 범위, 금지 작업, 민감정보 처리 기준
 - [개발 및 협업 작업 규칙](./development-workflow-rules.md): 이전 README에 포함되어 있던 branch, commit, PR, review, merge, seed/migration 주의사항 보존 문서
+- [screenshots manifest](../screenshots/manifest.md): 제출·데모용 화면 자료의 원본명과 최종 경로 매핑
 
 ## 7. 회의록 부록
 
@@ -76,7 +78,8 @@
 - Repository: [SoftwareEngineering_team15_project_-Smart-Edu-Platform](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform)
 - 최신 main commit history: [commits/main](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/commits/main)
 - PR review history: [pull requests](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pulls?q=is%3Apr)
-- Release/tag 정리는 전체 QA 이후 별도 작업으로 진행한다.
+- 최신 Release/tag: [GitHub Releases](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/releases/latest)
+- 발표 동영상 링크: 제출 시 e캠퍼스 설명란에 비공개 YouTube 링크를 첨부한다.
 
 ## 9. 주요 PR
 
@@ -94,12 +97,19 @@
 | seed | [#402](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/402) | 최신 기능 체험용 seed 데이터 최신화 | merged |
 | 문서 | [#406](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/406) | 최종 제출 문서 부록화 및 상호 링크 정리 | merged |
 | 최종보고서 | [#410](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/410) | 최종 프로젝트 보고서 본문 확장 | merged |
+| README/문서 허브 | [#413](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/413) | README 허브화 및 작업 규칙 이관 | merged |
+| 스크린샷 | [#417](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/417) | raw 스크린샷 및 영상 자료 기능별 분류와 manifest 정리 | merged |
+| AI 첨부 도구 | [#419](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/419) | AI 첨부·검토 도구 실제 분석 흐름 구현 | merged |
+| AI 문구/도움말 | [#421](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/421) | AI 첨부 문구 정리, 도움말 보강, 웹 연필 커서 적용 | merged |
+| 최종보고서 완성 | [#425](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/425) | 최종 프로젝트 보고서 완성 및 링크 매핑 정리 | merged |
+| 발표자료/대본 | [#434](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/434) | 최종 발표자료 구성안 및 데모 영상 계획 최신화 | merged |
+| 발표 대본 | [#436](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/pull/436) | 영상 길이에 맞춘 발표 대본 분량 수정 | merged |
 
 ## 10. 주요 Issue
 
 | 구분 | Issue | 내용 | 상태 |
 |---|---|---|---|
-| 보스 레이드 정책 | [#389](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389) | 보스 레이드 참여자별 숨김 및 중도 탈퇴 정책 | 이번 PR에서 해결 |
+| 보스 레이드 정책 | [#389](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/389) | 보스 레이드 참여자별 숨김 및 중도 탈퇴 정책 | closed, PR #411 |
 | 최종보고서 | [#409](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/409) | 최종 프로젝트 보고서 본문 확장 | closed |
 | 문서 부록화 | [#405](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/405) | 최종 제출 문서 부록화 및 상호 링크 정리 | closed |
 | seed | [#401](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/401) | 최신 기능 체험용 seed 데이터 최신화 | closed |
