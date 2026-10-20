@@ -1,16 +1,25 @@
-# 사각사각 Smart Edu Platform
+<h1 align="center">사각사각</h1>
 
-## 최종 제출 링크
+<p align="center">일정, 노트, 퀴즈, 집중 기록과 협동 학습을 모은 학습 관리 플랫폼.</p>
 
-| 항목 | 링크 |
-| --- | --- |
-| GitHub Repository | https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform.git |
-| 발표 영상 | https://www.youtube.com/watch?v=_CGbutTUGhk |
-| 배포 웹페이지 | https://sagaksagak-smart-edu.vercel.app/ |
+<p align="center">
+  <img src="https://img.shields.io/badge/Expo-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo">
+  <img src="https://img.shields.io/badge/React_Native_Web-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React Native Web">
+  <img src="https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white" alt="Express">
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white" alt="Prisma">
+</p>
 
-사각사각 Smart Edu Platform은 일정, 칸반, 노트, 퀴즈, AI 학습 보조, 집중 기록, 커뮤니티, 보상, 협동 학습을 한 흐름으로 묶은 개인화 학습 관리 플랫폼이다.
+<p align="center">
+  <a href="https://sagaksagak-smart-edu.vercel.app/">서비스</a> ·
+  <a href="https://www.youtube.com/watch?v=_CGbutTUGhk">발표 영상</a> ·
+  <a href="./docs/final-report/final-report.md">최종보고서</a> ·
+  <a href="./docs/deployment/install-and-usage-guide.md">설치 및 사용</a>
+</p>
 
-이 README는 레포 첫 화면용 허브 문서이다. 긴 개발·협업 규칙은 [개발 및 협업 작업 규칙](./docs/development-workflow-rules.md)으로 이관해 관리한다.
+![사각사각 공개 소개 화면](./docs/media/demo.gif)
+
+<p align="center"><sub>실제 배포 사이트의 로그인 전 소개 화면</sub></p>
 
 ## 프로젝트 개요
 
@@ -22,6 +31,8 @@
 | 주제 | Web/Mobile 기반 개인화 학습 관리 앱 |
 | Repository | [SoftwareEngineering_team15_project_-Smart-Edu-Platform](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform) |
 | 문서 인덱스 | [docs/README.md](./docs/README.md) |
+
+정이량은 팀장으로 협업 통합, PR 검토, 테스트·배포 확인을 맡았으며, 인트로와 서비스 소개 UI/UX를 다듬었다. [팀원별 회고](./docs/final-report/final-report.md#15-팀원별-소감)에서 각자의 작업 경험을 볼 수 있다.
 
 ## 주요 기능
 
@@ -64,7 +75,11 @@
 | 스크린샷 매핑 | [screenshots/manifest.md](./screenshots/manifest.md) | 제출·데모용 화면 자료 원본명과 최종 경로 매핑 |
 | AI 활용 정책 | [docs/ai-agent-usage-policy.md](./docs/ai-agent-usage-policy.md) | AI agent 사용 범위와 금지 작업 |
 | 개발 규칙 | [docs/development-workflow-rules.md](./docs/development-workflow-rules.md) | branch, commit, PR, merge, seed/migration/secret 주의사항 |
-| 최신 Release | [GitHub Releases](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/releases/latest) | 최종 제출 기준 최신 tag/release 확인 |
+
+<details>
+<summary>제출 산출물과 개발 기록</summary>
+
+- [릴리스 기록](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/releases)
 
 ## 최종 제출 산출물
 
@@ -114,6 +129,8 @@
 | 접근성 | [#393](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/393) | 접근성 돋보기 모드 추가 | closed |
 | 도움말 | [#397](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/397) | 핵심 화면 도움말 투어 모달 구현 | closed |
 | 개발 환경 참고 | [#78](https://github.com/jeongiryang/SoftwareEngineering_team15_project_-Smart-Edu-Platform/issues/78) | Windows 개발 환경 warning 및 Prisma Studio 참고 | open notice |
+
+</details>
 
 ## 개발 및 협업 규칙
 
