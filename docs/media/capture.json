@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "method": "Actual deployed browser viewport screenshots, resized and encoded to GIF with Pillow. No reused repository media or recreated UI.",
+  "file": "demo.gif",
+  "sourceUrl": "https://sagaksagak-smart-edu.vercel.app/",
+  "capturedAt": "2026-10-20T04:54:22.263Z",
+  "scene": "로그인 전 공개 랜딩 → 서비스 소개 섹션",
+  "scope": "공개 서비스 소개만 촬영. 인증 후 학습 기능의 실행 장면은 아님.",
+  "originalViewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "originalFrameCount": 43,
+  "gif": {
+    "size": [
+      960,
+      600
+    ],
+    "frames": 26,
+    "durationMs": 12660,
+    "bytes": 1455558
+  },
+  "sha256": "eea95c6d1cb2b47c2b5a4dece947c762ab9ee71a715dfb01edd824ae4dd0ebcc"
+}
